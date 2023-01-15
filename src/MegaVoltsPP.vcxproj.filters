@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\json">
+      <UniqueIdentifier>{7d04f730-679b-4330-8f91-e196007a486d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NetEngine">
+      <UniqueIdentifier>{437c9344-09b6-4dc9-a316-e0197ef6ed58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\BaseLib">
+      <UniqueIdentifier>{e5c54170-1c36-4eca-9fc8-a9c201dbe345}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NetEngine\Protocols">
+      <UniqueIdentifier>{ca118386-3a7b-4ce1-9a4b-b72bce63b6ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NetEngine\Packets">
+      <UniqueIdentifier>{f85f90e6-484f-4efe-86f7-24e60f8ecf63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\NetEngine">
+      <UniqueIdentifier>{3b9fc470-160f-4c78-9aab-3ed97df0c22a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\BaseLib">
+      <UniqueIdentifier>{a1cf3b2d-b0dc-486b-ace7-3f4cef7ae759}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\GameClient">
+      <UniqueIdentifier>{74e5086a-e187-41de-91e7-8380ff4451fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\GameClient">
+      <UniqueIdentifier>{674c20f3-799f-4f4c-a843-074e66b7a32a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\GameServer">
+      <UniqueIdentifier>{403ce832-4184-4d09-bd91-6348828c6748}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\GameServer">
+      <UniqueIdentifier>{1fe7b9bb-8d27-4c52-ad5f-802b7071dffc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CClient.cpp">
+      <Filter>Source Files\NetEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="CMessage.cpp">
+      <Filter>Source Files\NetEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="CSession.cpp">
+      <Filter>Source Files\NetEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="CLog.cpp">
+      <Filter>Source Files\BaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="CSettings.cpp">
+      <Filter>Source Files\BaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="CFrontClient.cpp">
+      <Filter>Source Files\GameClient</Filter>
+    </ClCompile>
+    <ClCompile Include="CServer.cpp">
+      <Filter>Source Files\NetEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CFrontServer.cpp">
+      <Filter>Source Files\GameServer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="asio\include\asio.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json\allocator.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\assertions.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\config.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\forwards.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json_features.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\reader.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\value.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\version.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\writer.h">
+      <Filter>Header Files\json</Filter>
+    </ClInclude>
+    <ClInclude Include="CClient.h">
+      <Filter>Header Files\NetEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="CCrypt.h">
+      <Filter>Header Files\NetEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="CMessage.h">
+      <Filter>Header Files\NetEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="CSession.h">
+      <Filter>Header Files\NetEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="CLog.h">
+      <Filter>Header Files\BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CSettings.h">
+      <Filter>Header Files\BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseProtocol.h">
+      <Filter>Header Files\NetEngine\Protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants.h">
+      <Filter>Header Files\NetEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketData.h">
+      <Filter>Header Files\NetEngine\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStruct.h">
+      <Filter>Header Files\NetEngine\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="CFrontClient.h">
+      <Filter>Header Files\GameClient</Filter>
+    </ClInclude>
+    <ClInclude Include="CServer.h">
+      <Filter>Header Files\NetEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="CFrontServer.h">
+      <Filter>Header Files\GameServer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="settings.json" />
+  </ItemGroup>
+</Project>

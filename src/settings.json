@@ -1,0 +1,25 @@
+{
+  "ServerSettings": {
+    "Front": {
+      "host": "",
+      "port": 13000
+    },
+    "Main": {
+      "host": "",
+      "port": 13005
+    },
+    "Cast": {
+      "host": "",
+      "port": 13006
+    }
+  },
+
+  "ChannelSettings": {
+    "ids": [ 1, 2, 3 ]
+  },
+
+  "AccountSettings": {
+    "username": "",
+    "password": ""
+  }
+}
