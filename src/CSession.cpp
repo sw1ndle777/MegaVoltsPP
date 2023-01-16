@@ -52,23 +52,32 @@ namespace NetEngine
     {
         m_on_disconnect_callback = callback;
     }
+    void CSession::SetServer(std::shared_ptr<CServer> server)
+    {
+        m_server = server;
+    }
     void CSession::SendRaw(const void* data, size_t size)
     {
-        if (!m_socket.is_open())
+        if (m_server != nullptr)
         {
-            return;
+            asio::post(*m_server->GetThreadPool(),
+                [this, data, size]()
+                {
+                    if (m_socket.is_open()) {
+                        asio::async_write(m_socket, asio::buffer(data, size),
+                            [this](const std::error_code& ec, std::size_t bytes_transferred)
+                            {
+                                if (ec) {
+                                    std::printf("CSession::Send() - Failed to send data: %s\n", ec.message().c_str());
+                                    BaseLib::EventLog->Error("CSession::Send() - Failed to send data: %s", ec.message().c_str());
+
+                                    Disconnect();
+                                }
+                            });
+                    }
+                });
         }
-
-        asio::error_code errorCode;
-        asio::write(m_socket, asio::buffer(data, size), errorCode);
-
-        if (errorCode)
-        {
-            std::printf("CSession::Send() - Failed to send data: %s\n", errorCode.message().c_str());
-            BaseLib::EventLog->Error("CSession::Send() - Failed to send data: %s", errorCode.message().c_str());
-
-            Disconnect();
-        }
+        else return;
     }
 
     void CSession::Send(CMessage& message)

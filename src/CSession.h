@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
-
+#include <atomic>
 #include <asio.hpp>
 
 #include "CMessage.h"
@@ -51,6 +51,7 @@ namespace NetEngine
         void SetEncryptionKey(int32_t key);
         void SetSessionId(uint16_t id);
         void SetOnDisconnectCallback(std::function<void(std::shared_ptr<CSession>)> callback);
+        void SetServer(std::shared_ptr<CServer> server);
         int32_t GetEncryptionKey();
         uint16_t GetSessionId();
         void Run();
@@ -60,17 +61,18 @@ namespace NetEngine
 
     private:
         std::map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
-
+        
         std::array<uint8_t, 1024> m_buffer{};
         std::vector<uint8_t> m_reader{};
         asio::ip::tcp::socket m_socket;
-
+        std::shared_ptr<CServer> m_server;
         bool m_verbose = false;
         bool m_useEncryption = false;
-
+       
         int32_t m_encryptionKey = -1;
         uint16_t m_sessionId = 0;
         std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback;
+        
     };
 
 }

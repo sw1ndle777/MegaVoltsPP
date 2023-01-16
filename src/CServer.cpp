@@ -12,8 +12,8 @@ namespace NetEngine
         m_concurrentThreads = settings.concurrent_threads;
 
         asio::error_code errorCode;
-        //asio::ip::tcp::resolver resolver(m_acceptor.get_executor().context());
-        //asio::ip::tcp::endpoint endpoint = *resolver.resolve(m_ip_address, m_port, errorCode).begin();
+        asio::ip::tcp::resolver resolver(m_ioContext);
+        asio::ip::tcp::endpoint endpoint = *resolver.resolve(m_ip_address, m_port, errorCode).begin();
 
         if (errorCode)
         {
@@ -31,12 +31,13 @@ namespace NetEngine
                 else if (m_concurrentThreads >= max_concurrent_threads)
                     m_concurrentThreads = max_concurrent_threads;
 
-                m_threadPool = std::make_shared<asio::thread_pool>(m_concurrentThreads);     
+                m_threadPool = std::make_shared<asio::thread_pool>(m_concurrentThreads);
             }
 
-
-            //m_acceptor.open(endpoint.protocol());
-            //m_acceptor.bind(endpoint);
+            m_server = shared_from_this();
+            m_acceptor.open(endpoint.protocol());
+            m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+            m_acceptor.bind(endpoint);
             m_acceptor.listen();
            
         }
@@ -59,11 +60,17 @@ namespace NetEngine
         AcceptSessions();
         m_ioContext.run();
     }
+
+    std::shared_ptr<asio::thread_pool> CServer::GetThreadPool()
+    {
+        return m_threadPool;
+    }
+    
     void CServer::AcceptSessions()
     {
         if (m_useMultithreaded)
         {
-            asio::post(m_threadPool->executor(), [this]()
+            asio::post(*this->GetThreadPool(), [this]()
                 {
                     m_acceptor.async_accept(m_socket, [this](std::error_code ec)
                         {
@@ -81,8 +88,9 @@ namespace NetEngine
                                     auto session = std::make_shared<CSession>(std::move(m_socket), settings, session_id);
                                     if (m_OnDisconnect) session->SetOnDisconnectCallback(m_OnDisconnect);
                                     if (m_OnConnect)  m_OnConnect(session);
+                                    session->SetServer(m_server);
                                     AddSession(session);
-                                    asio::post(m_threadPool->executor(), [session]() {session->Run(); });
+                                    asio::post(*this->GetThreadPool(), [session]() {session->Run(); });
                                 }
                                 else
                                 {
@@ -183,6 +191,10 @@ namespace NetEngine
     void CServer::OnSessionDisconnected(std::function<void(std::shared_ptr<CSession>)> callback)
     {
         this->m_OnDisconnect = callback;
+    }
+    bool CServer::IsMultiThreaded()
+    {
+        return this->m_useMultithreaded;
     }
 }
 

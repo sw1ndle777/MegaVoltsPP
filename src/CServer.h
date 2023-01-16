@@ -16,7 +16,7 @@
 namespace NetEngine
 {
     struct SCallbackData;
-    class CServer
+    class CServer : public std::enable_shared_from_this<CServer>
     {
     public:
         struct SServerSettings
@@ -35,6 +35,7 @@ namespace NetEngine
 
         void Setup(const SServerSettings& settings);
         void Run();
+        std::shared_ptr<asio::thread_pool> GetThreadPool();
         void AcceptSessions();
         void AddSession(const std::shared_ptr<CSession>& session);
         void RemoveSession(std::uint16_t id);
@@ -43,7 +44,7 @@ namespace NetEngine
         void On(std::uint16_t id, std::function<void(SCallbackData&)> callback);
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnSessionDisconnected(std::function<void(std::shared_ptr<CSession>)> callback);
-
+        bool IsMultiThreaded();
     private:
         std::map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
         std::unordered_map<std::uint16_t, std::shared_ptr<CSession>> m_sessions;
@@ -51,6 +52,7 @@ namespace NetEngine
         asio::ip::tcp::acceptor m_acceptor;
         asio::io_context m_ioContext;
         std::shared_ptr<asio::thread_pool> m_threadPool;
+        std::shared_ptr<CServer> m_server;
         asio::ip::tcp::endpoint m_endpoint;
         asio::ip::tcp::socket m_socket;
         std::string m_ip_address;
