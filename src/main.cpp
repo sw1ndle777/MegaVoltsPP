@@ -32,9 +32,10 @@ int main()
     BaseLib::EventLog->Info("Settings loaded..");
 
     Game::CFrontServer* frontServer = new Game::CFrontServer();
-    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings("0.0.0.0", "12000", true, true, 0);
+    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings("127.0.0.1", "12000", true, false, 0);
     frontServer->Setup(settings);
     frontServer->Run();
+   
 
     /*
     Game::CFrontClient* frontClient = new Game::CFrontClient();

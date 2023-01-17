@@ -42,7 +42,7 @@ namespace Game
 
     void CFrontServer::handle_FrontEngineServerConnection(std::shared_ptr<CSession> session)
     {
-        auto random_number = Utility::Random::Random().Gen();
+        auto random_number = 0;//Utility::Random::Random().Gen();
         auto utc_now = Utility::GetUtcTimeNow();
         auto time_zone = "GMT+2";
         auto readable_time = Utility::GetReadableTime(utc_now, time_zone);
@@ -57,8 +57,10 @@ namespace Game
 
         session->Send(frontEngineServerConnectionAckMessage);
 
-        EventLog->Info("CFrontServer() - Sent engine server connection acknowledge [Crypto key: %d] [Server time: %s] [Time zone: %s]", utc_now, readable_time.c_str(), time_zone);
-        std::printf("CFrontServer() - Sent engine server connection acknowledge [Crypto key: %d] [Server time: %s] [Time zone: %s]\n", utc_now, readable_time.c_str(), time_zone);
+        EventLog->Info("CFrontServer() - Sent engine server connection acknowledge");
+        EventLog->Info("CFrontServer() - [Crypto key: %d] [Server time: %s] [Time zone: %s]", random_number, readable_time.c_str(), time_zone);
+        std::printf("CFrontServer() - Sent engine server connection acknowledge\n");
+        std::printf("CFrontServer() - [Crypto key: %d] [Server time: %s] [Time zone: %s]\n", random_number, readable_time.c_str(), time_zone);
     }
     void CFrontServer::handle_FrontEngineServerDisconnection(std::shared_ptr<CSession> session)
     {
@@ -76,28 +78,37 @@ namespace Game
 
         FrontUserAccountInfo  accountInfo;
         accountInfo.level = 100;
-        accountInfo.experience = 0;
+        accountInfo.experience = 300;
         accountInfo.kills = 1337;
         accountInfo.deaths = 69;
         accountInfo.assists = 777;
         accountInfo.wins = 9999;
         accountInfo.losses = 1;
         accountInfo.draws = 444;
-        accountInfo.clanLogoFront = 16;
-        accountInfo.clanLogoBack = 16;
+        accountInfo.clanLogoFront = 301;
+        accountInfo.clanLogoBack = 302;
+        accountInfo.unknown = 3;
         
        
         strcpy(accountInfo.nickname, "sw1ndle");
-        strcpy(accountInfo.clanName, "nigger");
+        strcpy(accountInfo.clanName, "");
 
-        FrontLoginAuthorizeAck frontLoginAuthorizeAck = FrontLoginAuthorizeAck(1, accountInfo);
+        FrontLoginAuthorizeAck frontLoginAuthorizeAck = FrontLoginAuthorizeAck(100000000000000, accountInfo);
 
         CMessage frontLoginAuthorizeAckMessage = CMessage(session->GetEncryptionKey());
         frontLoginAuthorizeAckMessage.SetSession(session->GetSessionId());
-        frontLoginAuthorizeAckMessage.SetCommand(0x16, 0x00, FrontAuthorize::Type::Success, 0x00);
+        frontLoginAuthorizeAckMessage.SetCommand(0x16, 0x00, FrontAuthorize::Type::Success, 0x09);//player grade
         frontLoginAuthorizeAckMessage.SetData(reinterpret_cast<uint8_t*>(&frontLoginAuthorizeAck), sizeof(FrontLoginAuthorizeAck));
 
+
+        //auto header_array = Utility::GetBytesArray(reinterpret_cast<uint8_t*>(frontLoginAuthorizeAckMessage.GetHeader().data), sizeof(frontLoginAuthorizeAckMessage.GetHeader().data));
+        //auto command_array = Utility::GetBytesArray(reinterpret_cast<uint8_t*>(frontLoginAuthorizeAckMessage.GetCommand().data), sizeof(frontLoginAuthorizeAckMessage.GetCommand().data));
+        
+
         session->Send(frontLoginAuthorizeAckMessage);
+        auto data_array = Utility::GetBytesArray(frontLoginAuthorizeAckMessage.GetData(), frontLoginAuthorizeAckMessage.GetDataSize());
+        std::printf("CFrontServer(Size:%d) - %s\n", frontLoginAuthorizeAckMessage.GetDataSize(), data_array.c_str());
+
         EventLog->Info("CFrontServer() - Sent login authorize info for (%s)", accountInfo.nickname);
         std::printf("CFrontServer() - Sent login authorize info for (%s)\n", accountInfo.nickname);
     }

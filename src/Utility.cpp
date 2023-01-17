@@ -34,25 +34,24 @@ namespace Utility
     {
         auto& time_offset = time_zones[time_zone];
         auto offset = std::stoi(time_offset.substr(4));
-        time += offset * 3600;
-        auto timeinfo = std::gmtime(reinterpret_cast<const time_t*>(&time));
-        char buffer[80];
-        std::strftime(buffer, 80, "%c %Z", timeinfo);
-        return buffer;
+        auto time_point = std::chrono::system_clock::from_time_t(time);
+
+        time_point += std::chrono::hours(offset);
+        std::time_t time_t_time = std::chrono::system_clock::to_time_t(time_point);
+        std::tm tm_time;
+        localtime_s(&tm_time, &time_t_time);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&time_t_time), "%c %Z");
+        return ss.str();
     }
-    void PrintBytes(std::ostream& out, const char* title, const unsigned char* data, size_t dataLen, bool format)
+    std::string GetBytesArray(std::uint8_t* data, std::uint16_t size)
     {
-        out << title << std::endl;
-        out << std::setfill('0');
-
-        for (size_t i = 0; i < dataLen; ++i) {
-            out << std::hex << std::setw(2) << (int)data[i];
-            if (format) {
-                out << (((i + 1) % 16 == 0) ? "\n" : " ");
-            }
+        std::stringstream ss;
+        ss << std::hex;
+        for (std::size_t i = 0; i < size; ++i) {
+            ss << std::setw(2) << std::setfill('0') << (int)data[i] << ' ';
         }
-
-        out << std::endl;
+        return ss.str();
     }
 
 }

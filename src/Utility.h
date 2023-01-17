@@ -8,7 +8,7 @@
 #include <random>
 #include <chrono>
 #include <map>
-
+#include <sstream>
 namespace Utility
 {
    
@@ -23,7 +23,7 @@ namespace Utility
     };
     std::uint32_t GetUtcTimeNow();
     std::string GetReadableTime(std::uint32_t time, std::string time_zone);
-    void PrintBytes(std::ostream& out, const char* title, const unsigned char* data, size_t dataLen, bool format = true);
+    std::string GetBytesArray(std::uint8_t* data, std::uint16_t size);
 }
 
 

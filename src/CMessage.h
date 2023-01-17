@@ -56,7 +56,14 @@ namespace NetEngine
         }
 
         uint8_t* GenerateMessage();
-
+        Protocols::STcpPacketHeader GetHeader()
+        {
+            return m_header;
+        }
+        Protocols::SCommandHeader GetCommand()
+        {
+            return m_command;
+        }
     private:
         void processMessage(uint8_t* data, uint16_t size);
         void generateBogus();

@@ -58,8 +58,11 @@ namespace NetEngine
     }
     void CSession::SendRaw(const void* data, size_t size)
     {
+        /*
+        std::scoped_lock<std::shared_mutex> lock(m_server->GetThreadPoolMutex());
         if (m_server != nullptr)
         {
+
             asio::post(*m_server->GetThreadPool(),
                 [this, data, size]()
                 {
@@ -78,6 +81,24 @@ namespace NetEngine
                 });
         }
         else return;
+        */
+
+        if (!m_socket.is_open())
+        {
+            return;
+        }
+
+        asio::async_write(m_socket, asio::buffer(data, size),
+            [this](const std::error_code& ec, std::size_t bytes_transferred)
+            {
+                if (ec) {
+                    std::printf("CSession::Send() - Failed to send data: %s\n", ec.message().c_str());
+                    BaseLib::EventLog->Error("CSession::Send() - Failed to send data: %s", ec.message().c_str());
+
+                    Disconnect();
+                }
+            });
+
     }
 
     void CSession::Send(CMessage& message)
@@ -139,26 +160,28 @@ namespace NetEngine
     {
         if (!m_socket.is_open())
         {
+            std::printf("CSession::Run() - Socket not open\n");
+            BaseLib::EventLog->Error("CSession::Run() - Socket not open");
             return;
-        }
 
+        }
         asio::error_code errorCode;
         auto self(shared_from_this());
 
         m_socket.async_read_some(asio::buffer(m_buffer.data(), m_buffer.size()), [this, self](const asio::error_code& errorCode, size_t bytesTransferred)
             {
-                if (errorCode == asio::error::eof)
+                if (errorCode || bytesTransferred < 0)
                 {
-                    std::printf("CSession::beginRead() - The peer closed the connection unexpectedly: %s", errorCode.message().c_str());
-                    BaseLib::EventLog->Error("CSession::beginRead() - The peer closed the connection unexpectedly: %s", errorCode.message().c_str());
-
-                    Disconnect();
-                    return;
-                }
-                else if (errorCode || bytesTransferred < 0)
-                {
-                    std::printf("CSession::beginRead() - Failed to read data: %s", errorCode.message().c_str());
-                    BaseLib::EventLog->Error("CSession::beginRead() - Failed to read data: %s", errorCode.message().c_str());
+                    if (errorCode == asio::error::eof)
+                    {
+                        std::printf("CSession::Run() - The peer closed the connection unexpectedly: %s", errorCode.message().c_str());
+                        BaseLib::EventLog->Error("CSession::Run() - The peer closed the connection unexpectedly: %s", errorCode.message().c_str());
+                    }
+                    else
+                    {
+                        std::printf("CSession::Run() - Failed to read data: %s", errorCode.message().c_str());
+                        BaseLib::EventLog->Error("CSession::Run() - Failed to read data: %s", errorCode.message().c_str());
+                    }
                     Disconnect();
                     return;
                 }
@@ -182,8 +205,8 @@ namespace NetEngine
 
             if (header.size >= 2047) // Manage unencrypted packet with wrong size
             {
-                std::printf("CSession::beginRead() - Invalid packet size: %d\n", header.size);
-                BaseLib::EventLog->Error("CSession::beginRead() - Invalid packet size: %d", header.size);
+                std::printf("CSession::Run() - Invalid packet size: %d\n", header.size);
+                BaseLib::EventLog->Error("CSession::Run() - Invalid packet size: %d", header.size);
 
                 Disconnect();
                 return;
@@ -200,7 +223,6 @@ namespace NetEngine
                 m_reader.resize(newSize);
             }
         }
-
         Run();
             });
     }
