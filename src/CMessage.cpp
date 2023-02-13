@@ -98,6 +98,16 @@ namespace NetEngine
         return m_command.option;
     }
 
+    Protocols::STcpPacketHeader CMessage::GetHeader()
+    {
+        return m_header;
+    }
+
+    Protocols::SCommandHeader CMessage::GetCommand()
+    {
+        return m_command;
+    }
+
     uint32_t CMessage::GetDataSize()
     {
         return m_data_size;

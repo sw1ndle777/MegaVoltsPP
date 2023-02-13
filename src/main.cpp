@@ -22,17 +22,17 @@ using namespace NetEngine::Packets::Front;
 int main()
 {
     std::srand(std::time(NULL));
-    std::filesystem::path cwd = std::filesystem::current_path() / "MVBot.log";
+    std::filesystem::path cwd = std::filesystem::current_path() / "MegaVoltsPP.log";
 
     BaseLib::EventLog->Initialize(cwd.string(), true);
-    BaseLib::EventLog->Info("MVClientlessBot initialization..");
+    BaseLib::EventLog->Info("MegaVoltsPP initialization..");
 
     BaseLib::EventLog->Info("Loading settings..");
     BaseLib::DefaultSettings->LoadOptions();
     BaseLib::EventLog->Info("Settings loaded..");
 
     Game::CFrontServer* frontServer = new Game::CFrontServer();
-    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings("127.0.0.1", "12000", true, false, 0);
+    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings("127.0.0.1", "12000", true, true, 0);
     frontServer->Setup(settings);
     frontServer->Run();
    

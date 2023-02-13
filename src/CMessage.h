@@ -31,7 +31,8 @@ namespace NetEngine
         uint16_t GetOrder();
         uint8_t GetExtra();
         uint8_t GetOption();
-
+        Protocols::STcpPacketHeader GetHeader();
+        Protocols::SCommandHeader GetCommand();
         uint32_t GetDataSize();
         uint32_t GetFullSize();
 
@@ -56,14 +57,6 @@ namespace NetEngine
         }
 
         uint8_t* GenerateMessage();
-        Protocols::STcpPacketHeader GetHeader()
-        {
-            return m_header;
-        }
-        Protocols::SCommandHeader GetCommand()
-        {
-            return m_command;
-        }
     private:
         void processMessage(uint8_t* data, uint16_t size);
         void generateBogus();

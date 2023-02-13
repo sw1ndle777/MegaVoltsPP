@@ -38,17 +38,17 @@ namespace NetEngine
         settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
 
         asio::connect(m_socket, endpoints, errorCode);
-        std::make_shared<CSession>(std::move(m_socket), settings, 0)->Run();
+        std::make_shared<CSession>(std::move(m_socket), settings, 0)->DoRead();
 
         if (errorCode)
         {
             std::printf("CClient::Connect() - Failed to connect: %s\n", errorCode.message().c_str());
-            BaseLib::EventLog->Error("CClient::Connect() - Failed to connect: %s", errorCode.message().c_str());
+            BaseLib::EventLog->Error("CClient::Connect() - Failed to connect: %s",errorCode.message().c_str());
             return;
         }
 
         std::printf("CClient::Connect() - Connected to %s:%s\n", m_ip_address.c_str(), m_port.c_str());
-        BaseLib::EventLog->Info("CClient::Connect() - Connected to %s:%s", m_ip_address.c_str(), m_port.c_str());
+        BaseLib::EventLog->Info("CClient::Connect() - Connected to %s:%s",m_ip_address.c_str(), m_port.c_str());
     }
 
     void CClient::Update()

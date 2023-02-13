@@ -56,59 +56,41 @@ namespace NetEngine
     {
         m_server = server;
     }
-    void CSession::SendRaw(const void* data, size_t size)
-    {
-        /*
-        std::scoped_lock<std::shared_mutex> lock(m_server->GetThreadPoolMutex());
-        if (m_server != nullptr)
-        {
-
-            asio::post(*m_server->GetThreadPool(),
-                [this, data, size]()
-                {
-                    if (m_socket.is_open()) {
-                        asio::async_write(m_socket, asio::buffer(data, size),
-                            [this](const std::error_code& ec, std::size_t bytes_transferred)
-                            {
-                                if (ec) {
-                                    std::printf("CSession::Send() - Failed to send data: %s\n", ec.message().c_str());
-                                    BaseLib::EventLog->Error("CSession::Send() - Failed to send data: %s", ec.message().c_str());
-
-                                    Disconnect();
-                                }
-                            });
-                    }
-                });
-        }
-        else return;
-        */
-
-        if (!m_socket.is_open())
-        {
-            return;
-        }
-
-        asio::async_write(m_socket, asio::buffer(data, size),
-            [this](const std::error_code& ec, std::size_t bytes_transferred)
-            {
-                if (ec) {
-                    std::printf("CSession::Send() - Failed to send data: %s\n", ec.message().c_str());
-                    BaseLib::EventLog->Error("CSession::Send() - Failed to send data: %s", ec.message().c_str());
-
-                    Disconnect();
-                }
-            });
-
-    }
 
     void CSession::Send(CMessage& message)
     {
+        std::unique_lock ul(SendMtx);
         if (!m_socket.is_open())
-        {
             return;
-        }
 
-        SendRaw(message.GenerateMessage(), message.GetFullSize());
+        auto data = message.GenerateMessage();
+        std::vector<uint8_t> data_vec(&data[0], &data[message.GetFullSize()]);
+        m_SendQueue.push(data_vec);
+        if (m_verbose)
+        {
+            int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
+            CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data_vec.data()), data_vec.size(), encryptionKey);
+            std::string data_buffer;
+            for (std::int32_t i = 0; i < 4; i++)
+                data_buffer += std::format("{:02X} ", (unsigned char)packetMessage.GetHeader().data >> (i * 8));
+
+            for (std::int32_t i = 0; i < 4; i++)
+                data_buffer += std::format("{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+
+            for (std::int32_t i = 0; i < packetMessage.GetDataSize(); i++)
+            {
+                data_buffer += std::format("{:02X}", (unsigned char)packetMessage.GetData()[i]);
+                if (i != packetMessage.GetDataSize() - 1) data_buffer += " ";
+            }
+            auto info = std::format("CSession()->Send() ({:d} bytes)\nOrder: 0x{:02X}\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetOrder(), data_buffer);
+            std::printf("%s\n", info.c_str());
+            BaseLib::EventLog->Info(info.c_str());
+        }
+        ul.unlock();
+        bool expected = false;
+        bool desired = true;
+        if (m_InSend.compare_exchange_strong(expected, desired))
+            DoWrite();
     }
 
     void CSession::SetEncryptionKey(int32_t key)
@@ -141,6 +123,25 @@ namespace NetEngine
         int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
         CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data.data()), data.size(), encryptionKey);
 
+        if (m_verbose)
+        {
+            std::string data_buffer;
+            for (std::int32_t i = 0; i < 4; i++)
+                data_buffer += std::format("{:02X} ", (unsigned char)packetMessage.GetHeader().data >> (i * 8));
+
+            for (std::int32_t i = 0; i < 4; i++)
+                data_buffer += std::format("{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+
+            for (std::int32_t i = 0; i < packetMessage.GetDataSize(); i++)
+            {
+                data_buffer += std::format("{:02X}", (unsigned char)packetMessage.GetData()[i]);
+                if (i != packetMessage.GetDataSize() - 1) data_buffer += " ";
+            }
+            auto info = std::format("CSession()->onPacket() ({:d} bytes)\nOrder: 0x{:02X}\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetOrder(), data_buffer);
+            std::printf("%s\n", info.c_str());
+            BaseLib::EventLog->Info(info.c_str());
+        }
+
         if (m_callbacks.count(packetMessage.GetOrder()) == 0)
         {
             std::printf("CSession::OnPacket() - No callback for packet with order %d\n", packetMessage.GetOrder());
@@ -156,7 +157,7 @@ namespace NetEngine
         m_callbacks[packetMessage.GetOrder()](callbackData);
     }
 
-    void CSession::Run()
+    void CSession::DoRead()
     {
         if (!m_socket.is_open())
         {
@@ -223,7 +224,40 @@ namespace NetEngine
                 m_reader.resize(newSize);
             }
         }
-        Run();
+        DoRead();
+            });
+    }
+    void CSession::DoWrite()
+    {
+        std::unique_lock lg(SendMtx);
+        if (m_SendQueue.empty()) 
+        {
+            m_InSend = false;
+            return;
+        }
+        if (!m_socket.is_open())
+        {
+            return;
+        }
+        auto& next = m_SendQueue.front();
+        lg.unlock();
+
+        auto self = shared_from_this();
+        asio::async_write(m_socket, asio::buffer(next.data(), next.size()), [self](const std::error_code& ec, std::size_t bytes_transferred)
+            {
+            if (!ec) 
+            {
+                std::unique_lock lg(self->SendMtx);
+                self->m_SendQueue.pop();
+                lg.unlock();
+                self->DoWrite();
+            }
+            else
+            {
+                std::printf("CSession::Send() - Failed to send data: %s\n", ec.message().c_str());
+                BaseLib::EventLog->Error("CSession::Send() - Failed to send data: %s", ec.message().c_str());
+                self->Disconnect();
+            }
             });
     }
 }

@@ -101,7 +101,7 @@ namespace NetEngine
 
                 FrontServerInfoAck(std::vector<FrontServerInfo> serverInfos)
                 {
-                    memset(this, 0, sizeof(FrontServerInfoAck));
+                    memset(this, 0, serverInfos.size() * sizeof(FrontServerInfo));
                     std::copy(serverInfos.begin(), serverInfos.end(), this->serverInfos);
                 }
 

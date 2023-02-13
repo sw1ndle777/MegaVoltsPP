@@ -106,8 +106,8 @@ namespace Game
         
 
         session->Send(frontLoginAuthorizeAckMessage);
-        auto data_array = Utility::GetBytesArray(frontLoginAuthorizeAckMessage.GetData(), frontLoginAuthorizeAckMessage.GetDataSize());
-        std::printf("CFrontServer(Size:%d) - %s\n", frontLoginAuthorizeAckMessage.GetDataSize(), data_array.c_str());
+       // auto data_array = Utility::GetBytesArray(frontLoginAuthorizeAckMessage.GetData(), frontLoginAuthorizeAckMessage.GetDataSize());
+       // std::printf("CFrontServer(Size:%d) - %s\n", frontLoginAuthorizeAckMessage.GetDataSize(), data_array.c_str());
 
         EventLog->Info("CFrontServer() - Sent login authorize info for (%s)", accountInfo.nickname);
         std::printf("CFrontServer() - Sent login authorize info for (%s)\n", accountInfo.nickname);
@@ -125,25 +125,31 @@ namespace Game
         std::printf("CFrontServer() - Received server info request from client\n");
 
         std::vector<FrontServerInfo> server_infos;
-        for (std::uint32_t i = 0; i < 6; i++)
+        for (std::uint32_t i = 1; i < 2; i++)
         {
             FrontServerInfo server_info;
             server_info.serverId = i;
             server_info.channel1 = ChannelInfo::Status::Normal;
             server_info.channel2 = ChannelInfo::Status::Busy;
             server_info.channel3 = ChannelInfo::Status::VeryBusy;
+            server_info.channel4 = ChannelInfo::Status::VeryBusy;
+            server_info.channel5 = ChannelInfo::Status::VeryBusy;
+            server_info.channel6 = ChannelInfo::Status::VeryBusy;
             server_infos.push_back(server_info);
         }
-        FrontServerInfoAck frontServerInfoAck = FrontServerInfoAck(server_infos);
+       // FrontServerInfoAck frontServerInfoAck = FrontServerInfoAck(server_infos);
 
         CMessage frontServerInfoAckMessage = CMessage(session->GetEncryptionKey());
         frontServerInfoAckMessage.SetSession(session->GetSessionId());
         frontServerInfoAckMessage.SetCommand(0x17, 0x00, 0, server_infos.size());
-        frontServerInfoAckMessage.SetData(reinterpret_cast<uint8_t*>(&frontServerInfoAck), sizeof(FrontServerInfoAck));
+        frontServerInfoAckMessage.SetData(reinterpret_cast<uint8_t*>(server_infos.data()), server_infos.size() * sizeof(FrontServerInfo));
 
         session->Send(frontServerInfoAckMessage);
-        EventLog->Info("CFrontServer() - Sent (%d) server%s channel info", server_infos.size(), (server_infos.size() == 1) ? "" : "s");
-        std::printf("CFrontServer() - Sent (%d) server%s channel info\n", server_infos.size(), (server_infos.size() == 1) ? "" : "s");
+        EventLog->Info("CFrontServer() - Sent (%d) server's channel info", server_infos.size());
+        std::printf("CFrontServer() - Sent (%d) server's channel info\n", server_infos.size());
+
+        //EventLog->Info("CFrontServer() - Sent (%d) server%s channel info", server_infos.size(), (server_infos.size() == 1) ? "" : "s");
+        //std::printf("CFrontServer() - Sent (%d) server%s channel info\n", server_infos.size(), (server_infos.size() == 1) ? "" : "s");
         
     }
 }

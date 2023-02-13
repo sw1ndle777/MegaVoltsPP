@@ -24,7 +24,7 @@ namespace NetEngine
         }
         else
         {
-            /*
+            
             if (m_useMultithreaded && m_concurrentThreads != 1)
             {
                 auto max_concurrent_threads = std::thread::hardware_concurrency();
@@ -32,10 +32,8 @@ namespace NetEngine
                     m_concurrentThreads = max_concurrent_threads;
                 else if (m_concurrentThreads >= max_concurrent_threads)
                     m_concurrentThreads = max_concurrent_threads;
-
-                m_threadPool = std::make_shared<asio::thread_pool>(m_concurrentThreads);
             }
-            */
+            
             m_available_session_ids.resize(65536);
             std::iota(m_available_session_ids.begin(), m_available_session_ids.end(), 0);
 
@@ -51,82 +49,48 @@ namespace NetEngine
     {
         std::printf("CServer::Run() - Running server on: %s:%s\n", m_ip_address.c_str(), m_port.c_str());
         std::printf("CServer::Run() - m_useEncryption: %s\n", m_useEncryption ? "true" : "false");
-        //if (m_useMultithreaded)
-        //    std::printf("CServer::Run() - m_useMultithreaded: true\nCServer::Run() - m_concurrentThreads: %d out of %d\n", m_concurrentThreads, std::thread::hardware_concurrency());
+        if (m_useMultithreaded)
+            std::printf("CServer::Run() - m_useMultithreaded: true\nCServer::Run() - m_concurrentThreads: %d out of %d\n", m_concurrentThreads, std::thread::hardware_concurrency());
 
         BaseLib::EventLog->Error("CServer::Run() - Running server on: %s:%s", m_ip_address.c_str(), m_port.c_str());
         BaseLib::EventLog->Error("CServer::Run() - m_useEncryption: %s", m_useEncryption ? "true" : "false");
-       /* if (m_useMultithreaded)
+        if (m_useMultithreaded)
         {
             BaseLib::EventLog->Error("CServer::Run() - m_useMultithreaded: true");
             BaseLib::EventLog->Error("CServer::Run() - m_concurrentThreads: %d out of %d", m_concurrentThreads, std::thread::hardware_concurrency());
-        }*/
-        //m_threadPool->join();
-        AcceptSessions();
-        while (true)
-        {
-            m_ioContext.run();
+            
+            auto work = asio::make_work_guard(m_ioContext);
+            for (std::uint32_t i = 0; i < m_concurrentThreads; i++)
+                threads.emplace_back(std::jthread([&] { m_ioContext.run(); }));
+
+            AcceptSessions();
+            for (auto& t : threads)
+                t.join();
         }
+        else
+        {
+            auto work = asio::make_work_guard(m_ioContext);
+            AcceptSessions();
+            while (true)
+            {
+                m_ioContext.run();
+            }
+        }
+       
+       
+        
     }
 
    
     
     void CServer::AcceptSessions()
     {
-        /*
-        if (m_useMultithreaded)
-        {
-            std::scoped_lock<std::shared_mutex> lock(m_acceptorMutex);
-            asio::post(*this->m_threadPool, [this]()
-                {
-                    
-                    m_acceptor->async_accept(m_socket, [this](std::error_code ec)
-                        {
-                            if (!ec)
-                            {
-                                CSession::SSessionSettings settings;
-
-                                settings.verbose = false;
-                                settings.useEncryption = m_useEncryption;
-                                settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
-
-                                std::uint16_t session_id = 0;
-                                if (GetNextAvailableSessionId(session_id))
-                                {
-                                    auto session = std::make_shared<CSession>(std::move(m_socket), settings, session_id);
-                                    if (m_OnDisconnect) session->SetOnDisconnectCallback(m_OnDisconnect);
-                                    if (m_OnConnect)  m_OnConnect(session);
-                                    session->SetServer(GetShared());
-                                    AddSession(session);
-                                    std::scoped_lock<std::shared_mutex> session_lock(m_sessionMutex);
-                                    asio::post(*this->m_threadPool, [session]() {session->Run(); });
-                                }
-                                else
-                                {
-                                    std::printf("CServer::AcceptSessions() - There's no available session id, session pool is full!\n");
-                                    BaseLib::EventLog->Error("CServer::AcceptSessions() - There's no available session id, session pool is full!");
-                                }
-                            }
-                            else
-                            {
-                                std::printf("CServer::AcceptSessions() - Failed to accept session: %s\n", ec.message().c_str());
-                                BaseLib::EventLog->Error("CServer::AcceptSessions() - Failed to accept session: %s", ec.message().c_str());
-                            }
-            AcceptSessions();
-                        });
-                });
-        }
-        else
-        {
-            
-
-        }*/
         m_acceptor->async_accept(m_socket, [this](std::error_code ec) {
             if (!ec)
             {
                 CSession::SSessionSettings settings;
 
-                settings.verbose = false;
+                settings.verbose = true;
                 settings.useEncryption = m_useEncryption;
                 settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
 
@@ -137,7 +101,7 @@ namespace NetEngine
                     if (m_OnDisconnect) session->SetOnDisconnectCallback(m_OnDisconnect);
                     if (m_OnConnect)  m_OnConnect(session);
                     AddSession(session);
-                    session->Run();
+                    session->DoRead();
                 }
                 else
                 {
@@ -150,7 +114,7 @@ namespace NetEngine
                 std::printf("CServer::AcceptSessions() - Failed to accept session: %s\n", ec.message().c_str());
                 BaseLib::EventLog->Error("CServer::AcceptSessions() - Failed to accept session: %s", ec.message().c_str());
             }
-        //AcceptSessions();
+        AcceptSessions();
             });
        
     }
