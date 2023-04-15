@@ -1,5 +1,7 @@
 #include "CFrontServer.h"
 #include "Utility.h"
+#include "CDatabase.h"
+#include "CThreadPool.h"
 namespace Game
 {
     struct FrontAuthorize
@@ -76,41 +78,65 @@ namespace Game
         EventLog->Info("CFrontServer() - Received login authorize request from client (id: %s) (pw: %s)", loginAuthorizeReq->username, loginAuthorizeReq->password);
         std::printf("CFrontServer() - Received login authorize request from client (id: %s) (pw: %s)\n", loginAuthorizeReq->username, loginAuthorizeReq->password);
 
-        FrontUserAccountInfo  accountInfo;
-        accountInfo.level = 100;
-        accountInfo.experience = 300;
-        accountInfo.kills = 1337;
-        accountInfo.deaths = 69;
-        accountInfo.assists = 777;
-        accountInfo.wins = 9999;
-        accountInfo.losses = 1;
-        accountInfo.draws = 444;
-        accountInfo.clanLogoFront = 301;
-        accountInfo.clanLogoBack = 302;
-        accountInfo.unknown = 3;
-        
+        BaseLib::ThreadPool->post([loginAuthorizeReq, session]()
+            {
+                BaseLib::FrontAccount frontAccount;
+                auto AccountFound = BaseLib::Database->GetFrontAccount(loginAuthorizeReq->username, &frontAccount);
+                CMessage frontLoginAuthorizeAckMessage = CMessage(session->GetEncryptionKey());
+                frontLoginAuthorizeAckMessage.SetSession(session->GetSessionId());
+                if (AccountFound)
+                {
+                    if (Utility::IsPasswordValid(loginAuthorizeReq->password, frontAccount.Password.c_str(), frontAccount.Salt.c_str()))
+                    {
+                        FrontUserAccountInfo  accountInfo;
+                        accountInfo.level = 100;
+                        accountInfo.experience = 300;
+                        accountInfo.kills = 1337;
+                        accountInfo.deaths = 69;
+                        accountInfo.assists = 777;
+                        accountInfo.wins = 9999;
+                        accountInfo.losses = 1;
+                        accountInfo.draws = 444;
+                        accountInfo.clanLogoFront = 301;
+                        accountInfo.clanLogoBack = 302;
+                        accountInfo.unknown = 0;
+
+
+                        strcpy(accountInfo.nickname, "sw1ndle");
+                        strcpy(accountInfo.clanName, "");
+
+                        FrontLoginAuthorizeAck frontLoginAuthorizeAck = FrontLoginAuthorizeAck(frontAccount.AuthKey, accountInfo);
+
+
+                        frontLoginAuthorizeAckMessage.SetCommand(0x16, 0x00, FrontAuthorize::Type::Success, frontAccount.Grade);//player grade
+                        frontLoginAuthorizeAckMessage.SetData(reinterpret_cast<uint8_t*>(&frontLoginAuthorizeAck), sizeof(FrontLoginAuthorizeAck));
+                        EventLog->Info("CFrontServer() - Sent login authorize info for (%s)", accountInfo.nickname);
+                        std::printf("CFrontServer() - Sent login authorize info for (%s)\n", accountInfo.nickname);
+                    }
+                    else
+                    {
+                        frontLoginAuthorizeAckMessage.SetCommand(0x16, 0x00, FrontAuthorize::Type::Wrong, frontAccount.Grade);//player grade
+                    }
+                }
+                else
+                    frontLoginAuthorizeAckMessage.SetCommand(0x16, 0x00, FrontAuthorize::Type::DontExist, frontAccount.Grade);//player grade
+
+                session->Send(frontLoginAuthorizeAckMessage);
+
+            });
+
        
-        strcpy(accountInfo.nickname, "sw1ndle");
-        strcpy(accountInfo.clanName, "");
-
-        FrontLoginAuthorizeAck frontLoginAuthorizeAck = FrontLoginAuthorizeAck(100000000000000, accountInfo);
-
-        CMessage frontLoginAuthorizeAckMessage = CMessage(session->GetEncryptionKey());
-        frontLoginAuthorizeAckMessage.SetSession(session->GetSessionId());
-        frontLoginAuthorizeAckMessage.SetCommand(0x16, 0x00, FrontAuthorize::Type::Success, 0x09);//player grade
-        frontLoginAuthorizeAckMessage.SetData(reinterpret_cast<uint8_t*>(&frontLoginAuthorizeAck), sizeof(FrontLoginAuthorizeAck));
 
 
         //auto header_array = Utility::GetBytesArray(reinterpret_cast<uint8_t*>(frontLoginAuthorizeAckMessage.GetHeader().data), sizeof(frontLoginAuthorizeAckMessage.GetHeader().data));
         //auto command_array = Utility::GetBytesArray(reinterpret_cast<uint8_t*>(frontLoginAuthorizeAckMessage.GetCommand().data), sizeof(frontLoginAuthorizeAckMessage.GetCommand().data));
         
 
-        session->Send(frontLoginAuthorizeAckMessage);
+       
        // auto data_array = Utility::GetBytesArray(frontLoginAuthorizeAckMessage.GetData(), frontLoginAuthorizeAckMessage.GetDataSize());
        // std::printf("CFrontServer(Size:%d) - %s\n", frontLoginAuthorizeAckMessage.GetDataSize(), data_array.c_str());
 
-        EventLog->Info("CFrontServer() - Sent login authorize info for (%s)", accountInfo.nickname);
-        std::printf("CFrontServer() - Sent login authorize info for (%s)\n", accountInfo.nickname);
+
     }
 
     void CFrontServer::handle_FrontLoginReconnectReq(SCallbackData& callback)

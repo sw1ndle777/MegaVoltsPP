@@ -27,7 +27,7 @@ namespace NetEngine
             
             if (m_useMultithreaded && m_concurrentThreads != 1)
             {
-                auto max_concurrent_threads = std::thread::hardware_concurrency();
+                auto max_concurrent_threads = std::jthread::hardware_concurrency();
                 if (m_concurrentThreads == 0)
                     m_concurrentThreads = max_concurrent_threads;
                 else if (m_concurrentThreads >= max_concurrent_threads)
@@ -50,14 +50,14 @@ namespace NetEngine
         std::printf("CServer::Run() - Running server on: %s:%s\n", m_ip_address.c_str(), m_port.c_str());
         std::printf("CServer::Run() - m_useEncryption: %s\n", m_useEncryption ? "true" : "false");
         if (m_useMultithreaded)
-            std::printf("CServer::Run() - m_useMultithreaded: true\nCServer::Run() - m_concurrentThreads: %d out of %d\n", m_concurrentThreads, std::thread::hardware_concurrency());
+            std::printf("CServer::Run() - m_useMultithreaded: true\nCServer::Run() - m_concurrentThreads: %d out of %d\n", m_concurrentThreads, std::jthread::hardware_concurrency());
 
         BaseLib::EventLog->Error("CServer::Run() - Running server on: %s:%s", m_ip_address.c_str(), m_port.c_str());
         BaseLib::EventLog->Error("CServer::Run() - m_useEncryption: %s", m_useEncryption ? "true" : "false");
         if (m_useMultithreaded)
         {
             BaseLib::EventLog->Error("CServer::Run() - m_useMultithreaded: true");
-            BaseLib::EventLog->Error("CServer::Run() - m_concurrentThreads: %d out of %d", m_concurrentThreads, std::thread::hardware_concurrency());
+            BaseLib::EventLog->Error("CServer::Run() - m_concurrentThreads: %d out of %d", m_concurrentThreads, std::jthread::hardware_concurrency());
             
             auto work = asio::make_work_guard(m_ioContext);
             for (std::uint32_t i = 0; i < m_concurrentThreads; i++)

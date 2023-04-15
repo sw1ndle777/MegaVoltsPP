@@ -78,6 +78,12 @@
     <ClCompile Include="CFrontServer.cpp">
       <Filter>Source Files\GameServer</Filter>
     </ClCompile>
+    <ClCompile Include="CDatabase.cpp">
+      <Filter>Source Files\BaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="CThreadPool.cpp">
+      <Filter>Source Files\BaseLib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asio\include\asio.hpp">
@@ -154,6 +160,12 @@
     </ClInclude>
     <ClInclude Include="CFrontServer.h">
       <Filter>Header Files\GameServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CDatabase.h">
+      <Filter>Header Files\BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CThreadPool.h">
+      <Filter>Header Files\BaseLib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

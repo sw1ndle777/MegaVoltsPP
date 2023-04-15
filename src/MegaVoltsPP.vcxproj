@@ -87,14 +87,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)asio\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)asio\include;$(ProjectDir)mariadb\include;$(ProjectDir)openssl\include;$(IncludePath)</IncludePath>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <OutDir>..\\bin</OutDir>
     <IntDir>..\\obj</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)asio\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)asio\include;$(ProjectDir)mariadb\include;$(ProjectDir)openssl\include;$(IncludePath)</IncludePath>
     <OutDir>..\\bin</OutDir>
     <IntDir>..\\obj</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
@@ -166,6 +166,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CClient.cpp" />
+    <ClCompile Include="CDatabase.cpp" />
     <ClCompile Include="CFrontClient.cpp" />
     <ClCompile Include="CFrontServer.cpp" />
     <ClCompile Include="CMessage.cpp" />
@@ -173,12 +174,14 @@
     <ClCompile Include="CSession.cpp" />
     <ClCompile Include="CSettings.cpp" />
     <ClCompile Include="CLog.cpp" />
+    <ClCompile Include="CThreadPool.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asio\include\asio.hpp" />
     <ClInclude Include="CClient.h" />
+    <ClInclude Include="CDatabase.h" />
     <ClInclude Include="CFrontClient.h" />
     <ClInclude Include="CFrontServer.h" />
     <ClInclude Include="CMessage.h" />
@@ -188,6 +191,7 @@
     <ClInclude Include="CSettings.h" />
     <ClInclude Include="CLog.h" />
     <ClInclude Include="CCrypt.h" />
+    <ClInclude Include="CThreadPool.h" />
     <ClInclude Include="json\allocator.h" />
     <ClInclude Include="json\assertions.h" />
     <ClInclude Include="json\config.h" />

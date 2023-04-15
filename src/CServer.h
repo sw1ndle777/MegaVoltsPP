@@ -64,7 +64,7 @@ namespace NetEngine
         bool m_useEncryption = false;
         bool m_useMultithreaded = false;
         std::uint32_t m_concurrentThreads = 1;
-        std::uint32_t m_availableConcurrentThreads = std::thread::hardware_concurrency();
+        std::uint32_t m_availableConcurrentThreads = std::jthread::hardware_concurrency();
         std::function<void(std::shared_ptr<CSession>)> m_OnDisconnect;
         std::function<void(std::shared_ptr<CSession>)> m_OnConnect;
     };
