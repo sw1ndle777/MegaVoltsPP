@@ -1,0 +1,26 @@
+# Ignore binaries and object files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.lib
+*.a
+*.pdb
+*.class
+*.log
+*.json
+*.ini
+
+# Ignore build directories
+bin/
+out/
+Release/
+Debug/
+/src/.vs
+/src/Front/obj
+/src/Front/obj_1_1_1
+/src/Main/obj
+/src/Main/obj_1_1_1
+/src/Cast/obj
+/src/Cast/obj_1_1_1

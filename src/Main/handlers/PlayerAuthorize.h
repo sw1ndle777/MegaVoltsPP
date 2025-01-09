@@ -1,0 +1,347 @@
+#pragma once
+namespace Game
+{
+    using namespace BaseLib;
+    using namespace NetEngine;
+    using namespace NetEngine::Packets::Main;
+
+    namespace Handlers
+    {
+        inline void PlayerAuthorize(SCallbackData& callback, CMainServer* main_server)
+        {
+            const auto& versionCheckReq = reinterpret_cast<MainVersionCheckReq*>(callback.message->GetData());
+            const auto& auth_key = versionCheckReq->authKey;
+           
+            //session->SetAuthKey(versionCheckReq->authKey);
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connected with auth key ({})", session_id, auth_key);
+            CServer* server = callback.server;
+
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+
+            BaseLib::FrontAccount frontAccount;
+            std::vector<Item> acc_items;
+            std::vector<FriendInfo> acc_friends;
+            std::vector<BlockedInfo> acc_blockeds;
+            if (!BaseLib::Database->GetFrontAccount(auth_key, &frontAccount))
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                    "session id: ({}) with auth key: ({}) doesn't exist in database",
+                    session->GetSessionId(), auth_key);
+                return;
+            }
+            if (frontAccount.Nickname.empty())
+            {
+                send_msg(session, 68, 0, 0, VersionCheckInfo::Result::NicknameDialog);
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                    "session id: ({}) player doesn't have a nickname, redirecting to nickname dialog",
+                    session->GetSessionId());
+                return;
+            }
+            auto itemsFound = BaseLib::Database->GetInventoryItems(frontAccount.Index, acc_items);
+            //std::unordered_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
+            boost::unordered_flat_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
+            std::vector<Item> player_inventory_items;
+            auto server_time = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
+            auto newPlayer = Player({ session->GetSessionId(), Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime(), frontAccount, acc_items });
+            main_server->TransformItems(acc_items, player_inventory_items);//check here
+            main_server->TransformEquippedItems(acc_items, player_equipped_items);
+            main_server->AddAccCache(session->GetSessionId(), newPlayer);
+            MainAccountInfoAck accInfoMsg = MainAccountInfoAck();
+            if (frontAccount.ClanId)
+            {
+                BaseLib::ClanInfo clanInfo;
+                if (!BaseLib::Database->GetClanInfo(frontAccount.ClanId, &clanInfo))
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "session id: ({}) player clan id: ({}) doesn't exist in database",
+                        session->GetSessionId(), frontAccount.ClanId);
+
+                    accInfoMsg.ClanLogoFront = 0;
+                    accInfoMsg.ClanLogoBack = 0;
+                    std::strcpy(accInfoMsg.ClanName, "");
+                }
+                else
+                {
+                    accInfoMsg.ClanLogoFront = clanInfo.logo_front;
+                    accInfoMsg.ClanLogoBack = clanInfo.logo_back;
+                    std::strcpy(accInfoMsg.ClanName, clanInfo.name.c_str());
+                    if (main_server->IsClanAlready(frontAccount.ClanId))
+                    {
+                        auto clan = main_server->GetClanCacheUnique(frontAccount.ClanId);
+                        clan->online_members.push_back(session_id);
+                        clan.unlock();
+                    }
+                    else
+                    {
+                        Clan newClan;
+                        newClan.clan_id = frontAccount.ClanId;
+                        newClan.logo_front = clanInfo.logo_front;
+                        newClan.logo_back = clanInfo.logo_back;
+                        newClan.clan_name = clanInfo.name;
+                        newClan.online_members.push_back(session_id);
+                        main_server->AddClanCache(frontAccount.ClanId, newClan);
+                    }
+                }
+                accInfoMsg.ClanContribution = frontAccount.ClanContribution;
+                accInfoMsg.ClanWins = frontAccount.ClanWins;
+                accInfoMsg.ClanLoses = frontAccount.ClanLoses;
+                accInfoMsg.ClanDraws = frontAccount.ClanDraws;
+                accInfoMsg.ClanKills = frontAccount.ClanKills;
+                accInfoMsg.ClanDeaths = frontAccount.ClanDeaths;
+                accInfoMsg.ClanAssists = frontAccount.ClanAssists;
+            }
+            else
+            {
+                accInfoMsg.ClanLogoFront = 0;
+                accInfoMsg.ClanLogoBack = 0;
+                std::strcpy(accInfoMsg.ClanName, "");
+                accInfoMsg.ClanLogoFront = 0;
+                accInfoMsg.ClanLogoBack = 0;
+                accInfoMsg.ClanContribution = 0;
+                accInfoMsg.ClanWins = 0;
+                accInfoMsg.ClanLoses = 0;
+                accInfoMsg.ClanDraws = 0;
+                accInfoMsg.ClanKills = 0;
+                accInfoMsg.ClanDeaths = 0;
+                accInfoMsg.ClanAssists = 0;
+            }
+
+            accInfoMsg.Diorama = 0;
+            accInfoMsg.Kills = frontAccount.Kills;
+            accInfoMsg.Deaths = frontAccount.Deaths;
+            accInfoMsg.Assists = frontAccount.Assists;
+            accInfoMsg.Wins = frontAccount.Wins;
+            accInfoMsg.Loses = frontAccount.Loses;
+            accInfoMsg.Draws = frontAccount.Draws;
+            accInfoMsg.Melee = frontAccount.MeleeKills;
+            accInfoMsg.Rifle = frontAccount.RifleKills;
+            accInfoMsg.Shotgun = frontAccount.ShotgunKills;
+            accInfoMsg.Sniper = frontAccount.SniperKills;
+            accInfoMsg.Gatling = frontAccount.GatlingKills;
+            accInfoMsg.Bazooka = frontAccount.BazookaKills;
+            accInfoMsg.Grenade = frontAccount.GrenadeKills;
+            accInfoMsg.Headshots = frontAccount.Headshots;
+            accInfoMsg.HighestKillStreak = frontAccount.HighestKillStreak;
+            accInfoMsg.Unknown2 = 0;
+            accInfoMsg.PlayTime = frontAccount.PlayTime;
+            accInfoMsg.ClanId = frontAccount.ClanId;
+            accInfoMsg.ClanPadding = 0;
+            accInfoMsg.ZombieKillPoints = frontAccount.ZombieKills * 3;
+            accInfoMsg.Infections = frontAccount.Infections;
+            accInfoMsg.Unknown3 = 210;
+            accInfoMsg.ServerTime = server_time;
+            accInfoMsg.UniqueId = NetEngine::Packets::Core::UniqueId(session->GetSessionId(), 1).data;
+            accInfoMsg.Grade = frontAccount.Grade;
+            accInfoMsg.SelectedCharacter = frontAccount.SelectedCharacter;
+            accInfoMsg.OwnedCharacters = 511;//all chars
+            accInfoMsg.Level = frontAccount.Level + 1;
+        #if defined(RELEASE_1_0_3)
+            accInfoMsg.Energy = 50;//frontAccount.Energy;
+            accInfoMsg.Energy2 = frontAccount.Energy;
+            accInfoMsg.GoldenMode = 0;
+            accInfoMsg.unused = 38;
+
+        #else
+            accInfoMsg.Coins = frontAccount.Coins;
+            accInfoMsg.Energy = frontAccount.Energy;
+        #endif
+
+
+            accInfoMsg.LuckyPoints = frontAccount.LuckyPoints;
+            accInfoMsg.Experience = frontAccount.Experience;
+            accInfoMsg.MicroPoints = frontAccount.MicroPoints;
+            accInfoMsg.RockTokens = frontAccount.RockTokens;
+            accInfoMsg.Tutorial = 1;//frontAccount.Tutorial;
+            accInfoMsg.MaximumItems = frontAccount.MaximumItems;
+            accInfoMsg.MaximumEnergy = frontAccount.MaximumEnergy;
+            accInfoMsg.DailyAttempts = frontAccount.SingleWaveDailyAttempts;
+            accInfoMsg.HighestWave = frontAccount.SingleWaveHighestWave;
+            accInfoMsg.SinglewaveHighscore = frontAccount.SingleWaveHighScore;
+            accInfoMsg.Unknown4 = 24;
+            accInfoMsg.Story = frontAccount.Story;
+        #if defined(RELEASE_1_1_1)
+            accInfoMsg.VIPLevel = frontAccount.VIPExperience;
+        #endif
+            accInfoMsg.AccountAuthkey = auth_key;
+            accInfoMsg.AccountId = frontAccount.Index;
+
+            std::strcpy(accInfoMsg.Unused, "");
+            std::strcpy(accInfoMsg.Nickname, frontAccount.Nickname.c_str());
+
+            //option is chat channel id
+            send_msg(session, 413, 0, 1, 1, reinterpret_cast<uint8_t*>(&accInfoMsg), sizeof(MainAccountInfoAck));
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) auth key: ({}) received account informations", session->GetSessionId(), auth_key);
+
+            if (player_inventory_items.empty() && newPlayer.acc_info.Coupons == 0)
+                send_msg(session, 77, 0, 6, 0); // empty inventory
+            if (newPlayer.acc_info.Coupons > 0)
+            {
+                std::uint32_t coupons = (newPlayer.acc_info.Coupons << 23) + 0xF4240;
+                Item coupons_item;
+                coupons_item.is_equipped = 0;
+                coupons_item.stock = newPlayer.acc_info.Coupons;
+                coupons_item.character_id = -1;
+                coupons_item.item_info = InventoryItemInfo();
+                coupons_item.item_info.item_number.data = coupons;//InventoryItemNumber(1000000, newPlayer.acc_info.Coupons);
+                coupons_item.item_info.expire_date = Utility::GetUnixEpoch();
+                coupons_item.item_info.serial_info = ItemSerialInfo(0, 0, 0, 0, Utility::GetUnixEpoch());
+                player_inventory_items.insert(player_inventory_items.begin(), coupons_item);
+            }
+            std::uint32_t total_inventory_fragments = (player_inventory_items.size() + 1) <= 35 ? 1 : ((player_inventory_items.size() + 1) / 35) + 1;
+            for (std::uint32_t i = 0; i < total_inventory_fragments; i++)
+            {
+                if (!player_inventory_items.empty())
+                {
+                    auto items_batch = main_server->GetTransformStockItems(player_inventory_items, i, 35);
+                    if (!items_batch.empty())
+                        send_msg(session, 77, 0, (i == 0) ? 37 : 0, items_batch.size(), reinterpret_cast<uint8_t*>(items_batch.data()), items_batch.size() * sizeof(InventoryItemInfo));
+                }
+
+            }
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) received ({}) inventory items", session->GetSessionId(), player_inventory_items.size() - 1);
+
+            for (std::uint8_t i = 0; i < 5; i++)
+            {
+                std::vector<EquipItemInfo> equipped_items;
+                const auto& current_char_items = main_server->GetTransformEquippedItems(player_equipped_items[i]);
+                for (const auto& item : current_char_items)
+                {
+                    //if (main_server->IsItemWeapon(item.item_number.item_id) || main_server->IsItemCostume(item.item_number.item_id) || main_server->IsItemDiorama(item.item_number.item_id))
+                    //    equipped_items.push_back(EquipItemInfo(item));
+                    if (main_server->IsItemSet(item.item_number.item_id))
+                    {
+
+                        const auto& set_item_types = main_server->GetSetItemTypes(item.item_number.item_id);
+                        for (const auto& item_type : set_item_types)
+                        {
+                            auto set_item = EquipItemInfo(item);
+                            set_item.item_number.item_type = 17;
+                            equipped_items.push_back(set_item);
+                        }
+                    }
+                    else
+                        equipped_items.push_back(EquipItemInfo(item));
+                }
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) received ({}) equip items on ({})", session->GetSessionId(), equipped_items.size(), main_server->GetCharacterStr(i).c_str());
+                send_msg(session, 75, 0, i, equipped_items.size(), reinterpret_cast<uint8_t*>(equipped_items.data()), equipped_items.size() * sizeof(EquipItemInfo));
+            }
+        #if defined(RELEASE_1_0_3)
+            send_msg(session, 75, 0, 5, 0); // final equip info
+        #else
+            send_msg(session, 75, 0, 16, 0); // final equip info
+        #endif
+            send_msg(session, 413, 0, 59, 0); // final account info
+
+            main_server->SendServerMessage(session, std::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
+            main_server->SendServerMessage(session, std::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+
+            //std::unordered_map<std::uint32_t, std::uint32_t> accountToSessionMap;
+            boost::unordered_flat_map<std::uint32_t, std::uint32_t> accountToSessionMap;
+            std::shared_lock acc_lock(main_server->GetAccountsCacheMutex());
+            for (const auto& session : accounts_cache)  accountToSessionMap[session.second.acc_info.Index] = session.first;
+            std::vector<PlayerFriendInfo> friends_pending;
+            std::vector<FriendInfo> friends_pending_db;
+            std::vector<FriendInfo> friends_accepted;
+
+            if (BaseLib::Database->GetPlayerFriends(frontAccount.Index, acc_friends))
+            {
+                for (auto& friendInfo : acc_friends)
+                {
+                    auto it = accountToSessionMap.find(friendInfo.friend_account_id);
+                    if (it != accountToSessionMap.end())
+                        friendInfo.friend_session_id = it->second;
+
+                    if (friendInfo.state == Userlist::Friends::State::Pending)
+                    {
+                        friends_pending.push_back({ (friendInfo.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friendInfo.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data ,
+                           friendInfo.friend_account_id, friendInfo.friend_nickname.c_str() });
+                        friends_pending_db.push_back(friendInfo);
+                    }
+                    else if (friendInfo.state == Userlist::Friends::State::Accepted)
+                        friends_accepted.push_back(friendInfo);
+                }
+
+                main_server->AddPlayerFriends(session->GetSessionId(), acc_friends);
+                //friends_cache[session->GetSessionId()] = acc_friends;
+            }
+            if (BaseLib::Database->GetPlayerBlockeds(frontAccount.Index, acc_blockeds))
+            {
+                for (auto& blockedInfo : acc_blockeds)
+                {
+                    auto it = accountToSessionMap.find(blockedInfo.blocked_account_id);
+                    if (it != accountToSessionMap.end())
+                        blockedInfo.blocked_session_id = it->second;
+                }
+                //blockeds_cache[session->GetSessionId()] = acc_blockeds;
+                main_server->AddPlayerBlockeds(session->GetSessionId(), acc_blockeds);
+            }
+            send_msg(session, 61, 0, Userlist::Friends::AddResult::SendPending, friends_pending.size(), reinterpret_cast<uint8_t*>(friends_pending.data()), friends_pending.size() * sizeof(PlayerFriendInfo));
+            for (const auto& friend_info : friends_accepted)
+            {
+                if (!friend_info.friend_session_id) continue;
+                send_msg(server->GetSessionById(friend_info.friend_session_id).get(), 85, 0, Userlist::Friends::DetailsType::FriendState, Userlist::FriendsState::Login, reinterpret_cast<uint8_t*>(&frontAccount.Index), sizeof(frontAccount.Index));
+                main_server->RemovePlayerFriends(friend_info.friend_session_id, frontAccount.Index);
+                main_server->AddPlayerFriends(friend_info.friend_session_id, { friend_info.friend_account_id, frontAccount.Index, Userlist::Friends::State::Accepted, session_id, frontAccount.Nickname });
+
+            }
+            BaseLib::Database->DeletePlayerFriends(friends_pending_db);
+            auto mails = BaseLib::Database->GetPlayerMailbox(frontAccount.Index);
+            
+            for (const auto& mail : mails)
+            {
+                main_server->AddMailboxDataCache(mail.mail_id, MailboxData(mail));
+                main_server->AddMailboxSentIdCache(mail.mail_id, mail.sender_account_id);
+                main_server->AddMailboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
+            }
+            std::uint32_t unopened_gifts = 0, unopened_mails = 0;
+            auto mail_recv_ids = main_server->GetMailboxRecvCacheShared(frontAccount.Index);
+            for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+            {
+                auto mail_id = mail_recv_ids->at(i);
+                auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                if (mailbox_data->is_new && mailbox_data->gift_itemid == 0) unopened_mails++;
+                else if (mailbox_data->gift_itemid != 0) unopened_gifts++;
+            }
+
+
+            send_msg(session, 105, 0, 37, unopened_mails); // remainder of unopened mails
+            send_msg(session, 66, 0, 37, unopened_gifts); // remainder of unopened mails
+
+            struct daily_reward_ack
+            {
+                std::uint16_t unknown1 = 0;
+                std::uint16_t received_day = 1;
+                std::uint16_t unknown3 = 999;
+                std::uint16_t unknown4 = 999;
+                std::uint32_t day1 = 3200250;
+                std::uint32_t day2 = 3026050;
+                std::uint32_t day3 = 3034050;
+                std::uint32_t day4 = 3044000;
+                std::uint32_t day5 = 3052700;
+                std::uint32_t day6 = 3063900;
+                std::uint32_t day7 = 3074100;
+            }dailyRewardData;
+
+            send_msg(session, 182, 0, 0, 0, reinterpret_cast<uint8_t*>(&dailyRewardData), sizeof(daily_reward_ack));// init daily reward
+            //send_msg(session, 66, 0, 51, 1);// popup daily reward
+
+            /*
+            asio::post([callback, auth_key, main_server]()
+            {
+                
+            });
+            */
+        }
+    }
+}

@@ -1,0 +1,60 @@
+#pragma once
+namespace Game
+{
+    using namespace BaseLib;
+    using namespace NetEngine;
+    using namespace NetEngine::Packets::Main;
+
+    namespace Handlers
+    {
+        inline void UpdateRoomList(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            CServer* server = callback.server;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+            auto acc_index = acc_cache->acc_info.Index;
+            acc_cache.unlock();
+            auto channel_id = callback.message->GetOption() + 1;
+            auto score_limit = callback.message->GetExtra();
+            if (acc_index == -1) return;
+            
+            std::shared_lock room_ids_lock(main_server->GetRoomIdsMutex());
+            if (room_ids.size() <= 0)
+            {
+                send_msg(session, 142, 0x0, NetEngine::Room::List::Result::NoRooms, 0);
+                return;
+            }
+            std::uint32_t max_batch_size = 31;
+            std::uint32_t room_blocks_count = (room_ids.size() + max_batch_size - 1) / max_batch_size;
+            for (std::uint32_t batch_id = 0; batch_id < room_blocks_count; batch_id++)
+            {
+                auto extra = (batch_id == 0) ? NetEngine::Room::List::SendRoom : NetEngine::Room::List::SendRoom2;
+                std::vector<RoomListInfo> new_rooms;
+                std::uint32_t start_index = batch_id * max_batch_size;
+                std::uint32_t end_index = std::min(start_index + max_batch_size, static_cast<std::uint32_t>(room_ids.size()));
+                for (auto i = start_index; i < end_index; i++)
+                {
+                    auto room = main_server->GetRoomCacheShared(room_ids[i]);
+                    if (room->title.empty()) continue;
+                    auto host_cache = main_server->GetAccCacheSharedBySessionId(room->host_session_id);
+                    if (host_cache->acc_info.Index == -1) continue;
+                    auto room_size = main_server->IsModeTeamBased(room->ModeIndex) ? room->redteam_session_ids.size() + room->blueteam_session_ids.size() : room->neutralteam_session_ids.size();
+                    auto new_roomListInfo = RoomListInfo(room->title.c_str(), room->room_id, room->channel_id, room->MapIndex, room->ModeIndex, room->max_players, room_size, room->is_playing, room->has_password, room->allow_observers, room->Restriction, 1, host_cache->ping);
+                    new_rooms.push_back(new_roomListInfo);
+                }
+                auto rooms_data = MainRoomListInfoAck(new_rooms.size(), room_ids.size(), new_rooms).Serialize(extra);
+                send_msg(session, 142, 0, extra, 0, reinterpret_cast<uint8_t*>(rooms_data.data()), rooms_data.size());
+            }
+        }
+    }
+}

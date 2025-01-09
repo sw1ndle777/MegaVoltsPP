@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="header">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="header\handlers">
+      <UniqueIdentifier>{a3fd05ee-dc5a-427f-8780-6d54120863be}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="CCastServer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CCastServer.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PingPong.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ServerConnect.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ServerDisconnect.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ConnectionAuth.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\CreateRoom.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostAbility.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostExplosives.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostExplosivesDamage.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostPickupItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostRespawn.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostWeaponAttack.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LeaveRoom.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\NpcsAttack.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\NpcsMovement.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\NpcsProjectiles.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\NpcsSpawn.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerAbility.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerCrash.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerEndMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerJoinRoom.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerLeaveMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerLoadMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerMovement.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerNicknames.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerPickupItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerReload.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerRespawn.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerScoreMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerStartMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerSyncTick.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown1.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown2.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown3.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown4.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown5.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown6.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown7.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerUnknown8.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostUpdateTick.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerWeaponAttack.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostSpawnAmmo.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostTurnZombie.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\HostSyncTick.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerJoinPlaza.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerLeavePlaza.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerSpawnBomb.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ServerIpcMessage.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

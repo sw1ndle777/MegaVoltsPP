@@ -1,25 +1,32 @@
 {
-  "ServerSettings": {
-    "Front": {
-      "host": "",
-      "port": 13000
+  "servers": {
+    "front": {
+      "host": "0.0.0.0",
+      "port": 13000,
+      "asio_threads": 0,
+      "pool_threads": 0,
+      "debug": false
     },
-    "Main": {
-      "host": "",
-      "port": 13005
+    "main": {
+      "host": "0.0.0.0",
+      "port": 13005,
+      "asio_threads": 0,
+      "pool_threads": 0,
+      "debug": false
     },
-    "Cast": {
-      "host": "",
-      "port": 13006
+    "cast": {
+      "host": "0.0.0.0",
+      "port": 13006,
+      "asio_threads": 0,
+      "pool_threads": 0,
+      "debug": false
+    },
+    "database": {
+      "host": "127.0.0.1",
+      "port": 3306,
+      "db_name": "MegaVoltsPP",
+      "user": "root",
+      "password": "!@megavoltsngiga123@!"
     }
-  },
-
-  "ChannelSettings": {
-    "ids": [ 1, 2, 3 ]
-  },
-
-  "AccountSettings": {
-    "username": "",
-    "password": ""
   }
 }

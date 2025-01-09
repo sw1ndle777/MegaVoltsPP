@@ -1,0 +1,507 @@
+#pragma once
+namespace Game
+{
+    using namespace BaseLib;
+    using namespace NetEngine;
+    using namespace NetEngine::Packets::Main;
+
+    namespace Handlers
+    {
+        inline void PlayerBlock(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+            
+            auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1) return;
+
+            const auto& blockedAddReq = reinterpret_cast<MainPlayerBlockedAddReq*>(callback.message->GetData());
+            const auto& target_nickname = Utility::ReadMicrovoltsString(blockedAddReq->nickname, sizeof(blockedAddReq->nickname));
+            auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
+
+            if (target_acc_cache->acc_info.Index == -1)
+            {
+                std::shared_lock lock(callback.session->GetMutex());
+                CSession* session = callback.session;
+                std::uint32_t target_acc_id = 0;
+                if (!BaseLib::Database->NicknameExists(target_nickname.c_str(), target_acc_id))
+                {
+                    send_msg(session, 52, 0, Userlist::Blocked::AddResult::Offline, 0);
+                    return;
+                }
+                auto blockeds = main_server->GetBlockedsList(session_id);
+                if (main_server->IsBlockedAlready(blockeds, target_acc_id)) return;
+                blockeds.unlock();
+                BlockedInfo newBlockedInfo = { acc_index, static_cast<std::int32_t>(target_acc_id), 0, target_nickname.c_str() };
+                FriendInfo delFriendInfo = { acc_index, static_cast<std::int32_t>(target_acc_id) };
+                FriendInfo delFriendInfo2 = { static_cast<std::int32_t>(target_acc_id), acc_index };
+                MainPlayerBlockedAddAck blocked_data = { target_acc_id, target_nickname.c_str() };
+                send_msg(session, 52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
+
+                auto post_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
+
+                main_server->RemovePlayerFriends(session_id, target_acc_id);
+                main_server->AddPlayerFriendsDeleted(post_acc_cache, delFriendInfo);
+                main_server->RemovePlayerBlockedsDeleted(post_acc_cache, target_acc_id);
+                main_server->AddPlayerBlockedsAdded(post_acc_cache, newBlockedInfo);
+                main_server->AddPlayerBlockeds(session_id, newBlockedInfo);
+                BaseLib::Database->DeletePlayerFriends({ delFriendInfo, delFriendInfo2 });
+
+                return;
+            }
+            auto blockeds = main_server->GetBlockedsList(session_id);
+            if (main_server->IsBlockedAlready(blockeds, target_acc_cache->acc_info.Index)) return;
+            blockeds.unlock();
+            const BlockedInfo& newBlockedInfo = { acc_index, target_acc_cache->acc_info.Index, target_acc_cache->session_id ? static_cast<std::uint32_t>(target_acc_cache->session_id) : 0, target_nickname.c_str() };
+
+            if (target_acc_cache->session_id)
+            {
+                MainPlayerBlockedAddAck blocked_data = { static_cast<std::uint32_t>(target_acc_cache->acc_info.Index), target_nickname.c_str() };
+                send_msg(session, 52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
+                main_server->RemovePlayerFriends(target_acc_cache->session_id, acc_index);
+                main_server->AddPlayerFriendsDeleted(target_acc_cache, { target_acc_cache->acc_info.Index, acc_index });
+            }
+            main_server->RemovePlayerFriends(session_id, target_acc_cache->acc_info.Index);
+            main_server->AddPlayerFriendsDeleted(acc_cache, { acc_index , target_acc_cache->acc_info.Index });
+            main_server->RemovePlayerBlockedsDeleted(acc_cache, target_acc_cache->acc_info.Index);
+            main_server->AddPlayerBlockedsAdded(acc_cache, newBlockedInfo);
+            main_server->AddPlayerBlockeds(session_id, newBlockedInfo);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) blocked ({})", acc_cache->acc_info.Nickname.c_str(), target_acc_cache->acc_info.Nickname.c_str());
+        }
+        inline void PlayerUnblock(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+            
+            auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1) return;
+            auto blockeds = main_server->GetBlockedsList(session_id);
+            auto blockedRemoveReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(callback.message->GetData());
+            if (!main_server->IsBlockedAlready(blockeds, blockedRemoveReq->player_id)) return;
+            blockeds.unlock();
+            main_server->RemovePlayerBlockedsAdded(acc_cache, blockedRemoveReq->player_id);
+            main_server->AddPlayerBlockedsDeleted(acc_cache, {acc_index, static_cast<std::int32_t>(blockedRemoveReq->player_id) });
+            main_server->RemovePlayerBlockeds(session_id, blockedRemoveReq->player_id);
+            send_msg(session, 53, 0, 0, 1);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) unblocked account id ({})", acc_cache->acc_info.Nickname.c_str(), blockedRemoveReq->player_id);
+        }
+        inline void PlayerBlockList(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+            
+            auto acc_index = acc_cache->acc_info.Index;
+            acc_cache.unlock();
+
+            if (acc_index == -1) return;
+            auto blockeds = main_server->GetBlockedsList(session_id);
+            std::vector<PlayerBlockedInfo> blockeds_info;
+            for (const auto& blocked_info : *blockeds)
+                blockeds_info.push_back({ blocked_info.blocked_account_id, blocked_info.blocked_nickname.c_str() });
+            blockeds.unlock();
+            if (blockeds_info.size() > 0)
+                send_msg(session, 54, 0, Userlist::Blocked::ListResult::UsersBlocked, blockeds_info.size(), reinterpret_cast<uint8_t*>(blockeds_info.data()), blockeds_info.size() * sizeof(PlayerBlockedInfo));
+            else
+                send_msg(session, 54, 0, Userlist::Blocked::ListResult::NotUser, 0);
+        }
+        inline void PlayerClanList(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+            
+            auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1) return;
+            auto clan_id = acc_cache->acc_info.ClanId;
+            acc_cache.unlock();
+            if (clan_id)
+            {
+                if (main_server->IsClanAlready(clan_id))
+                {
+                    auto clan_info = main_server->GetClanCacheShared(clan_id);
+                    std::vector<PlayerClanInfo> clan_members;
+                    for (const auto& member_session_id : clan_info->online_members)
+                    {
+                        if (member_session_id == session_id) continue;
+                        auto member_acc_cache = main_server->GetAccCacheSharedBySessionId(member_session_id);
+                        auto member_unique_id = NetEngine::Packets::Core::UniqueId(member_session_id, 1).data;
+                        auto clan_member_info = PlayerClanInfo(member_acc_cache->acc_info.Nickname.c_str(), member_unique_id, member_acc_cache->acc_info.Level + 1);
+                        clan_members.push_back(clan_member_info);
+                    }
+
+                    if (clan_members.size() > 0)
+                        send_msg(session, 57, 0, Userlist::Clan::ListResult::UsersClan, clan_members.size(), reinterpret_cast<uint8_t*>(clan_members.data()), clan_members.size() * sizeof(PlayerClanInfo));
+                    else
+                        send_msg(session, 57, 0, Userlist::Clan::ListResult::NotUser, 0);
+
+                }
+            }
+        }
+        inline void PlayerAddFriend(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            CServer* server = callback.server;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+           
+            auto acc_index = acc_cache->acc_info.Index;
+            auto request_type = callback.message->GetExtra();
+            if (acc_index != -1)
+            {
+
+                auto friends = main_server->GetFriendsList(session_id);
+
+                std::vector<PlayerFriendInfo> friends_accepted;
+                for (auto const& friend_info : *friends)
+                    if (friend_info.state == Userlist::Friends::State::Accepted)
+                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data ,friend_info.friend_account_id,  friend_info.friend_nickname.c_str() });
+
+                friends.unlock();
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) friend request type: ({})", acc_cache->acc_info.Nickname.c_str(), request_type);
+
+                if (request_type == Userlist::Friends::RequestResult::RequestSend)
+                {
+                    if (friends_accepted.size() >= 100)
+                    {
+                        send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
+                        return;
+                    }
+                    const auto& friendAddSendReq = reinterpret_cast<MainPlayerFriendAddSendReq*>(callback.message->GetData());
+                    const auto& target_nickname = Utility::ReadMicrovoltsString(friendAddSendReq->nickname, sizeof(friendAddSendReq->nickname));
+                    const auto& my_nickname = acc_cache->acc_info.Nickname;
+                    if (strcmp(acc_cache->acc_info.Nickname.c_str(), target_nickname.c_str()) == 0)
+                    {
+                        send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
+                        return;
+                    }
+                    
+                    auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname);
+                    if (target_acc_cache->acc_info.Index == -1)
+                    {
+                        std::shared_lock lock(callback.session->GetMutex());
+                        CSession* session = callback.session;
+                        std::uint32_t target_index = 0;
+                        if (!BaseLib::Database->NicknameExists(target_nickname.c_str(), target_index))
+                        {
+                            send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
+                            return;
+                        }
+                        if (main_server->IsFriendsAlready(friends_accepted, target_index)) return;
+                        std::vector<BaseLib::FriendInfo> acc_friends;
+                        std::vector<BaseLib::BlockedInfo> acc_blockeds;
+                        std::vector<PlayerFriendInfo> target_friends_accepted;
+                        BaseLib::Database->GetPlayerBlockeds(static_cast<std::int32_t>(target_index), acc_blockeds);
+                        auto my_blockeds = main_server->GetBlockedsList(session_id);
+                        if (main_server->IsBlockedAlready(acc_blockeds, acc_index) || main_server->IsBlockedAlready(my_blockeds, target_index))
+                        {
+                            send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerBlocked, 0);
+                            return;
+                        }
+
+                        if (BaseLib::Database->GetPlayerFriends(static_cast<std::int32_t>(target_index), acc_friends))
+                        {
+                            auto accepted_friends_count = std::count_if(acc_friends.begin(), acc_friends.end(),
+                                [](const BaseLib::FriendInfo& friend_info) {
+                                return friend_info.state == Userlist::Friends::State::Accepted;
+                            });
+                            if (accepted_friends_count >= 100)
+                            {
+                                send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                                return;
+                            }
+                            BaseLib::Database->InsertPlayerFriends({ { static_cast<std::int32_t>(target_index), acc_index, Userlist::Friends::State::Pending, 0, my_nickname.c_str() } });
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request pending in database to player ({})", my_nickname.c_str(), target_nickname.c_str());
+                        }
+
+                        /*
+                        asio::post([acc_index, session_id, friends_accepted, target_nickname, my_nickname, callback, main_server, send_msg]()
+                        {
+                            
+                        });
+                        */
+                        return;
+                    }
+
+                    if (main_server->IsFriendsAlready(friends_accepted, target_acc_cache->acc_info.Index)) return;
+                    auto target_blockeds = main_server->GetBlockedsList(target_acc_cache->session_id);
+                    auto my_blockeds = main_server->GetBlockedsList(session_id);
+                    if (main_server->IsBlockedAlready(target_blockeds, acc_index) || main_server->IsBlockedAlready(my_blockeds, target_acc_cache->acc_info.Index))
+                    {
+                        send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerBlocked, 0);
+                        return;
+                    }
+                    auto target_friends = main_server->GetFriendsList(target_acc_cache->session_id);
+                    auto accepted_friends_count = std::count_if(target_friends->begin(), target_friends->end(),
+                        [](const BaseLib::FriendInfo& friend_info) {
+                            return friend_info.state == Userlist::Friends::State::Accepted;
+                        });
+                    target_friends.unlock();
+                    if (accepted_friends_count >= 100)
+                    {
+                        send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                        return;
+                    }
+                    PlayerFriendInfo newFriendInfo = { NetEngine::Packets::Core::UniqueId(session_id, 1).data , acc_index , acc_cache->acc_info.Nickname.c_str() };
+                    send_msg(server->GetSessionById(target_acc_cache->session_id).get(), 61, 0, Userlist::Friends::AddResult::SendSingle, 0, reinterpret_cast<uint8_t*>(&newFriendInfo), sizeof(PlayerFriendInfo));
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request to player ({})", acc_cache->acc_info.Nickname.c_str(), target_acc_cache->acc_info.Nickname.c_str());
+                }
+                else if (request_type == Userlist::Friends::RequestResult::RequestRecv)
+                {
+                    if (friends_accepted.size() >= 100)
+                    {
+                        send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
+                        return;
+                    }
+                    const auto& friendAddRecvReq = reinterpret_cast<MainPlayerFriendAddRecvReq*>(callback.message->GetData());
+                    auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(friendAddRecvReq->unique_id);
+                    auto sender_acc = main_server->GetAccCacheUniqueBySessionId(sender_uniqueId.session);
+                    const auto& my_nickname = acc_cache->acc_info.Nickname;
+                    if (sender_acc->acc_info.Index == -1)
+                    {
+                        auto sender_index = sender_acc->acc_info.Index;
+                        const auto& sender_nickname = sender_acc->acc_info.Nickname;
+
+                        std::vector<BaseLib::FriendInfo> acc_friends;
+                        std::vector<PlayerFriendInfo> target_friends_accepted;
+
+                        if (BaseLib::Database->GetPlayerFriends(friendAddRecvReq->player_id, acc_friends))
+                        {
+
+                            auto accepted_friends_count = std::count_if(acc_friends.begin(), acc_friends.end(),
+                                [](const BaseLib::FriendInfo& friend_info) {
+                                return friend_info.state == Userlist::Friends::State::Accepted;
+                            });
+                            if (accepted_friends_count >= 100)
+                            {
+                                send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                                return;
+                            }
+                            auto my_acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+                            const FriendInfo& current = { acc_index ,sender_index, Userlist::Friends::State::Accepted, 0, sender_nickname.c_str() };
+                            main_server->AddPlayerFriendsAccepted(my_acc_cache, current);
+                            main_server->AddPlayerFriends(session_id, current);
+                            BaseLib::Database->UpdatePlayerFriends(sender_index, acc_index, Userlist::Friends::State::Accepted);
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) accepted friend request pending database from player ({})", my_nickname.c_str(), sender_nickname.c_str());
+                        }
+                        return;
+                    }
+                    auto target_friends = main_server->GetFriendsList(sender_uniqueId.session);
+                    auto accepted_friends_count = std::count_if(target_friends->begin(), target_friends->end(),
+                        [](const BaseLib::FriendInfo& friend_info) {
+                        return friend_info.state == Userlist::Friends::State::Accepted;
+                    });
+                    target_friends.unlock();
+                    if (accepted_friends_count >= 100)
+                    {
+                        send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                        return;
+                    }
+                    PlayerFriendInfo newFriendInfoForSender = { NetEngine::Packets::Core::UniqueId(session_id, 1).data , acc_index, acc_cache->acc_info.Nickname.c_str() };
+                    auto target_session = server->GetSessionById(sender_uniqueId.session);
+                    send_msg(target_session.get(), 61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
+                    send_msg(target_session.get(), 61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
+                    PlayerFriendInfo newFriendInfoForCurrent = { sender_uniqueId.data , sender_acc->acc_info.Index , sender_acc->acc_info.Nickname.c_str() };
+                    send_msg(session, 61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForCurrent), sizeof(PlayerFriendInfo));
+                    send_msg(session, 61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForCurrent), sizeof(PlayerFriendInfo));
+                    FriendInfo current = { acc_index, sender_acc->acc_info.Index, Userlist::Friends::State::Accepted, sender_uniqueId.session, sender_acc->acc_info.Nickname.c_str() };
+                    FriendInfo sender = { sender_acc->acc_info.Index, acc_index, Userlist::Friends::State::Accepted, session_id, acc_cache->acc_info.Nickname.c_str() };
+                    main_server->AddPlayerFriendsAccepted(acc_cache, current);
+                    main_server->AddPlayerFriends(session_id, current);
+                    main_server->AddPlayerFriendsAccepted(sender_acc, sender);
+                    main_server->AddPlayerFriends(sender_uniqueId.session, sender);
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) accepted friend request from player ({})", acc_cache->acc_info.Nickname.c_str(), sender_acc->acc_info.Nickname.c_str());
+                }
+            }
+        }
+        inline void PlayerRemoveFriend(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+            auto acc_index = acc_cache->acc_info.Index;
+            
+            if (acc_index != -1)
+            {
+                auto friendRemoveReq = reinterpret_cast<MainPlayerFriendRemoveReq*>(callback.message->GetData());
+
+                FriendInfo delFriendInfo = { acc_index,static_cast<std::int32_t>(friendRemoveReq->player_id) };
+                FriendInfo delFriendInfo2 = { static_cast<std::int32_t>(friendRemoveReq->player_id) , acc_index};
+                main_server->RemovePlayerFriends(session_id, friendRemoveReq->player_id);
+                main_server->AddPlayerFriendsDeleted(acc_cache, delFriendInfo);
+                auto target_acc_cache = main_server->GetAccCacheUniqueByAccountId(friendRemoveReq->player_id);
+                if (target_acc_cache->acc_info.Index != -1)
+                {
+                    main_server->RemovePlayerFriends(target_acc_cache->session_id, acc_index);
+                    main_server->AddPlayerFriendsDeleted(target_acc_cache, delFriendInfo2);
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) removed friend ({})", acc_cache->acc_info.Nickname.c_str(), target_acc_cache->acc_info.Nickname.c_str());
+                }
+                else
+                {
+                    const auto& acc_nickname = acc_cache->acc_info.Nickname;
+                    BaseLib::Database->DeletePlayerFriends({ delFriendInfo, delFriendInfo2 });
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) removed friend account id ({})", acc_nickname.c_str(), friendRemoveReq->player_id);
+                    /*
+                    asio::post([delFriendInfo, delFriendInfo2, acc_nickname, acc_index, friendRemoveReq]()
+                    {
+
+                        
+                    });
+                    */
+                }
+                auto friends = main_server->GetFriendsList(session_id);//deadlock
+
+                std::vector<PlayerFriendInfo> friends_accepted;
+                for (auto const& friend_info : *friends)
+                    if (friend_info.state == Userlist::Friends::State::Accepted)
+                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data , friend_info.friend_account_id, friend_info.friend_nickname.c_str() });
+
+                friends.unlock();
+
+                if (friends_accepted.size() <= 0)
+                {
+                    send_msg(session, 61, 0, Userlist::ListResult::NoUsers, 0);
+                    return;
+                }
+                std::uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
+                for (std::uint32_t i = 0; i < total_friends_fragments; i++)
+                {
+                    std::vector<PlayerFriendInfo> friends_batch;
+                    std::uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
+                    std::uint32_t start_index = i * 51;
+                    std::uint32_t end_index = std::min(start_index + 51, static_cast<std::uint32_t>(friends_accepted.size()));
+                    for (auto j = start_index; j < end_index; j++)
+                        friends_batch.push_back(friends_accepted[j]);
+
+                    send_msg(session, 63, 0, user_list_result, friends_batch.size(), reinterpret_cast<uint8_t*>(friends_batch.data()), friends_batch.size() * sizeof(PlayerFriendInfo));
+                }
+            }
+        }
+        inline void PlayerFriendList(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+            
+            auto acc_index = acc_cache->acc_info.Index;
+            acc_cache.unlock();
+            if (acc_index != -1)
+            {
+                auto friends = main_server->GetFriendsList(session_id);
+
+                if (friends->size() <= 0)
+                {
+                    send_msg(session, 63, 0, Userlist::ListResult::NoUsers, 0);
+                    return;
+                }
+                std::vector<PlayerFriendInfo> friends_accepted;
+                for (auto const& friend_info : *friends)
+                    if (friend_info.state == Userlist::Friends::State::Accepted)
+                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data , friend_info.friend_account_id, friend_info.friend_nickname.c_str() });
+
+
+                if (friends_accepted.size() <= 0)
+                {
+                    send_msg(session, 63, 0, Userlist::ListResult::NoUsers, 0);
+                    return;
+                }
+                std::uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
+                for (std::uint32_t i = 0; i < total_friends_fragments; i++)
+                {
+                    std::vector<PlayerFriendInfo> friends_batch;
+                    std::uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
+                    std::uint32_t start_index = i * 51;
+                    std::uint32_t end_index = std::min(start_index + 51, static_cast<std::uint32_t>(friends_accepted.size()));
+                    for (auto j = start_index; j < end_index; j++)
+                        friends_batch.push_back(friends_accepted[j]);
+
+                    send_msg(session, 63, 0, user_list_result, friends_batch.size(), reinterpret_cast<uint8_t*>(friends_batch.data()), friends_batch.size() * sizeof(PlayerFriendInfo));
+                }
+            }
+
+        }
+        inline void PlayerSocials(SCallbackData& callback, CMainServer* main_server)
+        {
+            const auto& order = callback.message->GetOrder();
+            switch (order)
+            {
+                case 52: PlayerBlock(callback, main_server); break;
+                case 53: PlayerUnblock(callback, main_server); break;
+                case 54: PlayerBlockList(callback, main_server); break;
+                case 57: PlayerClanList(callback, main_server); break;
+                case 61: PlayerAddFriend(callback, main_server); break;
+                case 62: PlayerRemoveFriend(callback, main_server); break;
+                case 63: PlayerFriendList(callback, main_server); break;
+            }
+        }
+    }
+    
+}

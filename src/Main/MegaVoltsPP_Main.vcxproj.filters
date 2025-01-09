@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="header">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="header\handlers">
+      <UniqueIdentifier>{8ce66f68-2010-40a1-8b90-e8d86e4991e3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="CMainServer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CMainServer.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ServerConnect.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ServerDisconnect.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerPing.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerAuthorize.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerSocials.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerNameChange.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\BossBattleRespawn.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ChangeTeam.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ChannelsInfo.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\CreateRoom.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\DeleteItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\EndMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\GachaponSpin.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\GameEventMessage.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\JoinRoom.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LeaveMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LeaveRoom.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LobbyUserDetails.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LobbyUserList.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\NextRoundUpdateMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PackageOpen.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerChangeCharacter.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\EquipItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\RepairItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\SellItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\BuyItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\StartMatch.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\UpdateRoomList.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\UpdateRoomSettings.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\UpgradeItem.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerChat.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LeavePlaza.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\JoinPlaza.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerEnergy.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\ServerIpcMessage.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\CreateParty.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\LeaveParty.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerPickupDrop.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\PlayerMailbox.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
