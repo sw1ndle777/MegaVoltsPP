@@ -15,20 +15,11 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imconfig.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_dx9.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_internal.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imstb_rectpack.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imstb_textedit.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imstb_truetype.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\StackWalker\StackWalker.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CCrashHandler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBData.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CGui.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h" />
@@ -43,18 +34,10 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Protocols\BaseProtocol.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_demo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_draw.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_dx9.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_tables.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_widgets.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\StackWalker\StackWalker.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CCrashHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CGui.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CLog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.cpp" />
@@ -62,8 +45,5 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CServer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CSession.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)settings.json" />
   </ItemGroup>
 </Project>

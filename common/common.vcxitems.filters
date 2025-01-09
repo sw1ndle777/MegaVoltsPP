@@ -13,9 +13,6 @@
     <Filter Include="NetEngine\Packets">
       <UniqueIdentifier>{662b431c-be8a-4772-9066-136610e9a928}</UniqueIdentifier>
     </Filter>
-    <Filter Include="imgui">
-      <UniqueIdentifier>{073695e5-df15-4ffb-8c32-a4f21727298f}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Packets\PacketData.h">
@@ -66,33 +63,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CCrashHandler.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CGui.h">
-      <Filter>BaseLib</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imconfig.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_dx9.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_win32.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_internal.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imstb_rectpack.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imstb_textedit.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\imgui\imstb_truetype.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\StackWalker\StackWalker.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
@@ -128,35 +98,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CCrashHandler.cpp">
       <Filter>BaseLib</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CGui.cpp">
-      <Filter>BaseLib</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_demo.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_draw.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_dx9.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_impl_win32.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_tables.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\imgui\imgui_widgets.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\StackWalker\StackWalker.cpp">
       <Filter>BaseLib</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)settings.json" />
   </ItemGroup>
 </Project>

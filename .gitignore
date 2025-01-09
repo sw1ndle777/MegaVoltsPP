@@ -11,6 +11,8 @@
 *.log
 *.json
 *.ini
+*.cgd
+*.dip
 
 # Ignore build directories
 bin/
