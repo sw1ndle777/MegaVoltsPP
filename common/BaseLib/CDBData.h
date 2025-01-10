@@ -72,16 +72,16 @@ namespace BaseLib
         SetItemInfo()
         {
             this->Id = 0;
-            this->Hair = -1;
-            this->Face = -1;
-            this->Upper = -1;
-            this->Under = -1;
-            this->Arms = -1;
-            this->Pants = -1;
-            this->Boots = -1;
-            this->AccessoryA = -1;
-            this->AccessoryB = -1;
-            this->AccessoryC = -1;
+            this->Hair = 0;
+            this->Face = 0;
+            this->Upper = 0;
+            this->Under = 0;
+            this->Arms = 0;
+            this->Pants = 0;
+            this->Boots = 0;
+            this->AccessoryA = 0;
+            this->AccessoryB = 0;
+            this->AccessoryC = 0;
         }
     };
     struct VendorInfo

@@ -219,6 +219,7 @@ namespace Game
                 {
                     //if (main_server->IsItemWeapon(item.item_number.item_id) || main_server->IsItemCostume(item.item_number.item_id) || main_server->IsItemDiorama(item.item_number.item_id))
                     //    equipped_items.push_back(EquipItemInfo(item));
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) receive equip item id ({})", session->GetSessionId(), item.item_number.item_id);
                     if (main_server->IsItemSet(item.item_number.item_id))
                     {
 
@@ -231,7 +232,18 @@ namespace Game
                         }
                     }
                     else
-                        equipped_items.push_back(EquipItemInfo(item));
+                    {
+                        auto eq_item = EquipItemInfo(item);
+                        if (eq_item.item_number.item_type == 22)
+                        {
+                            eq_item.item_number.item_type = 19;
+                        }
+                        if (eq_item.item_number.item_type == 23)
+                        {
+                            eq_item.item_number.item_type = 20;
+                        }
+                        equipped_items.push_back(eq_item);
+                    }
                 }
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) received ({}) equip items on ({})", session->GetSessionId(), equipped_items.size(), main_server->GetCharacterStr(i).c_str());
                 send_msg(session, 75, 0, i, equipped_items.size(), reinterpret_cast<uint8_t*>(equipped_items.data()), equipped_items.size() * sizeof(EquipItemInfo));
@@ -290,6 +302,7 @@ namespace Game
             for (const auto& friend_info : friends_accepted)
             {
                 if (!friend_info.friend_session_id) continue;
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "for session id {} ({}) should notify friend ({})", session->GetSessionId(), accInfoMsg.Nickname, friend_info.friend_nickname);
                 send_msg(server->GetSessionById(friend_info.friend_session_id).get(), 85, 0, Userlist::Friends::DetailsType::FriendState, Userlist::FriendsState::Login, reinterpret_cast<uint8_t*>(&frontAccount.Index), sizeof(frontAccount.Index));
                 main_server->RemovePlayerFriends(friend_info.friend_session_id, frontAccount.Index);
                 main_server->AddPlayerFriends(friend_info.friend_session_id, { friend_info.friend_account_id, frontAccount.Index, Userlist::Friends::State::Accepted, session_id, frontAccount.Nickname });

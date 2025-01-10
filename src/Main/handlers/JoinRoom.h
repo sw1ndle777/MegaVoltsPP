@@ -300,7 +300,7 @@ namespace Game
             my_info1.level = acc_cache->acc_info.Level + 1;
 
             my_info2.fps_limit = acc_cache->fps_limit;
-            my_info2.player_state = acc_cache->state;
+            my_info2.player_state = PlayerInfo::State::Waiting;
             my_info2.ping = acc_cache->ping;
 
 

@@ -3,8 +3,6 @@
 #include "BaseLib/CDatabase.h"
 #include "BaseLib/CThreadPool.h"
 #include "BaseLib/CDBData.h"
-#include "BaseLib/CGui.h"
-
 #include "handlers/BossBattleRespawn.h"
 #include "handlers/BuyItem.h"
 #include "handlers/ChangeTeam.h"

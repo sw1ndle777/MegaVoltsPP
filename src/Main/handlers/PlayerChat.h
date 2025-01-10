@@ -120,7 +120,7 @@ namespace Game
                                         plaza_player_cache.unlock();
                                         continue;
                                     }
-                                    if (plaza_player_cache->in_plaza)
+                                    if (!plaza_player_cache->in_plaza)
                                     {
                                         plaza_player_cache.unlock();
                                         continue;

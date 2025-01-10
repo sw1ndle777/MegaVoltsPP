@@ -1456,6 +1456,8 @@ namespace Game
             else
                 return {};
         }
+
+        
         auto AddPlayerItemsAdded(AccCacheResource& acc_cache, const Item& new_item)
         {
             acc_cache->items_added.push_back(new_item.item_info.serial_info.data);
@@ -1804,6 +1806,28 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_iteminfo_mutex), null_item_info };
             }
         }
+        std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const std::uint32_t& item_type, const std::uint8_t& char_id)
+        {
+
+            auto it = std::find_if(acc_cache->inventory_items.begin(), acc_cache->inventory_items.end(),
+                [&item_type, char_id, this](const Item& item) {
+                if (item.character_id == char_id && item.is_equipped)
+                {
+                    auto item_info = GetItemInfoCache(item.item_info.item_number.item_id);
+                    if (item_info->Type == item_type)
+                        return true;
+                    else
+                        return false;
+                }
+                else return false;
+            });
+
+            if (it != acc_cache->inventory_items.end())
+                return *it;
+            else
+                return {};
+        }
+
         auto GetItemsInfoCacheSize()
         {
             std::shared_lock lock(items_info_mutex);
@@ -2421,18 +2445,18 @@ namespace Game
             std::vector<std::uint32_t> types;
             if (setitem_info->Id)
             {
-                if (setitem_info->Hair) types.push_back(0);
-                if (setitem_info->Face) types.push_back(1);
-                if (setitem_info->Upper) types.push_back(2);
-                if (setitem_info->Under) types.push_back(3);
-                if (setitem_info->Arms) types.push_back(4);
-                if (setitem_info->Pants) types.push_back(5);
-                if (setitem_info->Boots) types.push_back(6);
-                if (setitem_info->AccessoryA) types.push_back(7);
-                if (setitem_info->AccessoryB) types.push_back(8);
-                if (setitem_info->AccessoryC) types.push_back(9);
+                if (setitem_info->Hair < UINT32_MAX) types.push_back(0);
+                if (setitem_info->Face < UINT32_MAX) types.push_back(1);
+                if (setitem_info->Upper < UINT32_MAX) types.push_back(2);
+                if (setitem_info->Under < UINT32_MAX) types.push_back(3);
+                if (setitem_info->Pants < UINT32_MAX) types.push_back(4);
+                if (setitem_info->Arms < UINT32_MAX) types.push_back(5);
+                if (setitem_info->Boots < UINT32_MAX) types.push_back(6);
+                if (setitem_info->AccessoryA < UINT32_MAX) types.push_back(7);
+                if (setitem_info->AccessoryB < UINT32_MAX) types.push_back(8);
+                if (setitem_info->AccessoryC < UINT32_MAX) types.push_back(9);
             }
-
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "(uint32 max is {}) for the set ({}) was found hair {}, face {}, top {}, legs {}, arms {}, pants {}, boots {}, acca {}, accb {}, accc {}", UINT32_MAX, item_id, setitem_info->Hair, setitem_info->Face, setitem_info->Upper, setitem_info->Under, setitem_info->Arms, setitem_info->Pants, setitem_info->Boots, setitem_info->AccessoryA, setitem_info->AccessoryB, setitem_info->AccessoryC);
             return types;
         }
         std::string GetCharacterStr(const std::uint8_t& char_id)

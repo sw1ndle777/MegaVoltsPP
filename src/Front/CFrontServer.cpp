@@ -12,7 +12,7 @@
 #include "handlers/LoginAuth.h"
 #include "handlers/LoginReconnect.h"
 #include "handlers/ChannelsInfo.h"
-#include "BaseLib/CGui.h"
+
 namespace Game
 {    
     std::shared_mutex players_cache_mutex;

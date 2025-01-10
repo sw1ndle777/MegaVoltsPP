@@ -56,7 +56,7 @@
 #include "handlers/ServerConnect.h"
 #include "handlers/ServerDisconnect.h"
 #include "handlers/ServerIpcMessage.h"
-#include "BaseLib/CGui.h"
+
 namespace Game
 {
 
