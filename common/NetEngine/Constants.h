@@ -376,10 +376,12 @@ namespace NetEngine
         enum SendResult : std::uint8_t
         {
             UserNotFound = 4,
+            FullGiftReceiver = 7,
             FullReceiver = 8,
             FullSender = 17,
             Blacklist = 42,
-            NewMail = 46
+            NewMail = 46,
+            Gift = 53
         };
         enum OpenResult : std::uint8_t
         {
@@ -522,7 +524,7 @@ namespace NetEngine
         {
             enum Result : std::uint8_t
             {
-                Nothing = 0x06,
+                SingleWave = 0x06,
                 Started = 0x26,
                 Loaded = 0x29
             };

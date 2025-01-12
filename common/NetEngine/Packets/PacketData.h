@@ -384,6 +384,21 @@ namespace NetEngine
                     item_number.data = itemNumber.data;
                 }
             };
+            struct MailboxGift
+            {
+                std::uint32_t mail_id;
+                std::uint32_t mail_time;
+                ShopItem item;
+                MailboxGift(
+                    const std::uint32_t& mailId = 0,
+                    const std::uint32_t& mailTime = 0,
+                    const ShopItem& item = ShopItem())
+                    : mail_id(mailId),
+                    mail_time(mailTime),
+                    item(item)
+                {
+                };
+            };
             struct PlayerFriendInfo
             {
                 std::uint32_t unique_id;
@@ -860,6 +875,16 @@ namespace NetEngine
                 char nickname[16];
                 char msg[256];
             };
+            struct GiftboxMsgInfo
+            {
+                std::uint32_t mail_id;
+                std::uint32_t date;
+                std::uint32_t item_id;
+                std::uint32_t unknown1 = 1;
+                std::uint32_t unknown2 = 0;
+                char nickname[16];
+                char msg[256];
+            };
             struct RoomListInfo
             {
                 char title[32];
@@ -957,6 +982,7 @@ namespace NetEngine
                 std::uint32_t total_xp;
                 std::uint32_t unknown2;
             };
+
 #pragma pack(pop)
         }
 

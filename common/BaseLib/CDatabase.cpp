@@ -364,7 +364,7 @@ namespace BaseLib
                     ID int unsigned NOT NULL AUTO_INCREMENT,
                     PlayerId int unsigned NOT NULL,
                     RewardCount tinyint unsigned NOT NULL,
-                    LastUpdate datetime(6) NOT NULL,
+                    LastUpdate bigint unsigned NOT NULL,
                     PRIMARY KEY (ID),
                     KEY IX_player_monthly_rewards_PlayerId (PlayerId),
                     CONSTRAINT FK_player_monthly_rewards_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
@@ -373,8 +373,8 @@ namespace BaseLib
                     GachaponId int unsigned NOT NULL AUTO_INCREMENT,
                     Description  varchar(127) DEFAULT NULL,
                     SalePrice int unsigned NOT NULL,
-                    EventStartDate datetime(6) NOT NULL,
-                    EventEndDate datetime(6) NOT NULL,
+                    EventStartDate bigint unsigned NOT NULL,
+                    EventEndDate bigint unsigned NOT NULL,
                     PRIMARY KEY (GachaponId))");
 
                     CreateTable("system_monthly_rewards", R"(
@@ -1695,7 +1695,7 @@ namespace BaseLib
             }
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ?"));
+                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ? AND GiftItemId = 0"));
 
             pstmt->setUInt(1, acc_id);
 
@@ -1713,7 +1713,37 @@ namespace BaseLib
 
         return 0;
     }
+    std::uint32_t CDatabase::GetPlayerReceiverGiftboxCount(const std::int32_t& acc_id)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
 
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ? AND GiftItemId != 0"));
+
+            pstmt->setUInt(1, acc_id);
+
+            std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+
+            if (res->next())
+            {
+                return res->getInt("MailCount");
+            }
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+        }
+
+        return 0;
+    }
     bool CDatabase::UpdateMailboxIsNew(const std::vector<std::uint32_t>& mail_ids, bool is_new)
     {
         try
@@ -1947,6 +1977,134 @@ namespace BaseLib
             }
         }
         return false;
+    }
+
+    bool CDatabase::GetSystemMonthlyRewards(const std::uint32_t& month, SystemMonthlyRewards* outMonthlyRewards)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM system_monthly_rewards WHERE Month = ?"));
+            pstmt->setUInt(1, month);
+
+            std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+            if (result->next())
+            {
+                *outMonthlyRewards = SystemMonthlyRewards(result->getUInt("Month"),
+                    {
+                        result->getUInt("Day1"), result->getUInt("Day2"), result->getUInt("Day3"), result->getUInt("Day4"), result->getUInt("Day5"),
+                        result->getUInt("Day6"), result->getUInt("Day7"), result->getUInt("Day8"), result->getUInt("Day9"), result->getUInt("Day10"),
+                        result->getUInt("Day11"), result->getUInt("Day12"), result->getUInt("Day13"), result->getUInt("Day14"), result->getUInt("Day15"),
+                        result->getUInt("Day16"), result->getUInt("Day17"), result->getUInt("Day18"), result->getUInt("Day19"), result->getUInt("Day20"),
+                        result->getUInt("Day21"), result->getUInt("Day22"), result->getUInt("Day23"), result->getUInt("Day24"), result->getUInt("Day25"),
+                        result->getUInt("Day26"), result->getUInt("Day27"), result->getUInt("Day28"), result->getUInt("Day29"), result->getUInt("Day30"),
+                        result->getUInt("Day31")
+                    }
+                );
+
+                return true;
+            }
+            else return false;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    bool CDatabase::GetPlayerMonthlyDayCount(const std::uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM player_monthly_rewards WHERE PlayerId = ?"));
+            pstmt->setUInt(1, acc_id);
+
+            std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+            if (result->next())
+            {
+                *outMonthlyRewards = PlayerMonthlyReward(acc_id, result->getByte("RewardCount"), result->getUInt64("LastUpdate"));
+
+                return true;
+            }
+            else return false;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    bool CDatabase::InsertPlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "INSERT INTO player_monthly_rewards (PlayerId, RewardCount, LastUpdate) VALUES (?, ?, ?)"));
+            pstmt->setUInt(1, acc_id);
+            pstmt->setUInt(2, reward_count);
+            pstmt->setUInt64(3, last_update);
+
+            pstmt->executeUpdate();
+            return true;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    bool CDatabase::UpdatePlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "UPDATE player_monthly_rewards SET RewardCount = ?, LastUpdate = ? WHERE PlayerId = ?"));
+            pstmt->setUInt(1, reward_count);
+            pstmt->setUInt64(2, last_update);
+            pstmt->setUInt(3, acc_id);
+
+            pstmt->executeUpdate();
+            return true;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
     }
 
     std::unique_ptr<CDatabase> Database = std::make_unique<CDatabase>();

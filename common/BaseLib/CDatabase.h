@@ -5,6 +5,7 @@
 #include "CLog.h"
 #include "CThreadPool.h"
 #include "Utility.h"
+#include <array>
 #include <NetEngine/Packets/PacketData.h>
 namespace BaseLib
 {
@@ -215,6 +216,24 @@ namespace BaseLib
         }
     };
 
+    struct PlayerMonthlyReward
+    {
+        std::uint32_t player_account_id;
+        std::uint8_t day_count;
+        std::uint64_t last_time_update;
+    };
+    struct SystemMonthlyRewards
+    {
+        std::uint32_t month;
+        std::array<std::uint32_t, 31> rewards;
+        SystemMonthlyRewards(std::uint32_t m, std::array<std::uint32_t, 31> r)
+            : month(m), rewards(r) {
+        }
+
+        SystemMonthlyRewards()
+            : month(0), rewards{} {
+        }
+    };
     struct ClanInfo
     {
         std::uint32_t id;
@@ -334,9 +353,14 @@ namespace BaseLib
         bool DeletePlayerMailbox(const std::vector<MailboxInfo>& mails);
         std::vector<MailboxInfo> GetPlayerMailbox(const std::int32_t& acc_id);
         std::uint32_t GetPlayerReceiverMailboxCount(const std::int32_t& acc_id);
+        std::uint32_t GetPlayerReceiverGiftboxCount(const std::int32_t& acc_id);
         bool UpdateMailboxIsNew(const std::vector<std::uint32_t>& mail_ids, bool is_new);
         bool UpdateOrDeleteMailboxForSender(const std::vector<std::uint32_t>& mail_ids);
         bool UpdateOrDeleteMailboxForReceiver(const std::vector<std::uint32_t>& mail_ids);
+        bool GetSystemMonthlyRewards(const std::uint32_t& month, SystemMonthlyRewards* outMonthlyRewards);
+        bool GetPlayerMonthlyDayCount(const std::uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards);
+        bool InsertPlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update);
+        bool UpdatePlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update);
         std::string GetDatabaseName();
         CDatabase() {};
         ~CDatabase() {};

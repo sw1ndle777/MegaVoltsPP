@@ -537,6 +537,7 @@ namespace Game
     extern std::shared_mutex mailbox_data_cache_mutex;
     extern std::shared_mutex mailbox_sent_cache_mutex;
     extern std::shared_mutex mailbox_recv_cache_mutex;
+    extern std::shared_mutex giftbox_recv_cache_mutex;
 
 
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
@@ -559,6 +560,7 @@ namespace Game
     extern boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
 
     using AccCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Player>;
     using AccCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Player>;
@@ -1029,6 +1031,20 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_mailbox_recv_mutex), null_mail_ids };
             }
         }
+        auto GetGiftboxRecvCacheShared(const std::uint32_t& acc_id)
+        {
+            std::shared_lock lock(giftbox_recv_cache_mutex);
+            auto it = giftbox_recv_cache.find(acc_id);
+            if (it != giftbox_recv_cache.end())
+                return LockedResource{ std::shared_lock(giftbox_recv_cache_mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_giftbox_recv_mutex;
+                static thread_local std::vector<std::uint32_t> null_gifts_ids;
+                return LockedResource{ std::shared_lock(null_giftbox_recv_mutex), null_gifts_ids };
+            }
+        }
+
         std::size_t GetMailboxRecvCount(const std::uint32_t& acc_id)
         {
             std::shared_lock lock(mailbox_recv_cache_mutex);
@@ -1038,6 +1054,17 @@ namespace Game
       
             return 0;
         }
+
+        std::size_t GetGiftboxRecvCount(const std::uint32_t& acc_id)
+        {
+            std::shared_lock lock(giftbox_recv_cache_mutex);
+            auto it = giftbox_recv_cache.find(acc_id);
+            if (it != giftbox_recv_cache.end())
+                return it->second.size();
+
+            return 0;
+        }
+
 
         std::size_t GetMailboxSentCount(const std::uint32_t& acc_id)
         {
@@ -1058,6 +1085,12 @@ namespace Game
             });
             return it != mail_ids.end();
         }
+        auto AddGiftboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        {
+            auto giftbox_recv_cache_locked = LockedResource{ std::unique_lock(giftbox_recv_cache_mutex), giftbox_recv_cache };
+            auto& gifts_list = (*giftbox_recv_cache_locked)[id];
+            gifts_list.insert(gifts_list.end(), mail_id);
+        }
         auto AddMailboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
         {
             auto mailbox_recv_cache_locked = LockedResource{ std::unique_lock(mailbox_recv_cache_mutex), mailbox_recv_cache };
@@ -1076,10 +1109,21 @@ namespace Game
             auto& mails_list = (*mailbox_recv_cache_locked)[id];
             mails_list.erase(std::remove(mails_list.begin(), mails_list.end(), mail_id), mails_list.end());
         }
+        auto RemoveGiftboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        {
+            auto giftbox_recv_cache_locked = LockedResource{ std::unique_lock(giftbox_recv_cache_mutex), giftbox_recv_cache };
+            auto& gifts_list = (*giftbox_recv_cache_locked)[id];
+            gifts_list.erase(std::remove(gifts_list.begin(), gifts_list.end(), mail_id), gifts_list.end());
+        }
         auto RemoveMailboxRecvCache(const std::uint32_t& id)
         {
             auto mailbox_recv_cache_locked = LockedResource{ std::unique_lock(mailbox_recv_cache_mutex), mailbox_recv_cache };
             mailbox_recv_cache_locked->erase(id);
+        }
+        auto RemoveGiftboxRecvCache(const std::uint32_t& id)
+        {
+            auto giftbox_recv_cache_locked = LockedResource{ std::unique_lock(giftbox_recv_cache_mutex), giftbox_recv_cache };
+            giftbox_recv_cache_locked->erase(id);
         }
 
 
@@ -2740,6 +2784,93 @@ namespace Game
             }
         }
 
+        bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<std::uint32_t> item_ids)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+
+            std::vector<ShopItem> items;
+            for (auto item_id : item_ids)
+            {
+                auto item_info = GetItemInfoCache(item_id);
+                if (item_info->Id != -1)
+                {
+                #if defined(RELEASE_1_0_3)
+                    auto serial_index = FindLowestAvailableItemSerialInfoId(acc_cache->inventory_items);
+                    ShopItem new_item = { {item_info->Id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_GM_Spawn, Utility::GetUtcTimeNow()) };
+                    items.push_back(new_item);
+                    const InventoryItemInfo& inv_item_info = { {item_info->Id , item_info->Stock } ,ItemExpire::Type::Unused,new_item.serial_info, item_info->Durability, 0 };
+                    const Item& new_player_item = { inv_item_info, item_info->Stock, false , 0, false };
+                    AddPlayerItemInventory(acc_cache, new_player_item);
+                #else
+                    auto serial_index = FindLowestAvailableItemSerialInfoId(accounts_cache[callback.session->GetSessionId()].inventory_items);
+                    ShopItem new_item = { {item_info->Id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_GM_Spawn, Utility::GetUtcTimeNow()) };
+                    items.push_back(new_item);
+                    const InventoryItemInfo& inv_item_info = { item_info->Id ,ItemExpire::Type::Unused,new_item.serial_info, item_info->Durability, 0, 0, 0, 0, 0, AdjustItemType(item_info->Type) };
+                    const Item& new_player_item = { inv_item_info, item_info->Stock, false , 0, false };
+                    AddPlayerItemInventory(acc_cache, new_player_item);
+                #endif
+                }
+                else
+                    return false;
+                    
+            }
+            send_msg(session, 99, 0, 37, items.size(), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopItem));
+            return true;
+        }
+        bool SendGiftItem(CSession* session, AccCacheResource& target_acc_cache, std::uint32_t item_id, std::string msg)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            auto target_mailbox_received_count = 0;
+            if (target_acc_cache->acc_info.Index == -1) //user offline
+            {
+                return false;
+            }
+            else
+            {
+                target_mailbox_received_count = GetGiftboxRecvCount(target_acc_cache->acc_info.Index);
+            }
+            if (target_mailbox_received_count >= 100)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player acc id ({}) has gift box full", target_acc_cache->acc_info.Nickname.c_str());
+                return false;
+            }
+                
+
+            std::uint32_t new_mailbox_id = 0;
+            MailboxInfo mailbox_info = { 0, static_cast<std::uint32_t>(target_acc_cache->acc_info.Index), "MegaVolts", static_cast<std::uint32_t>(target_acc_cache->acc_info.Index), target_acc_cache->acc_info.Nickname.c_str(), Utility::GetUtcTimeNow(), item_id, msg, true, true, false};
+            if (BaseLib::Database->InsertPlayerMailbox(mailbox_info, new_mailbox_id))
+            {
+                mailbox_info.mail_id = new_mailbox_id;
+                AddMailboxDataCache(new_mailbox_id, MailboxData(mailbox_info));
+                AddGiftboxRecvIdCache(target_acc_cache->acc_info.Index, new_mailbox_id);
+
+                
+                std::uint32_t unopened_gifts = 0;
+                auto mail_recv_ids = GetGiftboxRecvCacheShared(target_acc_cache->acc_info.Index);
+                for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+                {
+                    auto mail_id = mail_recv_ids->at(i);
+                    auto mailbox_data = GetMailboxDataCacheShared(mail_id);
+                    if (mailbox_data->gift_itemid != 0) unopened_gifts++;
+                }
+
+                send_msg(session, 66, 0, 37, unopened_gifts); // remainder of unopened mails
+            }
+        }
         void SendServerMessage(CSession* session, const std::string& message)
         {
             CMessage chatMsgAck = CMessage(session->GetEncryptionKey());

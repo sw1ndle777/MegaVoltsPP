@@ -50,7 +50,61 @@ namespace Game
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
-            if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
+            if (acc_index == -1) return;
+            auto extra = callback.message->GetExtra();
+            auto mission = callback.message->GetMission();
+            if (extra == 6)
+            {
+                auto end_single_wave_time = Utility::GetUtcTimeNowInSeconds();
+                auto playtime_seconds = end_single_wave_time - acc_cache->match_loaded_time;
+                auto endmatch_sw = reinterpret_cast<SingleWaveEndReq*>(callback.message->GetData());
+                
+                switch (endmatch_sw->type)
+                {
+                    case 1:
+                    {
+                        if (playtime_seconds >= 180) // 3 minutes
+                        {
+                            
+                           
+                            
+                        }
+                        acc_cache->acc_info.SingleWaveHighScore = std::max(acc_cache->acc_info.SingleWaveHighScore, endmatch_sw->score);
+                        acc_cache->acc_info.SingleWaveHighestWave = std::max(acc_cache->acc_info.SingleWaveHighestWave, endmatch_sw->stage);
+                        acc_cache->acc_info.SingleWaveLastUpdate = Utility::GetUtcTimeNow64();
+                        break;
+                    }
+                    case 2:
+                    {
+                        if (acc_cache->acc_info.SingleWaveDailyAttempts > 0)
+                        {
+                            if (playtime_seconds >= 720) // 12 minutes
+                            {
+
+
+                            }
+                            acc_cache->acc_info.SingleWaveHighScore = std::max(acc_cache->acc_info.SingleWaveHighScore, endmatch_sw->score);
+                            acc_cache->acc_info.SingleWaveHighestWave = std::max(acc_cache->acc_info.SingleWaveHighestWave, endmatch_sw->stage);
+                            acc_cache->acc_info.SingleWaveDailyAttempts--;
+                            acc_cache->acc_info.SingleWaveLastUpdate = Utility::GetUtcTimeNow64();
+                        }
+                        
+                        break;
+                    }
+                    default:
+                    {
+                        if (!acc_cache->acc_info.Tutorial)
+                        {
+                            main_server->SendInventoryItem(session, acc_cache, { 4500000 });
+                            acc_cache->acc_info.Tutorial = true;
+                        }
+                        break;
+                    }
+                }
+            }
+
+
+            if (!acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
             auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
             auto ri = main_server->GetRewardInfoCache(room_cache->ModeIndex);
             acc_cache->playing = false;

@@ -36,6 +36,11 @@ namespace Game
 
             switch (match_result)
             {
+                case NetEngine::Room::Match::Result::SingleWave:
+                {
+                    acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
+                    break;
+                }
                 case NetEngine::Room::Match::Result::Started:
                 {
                     room_cache->is_playing = true;

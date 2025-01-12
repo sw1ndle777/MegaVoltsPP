@@ -303,6 +303,12 @@ namespace NetEngine
             {
                 std::uint32_t unknown;
             };
+            struct SingleWaveEndReq
+            {
+                std::uint32_t type;
+                std::uint32_t score;
+                std::uint32_t stage;
+            };
 
             struct MainEngineServerConnectionAck
             {
@@ -1474,7 +1480,63 @@ namespace NetEngine
                 }
             };
 
-            
+            class MainGiftboxAck
+            {
+            public:
+                std::vector<GiftboxMsgInfo> mails;
+                MainGiftboxAck(std::vector<GiftboxMsgInfo>& mails)
+                {
+                    std::memset(this, 0, sizeof(MainGiftboxAck));
+                    this->mails = mails;
+
+                }
+
+                std::vector<std::uint8_t> Serialize() const
+                {
+                    std::vector<std::uint8_t> data;
+
+                    for (const auto& mail_info : mails)
+                    {
+                        const auto* mail_data_bytes = reinterpret_cast<const uint8_t*>(&mail_info);
+                        data.insert(data.end(), mail_data_bytes, mail_data_bytes + sizeof(mail_info));
+                    }
+
+                    return data;
+                }
+            };
+
+            class MainMonthlyRewardAck
+            {
+            public:
+                std::uint16_t month;
+                std::uint16_t received;
+                std::uint64_t unknown;
+                std::array<std::uint32_t, 31> monthly_items;
+
+                MainMonthlyRewardAck(const std::uint16_t& month, const std::uint16_t& received, const std::array<std::uint32_t, 31>& monthly_items) : month(month), received(received), unknown(0), monthly_items(monthly_items) {}
+
+                std::vector<std::uint8_t> Serialize() const
+                {
+                    std::vector<std::uint8_t> data;
+                    auto month_bytes = reinterpret_cast<const uint8_t*>(&month);
+                    data.insert(data.end(), month_bytes, month_bytes + sizeof(month));
+
+                    auto received_bytes = reinterpret_cast<const uint8_t*>(&received);
+                    data.insert(data.end(), received_bytes, received_bytes + sizeof(received));
+
+                    auto unknown_bytes = reinterpret_cast<const uint8_t*>(&unknown);
+                    data.insert(data.end(), unknown_bytes, unknown_bytes + sizeof(unknown));
+
+                    
+                    for (const auto& item : monthly_items)
+                    {
+                        const auto* item_bytes = reinterpret_cast<const uint8_t*>(&item);
+                        data.insert(data.end(), item_bytes, item_bytes + sizeof(std::uint32_t));
+                    }
+
+                    return data;
+                }
+            };
 
 #pragma pack(pop)
         }

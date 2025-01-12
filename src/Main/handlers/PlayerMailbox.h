@@ -209,6 +209,7 @@ namespace Game
                 for (const auto& mail_id : *received_mail_ids)
                 {
                     auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                    if (mailbox_data->gift_itemid != 0) continue;
                     if (!mailbox_data->sender_nickname.empty())
                     {
                         MailboxMsgInfo new_mailbox_msg;
@@ -252,6 +253,7 @@ namespace Game
                 for (const auto& mail_id : *sent_mail_ids)
                 {
                     auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                    if (mailbox_data->gift_itemid != 0) continue;
                     if (!mailbox_data->receiver_nickname.empty())
                     {
                         MailboxMsgInfo new_mailbox_msg;
@@ -285,11 +287,155 @@ namespace Game
             }
             
         }
+        inline void PlayerOpenGiftbox(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+
+            auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1) return;
+            auto mailbox_tab = callback.message->GetMission();
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "User ({}) open his Gift Inbox and read ({})", acc_cache->acc_info.Nickname, (mailbox_tab == 0 ? "RECEIVED" : "SENT"));
+
+            if (mailbox_tab == 0) // receiver
+            {
+                auto received_mail_ids = main_server->GetGiftboxRecvCacheShared(acc_index);
+                if (received_mail_ids->empty())
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "User Gift Inbox is empty");
+                    send_msg(session, 67, mailbox_tab, Mailbox::OpenResult::Empty, 0);
+                    return;
+                }
+                std::vector<GiftboxMsgInfo> mailbox_msgs;
+                for (const auto& mail_id : *received_mail_ids)
+                {
+                    auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                    if(mailbox_data->gift_itemid == 0) continue;
+                    if (!mailbox_data->sender_nickname.empty())
+                    {
+                        GiftboxMsgInfo new_mailbox_msg;
+                        new_mailbox_msg.mail_id = mailbox_data->mail_id;
+                        new_mailbox_msg.date = mailbox_data->time;
+                        new_mailbox_msg.item_id = mailbox_data->gift_itemid;
+                        new_mailbox_msg.unknown1 = 1;
+                        new_mailbox_msg.unknown2 = 0;
+                        std::strcpy(new_mailbox_msg.nickname, mailbox_data->sender_nickname.c_str());
+                        std::strcpy(new_mailbox_msg.msg, mailbox_data->message.c_str());
+                        mailbox_msgs.push_back(new_mailbox_msg);
+                    }
+                }
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "User has ({}) gifts.", mailbox_msgs.size());
+                std::uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 4 ? 1 : ((mailbox_msgs.size() + 1) / 4) + 1;
+
+                for (std::uint32_t i = 0; i < total_mails_fragments; i++)
+                {
+                    std::vector<GiftboxMsgInfo> mails_batch;
+                    std::uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
+                    if (total_mails_fragments == 1)
+                        mail_list_result = Mailbox::OpenResult::SendMails2;
+                    std::uint32_t start_index = i * 4;
+                    std::uint32_t end_index = std::min(start_index + 4, static_cast<std::uint32_t>(mailbox_msgs.size()));
+                    for (auto j = start_index; j < end_index; j++)
+                        mails_batch.push_back(mailbox_msgs[j]);
+
+                    
+                    auto mailboxAckMsg = MainGiftboxAck(mails_batch).Serialize();
+
+                    send_msg(session, 67, mailbox_tab, mail_list_result, static_cast<std::uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
+                }
+                send_msg(session, 67, mailbox_tab, Mailbox::OpenResult::Confirm, 0);
+            }
+            else
+                send_msg(session, 67, mailbox_tab, Mailbox::OpenResult::Empty, 0);
+           
+
+        }
+        inline void PlayerReceiveGiftbox(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+
+            auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1) return;
+
+            const auto& mailboxReq = reinterpret_cast<MailBoxUpdateReq*>(callback.message->GetData());
+            std::vector<std::uint32_t> mail_ids_received;
+            std::vector<std::uint32_t> gift_item_ids;
+            for (std::uint32_t i = 0; i < mailboxReq->mail_count; i++)
+            {
+                auto mail_id = mailboxReq->mail_info[i].mail_id;
+                auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                if (mailbox_data->gift_itemid == 0) continue;
+                gift_item_ids.push_back(mailbox_data->gift_itemid);
+
+                if (mailbox_data->receiver_account_id == acc_index)
+                {
+                    main_server->RemoveGiftboxRecvIdCache(acc_index, mail_id);
+                    mail_ids_received.push_back(mail_id);
+                    auto item_info = main_server->GetItemInfoCache(mailbox_data->gift_itemid);
+                    if (item_info->Id != -1)
+                    {
+                        auto serial_index = main_server->FindLowestAvailableItemSerialInfoId(acc_cache->inventory_items);
+                        ShopItem new_item = { {item_info->Id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_GM_Spawn, Utility::GetUtcTimeNow()) };
+                        MailboxGift new_gift = { mail_id,mailbox_data->time, new_item };
+                        send_msg(session, 66, 0, Mailbox::SendResult::Gift, 0, reinterpret_cast<uint8_t*>(&new_gift), sizeof(MailboxGift));
+                    }
+                    
+                        
+                }
+                main_server->RemoveMailboxDataCache(mail_id);
+            }
+            if (mail_ids_received.size() > 0)
+                BaseLib::Database->UpdateOrDeleteMailboxForReceiver(mail_ids_received);
+
+            if (gift_item_ids.size() > 0)
+                main_server->SendInventoryItem(session, acc_cache, gift_item_ids);
+
+            
+
+
+            std::uint32_t unopened_gifts = 0;
+            auto mail_recv_ids = main_server->GetGiftboxRecvCacheShared(acc_index);
+            for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+            {
+                auto mail_id = mail_recv_ids->at(i);
+                auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                if (mailbox_data->gift_itemid != 0) unopened_gifts++;
+            }
+
+            send_msg(session, 66, 0, 37, unopened_gifts); // remainder of unopened mails
+
+        }
         inline void PlayerMailbox(SCallbackData& callback, CMainServer* main_server)
         {
             const auto& order = callback.message->GetOrder();
             switch (order)
             {
+                case 66:  PlayerReceiveGiftbox(callback, main_server); break;
+                case 67:  PlayerOpenGiftbox(callback, main_server); break;
                 case 103: PlayerDeleteMailbox(callback, main_server); break;
                 case 104: PlayerSendMailbox(callback, main_server); break;
                 case 105: PlayerUpdateMailbox(callback, main_server); break;

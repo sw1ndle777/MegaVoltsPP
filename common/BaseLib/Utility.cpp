@@ -137,12 +137,41 @@ namespace Utility
         auto now_c = std::chrono::system_clock::to_time_t(now);
         return static_cast<std::uint32_t>(now_c);
     }
+    std::uint32_t GetCurrentMonth()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm now_tm;
+        localtime_s(&now_tm, &now_c);
+        return static_cast<std::uint32_t>(now_tm.tm_mon + 1);
+    }
+    std::uint32_t GetCurrentDay()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm now_tm;
+        localtime_s(&now_tm, &now_c);
+        return static_cast<std::uint32_t>(now_tm.tm_mday);
+    }
     std::uint32_t GetUtcTimeNowPlusSeconds(const std::uint32_t& seconds)
     {
         auto now = std::chrono::system_clock::now();
         auto future_time = now + std::chrono::seconds(seconds);
         auto future_time_c = std::chrono::system_clock::to_time_t(future_time);
         return static_cast<std::uint32_t>(future_time_c);
+    }
+    std::tm ConvertUtcTimestampToDate(std::uint64_t timestamp)
+    {
+        std::time_t time = static_cast<std::time_t>(timestamp);
+        std::tm date;
+    #ifdef _WIN64
+        // Windows: Use gmtime_s
+        gmtime_s(&date, &time);
+    #else
+        // Linux/Unix: Use gmtime_r
+        gmtime_r(&time, &date);
+    #endif
+        return date;
     }
     std::uint64_t GetUtcTimeNow64()
     {

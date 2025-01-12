@@ -31,7 +31,10 @@ namespace Utility
     std::string readable_size(std::uint64_t bytes);
     std::string readable_time(std::uint64_t ns);
     std::uint32_t GetUnixEpoch();
+    std::tm ConvertUtcTimestampToDate(std::uint64_t timestamp);
     std::uint32_t GetUtcTimeNow();
+    std::uint32_t GetCurrentMonth();
+    std::uint32_t GetCurrentDay();
     std::uint32_t GetUtcTimeNowPlusSeconds(const std::uint32_t& seconds);
     std::uint64_t GetUtcTimeNow64();
     std::uint64_t GetUtcTimeNowInMilliseconds();

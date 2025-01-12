@@ -80,29 +80,12 @@ namespace Game
             {
                 if (!Utility::IsDigitsOnly(item_id_str)) continue;
                 const auto& item_id = Utility::ExtractNumber(item_id_str.c_str());
-                auto item_info = main_server->GetItemInfoCache(item_id);
-                if (item_info->Id != -1)
+                if (main_server->SendInventoryItem(callback.session, acc_cache, { item_id }))
                 {
-                   
-                #if defined(RELEASE_1_0_3)
-                    auto serial_index = main_server->FindLowestAvailableItemSerialInfoId(acc_cache->inventory_items);
-                    ShopItem new_item = { {item_id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_GM_Spawn, Utility::GetUtcTimeNow()) };
-                    items.push_back(new_item);
-                    const InventoryItemInfo& inv_item_info = { {item_id , item_info->Stock } ,ItemExpire::Type::Unused,new_item.serial_info, item_info->Durability, 0};
-                    const Item& new_player_item = { inv_item_info, item_info->Stock, false , 0, false };
-                    main_server->AddPlayerItemInventory(acc_cache, new_player_item);
-                #else
-                    auto serial_index = main_server->FindLowestAvailableItemSerialInfoId(accounts_cache[callback.session->GetSessionId()].inventory_items);
-                    ShopItem new_item = { {item_id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_GM_Spawn, Utility::GetUtcTimeNow()) };
-                    items.push_back(new_item);
-                    const InventoryItemInfo& inv_item_info = { item_id ,ItemExpire::Type::Unused,new_item.serial_info, item_info->Durability, 0, 0, 0, 0, 0, main_server->AdjustItemType(item_info->Type) };
-                    const Item& new_player_item = { inv_item_info, item_info->Stock, false , 0, false };
-                    main_server->AddPlayerItemInventory(acc_cache, new_player_item);
-                #endif
-                    
+
                 }
                 else
-                    main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] Could not find item id ({})", item_info->Id).c_str());
+                    main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] Could not find item id ({})", item_id).c_str());
             }
             if (items.size() > 0)
             {
@@ -628,6 +611,7 @@ namespace Game
     std::shared_mutex mailbox_data_cache_mutex;
     std::shared_mutex mailbox_sent_cache_mutex;
     std::shared_mutex mailbox_recv_cache_mutex;
+    std::shared_mutex giftbox_recv_cache_mutex;
     /*
     std::unordered_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
     std::unordered_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
@@ -667,6 +651,7 @@ namespace Game
     boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
 
 
     RECT rc = { 0 };
@@ -685,6 +670,10 @@ namespace Game
         this->On(61, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend add
         this->On(62, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend remove
         this->On(63, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend list
+
+        this->On(66, std::bind(&Game::Handlers::PlayerMailbox, std::placeholders::_1, this));//PlayerReceiveGiftbox
+        this->On(67, std::bind(&Game::Handlers::PlayerMailbox, std::placeholders::_1, this));//PlayerOpenGiftbox
+
         this->On(68, std::bind(&Game::Handlers::PlayerAuthorize, std::placeholders::_1, this));//version check
         this->On(69, std::bind(&Game::Handlers::PlayerNameChange, std::placeholders::_1, this));//nickname creation
         this->On(71, std::bind(&Game::Handlers::PlayerPing, std::placeholders::_1, this));//player ping

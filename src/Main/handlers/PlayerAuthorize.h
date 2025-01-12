@@ -162,7 +162,7 @@ namespace Game
             accInfoMsg.Experience = frontAccount.Experience;
             accInfoMsg.MicroPoints = frontAccount.MicroPoints;
             accInfoMsg.RockTokens = frontAccount.RockTokens;
-            accInfoMsg.Tutorial = 1;//frontAccount.Tutorial;
+            accInfoMsg.Tutorial = frontAccount.Tutorial;
             accInfoMsg.MaximumItems = frontAccount.MaximumItems;
             accInfoMsg.MaximumEnergy = frontAccount.MaximumEnergy;
             accInfoMsg.DailyAttempts = frontAccount.SingleWaveDailyAttempts;
@@ -314,8 +314,14 @@ namespace Game
             for (const auto& mail : mails)
             {
                 main_server->AddMailboxDataCache(mail.mail_id, MailboxData(mail));
-                main_server->AddMailboxSentIdCache(mail.mail_id, mail.sender_account_id);
-                main_server->AddMailboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
+                if (mail.gift_itemid == 0)
+                {
+                    main_server->AddMailboxSentIdCache(mail.mail_id, mail.sender_account_id);
+                    main_server->AddMailboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
+                }
+                else
+                    main_server->AddGiftboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
+                
             }
             std::uint32_t unopened_gifts = 0, unopened_mails = 0;
             auto mail_recv_ids = main_server->GetMailboxRecvCacheShared(frontAccount.Index);
@@ -324,7 +330,13 @@ namespace Game
                 auto mail_id = mail_recv_ids->at(i);
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
                 if (mailbox_data->is_new && mailbox_data->gift_itemid == 0) unopened_mails++;
-                else if (mailbox_data->gift_itemid != 0) unopened_gifts++;
+            }
+            auto gift_recv_ids = main_server->GetGiftboxRecvCacheShared(frontAccount.Index);
+            for (std::uint32_t i = 0; i < gift_recv_ids->size(); i++)
+            {
+                auto mail_id = gift_recv_ids->at(i);
+                auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                if (mailbox_data->gift_itemid != 0) unopened_gifts++;
             }
 
 
@@ -347,6 +359,81 @@ namespace Game
             }dailyRewardData;
 
             send_msg(session, 182, 0, 0, 0, reinterpret_cast<uint8_t*>(&dailyRewardData), sizeof(daily_reward_ack));// init daily reward
+
+            auto is_inventory_full = player_inventory_items.size() >= frontAccount.MaximumItems;
+            auto is_gift_box_full = unopened_gifts >= 100;
+            SystemMonthlyRewards monthlyRewardsData;
+            auto current_month = Utility::GetCurrentMonth();
+            if (BaseLib::Database->GetSystemMonthlyRewards(current_month, &monthlyRewardsData))
+            {
+                PlayerMonthlyReward playerMonthlyRewardData;
+                if (BaseLib::Database->GetPlayerMonthlyDayCount(frontAccount.Index, &playerMonthlyRewardData))
+                {
+                    auto last_sign_in = playerMonthlyRewardData.last_time_update;
+                    auto last_sign_in_date = Utility::ConvertUtcTimestampToDate(last_sign_in);
+                    auto current_date = Utility::ConvertUtcTimestampToDate(Utility::GetUtcTimeNow64());
+                    if (last_sign_in_date.tm_year != current_date.tm_year &&
+                        last_sign_in_date.tm_mon != current_date.tm_mon &&
+                        last_sign_in_date.tm_mday != current_date.tm_mday)
+                    {
+                        if (playerMonthlyRewardData.day_count < 31)
+                        {
+                            if (!is_gift_box_full || !is_inventory_full)
+                            {
+                                playerMonthlyRewardData.day_count++;
+                                if (BaseLib::Database->UpdatePlayerMonthlyDayCount(frontAccount.Index, playerMonthlyRewardData.day_count, Utility::GetUtcTimeNow64()))
+                                {
+                                    if (playerMonthlyRewardData.day_count >= 1)
+                                    {
+                                        auto current_signin = static_cast<std::uint32_t>(playerMonthlyRewardData.day_count - 1);// - 1 cuz rewards starts at 0
+                                        auto current_day_reward = monthlyRewardsData.rewards[current_signin];
+                                        auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+                                        if (!is_inventory_full)
+                                            main_server->SendInventoryItem(session, acc_cache, { current_day_reward });
+                                        else
+                                            main_server->SendGiftItem(session, acc_cache, current_day_reward, "You've received your monthly reward here due to inventory being full.");
+
+                                    }
+                                }
+                            }
+                           
+                        }
+
+                        auto monthly_reward_ack = MainMonthlyRewardAck(current_month, playerMonthlyRewardData.day_count, monthlyRewardsData.rewards).Serialize();
+                        send_msg(callback.session, 172, 0, 28, 1, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
+                    }
+                    else
+                    {
+                        auto monthly_reward_ack = MainMonthlyRewardAck(current_month, playerMonthlyRewardData.day_count, monthlyRewardsData.rewards).Serialize();
+                        send_msg(callback.session, 172, 0, 28, 0, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
+                    }  
+                }
+                else
+                {
+                    auto current_day = 0;
+                    if (!is_gift_box_full || !is_inventory_full)
+                    {
+                        current_day = 1;
+                        BaseLib::Database->InsertPlayerMonthlyDayCount(frontAccount.Index, current_day, Utility::GetUtcTimeNow64());
+                        auto current_day_reward = monthlyRewardsData.rewards[0];
+                        auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+                        if (!is_inventory_full)
+                            main_server->SendInventoryItem(session, acc_cache, { current_day_reward });
+                        else
+                            main_server->SendGiftItem(session, acc_cache, current_day_reward, "You've received your monthly reward here due to inventory being full.");
+                    }
+
+                    
+
+                    auto monthly_reward_ack = MainMonthlyRewardAck(current_month, current_day, monthlyRewardsData.rewards).Serialize();
+                    send_msg(callback.session, 172, 0, 28, 1, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
+
+                    
+                    
+                }
+            }
+            else
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) failed to get monthly rewards info for month ({})", session->GetSessionId(), current_month);
             //send_msg(session, 66, 0, 51, 1);// popup daily reward
 
             /*
