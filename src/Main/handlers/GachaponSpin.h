@@ -59,6 +59,13 @@ namespace Game
             }
             else
                 gachapon_price = gachapon_info->Price;
+
+            if (gachapon_price == 0)
+            {
+                send_msg(session, 92, 0, Items::Gachapon::Spin::Result::Stuck, 0);
+                return;
+            }
+
             std::vector<std::vector<GachaponPackageItem>> extracted_items;
             for (std::uint32_t i = 0; i < spin_count; i++)
             {

@@ -973,6 +973,7 @@ namespace Game
                 {
                     auto locked_gachapon_sale_cache = LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), gachapon_sales_info };
                     auto gacha_ids_locked = LockedResource{ std::unique_lock(gachapon_ids_sale_cache_mutex), gachapon_ids_sale };
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "gachapon sale info: id: {} price: {} start: {} end: {}", sale_info.gachapon_id, sale_info.sale_price, sale_info.start_date, sale_info.end_date);
                     locked_gachapon_sale_cache->emplace(gachapon_id, sale_info);
                     gacha_ids_locked->push_back(gachapon_id);   
                 }

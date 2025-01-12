@@ -72,7 +72,13 @@ namespace Game
                 for (auto& sale_id : *sales_db)
                 {
                     auto gacha_sale_info = main_server->GetGachaponSaleCacheShared(sale_id);
-                    gachapon_sale_info.push_back(MainGachaponSaleInfo(gacha_sale_info->gachapon_id, gacha_sale_info->sale_price, gacha_sale_info->start_date, gacha_sale_info->end_date));
+                    auto gacha_sale_data = MainGachaponSaleInfo(gacha_sale_info->gachapon_id, gacha_sale_info->sale_price, gacha_sale_info->start_date, gacha_sale_info->end_date);
+                    gachapon_sale_info.push_back(gacha_sale_data);
+                    auto gacha_id = gacha_sale_data.data.id;
+                    auto gacha_price = gacha_sale_data.data.sale_price;
+                    auto gacha_start = gacha_sale_data.start_date;
+                    auto gacha_end = gacha_sale_data.end_date;
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "gachapon sale info: id: {} price: {} start: {} end: {}", gacha_id, gacha_price, gacha_start, gacha_end);
                 }
                 auto gachapon_sale_info_ack = MainGachaponSalesInfoAck(gachapon_sale_info).Serialize();
                 send_msg(session, 83, 0, 0, gachapon_sale_info.size(), reinterpret_cast<uint8_t*>(gachapon_sale_info_ack.data()), gachapon_sale_info_ack.size()); 

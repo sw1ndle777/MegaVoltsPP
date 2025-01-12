@@ -176,20 +176,20 @@ namespace BaseLib
                     CreateTable("system_gachapon_machine", R"(
                     GachaponId int unsigned DEFAULT NULL,
                     SalePrice int unsigned NOT NULL,
-                    EventStartDate DATE NOT NULL,
-                    EventEndDate DATE NOT NULL,
+                    EventStartDate DATETIME NOT NULL,
+                    EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (GachaponId))");
 
                     CreateTable("system_event_mod", R"(
                     ModId int unsigned DEFAULT NULL,
-                    EventStartDate DATE NOT NULL,
-                    EventEndDate DATE NOT NULL,
+                    EventStartDate DATETIME NOT NULL,
+                    EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (ModId))");
 
                     CreateTable("system_event_map", R"(
                     MapId int unsigned DEFAULT NULL,
-                    EventStartDate DATE NOT NULL,
-                    EventEndDate DATE NOT NULL,
+                    EventStartDate DATETIME NOT NULL,
+                    EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (MapId))");
 
                     CreateTable("system_monthly_rewards", R"(
@@ -383,20 +383,20 @@ namespace BaseLib
                     CreateTable("system_gachapon_machine", R"(
                     GachaponId int unsigned DEFAULT NULL,
                     SalePrice int unsigned NOT NULL,
-                    EventStartDate DATE NOT NULL,
-                    EventEndDate DATE NOT NULL,
+                    EventStartDate DATETIME NOT NULL,
+                    EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (GachaponId))");
 
                     CreateTable("system_event_mod", R"(
                     ModId int unsigned DEFAULT NULL,
-                    EventStartDate DATE NOT NULL,
-                    EventEndDate DATE NOT NULL,
+                    EventStartDate DATETIME NOT NULL,
+                    EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (ModId))");
 
                     CreateTable("system_event_map", R"(
                     MapId int unsigned DEFAULT NULL,
-                    EventStartDate DATE NOT NULL,
-                    EventEndDate DATE NOT NULL,
+                    EventStartDate DATETIME NOT NULL,
+                    EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (MapId))");
 
                     CreateTable("system_monthly_rewards", R"(

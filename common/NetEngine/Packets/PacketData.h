@@ -137,9 +137,9 @@ namespace NetEngine
                 };
                 std::uint32_t data;
 
-                GachaSaleDataId(std::uint32_t uint32_t = 0)
+                GachaSaleDataId(std::uint32_t data = 0)
                 {
-                    std::memset(this, 0, sizeof(uint32_t));
+                    std::memset(this, 0, sizeof(data));
                     this->data = data;
                 }
                 GachaSaleDataId(std::uint32_t new_id, std::uint32_t new_sale_price, std::uint32_t new_unknown)
@@ -161,10 +161,10 @@ namespace NetEngine
                     std::uint32_t start_date = 0,
                     std::uint32_t end_date = 0
                 ) :
+                    data(GachaSaleDataId(id, sale_price, 0)),
                     start_date(start_date),
                     end_date(end_date)
                 {
-                    data = GachaSaleDataId(id, sale_price, 0);
                 }
                 MainGachaponSaleInfo()
                 {
