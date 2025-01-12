@@ -67,7 +67,15 @@ namespace Game
             if (acc_cache->acc_info.Index == -1) return;
             if (player_state == PlayerInfo::State::GachaponMachine)
             {
-                send_msg(session, 83, 0, 0, 0); // gachapon sale info ack
+                std::vector<MainGachaponSaleInfo> gachapon_sale_info;
+                auto sales_db = main_server->GetGachaponSaleIdsCacheShared();
+                for (auto& sale_id : *sales_db)
+                {
+                    auto gacha_sale_info = main_server->GetGachaponSaleCacheShared(sale_id);
+                    gachapon_sale_info.push_back(MainGachaponSaleInfo(gacha_sale_info->gachapon_id, gacha_sale_info->sale_price, gacha_sale_info->start_date, gacha_sale_info->end_date));
+                }
+                auto gachapon_sale_info_ack = MainGachaponSalesInfoAck(gachapon_sale_info).Serialize();
+                send_msg(session, 83, 0, 0, gachapon_sale_info.size(), reinterpret_cast<uint8_t*>(gachapon_sale_info_ack.data()), gachapon_sale_info_ack.size()); 
                 acc_cache->state = player_state;
                 MainCurrencyUpdateAck currency_update_data = { acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
                 send_msg(session, 307, 0x0, 0, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // currency update ack

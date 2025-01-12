@@ -127,14 +127,45 @@ namespace NetEngine
                     this->data = data;
                 }
             };
+            union GachaSaleDataId
+            {
+                struct
+                {
+                    std::uint32_t id : 6;
+                    std::uint32_t sale_price : 15;
+                    std::uint32_t unknown : 11;
+                };
+                std::uint32_t data;
 
+                GachaSaleDataId(std::uint32_t uint32_t = 0)
+                {
+                    std::memset(this, 0, sizeof(uint32_t));
+                    this->data = data;
+                }
+                GachaSaleDataId(std::uint32_t new_id, std::uint32_t new_sale_price, std::uint32_t new_unknown)
+                {
+                    std::memset(this, 0, sizeof(GachaSaleDataId));
+                    this->id = new_id;
+                    this->sale_price = new_sale_price;
+                    this->unknown = new_unknown;
+                }
+            };
             struct MainGachaponSaleInfo
             {
-                std::uint32_t id;
-                std::uint32_t sale_price : 21;
-                std::uint32_t unknown : 11;
+                GachaSaleDataId data;
                 std::uint32_t start_date;
                 std::uint32_t end_date;
+                MainGachaponSaleInfo(
+                    std::uint32_t id = 0,
+                    std::uint32_t sale_price = 0,
+                    std::uint32_t start_date = 0,
+                    std::uint32_t end_date = 0
+                ) :
+                    start_date(start_date),
+                    end_date(end_date)
+                {
+                    data = GachaSaleDataId(id, sale_price, 0);
+                }
                 MainGachaponSaleInfo()
                 {
                     std::memset(this, 0, sizeof(MainGachaponSaleInfo));

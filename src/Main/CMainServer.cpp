@@ -574,7 +574,14 @@ namespace Game
                 return;
             }
         }
+        static void ReloadGachaponSalesInfo(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
+        {
+            main_server->ClearGachaponSaleCache();
+            auto gachapon_sales = BaseLib::Database->GetGachaponSalesInfo();
+            main_server->AddGachaponSaleCache(gachapon_sales);
 
+            main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] {} gachapon sales info reloaded", gachapon_sales.size()).c_str());
+        }
         static void Init()
         {
             Commands::Register("?", Help, Userlist::User::Grade::Tester);
@@ -587,6 +594,7 @@ namespace Game
             Commands::Register("kick", Kick, Userlist::User::Grade::Tester);
             Commands::Register("break", Break, Userlist::User::Grade::Tester);
             Commands::Register("breakall", BreakAll, Userlist::User::Grade::Tester);
+            Commands::Register("reloadgachasale", ReloadGachaponSalesInfo, Userlist::User::Grade::Tester);
         }
     }
    
@@ -612,6 +620,8 @@ namespace Game
     std::shared_mutex mailbox_sent_cache_mutex;
     std::shared_mutex mailbox_recv_cache_mutex;
     std::shared_mutex giftbox_recv_cache_mutex;
+    std::shared_mutex gachapon_sale_cache_mutex;
+    std::shared_mutex gachapon_ids_sale_cache_mutex;
     /*
     std::unordered_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
     std::unordered_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
@@ -652,6 +662,8 @@ namespace Game
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponSaleInfo> gachapon_sales_info;
+    std::vector<std::uint32_t> gachapon_ids_sale;
 
 
     RECT rc = { 0 };

@@ -476,24 +476,7 @@ namespace NetEngine
             struct MainNicknameCreationAck
             {
             };
-            struct MainGachaponSaleInfoAck
-            {
-                MainGachaponSaleInfo gachaponInfos[];
-
-                MainGachaponSaleInfoAck(std::vector<MainGachaponSaleInfo> gachaponInfos)
-                {
-                    std::memset(this, 0, gachaponInfos.size() * sizeof(MainGachaponSaleInfo));
-                    std::copy(gachaponInfos.begin(), gachaponInfos.end(), this->gachaponInfos);
-                }
-
-                MainGachaponSaleInfoAck(std::uint8_t* data, std::size_t size)
-                {
-                    std::memset(this, 0, sizeof(MainGachaponSaleInfoAck));
-                    std::size_t structSize = sizeof(MainGachaponSaleInfo);
-                    std::size_t elementCount = size / sizeof(MainGachaponSaleInfo);
-                    for (std::size_t i = 0; i < elementCount; i++) this->gachaponInfos[i] = *(MainGachaponSaleInfo*)(data + i * structSize);
-                }
-            };
+           
             struct MainSellItemAck
             {
                 ItemSerialInfo serial_info;
@@ -514,24 +497,7 @@ namespace NetEngine
                 MainCurrencyUpdateAck(std::uint32_t RockTokens, std::uint32_t MicroPoints, std::uint32_t Coins) : RockTokens(RockTokens), MicroPoints(MicroPoints), Coins(Coins) {}
             };
 
-            struct MainInventoryInfoAck
-            {
-                InventoryItemInfo inventoryItems[];
-
-                MainInventoryInfoAck(std::vector<InventoryItemInfo> inventoryItems)
-                {
-                    std::memset(this, 0, inventoryItems.size() * sizeof(MainGachaponSaleInfo));
-                    std::copy(inventoryItems.begin(), inventoryItems.end(), this->inventoryItems);
-                }
-
-                MainInventoryInfoAck(std::uint8_t* data, std::size_t size)
-                {
-                    std::memset(this, 0, sizeof(MainInventoryInfoAck));
-                    std::size_t structSize = sizeof(InventoryItemInfo);
-                    std::size_t elementCount = size / sizeof(InventoryItemInfo);
-                    for (std::size_t i = 0; i < elementCount; i++) this->inventoryItems[i] = *(InventoryItemInfo*)(data + i * structSize);
-                }
-            };
+           
             struct MainShopBuyItemSerialInfoResultAck
             {
                 ShopSerialInfo shop_items[];
@@ -567,6 +533,27 @@ namespace NetEngine
                     std::size_t structSize = sizeof(ShopItem);
                     std::size_t elementCount = size / sizeof(ShopItem);
                     for (std::size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopItem*)(data + i * structSize);
+                }
+            };
+
+
+            class MainGachaponSalesInfoAck
+            {
+            public:
+                std::vector<MainGachaponSaleInfo> gachapon_sales_info;
+
+                MainGachaponSalesInfoAck(const std::vector<MainGachaponSaleInfo>& sales) : gachapon_sales_info(sales) {}
+
+                std::vector<std::uint8_t> Serialize() const
+                {
+                    std::vector<std::uint8_t> data;
+                    for (const auto& sale_info : gachapon_sales_info)
+                    {
+                        const auto* sales_bytes = reinterpret_cast<const uint8_t*>(&sale_info);
+                        data.insert(data.end(), sales_bytes, sales_bytes + sizeof(MainGachaponSaleInfo));
+                    }
+
+                    return data;
                 }
             };
 

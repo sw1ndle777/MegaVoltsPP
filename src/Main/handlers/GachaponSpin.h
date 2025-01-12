@@ -44,6 +44,21 @@ namespace Game
             lucky_gachapon_info.unlock();
             gachapon_info.lock();
 
+            auto is_gachapon_sale = main_server->IsGachaponSaleInfoAlready(gachapon_info->Id);
+            auto gachapon_sale_info = main_server->GetGachaponSaleCacheShared(gachapon_info->Id);
+            std::uint32_t gachapon_price = 0;
+            if (is_gachapon_sale)
+            {
+                if (gachapon_sale_info->start_date <= Utility::GetUtcTimeNow() && gachapon_sale_info->end_date >= Utility::GetUtcTimeNow())
+                    gachapon_price = gachapon_sale_info->sale_price;
+                else
+                {
+                    main_server->RemoveGachaponSaleCache(gachapon_info->Id);
+                    gachapon_price = gachapon_info->Price;
+                }
+            }
+            else
+                gachapon_price = gachapon_info->Price;
             std::vector<std::vector<GachaponPackageItem>> extracted_items;
             for (std::uint32_t i = 0; i < spin_count; i++)
             {
@@ -61,7 +76,7 @@ namespace Game
                         items.push_back(GachaponPackageItem((acc_cache->acc_info.Coupons + 1 > 250) ? 4306001 : 4305019));
 
                     fake_lucky_points += gachapon_info->LuckyPoint;
-                    money_spent += gachapon_info->Price;
+                    money_spent += gachapon_price;
                     extracted_items.push_back(items);
                     
                 }
@@ -73,7 +88,7 @@ namespace Game
 
                     
                     fake_lucky_points += gachapon_info->LuckyPoint;
-                    money_spent += gachapon_info->Price;
+                    money_spent += gachapon_price;
                     extracted_items.push_back(items);
                     
 

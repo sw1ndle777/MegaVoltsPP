@@ -320,6 +320,17 @@ namespace BaseLib
             deleted_from_receiver = false;
         }
     };
+    struct GachaponSaleInfo
+    {
+        std::uint32_t gachapon_id;
+        std::uint32_t sale_price;
+        std::uint32_t start_date;
+        std::uint32_t end_date;
+        GachaponSaleInfo(const std::uint32_t& gachapon_id = 0, const std::uint32_t& sale_price = 0, const std::uint32_t& start_date = 0, const std::uint32_t& end_date = 0) :
+            gachapon_id(gachapon_id), sale_price(sale_price), start_date(start_date), end_date(end_date) {
+        }
+    };
+
     class CDatabase
     {
 
@@ -361,6 +372,8 @@ namespace BaseLib
         bool GetPlayerMonthlyDayCount(const std::uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards);
         bool InsertPlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update);
         bool UpdatePlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update);
+        std::vector<GachaponSaleInfo> GetGachaponSalesInfo();
+        bool DeleteGachaponSaleInfo(const std::uint32_t& gachapon_id);
         std::string GetDatabaseName();
         CDatabase() {};
         ~CDatabase() {};

@@ -538,6 +538,8 @@ namespace Game
     extern std::shared_mutex mailbox_sent_cache_mutex;
     extern std::shared_mutex mailbox_recv_cache_mutex;
     extern std::shared_mutex giftbox_recv_cache_mutex;
+    extern std::shared_mutex gachapon_sale_cache_mutex;
+    extern std::shared_mutex gachapon_ids_sale_cache_mutex;
 
 
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
@@ -561,6 +563,8 @@ namespace Game
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    extern boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponSaleInfo> gachapon_sales_info; //read & write access by gachapon id
+    extern std::vector<std::uint32_t> gachapon_ids_sale; //read & write
 
     using AccCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Player>;
     using AccCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Player>;
@@ -913,6 +917,92 @@ namespace Game
             {
                 auto locked_clan_cache = LockedResource{ std::unique_lock(clan_cache_mutex), clan_cache };
                 locked_clan_cache->erase(clan_id);
+            }
+        }
+
+        auto IsGachaponSaleInfoAlready(const std::uint32_t& gachapon_id)
+        {
+            std::shared_lock lock(gachapon_sale_cache_mutex);
+            if (auto findit = gachapon_sales_info.find(gachapon_id); findit != gachapon_sales_info.end())
+                return true;
+            else
+                return false;
+        }
+
+        auto GetGachaponSaleCacheShared(const std::uint32_t& gachapon_id)
+        {
+            std::shared_lock lock(gachapon_sale_cache_mutex);
+            auto it = gachapon_sales_info.find(gachapon_id);
+            if (it != gachapon_sales_info.end())
+                return LockedResource{ std::shared_lock(gachapon_sale_cache_mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_gachapon_sale_cache_mutex;
+                static thread_local GachaponSaleInfo null_gachapon_sale_info;
+                return LockedResource{ std::shared_lock(null_gachapon_sale_cache_mutex), null_gachapon_sale_info };
+            }
+        }
+
+        auto GetGachaponSaleCacheUnique(const std::uint32_t& gachapon_id)
+        {
+            std::shared_lock lock(gachapon_sale_cache_mutex);
+            auto it = gachapon_sales_info.find(gachapon_id);
+            if (it != gachapon_sales_info.end())
+                return LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_gachapon_sale_cache_mutex;
+                static thread_local GachaponSaleInfo null_gachapon_sale_info;
+                return LockedResource{ std::unique_lock(null_gachapon_sale_cache_mutex), null_gachapon_sale_info };
+            }
+        }
+
+        auto GetGachaponSaleIdsCacheShared()
+        {
+            std::shared_lock lock(gachapon_ids_sale_cache_mutex);
+            return LockedResource{ std::shared_lock(gachapon_ids_sale_cache_mutex), gachapon_ids_sale };
+        }
+
+        void AddGachaponSaleCache(const std::vector<GachaponSaleInfo>& new_gachapon_sales)
+        {
+           
+            for (const auto& sale_info : new_gachapon_sales)
+            {
+                const auto& gachapon_id = sale_info.gachapon_id;
+                if (!IsGachaponSaleInfoAlready(gachapon_id))
+                {
+                    auto locked_gachapon_sale_cache = LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), gachapon_sales_info };
+                    auto gacha_ids_locked = LockedResource{ std::unique_lock(gachapon_ids_sale_cache_mutex), gachapon_ids_sale };
+                    locked_gachapon_sale_cache->emplace(gachapon_id, sale_info);
+                    gacha_ids_locked->push_back(gachapon_id);   
+                }
+                    
+            }
+        }
+        void AddGachaponSaleCache(const std::uint32_t& gachapon_id, const GachaponSaleInfo& new_gachapon_sale)
+        {
+            if (!IsGachaponSaleInfoAlready(gachapon_id))
+            {
+                auto locked_gachapon_sale_cache = LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), gachapon_sales_info };
+                locked_gachapon_sale_cache->emplace(gachapon_id, new_gachapon_sale);
+            }
+        }
+        void ClearGachaponSaleCache()
+        {
+            auto locked_gachapon_sale_cache = LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), gachapon_sales_info };
+            auto gacha_ids_locked = LockedResource{ std::unique_lock(gachapon_ids_sale_cache_mutex), gachapon_ids_sale };
+            locked_gachapon_sale_cache->clear();
+            gacha_ids_locked->clear();
+        }
+        void RemoveGachaponSaleCache(const std::uint32_t& gachapon_id)
+        {
+            if (IsGachaponSaleInfoAlready(gachapon_id))
+            {
+                auto locked_gachapon_sale_cache = LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), gachapon_sales_info };
+                auto gacha_ids_locked = LockedResource{ std::unique_lock(gachapon_ids_sale_cache_mutex), gachapon_ids_sale };
+                locked_gachapon_sale_cache->erase(gachapon_id);
+                gacha_ids_locked->erase(std::remove(gacha_ids_locked->begin(), gacha_ids_locked->end(), gachapon_id), gacha_ids_locked->end());
+                BaseLib::Database->DeleteGachaponSaleInfo(gachapon_id);
             }
         }
 

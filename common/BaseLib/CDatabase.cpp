@@ -174,12 +174,23 @@ namespace BaseLib
                     CONSTRAINT FK_player_monthly_rewards_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
                     CreateTable("system_gachapon_machine", R"(
-                    GachaponId int unsigned NOT NULL AUTO_INCREMENT,
-                    Description  varchar(127) DEFAULT NULL,
+                    GachaponId int unsigned DEFAULT NULL,
                     SalePrice int unsigned NOT NULL,
-                    EventStartDate datetime(6) NOT NULL,
-                    EventEndDate datetime(6) NOT NULL,
+                    EventStartDate DATE NOT NULL,
+                    EventEndDate DATE NOT NULL,
                     PRIMARY KEY (GachaponId))");
+
+                    CreateTable("system_event_mod", R"(
+                    ModId int unsigned DEFAULT NULL,
+                    EventStartDate DATE NOT NULL,
+                    EventEndDate DATE NOT NULL,
+                    PRIMARY KEY (ModId))");
+
+                    CreateTable("system_event_map", R"(
+                    MapId int unsigned DEFAULT NULL,
+                    EventStartDate DATE NOT NULL,
+                    EventEndDate DATE NOT NULL,
+                    PRIMARY KEY (MapId))");
 
                     CreateTable("system_monthly_rewards", R"(
                     Month int unsigned NOT NULL AUTO_INCREMENT,
@@ -370,12 +381,23 @@ namespace BaseLib
                     CONSTRAINT FK_player_monthly_rewards_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
                     CreateTable("system_gachapon_machine", R"(
-                    GachaponId int unsigned NOT NULL AUTO_INCREMENT,
-                    Description  varchar(127) DEFAULT NULL,
+                    GachaponId int unsigned DEFAULT NULL,
                     SalePrice int unsigned NOT NULL,
-                    EventStartDate bigint unsigned NOT NULL,
-                    EventEndDate bigint unsigned NOT NULL,
+                    EventStartDate DATE NOT NULL,
+                    EventEndDate DATE NOT NULL,
                     PRIMARY KEY (GachaponId))");
+
+                    CreateTable("system_event_mod", R"(
+                    ModId int unsigned DEFAULT NULL,
+                    EventStartDate DATE NOT NULL,
+                    EventEndDate DATE NOT NULL,
+                    PRIMARY KEY (ModId))");
+
+                    CreateTable("system_event_map", R"(
+                    MapId int unsigned DEFAULT NULL,
+                    EventStartDate DATE NOT NULL,
+                    EventEndDate DATE NOT NULL,
+                    PRIMARY KEY (MapId))");
 
                     CreateTable("system_monthly_rewards", R"(
                     Month int unsigned NOT NULL AUTO_INCREMENT,
@@ -2099,6 +2121,66 @@ namespace BaseLib
 
             pstmt->executeUpdate();
             return true;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    std::vector<GachaponSaleInfo> CDatabase::GetGachaponSalesInfo()
+    {
+        std::vector<GachaponSaleInfo> sales;
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT GachaponId, SalePrice, UNIX_TIMESTAMP(EventStartDate) AS EventStartTimestamp, UNIX_TIMESTAMP(EventEndDate) AS EventEndTimestamp FROM system_gachapon_machine"
+            ));
+
+
+            std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+            
+            while (res->next())
+            {
+                GachaponSaleInfo gachapon_info =
+                {
+
+                    res->getUInt("GachaponId") , res->getUInt("SalePrice"), 
+                    res->getUInt("EventStartTimestamp"), res->getUInt("EventEndTimestamp")
+                };
+                sales.push_back(gachapon_info);
+            }
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+        }
+        return sales;
+    }
+
+    bool CDatabase::DeleteGachaponSaleInfo(const std::uint32_t& gachapon_id)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("DELETE FROM system_gachapon_machine WHERE GachaponId = ?"));
+            pstmt->setUInt(1, gachapon_id);
+            return !pstmt->execute();
         }
         catch (sql::SQLException& e)
         {
