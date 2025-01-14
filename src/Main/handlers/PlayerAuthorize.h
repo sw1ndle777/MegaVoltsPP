@@ -342,7 +342,7 @@ namespace Game
 
             send_msg(session, 105, 0, 37, unopened_mails); // remainder of unopened mails
             send_msg(session, 66, 0, 37, unopened_gifts); // remainder of unopened mails
-
+            /*
             struct daily_reward_ack
             {
                 std::uint16_t unknown1 = 0;
@@ -359,6 +359,7 @@ namespace Game
             }dailyRewardData;
 
             send_msg(session, 182, 0, 0, 0, reinterpret_cast<uint8_t*>(&dailyRewardData), sizeof(daily_reward_ack));// init daily reward
+            */
 
             auto is_inventory_full = player_inventory_items.size() >= frontAccount.MaximumItems;
             auto is_gift_box_full = unopened_gifts >= 100;
@@ -398,7 +399,6 @@ namespace Game
                             }
                            
                         }
-
                         auto monthly_reward_ack = MainMonthlyRewardAck(current_month, playerMonthlyRewardData.day_count, monthlyRewardsData.rewards).Serialize();
                         send_msg(callback.session, 172, 0, 28, 1, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
                     }
@@ -423,17 +423,25 @@ namespace Game
                             main_server->SendGiftItem(session, acc_cache, current_day_reward, "You've received your monthly reward here due to inventory being full.");
                     }
 
-                    
-
                     auto monthly_reward_ack = MainMonthlyRewardAck(current_month, current_day, monthlyRewardsData.rewards).Serialize();
-                    send_msg(callback.session, 172, 0, 28, 1, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
-
-                    
-                    
+                    send_msg(callback.session, 172, 0, 28, current_day, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
                 }
             }
             else
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) failed to get monthly rewards info for month ({})", session->GetSessionId(), current_month);
+
+
+            struct guide_mission
+            {
+                std::uint32_t collection_id = 46;
+                std::uint32_t reward_point = 400;
+                std::uint32_t reward_exp = 50;
+                std::uint32_t type = 1;
+            }guideMissionData;
+
+            send_msg(session, 167, 0, 1, 10, reinterpret_cast<uint8_t*>(&guideMissionData), sizeof(guideMissionData)); // guide mission completed all
+            //send_msg(session, 167, 1, 3, 5); // daily mission idk
+
             //send_msg(session, 66, 0, 51, 1);// popup daily reward
 
             /*

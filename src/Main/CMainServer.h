@@ -1414,6 +1414,42 @@ namespace Game
 
             return players_ids;
         }
+        auto GetRoomSortedPlayerPlayingWithoutObserverSessionIds(RoomCacheResource& room_cache)
+        {
+            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+
+            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids)
+            {
+                for (const auto& id : team_session_ids)
+                {
+                    auto player_cache = GetAccCacheSharedBySessionId(id);
+                    if (player_cache->acc_info.Index != -1 && player_cache->in_room && player_cache->room_id == room_cache->room_id && player_cache->playing)
+                        player_slot_pairs.emplace_back(id, player_cache->slot_id);
+
+                    player_cache.unlock();
+                }
+            };
+            if (IsModeTeamBased(room_cache->ModeIndex))
+            {
+                addPlayerToSlotPairs(room_cache->blueteam_session_ids);
+                addPlayerToSlotPairs(room_cache->redteam_session_ids);
+            }
+            else
+                addPlayerToSlotPairs(room_cache->neutralteam_session_ids);
+
+
+
+            std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
+                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                return a.second < b.second;
+            });
+
+            std::vector<std::uint16_t> players_ids;
+            for (const auto& pair : player_slot_pairs)
+                players_ids.push_back(pair.first);
+
+            return players_ids;
+        }
         auto GetRoomSortedPlayerPingSessionIds(RoomCacheResource& room_cache)
         {
             std::vector<std::pair<std::uint16_t, std::uint32_t>> player_ping_pairs;
@@ -2875,7 +2911,7 @@ namespace Game
             }
         }
 
-        bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<std::uint32_t> item_ids)
+        bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<std::uint32_t> item_ids, Items::Origin origin = Items::Origin::From_GM_Spawn)
         {
             auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
             {
@@ -2894,7 +2930,7 @@ namespace Game
                 {
                 #if defined(RELEASE_1_0_3)
                     auto serial_index = FindLowestAvailableItemSerialInfoId(acc_cache->inventory_items);
-                    ShopItem new_item = { {item_info->Id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_GM_Spawn, Utility::GetUtcTimeNow()) };
+                    ShopItem new_item = { {item_info->Id , item_info->Stock } , ItemExpire::Type::Unused, ItemSerialInfo(serial_index, 1, 1, origin, Utility::GetUtcTimeNow()) };
                     items.push_back(new_item);
                     const InventoryItemInfo& inv_item_info = { {item_info->Id , item_info->Stock } ,ItemExpire::Type::Unused,new_item.serial_info, item_info->Durability, 0 };
                     const Item& new_player_item = { inv_item_info, item_info->Stock, false , 0, false };

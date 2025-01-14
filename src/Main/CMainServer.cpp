@@ -75,22 +75,14 @@ namespace Game
                 main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] {}, you can't spawn {} items because your inventory will be over it's capacity.", acc_cache->acc_info.Nickname.c_str(), args.size() - 1).c_str());
                 return;
             }
-            std::vector<ShopItem> items;
             for (const auto& item_id_str : args)
             {
                 if (!Utility::IsDigitsOnly(item_id_str)) continue;
                 const auto& item_id = Utility::ExtractNumber(item_id_str.c_str());
                 if (main_server->SendInventoryItem(callback.session, acc_cache, { item_id }))
-                {
-
-                }
+                    main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] spawned ({}) item", item_id).c_str());
                 else
                     main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] Could not find item id ({})", item_id).c_str());
-            }
-            if (items.size() > 0)
-            {
-                send_msg(callback.session, 99, 0, 37, items.size(), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopItem));
-                main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] spawned ({}) items", items.size()).c_str());
             }
         }
         static void Info(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
@@ -582,6 +574,7 @@ namespace Game
 
             main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] {} gachapon sales info reloaded", gachapon_sales.size()).c_str());
         }
+     
         static void Init()
         {
             Commands::Register("?", Help, Userlist::User::Grade::Tester);

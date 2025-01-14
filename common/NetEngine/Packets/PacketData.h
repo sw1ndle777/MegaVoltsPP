@@ -996,22 +996,28 @@ namespace NetEngine
             // S2C
             struct MainRoomEndMatchResponse
             {
-                std::uint32_t melee_kills : 8;
-                std::uint32_t rifle_kills : 8;
-                std::uint32_t shotgun_kills : 8;
-                std::uint32_t sniper_kills : 8;
-                std::uint32_t gatling_kills : 8;
-                std::uint32_t bazooka_kills : 8;
-                std::uint32_t grenade_kills : 8;
-                std::uint32_t killstreak : 8;
-                std::uint32_t total_kills : 8;
-                std::uint32_t deaths : 8;
-                std::uint32_t headshots : 8;
-                std::uint32_t assists : 8;
-                std::uint32_t unknown;
+                std::uint32_t melee_kills : 8;//0
+                std::uint32_t rifle_kills : 8;//1
+                std::uint32_t shotgun_kills : 8;//2
+                std::uint32_t sniper_kills : 8;//3
+                std::uint32_t gatling_kills : 8;//4
+                std::uint32_t bazooka_kills : 8;//5
+                std::uint32_t grenade_kills : 8;//6
+                std::uint32_t killstreak : 8;//7
+                std::uint32_t total_kills : 8;//8
+                std::uint32_t deaths : 8;//9
+                std::uint32_t headshots : 8;//10
+                std::uint32_t assists : 8;//11
+                std::uint32_t unknown;//12
+                std::uint32_t total_mp;//16
+                std::uint32_t total_xp;//20
+                std::uint32_t unknown2;//24
+            };
+            struct MainRoomEndMatchResponseBossBattle
+            {
                 std::uint32_t total_mp;
                 std::uint32_t total_xp;
-                std::uint32_t unknown2;
+                std::uint32_t reward_item_id;
             };
 
 #pragma pack(pop)
