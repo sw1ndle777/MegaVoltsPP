@@ -83,14 +83,17 @@ namespace NetEngine
             auto work = asio::make_work_guard(m_ioContext);
             for (std::uint32_t i = 0; i < m_concurrentThreads; i++)
                 threads.emplace_back(std::jthread([&] {
-                try { m_ioContext.run(); }
-                catch (const std::exception& e) { 
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, e.what());
-                    m_ioContext.restart(); 
-                }
-                catch (...) { 
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "unknown asio exception type");
-                    m_ioContext.restart(); 
+                while (true)
+                {
+                    try { m_ioContext.run(); }
+                    catch (const std::exception& e)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, e.what());
+                    }
+                    catch (...)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "unknown asio exception type");
+                    }
                 }
             }));
 
