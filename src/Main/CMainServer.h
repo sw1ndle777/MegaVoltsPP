@@ -264,6 +264,8 @@ namespace Game
             slot_id = 0;
             team_id = 0;
             state = 0;
+            earnt_battery = 0;
+            in_plaza = false;
             in_room = false;
             match_loaded_time = 0;
             inventory_items.clear();
@@ -1516,7 +1518,7 @@ namespace Game
 
             return player_ping_pairs.size() > 0 ? player_ping_pairs[0].first : 0;
         }
-       void AddRoomCache(const std::uint32_t& room_id, const Room& new_room)
+       void AddRoomCache(const std::uint32_t& room_id, Room& new_room)
         {
             if (!IsRoomAlready(room_id))
             {
@@ -1688,7 +1690,7 @@ namespace Game
 
         void DisconnectPlayer(CServer* server, const std::uint16_t& session_id, const std::uint8_t& reason)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -1714,7 +1716,7 @@ namespace Game
 
         void DisconnectPlayer(CServer* server, const std::uint16_t& session_id, const std::uint64_t& auth_key, const std::uint8_t& reason)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -1728,6 +1730,7 @@ namespace Game
                 send_msg(player_session.get(), 73, 0, reason, 0);
                 player_session.get()->Disconnect();
                 SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "MainToCastDisconnectPlayer auth key: ({}) session id: ({})", auth_key, session_id);
                 // send ipc to cast to disconnect same session id
             }
 
@@ -2004,7 +2007,7 @@ namespace Game
             std::shared_lock lock(items_info_mutex);
             return items_info.size();
         }
-        void AddSetItemInfoCache(const std::uint32_t& id, const BaseLib::SetItemInfo& item_info)
+        void AddSetItemInfoCache(const std::uint32_t& id, BaseLib::SetItemInfo& item_info)
         {
             auto setitems_info_locked = LockedResource{ std::unique_lock(setitems_info_mutex), setitems_info };
 
@@ -2302,7 +2305,7 @@ namespace Game
             }
             return Utility::Random::CustomGen(0, 100) < coupon_chance;
         }
-        auto AddGachaponInfoCache(const std::uint32_t& gachapon_id, const BaseLib::GachaponInfo& gachapon_info)
+        auto AddGachaponInfoCache(const std::uint32_t& gachapon_id, BaseLib::GachaponInfo& gachapon_info)
         {
             auto gachapons_info_cache_locked = LockedResource{ std::unique_lock(gachapons_info_mutex), gachapons_info };
             auto [it, inserted] = gachapons_info_cache_locked->emplace(gachapon_id,  std::move(gachapon_info));
@@ -2403,7 +2406,7 @@ namespace Game
         }
         std::uint32_t GetUpgradeLevel(UpgradeCacheResource& upgrade_collection, const std::uint32_t& id)
         {
-            for (size_t i = 0; i < upgrade_collection->size(); ++i)
+            for (std::uint32_t i = 0; i < upgrade_collection->size(); ++i)
                 if (upgrade_collection->at(i).ItemId == id)
                     return i;
 
@@ -2411,7 +2414,7 @@ namespace Game
         }
         auto GetUpgradeInfoNext(UpgradeCacheResource& upgrade_collection, const std::uint32_t& id)
         {
-            for (size_t i = 0; i < upgrade_collection->size(); ++i)
+            for (std::uint32_t i = 0; i < upgrade_collection->size(); ++i)
                 if (upgrade_collection->at(i).ItemId == id && i + 1 < upgrade_collection->size())
                     return upgrade_collection->at(i + 1);
 
@@ -2419,7 +2422,7 @@ namespace Game
         }
         auto GetUpgradeInfoPrev(UpgradeCacheResource& upgrade_collection, const std::uint32_t& id)
         {
-            for (size_t i = 0; i < upgrade_collection->size(); ++i)
+            for (std::uint32_t i = 0; i < upgrade_collection->size(); ++i)
                 if (upgrade_collection->at(i).ItemId == id && i > 0)
                     return upgrade_collection->at(i - 1);
 
@@ -2913,7 +2916,7 @@ namespace Game
 
         bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<std::uint32_t> item_ids, Items::Origin origin = Items::Origin::From_GM_Spawn)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -2953,7 +2956,7 @@ namespace Game
         }
         bool SendGiftItem(CSession* session, AccCacheResource& target_acc_cache, std::uint32_t item_id, std::string msg)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());

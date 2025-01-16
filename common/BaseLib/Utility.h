@@ -69,6 +69,9 @@ namespace Utility
         std::memcpy(&object, bytes.data(), sizeof(T));
         return object;
     }
+   
+    double GetCpuUsage(void* m_process_handle);
+    std::int64_t GetMemoryUsage(void* m_process_handle);
 }
 
 

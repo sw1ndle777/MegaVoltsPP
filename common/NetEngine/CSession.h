@@ -143,8 +143,8 @@ namespace NetEngine
         CServer* m_server = nullptr;
         bool m_verbose = false;
         bool m_useEncryption = false;
-        std::atomic<std::int32_t> m_encryptionKey{ -1 };
-        std::atomic<std::uint16_t> m_sessionId{ 1 };
+        std::int32_t m_encryptionKey = -1;
+        std::uint16_t m_sessionId = 1;
         std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback; 
         std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)> m_on_ipc_callback;
         bool m_ipc_identifier_skipped;

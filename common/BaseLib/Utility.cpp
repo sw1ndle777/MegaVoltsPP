@@ -1,5 +1,7 @@
 #include "Utility.h"
-
+#include <Windows.h>
+#include <processthreadsapi.h>
+#include <Psapi.h>
 namespace Utility
 {
     std::map<std::string, std::string> time_zones = {
@@ -407,6 +409,79 @@ namespace Utility
     std::uint32_t ExtractNumber(const std::string& input)
     {
         return static_cast<std::uint32_t>(std::stoul(input));
+    }
+    std::int64_t cpu_last_time = 0;
+    std::int64_t cpu_last_system_time = 0;
+
+    std::uint32_t num_processors = [] {
+        SYSTEM_INFO info;
+        GetSystemInfo(&info);
+        return info.dwNumberOfProcessors;
+    }();
+    double GetCpuUsage(void* m_process_handle)
+    {
+        auto fileTimeToUtc = [](const FILETIME* ftime) -> std::int64_t 
+        {
+            LARGE_INTEGER li;
+            li.LowPart = ftime->dwLowDateTime;
+            li.HighPart = ftime->dwHighDateTime;
+            return li.QuadPart;
+        };
+
+        FILETIME now;
+        FILETIME creation_time;
+        FILETIME exit_time;
+        FILETIME kernel_time;
+        FILETIME user_time;
+        int64_t system_time;
+        int64_t time;
+        int64_t system_time_delta;
+        int64_t time_delta;
+
+        double cpu = -1;
+
+        
+
+        if (!m_process_handle)
+            return -1;
+
+        GetSystemTimeAsFileTime(&now);
+
+        if (!GetProcessTimes(m_process_handle, &creation_time, &exit_time, &kernel_time, &user_time))
+        {
+            return -1;
+        }
+        system_time = (fileTimeToUtc(&kernel_time) + fileTimeToUtc(&user_time)) / num_processors;
+        time = fileTimeToUtc(&now);
+
+        if ((cpu_last_system_time == 0) || (cpu_last_time == 0))
+        {
+            cpu_last_system_time = system_time;
+            cpu_last_time = time;
+            return -1;
+        }
+
+        system_time_delta = system_time - cpu_last_system_time;
+        time_delta = time - cpu_last_time;
+
+        cpu = (double)system_time_delta * 100 / (double)time_delta;
+        cpu_last_system_time = system_time;
+        cpu_last_time = time;
+        return cpu;
+    }
+
+    std::int64_t GetMemoryUsage(void* m_process_handle)
+    {
+        int64_t memory_usage = 0;
+
+        PROCESS_MEMORY_COUNTERS_EX pmc;
+
+        if (GetProcessMemoryInfo(m_process_handle, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc)))
+            memory_usage = std::move(pmc.PrivateUsage);
+        else
+            memory_usage = -1;
+
+        return memory_usage / static_cast<std::int64_t>(1024 * 1024);
     }
     
 }

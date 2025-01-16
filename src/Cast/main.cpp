@@ -23,6 +23,9 @@ using namespace NetEngine::Packets::Cast;
 
 int main()
 {
+    HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
+    Utility::GetCpuUsage(m_process_handle);
+    CloseHandle(m_process_handle);
     CrashHandler::Init("../crash_dumps/MegaVoltsPP_cast.dmp");
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;

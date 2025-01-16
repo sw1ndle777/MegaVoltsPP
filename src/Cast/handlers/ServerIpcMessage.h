@@ -7,6 +7,27 @@ namespace Game
 
     namespace Handlers
     {
+        inline void CastServerInfo(std::uint64_t auth_key, CCastServer* cast_server)
+        {
+            HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
+            auto cpu_usage = Utility::GetCpuUsage(m_process_handle);
+            auto mem_usage = static_cast<std::uint32_t>(Utility::GetMemoryUsage(m_process_handle));
+            CloseHandle(m_process_handle);
+            auto sessions_count = static_cast<std::uint16_t>(cast_server->GetSessions()->size());
+            struct ServerInfo
+            {
+                std::uint64_t auth_key{};
+                std::uint16_t count{};
+                std::uint32_t mem{};
+                double cpu{};
+            }info;
+            info.auth_key = auth_key;
+            info.count = sessions_count;
+            info.mem = mem_usage;
+            info.cpu = cpu_usage;
+
+            cast_server->SendMainIpc(PacketIds::Ipc::CastToMainAckServerInfo, Utility::ToVector(info));
+        }
         inline void DisconnectPlayer(std::uint64_t auth_key, CCastServer* cast_server)
         {
             //auto player_session = cast_server->GetSessionByAuthKey(auth_key);
@@ -20,6 +41,8 @@ namespace Game
                 player_session->Disconnect();
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected at ipc's request", player_session_id);
             }
+            else
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected at ipc's request ERROR SESSION ID NOT FOUND", player_session_id);
         }
         inline void ChangeNewHost(std::uint64_t auth_key, std::uint16_t room_id, CCastServer* cast_server)
         {
@@ -60,6 +83,12 @@ namespace Game
                     };
                     auto room_auth_data = Utility::FromVector<RoomAuthData>(payload);
                     ChangeNewHost(room_auth_data.auth_key, room_auth_data.room_id, cast_server);
+                    break;
+                }
+                case PacketIds::Ipc::MainToCastReqServerInfo:
+                {
+                    auto auth_key = Utility::FromVector<std::uint64_t>(payload);
+                    CastServerInfo(auth_key, cast_server);
                     break;
                 }
                 default:

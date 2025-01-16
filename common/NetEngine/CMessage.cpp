@@ -72,9 +72,8 @@ namespace NetEngine
             delete[] m_data;
             m_data = nullptr;
         }
-
         m_data_size = size;
-        m_data = new std::uint8_t[size];
+        m_data = new std::uint8_t[size ];
         std::memcpy(m_data, data, size);
     }
 
@@ -127,8 +126,8 @@ namespace NetEngine
     {
         Cryptography::CCrypt crypt;
 
-        std::size_t headerSize = sizeof(Protocols::STcpPacketHeader);
-        std::size_t commandSize = sizeof(Protocols::SCommandHeader);
+        constexpr std::size_t headerSize = sizeof(Protocols::STcpPacketHeader);
+        constexpr std::size_t commandSize = sizeof(Protocols::SCommandHeader);
 
         if (size < headerSize)
         {
@@ -229,17 +228,13 @@ namespace NetEngine
             {
                 m_header.crypt = (std::uint32_t)Cryptography::EncryptionType::USER_LARGE_ENCRYPTION;
             }
-            else
-            {
-                //m_header.crypt = (uint32_t)Cryptography::EncryptionType::NO_ENCRYPTION;
-            }
         }
         m_header.size = sizeof(Protocols::STcpPacketHeader) + sizeof(Protocols::SCommandHeader) + m_data_size;
 
         Cryptography::CCrypt crypt;
 
-        std::size_t headerSize = sizeof(Protocols::STcpPacketHeader);
-        std::size_t commandSize = sizeof(Protocols::SCommandHeader);
+        constexpr std::size_t headerSize = sizeof(Protocols::STcpPacketHeader);
+        constexpr std::size_t commandSize = sizeof(Protocols::SCommandHeader);
 
         std::size_t partialSize = commandSize + m_data_size;
         std::size_t completeSize = headerSize + commandSize + m_data_size;

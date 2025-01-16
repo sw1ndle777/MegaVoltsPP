@@ -3,12 +3,16 @@
 #include <numeric>
 namespace NetEngine
 {
-    CServer::CServer() : m_ioContext(), m_socket(m_ioContext), m_watchdog_timer(asio::steady_timer(m_ioContext)), m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
+    CServer::CServer() : m_ioContext(), m_socket(m_ioContext), m_watchdog_timer(asio::steady_timer(m_ioContext))//, m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
     { 
-        m_available_session_ids[0] = false; 
+        m_sessionIdGenerator = IdGenerator(1, 65535);
+        m_roomIdGenerator = IdGenerator(2048, 4096);
+        m_plazaIdGenerator = IdGenerator(0, 65535);
+
+        //m_available_session_ids[0] = false; 
         //m_available_room_ids[0] = false;
-        for (std::uint16_t i = 0; i < 2048; i++)
-            m_available_room_ids[i] = false;
+        //for (std::uint16_t i = 0; i < 2048; i++)
+        //    m_available_room_ids[i] = false;
     }
     CServer::~CServer() {}
     void CServer::Setup(const SServerSettings& settings, const BaseLib::CSettings::ServerSettings& servers_settings)
@@ -195,10 +199,11 @@ namespace NetEngine
     {
         std::unique_lock lock(m_sessions_mutex);
         const auto& id = session->GetSessionId();
-        if (id == 0 || !m_available_session_ids[id]) return false;
+        if (id == 0 || m_sessions.count(id)) return false;
 
         m_sessions[id] = session;
-        m_available_session_ids[id] = false; 
+        //m_available_session_ids[id] = false; 
+        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got assigned and now not available", id);
         return true;
     }
     void CServer::RemoveSession(std::uint16_t id)
@@ -206,27 +211,39 @@ namespace NetEngine
         std::unique_lock lock(m_sessions_mutex);
 
         auto it = m_sessions.find(id);
-        if (id == 0 || it == m_sessions.end()) return;
+        if (id == 0 || !m_sessions.count(id)) return;
 
         m_sessions.erase(it);
-        m_available_session_ids[id] = true;
+        m_sessionIdGenerator.free(id);
+        //m_available_session_ids[id] = true;
+        //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got removed and now available", id);
     }
+    
     bool CServer::GetNextAvailableSessionId(std::uint16_t& outId)
     {
-        std::shared_lock lock(m_sessions_mutex);
+        std::unique_lock lock(m_sessions_mutex);
+        return m_sessionIdGenerator.getNext(outId);
+        /*
         for (std::uint16_t id = 1; id < m_available_session_ids.size(); id++) 
         {
             if (m_available_session_ids[id]) 
             {
                 outId = id;
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) available", id);
                 return true;
             }
+            else
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) not available", id);
         }
         return false;
+        */
     }
+    
     bool CServer::GetNextAvailableRoomId(std::uint16_t& outId)
     {
-        std::shared_lock lock(m_rooms_mutex);
+        std::unique_lock lock(m_rooms_mutex);
+        return m_roomIdGenerator.getNext(outId);
+        /*
         for (std::uint16_t id = 0; id < m_available_room_ids.size(); id++)
         {
             if (m_available_room_ids[id])
@@ -236,16 +253,20 @@ namespace NetEngine
             }
         }
         return false;
+        */
     }
     bool CServer::SetRoomIdAvailable(const std::uint16_t& room_id, bool available)
     {
         std::unique_lock lock(m_rooms_mutex);
-        m_available_room_ids[room_id] = available;
+        m_roomIdGenerator.free(room_id);
+        //m_available_room_ids[room_id] = available;
         return true;
     }
     bool CServer::GetNextAvailablePlazaId(std::uint16_t& outId)
     {
-        std::shared_lock lock(m_plazas_mutex);
+        std::unique_lock lock(m_plazas_mutex);
+        return m_plazaIdGenerator.getNext(outId);
+        /*
         for (std::uint16_t id = 0; id < m_available_plaza_ids.size(); id++)
         {
             if (m_available_plaza_ids[id])
@@ -255,11 +276,13 @@ namespace NetEngine
             }
         }
         return false;
+        */
     }
     bool CServer::SetPlazaIdAvailable(const std::uint16_t& plaza_id, bool available)
     {
         std::unique_lock lock(m_plazas_mutex);
-        m_available_plaza_ids[plaza_id] = available;
+        m_plazaIdGenerator.free(plaza_id);
+        //m_available_plaza_ids[plaza_id] = available;
         return true;
     }
 
@@ -290,7 +313,7 @@ namespace NetEngine
     {
         return this->m_useMultithreaded;
     }
-    void CServer::SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload)
+    void CServer::SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, std::vector<std::uint8_t> payload)
     {
         try
         {
@@ -298,7 +321,7 @@ namespace NetEngine
             asio::ip::tcp::resolver resolver(m_ioContext);
             asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(ip, port);
 
-            asio::async_connect(*socket, endpoints, [socket, this, ipc_id, payload](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
+            asio::async_connect(*socket, endpoints, [socket, this, ipc_id, payload = std::move(payload)](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
             {
                 if (ec)
                 {
@@ -307,19 +330,17 @@ namespace NetEngine
                 }
                 
                 std::uint32_t data_size = static_cast<std::uint32_t>(payload.size());
-                std::vector<std::uint8_t> message;
-                message.resize(8 + payload.size());
-               
-                std::memcpy(&message[0], &ipc_id, sizeof(ipc_id));
-                std::memcpy(&message[4], &data_size, sizeof(data_size));
-                std::copy(payload.begin(), payload.end(), message.begin() + 8);
+                std::vector<std::uint8_t>* message = new std::vector<std::uint8_t>(8 + payload.size());
+                std::memcpy(&(*message)[0], &ipc_id, sizeof(ipc_id));
+                std::memcpy(&(*message)[4], &data_size, sizeof(data_size));
+                std::copy(payload.begin(), payload.end(), message->begin() + 8);
 
-                asio::async_write(*socket, asio::buffer(message), [socket](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+                asio::async_write(*socket, asio::buffer(*message), [socket, message](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
                 {
+                    delete message;
                     if (ec)
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send IPC message: {}", ec.message());
-                        return;
                     }
                     socket->shutdown(asio::ip::tcp::socket::shutdown_both);
                     socket->close();

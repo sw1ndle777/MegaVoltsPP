@@ -12,6 +12,7 @@ namespace Game
             std::shared_lock lock(session->GetMutex());
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session->GetSessionId());
             auto self_session_id = session->GetSessionId();
+            cast_server->RemoveSession(self_session_id);
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
             if (self_player->in_plaza)
             {
@@ -47,7 +48,7 @@ namespace Game
                 self_player->in_room = false;
             }
             self_player->state_id = PlayerInfo::State::Disconnected;
-            cast_server->RemoveSession(self_session_id);
+           
             cast_server->RemovePlayerCache(self_session_id);
         }
     }   

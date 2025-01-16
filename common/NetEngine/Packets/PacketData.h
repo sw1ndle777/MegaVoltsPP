@@ -1020,6 +1020,45 @@ namespace NetEngine
                 std::uint32_t reward_item_id;
             };
 
+            struct GuideMissions
+            {
+                union
+                {
+                    struct
+                    {
+                        std::uint32_t help : 1;
+                        std::uint32_t personalinfo : 1;
+                        std::uint32_t battleinfo : 1;
+                        std::uint32_t options : 1;
+                        std::uint32_t chat : 1;
+                        std::uint32_t invasion : 1;
+                        std::uint32_t otherinfo : 1;
+                        std::uint32_t gachapon : 1;
+                        std::uint32_t createroom : 1;
+                        std::uint32_t roomlist : 1;
+                        std::uint32_t createparty : 1;
+                        std::uint32_t addfriend : 1;
+                    };
+                    std::uint32_t data;
+                };
+
+                GuideMissions() : data(0) {}
+                void SetMissionStatus(std::uint32_t missionId, bool completed)
+                {
+                    if (missionId < 46 || missionId > 57) return;
+                    auto bit_pos = static_cast<std::uint32_t>(missionId - 46);
+                    completed ? data |= (1 << bit_pos) : data &= ~(1 << bit_pos);
+                }
+                bool RetrieveMissionStatus(int missionId) const
+                {
+                    if (missionId < 46 || missionId > 57) return false;
+                    auto bit_pos = static_cast<std::uint32_t>(missionId - 46);
+                    return (data & (1 << bit_pos)) != 0;
+                }
+                void Set(std::uint32_t data) { data = data; }
+                std::uint32_t Get() const { return data; }
+            };
+
 #pragma pack(pop)
         }
 

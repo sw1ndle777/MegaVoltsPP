@@ -23,7 +23,15 @@ namespace Game
                 if (auto player_session = server->GetSessionById(player_session_id))
                     player_session->Send(msg);
                 else
+                {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "couldn't broadcast packet to session id: ({})", player_session_id);
+                    auto session_ids = server->GetSessions();
+                    for (auto& [id, session] : *session_ids)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exists on cast session id: ({})", id);
+                    }
+                }
+                    
             };
 
             CMessage msg = CMessage();

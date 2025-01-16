@@ -9,7 +9,7 @@ namespace Game
     {
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -23,6 +23,13 @@ namespace Game
            
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1)
+            {
+                main_server->RemoveSession(session_id);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session_id);
+                acc_cache.unlock();
+                return;
+            }
             auto my_slot = acc_cache->slot_id;
             auto auth_key = acc_cache->acc_info.AuthKey;
             auto clan_id = acc_cache->acc_info.ClanId;
@@ -44,9 +51,10 @@ namespace Game
             acc_cache.unlock();
 
             CServer* server = session->GetServer();
-            if (acc_index == -1) return;
+            
 
             main_server->SendFrontIpc(PacketIds::Ipc::MainToFrontDisconnectPlayer, Utility::ToVector(auth_key));
+            main_server->SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
 
             if (clan_id)
             {

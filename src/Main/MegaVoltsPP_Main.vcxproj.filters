@@ -142,5 +142,8 @@
     <ClInclude Include="handlers\PlayerMailbox.h">
       <Filter>header\handlers</Filter>
     </ClInclude>
+    <ClInclude Include="handlers\PlayerMissions.h">
+      <Filter>header\handlers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

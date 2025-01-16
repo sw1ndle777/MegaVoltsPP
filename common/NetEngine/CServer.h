@@ -25,6 +25,42 @@ namespace NetEngine
         std::chrono::time_point<std::chrono::steady_clock> start_time;
     };
 
+    struct IdGenerator
+    {
+        std::uint16_t m_min;
+        std::uint16_t m_max;
+        std::uint16_t m_counter;
+        std::vector<std::uint16_t> m_freeList;
+
+        IdGenerator(std::uint16_t minId = 1, std::uint16_t maxId = 65535)
+            : m_min(minId), m_max(maxId), m_counter(minId)
+        {
+            if (minId > maxId) throw std::invalid_argument("minId must be less than or equal to maxId");
+            m_freeList.reserve(static_cast<std::size_t>(maxId - minId + 1));
+        }
+        bool getNext(std::uint16_t& out)
+        {
+            if (!m_freeList.empty())
+            {
+                out = m_freeList.back();
+                m_freeList.pop_back();
+                return true;
+            }
+            if (m_counter < m_max)
+            {
+                out = m_counter;
+                m_counter++;
+                return true;
+            }
+            return false;
+        }
+        void free(std::uint16_t id)
+        {
+            if (id >= m_min && id <= m_max)
+                m_freeList.emplace_back(id);
+        }
+    };
+
     class CServer : public std::enable_shared_from_this<CServer>
     {
     public:
@@ -65,7 +101,7 @@ namespace NetEngine
         void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);
         bool IsMultiThreaded();
         std::uint64_t GetStartTime() const { return this->start_time; }
-        void SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
+        void SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, std::vector<std::uint8_t> payload);
         void SendFrontIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
         void SendMainIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
         void SendCastIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
@@ -110,9 +146,13 @@ namespace NetEngine
         boost::unordered_flat_map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
         //std::unordered_map<std::uint16_t, std::shared_ptr<CSession>> m_sessions;
         boost::unordered_flat_map<std::uint16_t, std::shared_ptr<CSession>> m_sessions;
-        std::vector<bool> m_available_session_ids;
-        std::vector<bool> m_available_room_ids;
-        std::vector<bool> m_available_plaza_ids;
+        IdGenerator m_sessionIdGenerator;
+        IdGenerator m_roomIdGenerator;
+        IdGenerator m_plazaIdGenerator;
+
+        //std::vector<bool> m_available_session_ids;
+        //std::vector<bool> m_available_room_ids;
+        //std::vector<bool> m_available_plaza_ids;
         std::shared_ptr<asio::ip::tcp::acceptor> m_acceptor;
         std::shared_ptr<asio::ip::tcp::acceptor> m_ipc_acceptor;
         asio::io_context m_ioContext;

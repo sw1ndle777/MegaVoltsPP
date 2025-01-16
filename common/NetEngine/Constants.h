@@ -48,7 +48,9 @@ namespace NetEngine
                 MainToCastDisconnectPlayer = 1,
                 MainToFrontDisconnectPlayer = 2,
                 FrontToMainDisconnectPlayer = 3,
-                MainToCastHostChange = 4
+                MainToCastHostChange = 4,
+                MainToCastReqServerInfo = 5,
+                CastToMainAckServerInfo = 6
             };
         }
 

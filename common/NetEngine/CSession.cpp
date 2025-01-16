@@ -45,7 +45,13 @@ namespace NetEngine
 
         m_socket.shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
         m_socket.close(errorCode);
-        if (m_on_disconnect_callback) m_on_disconnect_callback(shared_from_this());
+        if (m_on_disconnect_callback)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "m_on_disconnect_callback(shared_from_this())");
+            m_on_disconnect_callback(shared_from_this());
+        }
+        else
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "m_on_disconnect_callback is null");
     }
     void CSession::SetOnDisconnectCallback(std::function<void(std::shared_ptr<CSession>)> callback)
     {
@@ -113,12 +119,12 @@ namespace NetEngine
             return;
         }
         auto data = message.GenerateMessage();
-        std::vector<uint8_t> data_vec(&data[0], &data[message.GetFullSize()]);
+        std::vector<std::uint8_t>* data_vec = new std::vector<std::uint8_t>(&data[0], &data[message.GetFullSize()]);
 
         if(m_verbose)
         {
-            std::int32_t encryptionKey = m_useEncryption ? m_encryptionKey.load() : -1;
-            CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data_vec.data()), data_vec.size(), encryptionKey);
+            std::int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
+            CMessage packetMessage = CMessage(reinterpret_cast<std::uint8_t*>(data_vec->data()), data_vec->size(), encryptionKey);
             if (packetMessage.GetOrder() != 71 || packetMessage.GetOrder() != 72)
             {
 
@@ -139,14 +145,15 @@ namespace NetEngine
                         data_buffer += ' ';
                 }
 
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId.load(), packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
             }
         }
 
         auto self = shared_from_this();
 
-        asio::async_write(m_socket, asio::buffer(data_vec.data(), data_vec.size()), asio::bind_executor(m_strand, [self](const std::error_code& ec, std::size_t bytes_transferred)
+        asio::async_write(m_socket, asio::buffer(data_vec->data(), data_vec->size()), asio::bind_executor(m_strand, [self, data_vec](const std::error_code& ec, std::size_t bytes_transferred)
         {
+            delete data_vec;
             if (ec)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to send data: ({})", ec.message().c_str());
@@ -159,21 +166,21 @@ namespace NetEngine
 
     void CSession::SetEncryptionKey(std::int32_t key)
     {
-        m_encryptionKey.store(key);
+        m_encryptionKey = key;
     }
 
     void CSession::SetSessionId(std::uint16_t id)
     {
-        m_sessionId.store(id);
+        m_sessionId = id;
     }
     std::int32_t CSession::GetEncryptionKey() 
     {
-        return m_encryptionKey.load();
+        return m_encryptionKey;
     }
 
     std::uint16_t CSession::GetSessionId() 
     {
-        return m_sessionId.load();
+        return m_sessionId;
     }
 
    
@@ -186,7 +193,7 @@ namespace NetEngine
     void CSession::onPacket(Protocols::STcpPacketHeader& header, std::vector<std::uint8_t>& data)
     {
 
-        std::int32_t encryptionKey = m_useEncryption ? m_encryptionKey.load() : -1;
+        std::int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
         CMessage packetMessage = CMessage(reinterpret_cast<std::uint8_t*>(data.data()), data.size(), encryptionKey);
 
         if (m_verbose)
@@ -222,7 +229,7 @@ namespace NetEngine
                     if (i != packetMessage.GetDataSize() - 1)
                         data_buffer += ' ';
                 }
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId.load(), packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
 
             }
         }

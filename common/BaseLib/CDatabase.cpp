@@ -18,6 +18,7 @@ namespace BaseLib
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "connected to ({}:{})", host.c_str(), port);
 
+            
                 if (CreateDatabase(database))
                 {
 
@@ -227,10 +228,11 @@ namespace BaseLib
                     Day31 int unsigned NOT NULL,
                     PRIMARY KEY (Month))");
                 }
+                
                 else
                 {
                     conn->setSchema(database);
-
+                    /*
                     CreateTable("accounts", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT, 
                     Username varchar(16) NOT NULL, 
@@ -433,8 +435,9 @@ namespace BaseLib
                     Day30 int unsigned NOT NULL,
                     Day31 int unsigned NOT NULL,
                     PRIMARY KEY (Month))");
-                }
-                    
+                    */
+                }  
+                
             }
         }
         catch (sql::SQLException& e)

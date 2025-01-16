@@ -29,6 +29,7 @@
 #include "handlers/PlayerPing.h"
 #include "handlers/PlayerEnergy.h"
 #include "handlers/PlayerSocials.h"
+#include "handlers/PlayerMissions.h"
 #include "handlers/RepairItem.h"
 #include "handlers/SellItem.h"
 #include "handlers/ServerIpcMessage.h"
@@ -56,7 +57,7 @@ namespace Game
         }
         static void Items(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -134,8 +135,9 @@ namespace Game
             CServer* server = callback.server;
             auto sessions_list = server->GetSessions();
 
-            main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] Players Online: {}, Sessions Size: {}", accounts_cache.size(), sessions_list->size()).c_str());
+            
             std::shared_lock lock(main_server->GetAccountsCacheMutex());
+            main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] Players Online: {}, Sessions Size: {}", accounts_cache.size(), sessions_list->size()).c_str());
             for (const auto& acc : accounts_cache)
             {
                 const auto& account = acc.second;
@@ -200,7 +202,7 @@ namespace Game
         static void Announce(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
             acc_cache.unlock();
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -210,7 +212,7 @@ namespace Game
             };
 
             CServer* server = callback.server;
-            if (!args.size() == 2)
+            if (args.size() != 2)
             {
                 main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] {}, command usage: /! msg (512 max chars)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
@@ -234,7 +236,7 @@ namespace Game
         }
         static void Level(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -272,7 +274,7 @@ namespace Game
         static void Kick(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -409,7 +411,7 @@ namespace Game
         static void Break(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -493,7 +495,7 @@ namespace Game
         static void BreakAll(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::size_t data_size = 0)
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -574,7 +576,28 @@ namespace Game
 
             main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] {} gachapon sales info reloaded", gachapon_sales.size()).c_str());
         }
-     
+        static void CastProcessInfo(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
+        {
+            main_server->SendCastIpc(PacketIds::Ipc::MainToCastReqServerInfo, Utility::ToVector(acc_cache->acc_info.AuthKey));
+        }
+        static void MainProcessInfo(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
+        {
+            HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
+            auto cpu_usage = Utility::GetCpuUsage(m_process_handle);
+            auto mem_usage = static_cast<std::uint32_t>(Utility::GetMemoryUsage(m_process_handle));
+            CloseHandle(m_process_handle);
+            auto sessions_count = static_cast<std::uint16_t>(main_server->GetSessions()->size());
+
+            auto msg = std::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",
+                static_cast<std::uint16_t>(sessions_count),
+                static_cast<std::uint32_t>(mem_usage),
+                static_cast<double>(cpu_usage));
+
+            main_server->SendServerMessage(callback.session, msg.c_str());
+            //main_server->SendServerMessage(callback.session,
+            //    std::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {.2f}",
+            //        sessions_count, mem_usage, cpu_usage).c_str());
+        }
         static void Init()
         {
             Commands::Register("?", Help, Userlist::User::Grade::Tester);
@@ -588,6 +611,8 @@ namespace Game
             Commands::Register("break", Break, Userlist::User::Grade::Tester);
             Commands::Register("breakall", BreakAll, Userlist::User::Grade::Tester);
             Commands::Register("reloadgachasale", ReloadGachaponSalesInfo, Userlist::User::Grade::Tester);
+            Commands::Register("cast", CastProcessInfo, Userlist::User::Grade::Tester);
+            Commands::Register("main", MainProcessInfo, Userlist::User::Grade::Tester);
         }
     }
    

@@ -309,6 +309,13 @@ namespace NetEngine
                 std::uint32_t score;
                 std::uint32_t stage;
             };
+            struct MainCompleteMissionReq
+            {
+                std::uint32_t collection_id;
+                std::uint32_t set_index;
+                std::uint32_t idk1;
+                std::uint32_t mission_type;//1 for guide mission and 4 for daily missions
+            };
 
             struct MainEngineServerConnectionAck
             {
