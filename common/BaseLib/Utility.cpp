@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <processthreadsapi.h>
 #include <Psapi.h>
+#include "CLog.h"
 namespace Utility
 {
     std::map<std::string, std::string> time_zones = {
@@ -418,6 +419,28 @@ namespace Utility
         GetSystemInfo(&info);
         return info.dwNumberOfProcessors;
     }();
+    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, std::uint16_t m_sessionId)
+    {
+        if (packetMessage.GetOrder() != 71 || packetMessage.GetOrder() != 72)
+        {
+            std::string data_buffer;
+            data_buffer.reserve(static_cast<std::size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
+
+            for (std::uint32_t i = 0; i < 4; i++)
+                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
+
+            for (std::uint32_t i = 0; i < 4; i++)
+                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+
+            for (std::uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
+            {
+                std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
+                if (i != packetMessage.GetDataSize() - 1)
+                    data_buffer += ' ';
+            }
+            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
+        }
+    }
     double GetCpuUsage(void* m_process_handle)
     {
         auto fileTimeToUtc = [](const FILETIME* ftime) -> std::int64_t 

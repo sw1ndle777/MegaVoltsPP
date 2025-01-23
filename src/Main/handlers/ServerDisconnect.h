@@ -172,7 +172,7 @@ namespace Game
                 if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty() && room->observers_session_ids.empty())
                 {
                     main_server->RemoveRoomCache(room_id);
-                    server->SetRoomIdAvailable(room_id, true);
+                    server->SetRoomIdAvailable(room_id);
                 }
             }
 

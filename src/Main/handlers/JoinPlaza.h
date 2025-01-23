@@ -181,7 +181,7 @@ namespace Game
                 {
                     std::uint16_t current_plaza_id = 0;
                     server->GetNextAvailablePlazaId(current_plaza_id);
-                    server->SetPlazaIdAvailable(current_plaza_id, false);
+                    //server->SetPlazaIdAvailable(current_plaza_id);
                     auto new_plaza = Plaza(current_plaza_id, 2);
                     if (current_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);
                     acc_cache->plaza_id = current_plaza_id;
@@ -241,7 +241,7 @@ namespace Game
                 else
                 {
                     std::uint16_t current_plaza_id = plaza_id;
-                    server->SetPlazaIdAvailable(current_plaza_id, false);
+                    //server->SetPlazaIdAvailable(current_plaza_id);
                     auto new_plaza = Plaza(current_plaza_id, 2);
                     if (current_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);
                     acc_cache->plaza_id = current_plaza_id;

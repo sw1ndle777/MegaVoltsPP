@@ -68,7 +68,7 @@ namespace Game
             acc_cache->playing = false;
             acc_cache->state = PlayerInfo::State::HostReady;
             acc_cache->slot_id = 0;
-            server->SetRoomIdAvailable(current_room_id, false);
+            //server->SetRoomIdAvailable(current_room_id);
 
             if (new_room.has_password)
             {

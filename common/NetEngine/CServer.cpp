@@ -203,7 +203,6 @@ namespace NetEngine
 
         m_sessions[id] = session;
         //m_available_session_ids[id] = false; 
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got assigned and now not available", id);
         return true;
     }
     void CServer::RemoveSession(std::uint16_t id)
@@ -255,7 +254,7 @@ namespace NetEngine
         return false;
         */
     }
-    bool CServer::SetRoomIdAvailable(const std::uint16_t& room_id, bool available)
+    bool CServer::SetRoomIdAvailable(const std::uint16_t& room_id)
     {
         std::unique_lock lock(m_rooms_mutex);
         m_roomIdGenerator.free(room_id);
@@ -278,7 +277,7 @@ namespace NetEngine
         return false;
         */
     }
-    bool CServer::SetPlazaIdAvailable(const std::uint16_t& plaza_id, bool available)
+    bool CServer::SetPlazaIdAvailable(const std::uint16_t& plaza_id)
     {
         std::unique_lock lock(m_plazas_mutex);
         m_plazaIdGenerator.free(plaza_id);

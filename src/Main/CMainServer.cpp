@@ -404,7 +404,7 @@ namespace Game
                     }
                 }
                 main_server->RemoveRoomCache(player_room->room_id);
-                main_server->SetRoomIdAvailable(player_room->room_id, true);
+                main_server->SetRoomIdAvailable(player_room->room_id);
             }
         }
 
@@ -490,7 +490,7 @@ namespace Game
                 }
             }
             main_server->RemoveRoomCache(target_room_id);
-            main_server->SetRoomIdAvailable(target_room_id, true);
+            main_server->SetRoomIdAvailable(target_room_id);
         }
         static void BreakAll(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
@@ -550,7 +550,7 @@ namespace Game
                     }
                 }
                 main_server->RemoveRoomCache(target_room_id);
-                main_server->SetRoomIdAvailable(target_room_id, true);
+                main_server->SetRoomIdAvailable(target_room_id);
                 room_cache.unlock();
             }
         }

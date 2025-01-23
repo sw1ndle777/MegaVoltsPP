@@ -53,7 +53,6 @@ namespace NetEngine
         CServer* GetServer();
         void DoRead();
         void DoReadIpc();
-        void DoWrite();
         std::shared_mutex& GetMutex() {
 
             return mutex;

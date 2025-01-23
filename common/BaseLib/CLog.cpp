@@ -30,8 +30,10 @@ namespace BaseLib
             if (std::filesystem::exists(logFilePath))
                 std::filesystem::remove(logFilePath);
         }
+        std::ios_base::openmode mode = std::ofstream::out;
+        mode |= removeExisting ? std::ofstream::trunc : std::ofstream::app;
 
-        File.open(Path, std::ofstream::out | std::ofstream::trunc);
+        File.open(Path, mode);
 
         if (!File.is_open())
         {

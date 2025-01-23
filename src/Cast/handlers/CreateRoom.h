@@ -19,7 +19,7 @@ namespace Game
             Game::Room new_room = { current_room_id , self_session_id };
             new_room.players_session_id.push_back(self_session_id);
             cast_server->AddRoomCache(current_room_id, new_room);
-            server->SetRoomIdAvailable(current_room_id, false);
+            //server->SetRoomIdAvailable(current_room_id);
             self_player->room_id = current_room_id;
             self_player->host_session_id = self_session_id;
             self_player->in_room = true;

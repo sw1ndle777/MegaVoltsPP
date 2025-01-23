@@ -219,7 +219,6 @@ namespace Game
                 {
                     //if (main_server->IsItemWeapon(item.item_number.item_id) || main_server->IsItemCostume(item.item_number.item_id) || main_server->IsItemDiorama(item.item_number.item_id))
                     //    equipped_items.push_back(EquipItemInfo(item));
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) receive equip item id ({})", session->GetSessionId(), item.item_number.item_id);
                     if (main_server->IsItemSet(item.item_number.item_id))
                     {
 

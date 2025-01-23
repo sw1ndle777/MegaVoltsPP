@@ -11,7 +11,9 @@
 #include "CSession.h"
 #include "BaseLib/CLog.h"
 //#include <boost/unordered/concurrent_flat_map.hpp>
-#include "../deps/unordered/boost/unordered/unordered_flat_map.hpp"
+//#include "../deps/unordered/boost/unordered/unordered_flat_map.hpp"
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
 #include "BaseLib/CSettings.h"
 namespace NetEngine
 {
@@ -24,7 +26,7 @@ namespace NetEngine
         std::uint16_t order;
         std::chrono::time_point<std::chrono::steady_clock> start_time;
     };
-
+    /*
     struct IdGenerator
     {
         std::uint16_t m_min;
@@ -59,6 +61,41 @@ namespace NetEngine
             if (id >= m_min && id <= m_max)
                 m_freeList.emplace_back(id);
         }
+    };*/
+    struct IdGenerator
+    {
+        std::uint16_t m_min;
+        std::uint16_t m_max;
+        std::uint16_t m_counter;
+        boost::unordered_flat_set<std::uint16_t> m_freeList;
+
+        IdGenerator(std::uint16_t minId = 1, std::uint16_t maxId = 65535)
+            : m_min(minId), m_max(maxId), m_counter(minId)
+        {
+            if (minId > maxId) throw std::invalid_argument("minId must be less than or equal to maxId");
+        }
+        bool getNext(std::uint16_t& out)
+        {
+            if (!m_freeList.empty())
+            {
+                auto it = m_freeList.begin();
+                out = *it;
+                m_freeList.erase(it);
+                return true;
+            }
+            if (m_counter < m_max)
+            {
+                out = m_counter;
+                m_counter++;
+                return true;
+            }
+            return false;
+        }
+        void free(std::uint16_t id)
+        {
+            if (id >= m_min && id <= m_max && m_freeList.find(id) == m_freeList.end())
+                m_freeList.insert(id);
+        }
     };
 
     class CServer : public std::enable_shared_from_this<CServer>
@@ -91,9 +128,9 @@ namespace NetEngine
         void RemoveSession(std::uint16_t id);
         bool GetNextAvailableSessionId(std::uint16_t& outId);
         bool GetNextAvailableRoomId(std::uint16_t& outId);
-        bool SetRoomIdAvailable(const std::uint16_t& plaza_id, bool available);
+        bool SetRoomIdAvailable(const std::uint16_t& plaza_id);
         bool GetNextAvailablePlazaId(std::uint16_t& outId);
-        bool SetPlazaIdAvailable(const std::uint16_t& plaza_id, bool available);
+        bool SetPlazaIdAvailable(const std::uint16_t& plaza_id);
         std::shared_ptr<CServer> GetShared() { return shared_from_this(); }
         void On(std::uint16_t id, std::function<void(SCallbackData&)> callback);
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);

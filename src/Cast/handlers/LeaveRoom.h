@@ -25,7 +25,7 @@ namespace Game
                     if (!room_cache->players_session_id.size())
                     {
                         cast_server->RemoveRoomCache(self_player->room_id);
-                        cast_server->SetRoomIdAvailable(self_player->room_id, true);
+                        cast_server->SetRoomIdAvailable(self_player->room_id);
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) removed room id: ({})", self_session_id, self_player->room_id);
                     }
                 }

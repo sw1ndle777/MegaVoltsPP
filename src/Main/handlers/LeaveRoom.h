@@ -112,6 +112,7 @@ namespace Game
                 auto leaveRoomReq = reinterpret_cast<MainLeaveRoomReq*>(callback.message->GetData());
                 if (leave_result != NetEngine::Room::Leave::Req::Result::Leave || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
                 auto room = main_server->GetRoomCacheUnique(acc_cache->room_id);
+                auto room_id = room->room_id;
                 acc_cache->in_room = false;
                 acc_cache->slot_id = 0;
                 acc_cache->playing = false;
@@ -128,7 +129,7 @@ namespace Game
                     for (const auto& id : session_ids)
                     {
                         auto player_cache = main_server->GetAccCacheSharedBySessionId(id);
-                        if (player_cache->acc_info.Index == -1 || !player_cache->in_room || player_cache->room_id != room->room_id)
+                        if (player_cache->acc_info.Index == -1 || !player_cache->in_room || player_cache->room_id != room_id)
                         {
                             player_cache.unlock();
                             continue;
@@ -176,7 +177,7 @@ namespace Game
                                 std::uint16_t room_id;
                                 std::uint64_t auth_key;
                             };
-                            RoomAuthData new_host_data{ room->room_id, best_ping_acc_cache->acc_info.AuthKey };
+                            RoomAuthData new_host_data{ room_id, best_ping_acc_cache->acc_info.AuthKey };
 
                             main_server->SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
                         }
@@ -191,7 +192,7 @@ namespace Game
                         for (const auto& observer_id : room->observers_session_ids)
                         {
                             auto observer_cache = main_server->GetAccCacheUniqueBySessionId(observer_id);
-                            if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != room->room_id) continue;
+                            if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != room_id) continue;
                             observer_cache->in_room = false;
                             observer_cache->slot_id = 0;
                             observer_cache->playing = false;
@@ -204,11 +205,12 @@ namespace Game
                                 send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
                         }
                     }
-                    main_server->RemoveRoomCache(room->room_id);
-                    server->SetRoomIdAvailable(room->room_id, true);
+                    main_server->RemoveRoomCache(room_id);
+                    server->SetRoomIdAvailable(room_id);
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, " room -> id: ({}) is free", acc_cache->acc_info.Nickname.c_str(), room_id);
                 }
                 acc_cache.lock();
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) left room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room->room_id);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) left room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_id);
             }        
         }
     }

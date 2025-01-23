@@ -12,6 +12,8 @@
 #include <openssl/sha.h>
 #include <fmt/format.h>
 #include <fmt/color.h>
+#include <NetEngine/CMessage.h>
+#include <source_location>
 namespace Utility
 {
     constexpr std::string_view allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()-_=+[{]}<.>/?";
@@ -27,6 +29,7 @@ namespace Utility
         std::uint32_t CustomGen(const std::uint32_t min, const std::uint32_t max);
         std::uint64_t CustomGen64(const std::uint64_t min, const std::uint64_t max);
     }
+    
     std::string round_float(float var);
     std::string readable_size(std::uint64_t bytes);
     std::string readable_time(std::uint64_t ns);
@@ -69,7 +72,7 @@ namespace Utility
         std::memcpy(&object, bytes.data(), sizeof(T));
         return object;
     }
-   
+    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, std::uint16_t m_sessionId);
     double GetCpuUsage(void* m_process_handle);
     std::int64_t GetMemoryUsage(void* m_process_handle);
 }
