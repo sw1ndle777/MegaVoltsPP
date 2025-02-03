@@ -436,13 +436,8 @@ int main()
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") reward infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "{}\n", elapsed_time_str.c_str());
 
-    start_time = std::chrono::system_clock::now();
     auto gachapon_sales = BaseLib::Database->GetGachaponSalesInfo();
     mainServer->AddGachaponSaleCache(gachapon_sales);
-    end_time = std::chrono::system_clock::now();
-    elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
-    elapsed_time_str = Utility::readable_time(elapsed_time.count());
-    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "loaded ({}) gachapon sales info in {}", gachapon_sales.size(), elapsed_time_str.c_str());
     mainServer->Setup(settings, server_settings);
     mainServer->Run();
 

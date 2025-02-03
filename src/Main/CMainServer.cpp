@@ -634,6 +634,7 @@ namespace Game
     std::shared_mutex plaza_cache_mutex;
     std::shared_mutex room_ids_mutex;
     std::shared_mutex clan_cache_mutex;
+    std::shared_mutex party_cache_mutex;
     std::shared_mutex mailbox_data_cache_mutex;
     std::shared_mutex mailbox_sent_cache_mutex;
     std::shared_mutex mailbox_recv_cache_mutex;
@@ -676,6 +677,7 @@ namespace Game
     boost::unordered_flat_map<std::uint32_t, Plaza> plaza_cache; //read & write
     std::vector<std::uint32_t> room_ids; //read & write 
     boost::unordered_flat_map<std::uint32_t, Clan> clan_cache; //read & write
+    boost::unordered_flat_map<std::uint16_t, Party> party_cache; //read & write
     boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
     boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids

@@ -75,6 +75,18 @@ namespace Game
             if (in_room && main_server->IsRoomAlready(room_id))
             {
                 auto room = main_server->GetRoomCacheUnique(room_id);
+
+                auto left_while_vote_kicked = room->vote_kick_target_session_id == session_id;
+
+                if (left_while_vote_kicked)
+                {
+                    room->voters_session_ids.clear();
+                    room->vote_kick_target_session_id = 0;
+                    room->is_kick_vote_running = false;
+                    if (!main_server->IsSessionIdAlready(session_id, room->kicked_session_ids))
+                        room->kicked_session_ids.push_back(session_id);
+                }
+
                 //acc_cache.unlock();
                 main_server->RemoveRoomPlayerCache(room, session_id, team_id);
                 main_server->RoomPlayersSlotReorder(room);
@@ -156,6 +168,8 @@ namespace Game
                                 for (const auto& [room_player_session_id, _] : player_slot_pairs)
                                     if (auto player_session = server->GetSessionById(room_player_session_id))
                                         send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_slot_id)); // host change
+
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room No. ({}) changed host ({}) -> ({}) due to leaving while playing. ", room->room_id, acc_cache->acc_info.Nickname.c_str(), best_ping_acc_cache->acc_info.Nickname.c_str());
 
                                 struct RoomAuthData
                                 {
@@ -296,6 +310,60 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "removed blockeds cache for session id: ({})", session_id);
             main_server->RemoveSession(session_id);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session_id);
+
+
+            rapidjson::Document doc;
+            doc.SetObject();
+            rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+
+            rapidjson::Value main_object(rapidjson::kObjectType);
+
+            main_object.AddMember("Index", acc_info.Index, allocator);
+            main_object.AddMember("ClanId", acc_info.ClanId, allocator);
+            main_object.AddMember("ClanKills", acc_info.ClanKills, allocator);
+            main_object.AddMember("ClanDeaths", acc_info.ClanDeaths, allocator);
+            main_object.AddMember("ClanAssists", acc_info.ClanAssists, allocator);
+            main_object.AddMember("ClanContribution", acc_info.ClanContribution, allocator);
+            main_object.AddMember("ClanWins", acc_info.ClanWins, allocator);
+            main_object.AddMember("ClanLoses", acc_info.ClanLoses, allocator);
+            main_object.AddMember("ClanDraws", acc_info.ClanDraws, allocator);
+            main_object.AddMember("Nickname", rapidjson::Value(acc_info.Nickname.c_str(), allocator), allocator);
+            main_object.AddMember("Level", acc_info.Level, allocator);
+            main_object.AddMember("Experience", acc_info.Experience, allocator);
+            main_object.AddMember("PlayTime", acc_info.PlayTime, allocator);
+            main_object.AddMember("MutedUntil", acc_info.MutedUntil, allocator);
+            main_object.AddMember("Coins", acc_info.Coins, allocator);
+            main_object.AddMember("Energy", acc_info.Energy, allocator);
+            main_object.AddMember("MicroPoints", acc_info.MicroPoints, allocator);
+            main_object.AddMember("RockTokens", acc_info.RockTokens, allocator);
+            main_object.AddMember("Coupons", acc_info.Coupons, allocator);
+            main_object.AddMember("Wins", acc_info.Wins, allocator);
+            main_object.AddMember("Loses", acc_info.Loses, allocator);
+            main_object.AddMember("Draws", acc_info.Draws, allocator);
+            main_object.AddMember("Kills", acc_info.Kills, allocator);
+            main_object.AddMember("Deaths", acc_info.Deaths, allocator);
+            main_object.AddMember("Assists", acc_info.Assists, allocator);
+            main_object.AddMember("Headshots", acc_info.Headshots, allocator);
+            main_object.AddMember("HighestKillStreak", acc_info.HighestKillStreak, allocator);
+            main_object.AddMember("MeleeKills", acc_info.MeleeKills, allocator);
+            main_object.AddMember("RifleKills", acc_info.RifleKills, allocator);
+            main_object.AddMember("ShotgunKills", acc_info.ShotgunKills, allocator);
+            main_object.AddMember("SniperKills", acc_info.SniperKills, allocator);
+            main_object.AddMember("GatlingKills", acc_info.GatlingKills, allocator);
+            main_object.AddMember("BazookaKills", acc_info.BazookaKills, allocator);
+            main_object.AddMember("GrenadeKills", acc_info.GrenadeKills, allocator);
+            main_object.AddMember("ZombieKills", acc_info.ZombieKills, allocator);
+            main_object.AddMember("Infections", acc_info.Infections, allocator);
+            main_object.AddMember("SingleWaveHighestWave", acc_info.SingleWaveHighestWave, allocator);
+            main_object.AddMember("SingleWaveHighScore", acc_info.SingleWaveHighScore, allocator);
+
+            doc.AddMember("mainServerIpc", main_object, allocator);
+
+            rapidjson::StringBuffer payload;
+            rapidjson::Writer<rapidjson::StringBuffer> writer(payload);
+            doc.Accept(writer);
+
+            main_server->WebsitePost("/", payload.GetString());
 
             /*
             asio::post([session, main_server, send_msg]()

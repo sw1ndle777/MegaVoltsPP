@@ -60,11 +60,11 @@ namespace BaseLib
         template <typename... Args>
         void Debug(std::source_location source_location, fmt::color color, std::string_view format, Args&&... args)
         {
-            const auto file_name = extractFileName(source_location.file_name());//std::filesystem::path(source_location.file_name()).filename().string();
+            const auto file_name = extractFileName(source_location.file_name());
             std::string function_name = extractFunctionName(source_location.function_name());
 
-            std::string source_debug_info = std::format("({}:{}) {}() ", file_name, source_location.line(), function_name);
-            std::string formattedMessage = std::vformat(format, std::make_format_args(args...));
+            std::string source_debug_info = fmt::format("({}:{}) {}() ", file_name, source_location.line(), function_name);
+            std::string formattedMessage = fmt::vformat(format, fmt::make_format_args(args...));
 
             {
                 std::unique_lock<std::mutex> lock(queueMutex);
@@ -72,35 +72,9 @@ namespace BaseLib
             }
             cv.notify_one();
 
-            /*
-            
-            Write(source_debug_info + formattedMessage);
-
-            fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, source_debug_info.c_str());
-
-            std::regex re(R"(([^()]*)(\([^()]*\)))");
-            std::smatch match;
-            std::string::const_iterator search_start(formattedMessage.cbegin());
-            bool changeColorForRareParenthese = false;
-            auto changecolor = fmt::color::green;
-            while (std::regex_search(search_start, formattedMessage.cend(), match, re))
-            {
-                fmt::print(fg(color) | fmt::emphasis::bold, "{}", match[1].str().c_str());
-                if (match[1].str().find("rare") != std::string::npos) changecolor = fmt::color::yellow;
-                if (match[1].str().find("normal") != std::string::npos) changecolor = fmt::color::gray;
-
-                fmt::print(fg(changecolor) | fmt::emphasis::bold, "{}", match[2].str().c_str());
-                changecolor = fmt::color::green;
-
-                search_start = match.suffix().first;
-            }
-
-            fmt::print(fg(color) | fmt::emphasis::bold, "{}\n", std::string(search_start, formattedMessage.cend()));
-
-            */
         }
 
-        void ProcessQueue() 
+        void ProcessQueue()
         {
             while (!stopLogging)
             {

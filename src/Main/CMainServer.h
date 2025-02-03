@@ -19,6 +19,9 @@
 #include "NetEngine/Packets/PacketData.h"
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 namespace Game
 {
     using namespace BaseLib;
@@ -304,6 +307,10 @@ namespace Game
         std::vector<std::uint16_t> redteam_session_ids;
         std::vector<std::uint16_t> observers_session_ids;
         std::vector<std::uint16_t> kicked_session_ids;
+        std::vector<std::uint16_t> kick_voters_session_ids;
+        std::vector<std::uint16_t> voters_session_ids;
+        std::uint16_t vote_kick_target_session_id;
+        bool is_kick_vote_running = false;
         Room(const std::uint16_t& roomId = 0, const std::uint16_t& channelId = 0, const std::string& title = "", const std::string& password = "",
             const NetEngine::Room::Map::Index& mapIndex = NetEngine::Room::Map::Index::Chess, const NetEngine::Room::Mode::Index& modeIndex = NetEngine::Room::Mode::Index::TeamDeathMatch,
             const NetEngine::Room::Restriction::Type& restriction = NetEngine::Room::Restriction::AllWeapons, const NetEngine::Room::Balance::State& teamBalance = NetEngine::Room::Balance::State::Disabled,
@@ -312,13 +319,15 @@ namespace Game
             const std::uint16_t& hostSessionId = 0)
             : room_id(roomId), channel_id(channelId), title(title), password(password), MapIndex(mapIndex), ModeIndex(modeIndex), Restriction(restriction), TeamBalance(teamBalance), 
             max_players(maxPlayers), score_rule(scoreRule), time_rule(timeRule), allow_intruders(allowIntruders), allow_drops(allowDrops), allow_observers(allowObservers),
-            is_playing(isPlaying), has_password(hasPassword), host_session_id(hostSessionId)
+            is_playing(isPlaying), has_password(hasPassword), host_session_id(hostSessionId), is_kick_vote_running(false), vote_kick_target_session_id(0)
         {
             neutralteam_session_ids.clear();
             blueteam_session_ids.clear();
             redteam_session_ids.clear();
             observers_session_ids.clear();
             kicked_session_ids.clear();
+            kick_voters_session_ids.clear();
+            voters_session_ids.clear();
         }
         Room(const Room& other)
         {
@@ -344,6 +353,10 @@ namespace Game
             redteam_session_ids = other.redteam_session_ids;
             observers_session_ids = other.observers_session_ids;
             kicked_session_ids = other.kicked_session_ids;
+            kick_voters_session_ids = other.kick_voters_session_ids;
+            voters_session_ids = other.voters_session_ids;
+            is_kick_vote_running = other.is_kick_vote_running;
+            vote_kick_target_session_id = other.vote_kick_target_session_id;
         }
         Room& operator=(const Room& other)
         {
@@ -370,6 +383,10 @@ namespace Game
             redteam_session_ids = other.redteam_session_ids;
             observers_session_ids = other.observers_session_ids;
             kicked_session_ids = other.kicked_session_ids;
+            kick_voters_session_ids = other.kick_voters_session_ids;
+            voters_session_ids = other.voters_session_ids;
+            is_kick_vote_running = other.is_kick_vote_running;
+            vote_kick_target_session_id = other.vote_kick_target_session_id;
             return *this;
         }
     };
@@ -450,6 +467,32 @@ namespace Game
             logo_back = other.logo_back;
             online_members = other.online_members;
             clan_matches = other.clan_matches;
+            return *this;
+        }
+    };
+
+    struct Party
+    {
+        std::shared_mutex mutex;
+        bool is_playing;
+        bool is_queueing;
+        std::uint16_t party_host_session_id;
+        std::vector<std::uint16_t> members;
+        Party(const bool& is_playing = false, const bool& is_queueing = false, const std::uint16_t& party_host_session_id = 0) : is_playing(is_playing), is_queueing(is_queueing), party_host_session_id(party_host_session_id) { members.clear(); }
+        Party(const Party& other)
+        {
+            is_playing = other.is_playing;
+            is_queueing = other.is_queueing;
+            party_host_session_id = other.party_host_session_id;
+            members = other.members;
+        }
+        Party& operator=(const Party& other)
+        {
+            if (this == &other) return *this;
+            is_playing = other.is_playing;
+            is_queueing = other.is_queueing;
+            party_host_session_id = other.party_host_session_id;
+            members = other.members;
             return *this;
         }
     };
@@ -536,12 +579,15 @@ namespace Game
     extern std::shared_mutex plaza_cache_mutex;
     extern std::shared_mutex room_ids_mutex;
     extern std::shared_mutex clan_cache_mutex;
+    extern std::shared_mutex party_cache_mutex;
     extern std::shared_mutex mailbox_data_cache_mutex;
     extern std::shared_mutex mailbox_sent_cache_mutex;
     extern std::shared_mutex mailbox_recv_cache_mutex;
     extern std::shared_mutex giftbox_recv_cache_mutex;
     extern std::shared_mutex gachapon_sale_cache_mutex;
     extern std::shared_mutex gachapon_ids_sale_cache_mutex;
+
+    
 
 
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
@@ -561,6 +607,7 @@ namespace Game
     extern boost::unordered_flat_map<std::uint32_t, Plaza> plaza_cache; //read & write
     extern std::vector<std::uint32_t> room_ids; //read & write
     extern boost::unordered_flat_map<std::uint32_t, Clan> clan_cache; //read & write
+    extern boost::unordered_flat_map<std::uint16_t, Party> party_cache; //read & write
     extern boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
     extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
@@ -975,7 +1022,7 @@ namespace Game
                 {
                     auto locked_gachapon_sale_cache = LockedResource{ std::unique_lock(gachapon_sale_cache_mutex), gachapon_sales_info };
                     auto gacha_ids_locked = LockedResource{ std::unique_lock(gachapon_ids_sale_cache_mutex), gachapon_ids_sale };
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "gachapon sale info: id: {} price: {} start: {} end: {}", sale_info.gachapon_id, sale_info.sale_price, sale_info.start_date, sale_info.end_date);
+                    
                     locked_gachapon_sale_cache->emplace(gachapon_id, sale_info);
                     gacha_ids_locked->push_back(gachapon_id);   
                 }
@@ -1958,8 +2005,8 @@ namespace Game
 
             auto [it, inserted] = items_info_locked->emplace(id, std::move(item_info));
 
-            if (!inserted)
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a item info with item id: ({}), but it already exists ", item_info.Id);
+            //if (!inserted)
+            //    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a item info with item id: ({}), but it already exists ", item_info.Id);
         }
         void RemoveItemInfoCache(const std::uint32_t& id)
         {

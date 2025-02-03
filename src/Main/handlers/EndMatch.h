@@ -1060,6 +1060,7 @@ namespace Game
 
 
             room_cache->is_playing = false;
+            room_cache->kick_voters_session_ids.clear();
 
             send_msg(session, 256, 0, 33, 0); // notify leave match
         }

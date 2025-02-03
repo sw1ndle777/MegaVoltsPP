@@ -33,6 +33,17 @@ namespace Game
             acc_cache.unlock();
             auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
            
+            auto left_while_vote_kicked = room_cache->vote_kick_target_session_id == session_id;
+
+            if (left_while_vote_kicked)
+            {
+                room_cache->voters_session_ids.clear();
+                room_cache->vote_kick_target_session_id = 0;
+                room_cache->is_kick_vote_running = false;
+                if (!main_server->IsSessionIdAlready(session_id, room_cache->kicked_session_ids))
+                    room_cache->kicked_session_ids.push_back(session_id);
+            }
+
             for (const auto& id : players)
             {
                 if (auto player_session = server->GetSessionById(id))
@@ -78,16 +89,20 @@ namespace Game
                             main_server->SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
 
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room No. ({}) changed host ({}) -> ({}) due to leaving while playing. ", room_cache->room_id, acc_cache->acc_info.Nickname.c_str(), best_ping_acc_cache->acc_info.Nickname.c_str());
-                            send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0); // leave room ack
+                            
                             for (const auto& id : players)
                             {
                                 if (auto player_session = server->GetSessionById(id))
                                 {
-                                    if (id != session_id)
+
+                                    if (id != session_id && !left_while_vote_kicked)
                                         send_msg(player_session.get(), callback.message->GetOrder(), 0, 0, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // notify player leave room
+
                                     send_msg(player_session.get(), 422, 0, 0, my_slot_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                                 }   
                             }
+
+                            send_msg(session, 141, 0, left_while_vote_kicked ? NetEngine::Room::Leave::Ack::Result::KickedByKickVote : NetEngine::Room::Leave::Ack::Result::Leave, 0); // leave room ack
                             acc_cache->room_id = 0;
                             acc_cache->in_room = false;
                             acc_cache->playing = false;
@@ -99,6 +114,25 @@ namespace Game
                         }
                     }
                 }
+                else if (left_while_vote_kicked && room_cache->host_session_id != session_id)
+                {
+                    
+                    for (const auto& id : players)
+                        if (auto player_session = server->GetSessionById(id))
+                            send_msg(player_session.get(), 422, 0, 0, my_slot_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+
+                    send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByKickVote, 0); // leave room ack
+
+                    acc_cache.lock();
+                    acc_cache->room_id = 0;
+                    acc_cache->in_room = false;
+                    acc_cache->playing = false;
+                    auto my_team_id = acc_cache->team_id;
+                    acc_cache.unlock();
+                    main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
+                    main_server->RoomPlayersSlotReorder(room_cache);
+                }
+
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) left room match -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_cache->room_id);
         }

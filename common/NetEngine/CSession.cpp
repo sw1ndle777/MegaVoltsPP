@@ -116,7 +116,46 @@ namespace NetEngine
         callbackData.message = &packetMessage;
         callbackData.server = this->m_server;
         m_server->logExecution(m_sessionId, packetMessage.GetOrder());
-        m_callbacks[packetMessage.GetOrder()](callbackData);
+
+        try
+        {
+            // Execute the callback
+            m_callbacks[packetMessage.GetOrder()](callbackData);
+        }
+        catch (const std::system_error& e)
+        {
+            // Handle system errors (e.g., mutex lock failures)
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "System error in callback for packet order {}: {} (code: {})",
+                packetMessage.GetOrder(), e.what(), e.code().value());
+        }
+        catch (const std::runtime_error& e)
+        {
+            // Handle runtime errors
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "Runtime error in callback for packet order {}: {}",
+                packetMessage.GetOrder(), e.what());
+        }
+        catch (const std::logic_error& e)
+        {
+            // Handle logic errors
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "Logic error in callback for packet order {}: {}",
+                packetMessage.GetOrder(), e.what());
+        }
+        catch (const std::exception& e)
+        {
+            // Catch other standard exceptions
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "Exception in callback for packet order {}: {}",
+                packetMessage.GetOrder(), e.what());
+        }
+        catch (...)
+        {
+            // Catch non-standard exceptions
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "Unknown exception in callback for packet order {}", packetMessage.GetOrder());
+        }
         m_server->clearExecution(m_sessionId, packetMessage.GetOrder());
     }
     void CSession::DoRead()

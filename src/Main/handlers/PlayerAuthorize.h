@@ -53,7 +53,7 @@ namespace Game
             boost::unordered_flat_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
             std::vector<Item> player_inventory_items;
             auto server_time = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
-            auto newPlayer = Player({ session->GetSessionId(), Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime(), frontAccount, acc_items });
+            auto newPlayer = Player({ session->GetSessionId(), server_time, frontAccount, acc_items });
             main_server->TransformItems(acc_items, player_inventory_items);//check here
             main_server->TransformEquippedItems(acc_items, player_equipped_items);
             main_server->AddAccCache(session->GetSessionId(), newPlayer);

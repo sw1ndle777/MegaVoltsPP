@@ -33,6 +33,7 @@ namespace Game
             auto isNonHostNotWaiting = (acc_cache->session_id != room_cache->host_session_id) && (acc_cache->state != PlayerInfo::State::Waiting);
             auto is_mode_teambased = main_server->IsModeTeamBased(room_cache->ModeIndex);
             auto is_ZombieMode = room_cache->ModeIndex == NetEngine::Room::Mode::Index::ZombieMode;
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) wants to change team to team id ({})", acc_cache->acc_info.Nickname.c_str(), callback.message->GetOption());
             auto self_remove = [&](auto& team_session_ids)
             {
                 auto remove_myself = std::remove(team_session_ids.begin(), team_session_ids.end(), session_id);
@@ -55,7 +56,7 @@ namespace Game
             }
             if (is_ZombieMode)
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) wants to change team to team id ({})", acc_cache->acc_info.Nickname.c_str(), callback.message->GetOption());
+                
                 acc_cache->team_id = team_option;
                 //send_msg(session, 313, 0, NetEngine::Team::Change::Result::Success, team_option);
                 broadcast = true;
@@ -87,8 +88,6 @@ namespace Game
             {
                 if (!is_mode_teambased)
                 {
-
-
                     if (room_cache->neutralteam_session_ids.size() >= room_cache->max_players)
                     {
                         send_msg(session, 313, 0, NetEngine::Team::Change::Result::TeamFull, acc_cache->team_id);

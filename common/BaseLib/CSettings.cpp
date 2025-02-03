@@ -66,6 +66,10 @@ namespace BaseLib
         serverSettings.database.user = serverSettingsValue["database"].get("user", "").asString();
         serverSettings.database.password = serverSettingsValue["database"].get("password", "").asString();
 
+        serverSettings.website.host = serverSettingsValue["website"].get("host", "http://127.0.0.1").asString();
+        serverSettings.website.port = serverSettingsValue["website"].get("port", 80).asUInt();
+        serverSettings.website.timeout = serverSettingsValue["website"].get("timeout", 2000).asUInt();
+
 
         return serverSettings;
     }

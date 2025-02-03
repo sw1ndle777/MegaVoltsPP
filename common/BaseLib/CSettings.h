@@ -37,13 +37,19 @@ namespace BaseLib
             std::string user;
             std::string password;
         };
-
+        struct WebsiteSettings
+        {
+            std::string host;
+            std::uint32_t port;
+            std::uint32_t timeout;
+        };
         struct ServerSettings
         {
             HostSettings front;
             HostSettings main;
             HostSettings cast;
             DatabaseSettings database;
+            WebsiteSettings website;
         };
 
 

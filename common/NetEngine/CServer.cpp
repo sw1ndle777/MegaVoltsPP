@@ -8,6 +8,7 @@ namespace NetEngine
         m_sessionIdGenerator = IdGenerator(1, 65535);
         m_roomIdGenerator = IdGenerator(2048, 4096);
         m_plazaIdGenerator = IdGenerator(0, 65535);
+        m_queuePartyIdGenerator = IdGenerator(0, 65535);
 
         //m_available_session_ids[0] = false; 
         //m_available_room_ids[0] = false;
@@ -285,6 +286,19 @@ namespace NetEngine
         return true;
     }
 
+    bool CServer::GetNextAvailableQueuePartyId(std::uint16_t& outId)
+    {
+        std::unique_lock lock(m_queue_party_mutex);
+        return m_queuePartyIdGenerator.getNext(outId);
+    }
+
+    bool CServer::SetQueuePartyIdAvailable(const std::uint16_t& queue_party_id)
+    {
+        std::unique_lock lock(m_queue_party_mutex);
+        m_queuePartyIdGenerator.free(queue_party_id);
+        return true;
+    }
+
   
     void CServer::On(uint16_t id, std::function<void(SCallbackData&)> callback)
     {
@@ -324,7 +338,7 @@ namespace NetEngine
             {
                 if (ec)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to connect to IPC target: {}", ec.message());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to connect to IPC target: {}", ec.message().c_str());
                     return;
                 }
                 
@@ -339,7 +353,7 @@ namespace NetEngine
                     delete message;
                     if (ec)
                     {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send IPC message: {}", ec.message());
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send IPC message: {}", ec.message().c_str());
                     }
                     socket->shutdown(asio::ip::tcp::socket::shutdown_both);
                     socket->close();
@@ -369,6 +383,64 @@ namespace NetEngine
         std::string host = (this->server_settings.cast.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.cast.host;
         SendIpcMessage(host, std::to_string(this->server_settings.cast.ipc_port), ipc_id, payload);
     }
+    void CServer::WebsitePost(const std::string& path, const std::string& payload)
+    {
+        try
+        {
+            std::shared_lock server_settings_lock(m_server_settings_mutex);
+            auto &host = this->server_settings.website.host;
+            auto port = std::to_string(this->server_settings.website.port);
+            auto timeout = this->server_settings.website.timeout;
+
+
+            auto socket = std::make_shared<asio::ip::tcp::socket>(m_ioContext);
+            asio::ip::tcp::resolver resolver(m_ioContext);
+            auto endpoints = resolver.resolve(host, port);
+
+            auto request = std::make_shared<std::string>(
+                "POST " + path + " HTTP/1.1\r\n" +
+                "Host: " + host + "\r\n" +
+                "Content-Type: application/json\r\n" +
+                "Content-Length: " + std::to_string(payload.size()) + "\r\n" +
+                "Connection: close\r\n\r\n" +
+                payload
+            );
+
+            auto timer = std::make_shared<asio::steady_timer>(m_ioContext, std::chrono::milliseconds(timeout));
+
+            timer->async_wait([socket, timer](const asio::error_code& ec) {
+                if (!ec)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send post website request due to timeout");
+                    socket->close();
+                }
+            });
+
+            asio::async_connect(*socket, endpoints, [socket, this, host, path, request, timer](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
+            {
+                if (ec)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to connect to website: {}", ec.message().c_str());
+                    timer->cancel();
+                    return;
+                }
+                asio::async_write(*socket, asio::buffer(*request), [socket, request, timer](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+                {
+                    if (ec)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send post website request: {}", ec.message().c_str());
+                    }
+                    timer->cancel();
+                    socket->shutdown(asio::ip::tcp::socket::shutdown_both);
+                    socket->close();
+                });
+            });
+        }
+        catch (const std::exception& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Exception in WebsitePost: {}", e.what());
+        }
+    }
     void CServer::logExecution(std::uint16_t session_id, std::uint16_t order)
     {
         if (m_watchguard)
@@ -381,7 +453,7 @@ namespace NetEngine
             execution_vector.push_back({ session_id, order, time_now });
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
                 "Handler started: Thread ID: {}, Session ID: {}, Order: {}",
-                thread_id, session_id, order, time_now.time_since_epoch());
+                thread_id, session_id, order);
         }
         
     }

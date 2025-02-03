@@ -139,7 +139,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\include;$(ProjectDir)..\..\deps\mariadb\include;$(ProjectDir)..\..\deps\openssl\include;$(ProjectDir)..\..\deps\fmt\include;$(ProjectDir)..\..\deps\json;$(ProjectDir)..\..\deps\imgui;$(ProjectDir)..\..\deps\unordered\;$(ProjectDir)..\..\deps\StackWalker\;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\asio\include;$(ProjectDir)..\..\deps\mariadb\include;$(ProjectDir)..\..\deps\openssl\include;$(ProjectDir)..\..\deps\fmt\include;$(ProjectDir)..\..\deps\json;$(ProjectDir)..\..\deps\imgui;$(ProjectDir)..\..\deps\unordered\;$(ProjectDir)..\..\deps\StackWalker\;$(ProjectDir)..\..\deps\;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin\\</OutDir>
     <IntDir>obj</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
@@ -185,7 +185,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

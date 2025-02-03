@@ -316,7 +316,18 @@ namespace NetEngine
                 std::uint32_t idk1;
                 std::uint32_t mission_type;//1 for guide mission and 4 for daily missions
             };
-
+            struct MainVoteKickReq
+            {
+                std::uint32_t target_unique_id;
+                std::uint32_t reason_id;
+            };
+            struct MainVoteKickAck
+            {
+                std::uint32_t target_unique_id;
+                std::uint32_t voter_unique_id;
+                std::uint32_t reason_id;
+                std::uint32_t vote_time_tick;
+            };
             struct MainEngineServerConnectionAck
             {
                 std::int32_t cryptoKey;

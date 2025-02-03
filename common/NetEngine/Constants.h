@@ -593,9 +593,11 @@ namespace NetEngine
                 Scrimmage = 9,
                 BombBattle = 10,
                 BossBattle = 11,
-                CLAN_CaptureTheBattery = 12,
-                CLAN_Elimination = 13,
-                CLAN_TeamDeathMatch = 14
+                CLAN_TeamDeathMatch = 12,
+                CLAN_CaptureTheBattery = 13,
+                CLAN_Elimination = 14,
+                CLAN_Random = 17
+                
             };
             constexpr std::string_view modeNames[] =
             {
@@ -611,9 +613,12 @@ namespace NetEngine
                 "Scrimmage",
                 "Bomb Battle",
                 "Boss Battle",
+                "Clan Team Death Match"
                 "Clan Capture The Battery",
                 "Clan Elimination",
-                "Clan Team Death Match"
+                "Unknown 15",
+                "Unknown 16",
+                "Clan Random"
             };
         #else
             enum Index : std::uint8_t

@@ -131,6 +131,8 @@ namespace NetEngine
         bool SetRoomIdAvailable(const std::uint16_t& plaza_id);
         bool GetNextAvailablePlazaId(std::uint16_t& outId);
         bool SetPlazaIdAvailable(const std::uint16_t& plaza_id);
+        bool GetNextAvailableQueuePartyId(std::uint16_t& outId);
+        bool SetQueuePartyIdAvailable(const std::uint16_t& queue_party_id);
         std::shared_ptr<CServer> GetShared() { return shared_from_this(); }
         void On(std::uint16_t id, std::function<void(SCallbackData&)> callback);
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);
@@ -142,7 +144,7 @@ namespace NetEngine
         void SendFrontIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
         void SendMainIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
         void SendCastIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
-        
+        void WebsitePost(const std::string& path, const std::string& data);
       
         std::shared_ptr<CSession> GetSessionById(std::uint16_t id)
         {
@@ -177,6 +179,7 @@ namespace NetEngine
         std::shared_mutex m_sessions_mutex;
         std::shared_mutex m_rooms_mutex;
         std::shared_mutex m_plazas_mutex;
+        std::shared_mutex m_queue_party_mutex;
         std::shared_mutex m_server_settings_mutex;
         BaseLib::CSettings::ServerSettings server_settings;
         //std::map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
@@ -186,6 +189,7 @@ namespace NetEngine
         IdGenerator m_sessionIdGenerator;
         IdGenerator m_roomIdGenerator;
         IdGenerator m_plazaIdGenerator;
+        IdGenerator m_queuePartyIdGenerator;
 
         //std::vector<bool> m_available_session_ids;
         //std::vector<bool> m_available_room_ids;

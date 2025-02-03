@@ -26,6 +26,7 @@ namespace Game
         this->On(22, std::bind(&Game::Handlers::LoginAuth, std::placeholders::_1, this));
         this->On(23, std::bind(&Game::Handlers::ChannelsInfo, std::placeholders::_1, this));
         this->On(25, std::bind(&Game::Handlers::LoginReconnect, std::placeholders::_1, this));
+        
     }
 
     CFrontServer::~CFrontServer()
