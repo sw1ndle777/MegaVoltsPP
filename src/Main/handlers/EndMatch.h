@@ -172,7 +172,6 @@ namespace Game
             boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
             std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time) 
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room id ({}) -> tdm end match processing", room_cache->room_id);
             for (const auto& id : playing_players)
             {
                 if (client_match_infos.find(id) == client_match_infos.end())  continue;
@@ -180,7 +179,6 @@ namespace Game
                 if (player_acc_cache->acc_info.Index != -1)
                 {
                     auto playtime_seconds = end_match_time - player_acc_cache->match_loaded_time;
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room id ({}) -> player session id: ({}) with playtime: ({}) seconds", room_cache->room_id, id, playtime_seconds);
                     if (auto player_session = server->GetSessionById(id))
                     {
                         auto& match_info = client_match_infos[id];
@@ -205,7 +203,6 @@ namespace Game
                             auto old_exp = player_acc_cache->acc_info.Experience;
                             rsp.total_mp = player_acc_cache->acc_info.MicroPoints + points_earnt;
                             rsp.total_xp = old_exp + exp_earnt;
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room id ({}) -> player session id: ({}) with no rewards: ({})", room_cache->room_id, id, no_rewards ? "true" : "false");
                             end_match_infos.insert({ id, rsp });
                             ProcessLevelUp(main_server, server, player_acc_cache, id, playing_players);
                             if (!no_rewards)
@@ -888,9 +885,9 @@ namespace Game
                 if (processed_unique_ids.find(endmatch_info->unique_id) != processed_unique_ids.end())
                     continue;
 
-                client_match_infos.insert({ endmatch_info->unique_id, *endmatch_info });
+                auto client_unique_id = NetEngine::Packets::Core::UniqueId(endmatch_info->unique_id);
+                client_match_infos.insert({ client_unique_id.session, *endmatch_info });
                 processed_unique_ids.insert(endmatch_info->unique_id);
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room id ({}) -> end match client info: UniqueID: ({})", room_cache->room_id, endmatch_info->unique_id);
             }
             switch (room_cache->ModeIndex)
             {
