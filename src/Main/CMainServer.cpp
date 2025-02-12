@@ -313,7 +313,7 @@ namespace Game
                 return;
             }
             player->in_room = false;
-            player->slot_id = 0;
+            player->slot_id = 0xFF;
             player->playing = false;
             player->state = PlayerInfo::State::Waiting;
             main_server->SendServerMessage(callback.session, std::format("[MegaVolts Online] kicked {} from room id {}", player->acc_info.Nickname.c_str(), player_room_id).c_str());
@@ -354,12 +354,7 @@ namespace Game
             insert_player_slot_pair(player_room->observers_session_ids);
             std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
             for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
-            for (const auto& room_player_session_id : players_ids)
-            {
-                if (room_player_session_id == player_session_id) continue;
-                if (auto player_session = main_server->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 422, 0, 0, player_slot_id, reinterpret_cast<uint8_t*>(&player_unique_id), sizeof(player_unique_id));
-            }
+            
 
             if (!player_room->neutralteam_session_ids.empty() || !player_room->redteam_session_ids.empty() || !player_room->blueteam_session_ids.empty())
             {
@@ -383,6 +378,13 @@ namespace Game
             if (auto player_session = main_server->GetSessionById(player_session_id))
                 send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByGm, 0);// leave room ack
 
+            for (const auto& room_player_session_id : players_ids)
+            {
+                if (room_player_session_id == player_session_id) continue;
+                if (auto player_session = main_server->GetSessionById(room_player_session_id))
+                    send_msg(player_session.get(), 422, 0, 0, player_slot_id, reinterpret_cast<uint8_t*>(&player_unique_id), sizeof(player_unique_id));
+            }
+
             if (player_room->neutralteam_session_ids.empty() && player_room->redteam_session_ids.empty() && player_room->blueteam_session_ids.empty())
             {
                 if (!player_room->observers_session_ids.empty())
@@ -392,7 +394,7 @@ namespace Game
                         auto observer_cache = main_server->GetAccCacheUniqueBySessionId(observer_id);
                         if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != player_room->room_id) continue;
                         observer_cache->in_room = false;
-                        observer_cache->slot_id = 0;
+                        observer_cache->slot_id = 0xFF;
                         observer_cache->playing = false;
                         observer_cache->state = PlayerInfo::State::Waiting;
                         auto observer_cache_team_id = observer_cache->team_id;
@@ -475,7 +477,7 @@ namespace Game
                 else
                 {
                     player_cache->in_room = false;
-                    player_cache->slot_id = 0;
+                    player_cache->slot_id = 0xFF;
                     player_cache->playing = false;
                     player_cache->state = PlayerInfo::State::Waiting;
                     player_cache.unlock();
@@ -536,7 +538,7 @@ namespace Game
                     else
                     {
                         player_cache->in_room = false;
-                        player_cache->slot_id = 0;
+                        player_cache->slot_id = 0xFF;
                         player_cache->playing = false;
                         player_cache->state = PlayerInfo::State::Waiting;
                         player_cache.unlock();

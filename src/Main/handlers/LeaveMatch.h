@@ -117,11 +117,13 @@ namespace Game
                 else if (left_while_vote_kicked && room_cache->host_session_id != session_id)
                 {
                     
+                    
+
+                    send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByKickVote, 0); // leave room ack
+
                     for (const auto& id : players)
                         if (auto player_session = server->GetSessionById(id))
                             send_msg(player_session.get(), 422, 0, 0, my_slot_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
-
-                    send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByKickVote, 0); // leave room ack
 
                     acc_cache.lock();
                     acc_cache->room_id = 0;

@@ -138,8 +138,7 @@ namespace Game
                 };
 
 
-                for (const auto& [room_player_session_id, _] : player_slot_pairs)
-                    notify_player_leave(room_player_session_id);
+               
 
                 //acc_cache.lock();
 
@@ -148,6 +147,9 @@ namespace Game
                 leaveRoomAck.SetSession(session_id);
                 leaveRoomAck.SetCommand(141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
                 session->Send(leaveRoomAck);
+
+                for (const auto& [room_player_session_id, _] : player_slot_pairs)
+                    notify_player_leave(room_player_session_id);
 
                 if (!room->neutralteam_session_ids.empty() || !room->redteam_session_ids.empty() || !room->blueteam_session_ids.empty())
                 {
@@ -163,7 +165,7 @@ namespace Game
                                 auto best_ping_slot_id = best_ping_acc_cache->slot_id;
                                 acc_cache.lock();
                                 best_ping_acc_cache->slot_id = acc_cache->slot_id;
-                                acc_cache->slot_id = best_ping_slot_id;
+                                acc_cache->slot_id = 0xFF;
                                 room->host_session_id = best_ping_session_id;
                                 for (const auto& [room_player_session_id, _] : player_slot_pairs)
                                     if (auto player_session = server->GetSessionById(room_player_session_id))
@@ -183,6 +185,9 @@ namespace Game
                         }
                     }
                 }
+
+                
+
                 if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty() && room->observers_session_ids.empty())
                 {
                     main_server->RemoveRoomCache(room_id);

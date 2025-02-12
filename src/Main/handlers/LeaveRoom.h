@@ -45,7 +45,7 @@ namespace Game
                 auto target_team_id = target_acc_cache->team_id;
                 auto target_slot = target_acc_cache->slot_id;
                 target_acc_cache->in_room = false;
-                target_acc_cache->slot_id = 0;
+                target_acc_cache->slot_id = 0xFF;
                 target_acc_cache->playing = false;
                 target_acc_cache->state = PlayerInfo::State::Waiting;
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) force kicked by host from room -> id: ({})", target_acc_cache->acc_info.Nickname.c_str(), room->room_id);
@@ -88,17 +88,15 @@ namespace Game
                 std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
                 for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
 
+
+                if (auto target_session = server->GetSessionById(target_unique_id.session))
+                    send_msg(target_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByHost, 0); // leave room ack
+
                 for (const auto& room_player_session_id : players_ids)
                 {
                     if (auto player_session = server->GetSessionById(room_player_session_id))
                         send_msg(player_session.get(), 422, 0, 0, target_slot, reinterpret_cast<uint8_t*>(&target_unique_id), sizeof(target_unique_id));
                 }
-                
-                if (auto target_session = server->GetSessionById(target_unique_id.session))
-                    send_msg(target_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByHost, 0); // leave room ack
-
-                
-
             }
             else
             {
@@ -114,7 +112,7 @@ namespace Game
                 auto room = main_server->GetRoomCacheUnique(acc_cache->room_id);
                 auto room_id = room->room_id;
                 acc_cache->in_room = false;
-                acc_cache->slot_id = 0;
+                acc_cache->slot_id = 0xFF;
                 acc_cache->playing = false;
                 acc_cache->state = PlayerInfo::State::Waiting;
                 acc_cache.unlock();
@@ -152,12 +150,7 @@ namespace Game
                 insert_player_slot_pair(room->observers_session_ids);
                 std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
                 for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
-                for (const auto& room_player_session_id : players_ids)
-                {
-                    if (room_player_session_id == session_id) continue;
-                    if (auto player_session = server->GetSessionById(room_player_session_id))
-                        send_msg(player_session.get(), 422, 0, 0, my_slot, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
-                }
+                
                 if (!room->neutralteam_session_ids.empty() || !room->redteam_session_ids.empty() || !room->blueteam_session_ids.empty())
                 {
                     if (room->host_session_id == session_id)
@@ -185,6 +178,14 @@ namespace Game
                     }
                 }
                 send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0); // leave room ack
+
+                for (const auto& room_player_session_id : players_ids)
+                {
+                    if (room_player_session_id == session_id) continue;
+                    if (auto player_session = server->GetSessionById(room_player_session_id))
+                        send_msg(player_session.get(), 422, 0, 0, my_slot, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                }
+
                 if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty())
                 {
                     if (!room->observers_session_ids.empty())
@@ -194,7 +195,7 @@ namespace Game
                             auto observer_cache = main_server->GetAccCacheUniqueBySessionId(observer_id);
                             if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != room_id) continue;
                             observer_cache->in_room = false;
-                            observer_cache->slot_id = 0;
+                            observer_cache->slot_id = 0xFF;
                             observer_cache->playing = false;
                             observer_cache->state = PlayerInfo::State::Waiting;
                             auto observer_cache_team_id = observer_cache->team_id;
