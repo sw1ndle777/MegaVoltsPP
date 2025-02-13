@@ -9,6 +9,7 @@ namespace Game
     {
         inline void CreateRoom(SCallbackData& callback, CMainServer* main_server)
         {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "want to create room");
             auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
@@ -39,6 +40,8 @@ namespace Game
             }
             if (!room_options->size()) return;
 
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will create room id: ({})", current_room_id);
+
             const auto& gamemode_info = main_server->GetRoomOptionInfoByTypeCache(room_options, NetEngine::Room::Option::Type::ModeInfo, room_settings.settings.mode_index);
             const auto& kill_info = main_server->GetRoomOptionInfoByTypeCache(room_options, NetEngine::Room::Option::Type::KillInfo, score_limit);
             const auto& time_info = main_server->GetRoomOptionInfoByTypeCache(room_options, NetEngine::Room::Option::Type::TimeInfo, room_settings.settings.time);
@@ -52,6 +55,9 @@ namespace Game
                 static_cast<std::uint32_t>(room_settings.settings.max_players * 2), score_limit, room_settings.settings.time, static_cast<bool>(room_settings.settings.allow_intruders), static_cast<bool>(room_settings.settings.allow_items),
                 static_cast<bool>(room_settings.settings.allow_observers), !std::string(room_settings.password).empty(), false, session_id
             };
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "create room with password: ({})", room_settings.password);
+
             if (main_server->IsModeTeamBased(room_mode))
             {
                 new_room.blueteam_session_ids.push_back(session_id);
@@ -69,6 +75,9 @@ namespace Game
             acc_cache->state = PlayerInfo::State::HostReady;
             acc_cache->slot_id = 0;
             //server->SetRoomIdAvailable(current_room_id);
+
+            new_room.has_password = !(new_room.password.empty());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "NewRoom password: ({}), HasPassword: ({})", new_room.password, new_room.has_password);
 
             if (new_room.has_password)
             {

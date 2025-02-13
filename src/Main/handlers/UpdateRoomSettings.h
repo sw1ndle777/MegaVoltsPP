@@ -316,6 +316,7 @@ namespace Game
         }
         inline void TitlePasswordSettings(SCallbackData& callback, CMainServer* main_server)
         {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "want to change Title or Password");
             auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
@@ -353,6 +354,7 @@ namespace Game
             acc_cache.unlock();
             auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
             lock.unlock();
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "mission is: ({})", mission);
             if (mission == 2) // add password
             {
                 char newPassword[8]{};
@@ -360,7 +362,7 @@ namespace Game
                 room_cache->password = newPassword;
                 room_cache->has_password = true;
                 for (const auto& room_player_session_id : players_ids)
-                    broadcastToPlayers(room_player_session_id, order);
+                    broadcastToPlayers(room_player_session_id, order, mission, extra, option);
 
                 return;
             }
@@ -369,12 +371,13 @@ namespace Game
                 room_cache->password = "";
                 room_cache->has_password = false;
                 for (const auto& room_player_session_id : players_ids)
-                    broadcastToPlayers(room_player_session_id, order);
+                    broadcastToPlayers(room_player_session_id, order, mission, extra, option);
 
                 return;
             }
             if (data_size == sizeof(RoomSettingsUpdateInfo))
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send RoomSettingsUpdateInfo");
                 auto settings_info = reinterpret_cast<RoomSettingsUpdateInfo*>(callback.message->GetData());
                 room_cache->max_players = settings_info->max_players;
                 room_cache->time_rule = settings_info->time;
@@ -390,6 +393,7 @@ namespace Game
             }
             else if (data_size == sizeof(RoomSettingsUpdateTitle))
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send RoomSettingsUpdateTitle");
                 const auto& settings_info = reinterpret_cast<RoomSettingsUpdateTitle*>(callback.message->GetData());
                 room_cache->max_players = settings_info->update_info.max_players;
                 room_cache->time_rule = settings_info->update_info.time;
@@ -406,6 +410,7 @@ namespace Game
             }
             else if (data_size == sizeof(RoomSettingsUpdatePassword))
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send RoomSettingsUpdatePassword");
                 const auto& settings_info = reinterpret_cast<RoomSettingsUpdatePassword*>(callback.message->GetData());
                 room_cache->max_players = settings_info->update_info.max_players;
                 room_cache->time_rule = settings_info->update_info.time;
@@ -423,6 +428,7 @@ namespace Game
             }
             else if (data_size == sizeof(RoomSettingsUpdateTitlePassword))
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send RoomSettingsUpdateTitlePassword");
                 const auto& settings_info = reinterpret_cast<RoomSettingsUpdateTitlePassword*>(callback.message->GetData());
                 room_cache->max_players = settings_info->update_info.max_players;
                 room_cache->time_rule = settings_info->update_info.time;

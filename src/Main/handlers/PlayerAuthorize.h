@@ -362,18 +362,22 @@ namespace Game
 
             auto is_inventory_full = player_inventory_items.size() >= frontAccount.MaximumItems;
             auto is_gift_box_full = unopened_gifts >= 100;
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player inventory is full: ({}), giftbox is full: ({})", is_inventory_full, is_gift_box_full);
             SystemMonthlyRewards monthlyRewardsData;
             auto current_month = Utility::GetCurrentMonth();
             if (BaseLib::Database->GetSystemMonthlyRewards(current_month, &monthlyRewardsData))
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "exist a monthly reward for current month!");
                 PlayerMonthlyReward playerMonthlyRewardData;
                 if (BaseLib::Database->GetPlayerMonthlyDayCount(frontAccount.Index, &playerMonthlyRewardData))
                 {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "exist player info for monthly reward tracking");
                     auto last_sign_in = playerMonthlyRewardData.last_time_update;
                     auto last_sign_in_date = Utility::ConvertUtcTimestampToDate(last_sign_in);
                     auto current_date = Utility::ConvertUtcTimestampToDate(Utility::GetUtcTimeNow64());
-                    if (last_sign_in_date.tm_year != current_date.tm_year &&
-                        last_sign_in_date.tm_mon != current_date.tm_mon &&
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player LastSignIn: ({}), LastSignInDate: ({}-{}-{}), CurrentDate: ({}-{}-{})", last_sign_in, last_sign_in_date.tm_year, last_sign_in_date.tm_mon, last_sign_in_date.tm_mday, current_date.tm_year, current_date.tm_mon, current_date.tm_mday);
+                    if (last_sign_in_date.tm_year != current_date.tm_year ||
+                        last_sign_in_date.tm_mon != current_date.tm_mon ||
                         last_sign_in_date.tm_mday != current_date.tm_mday)
                     {
                         if (playerMonthlyRewardData.day_count < 31)

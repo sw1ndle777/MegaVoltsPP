@@ -127,6 +127,19 @@ namespace Game
                 send_msg(session, 92, 0, Items::Gachapon::Spin::Result::MoneyError, (insufficient_coin) ? Items::Gachapon::Error::NoCoin : (insufficient_rt) ? Items::Gachapon::Error::NoRT : Items::Gachapon::Error::NoMP);
                 return;
             }
+            switch (gachapon_info->Type) {
+                case 0://COIN
+                    //??
+                break;
+                case 1://CASH
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will update cash had: ({}) and spent: ({})", acc_cache->acc_info.RockTokens, money_spent);
+                    acc_cache->acc_info.RockTokens -= money_spent;
+                break;
+                case 2://POINT
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will update point had: ({}) and spent: ({})", acc_cache->acc_info.MicroPoints, money_spent);
+                    acc_cache->acc_info.MicroPoints -= money_spent;
+                break;
+            }
             std::vector<std::string> lucky_items_announce;
             for (const auto& item : extracted_items)
             {

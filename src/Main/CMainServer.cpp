@@ -754,6 +754,7 @@ namespace Game
         this->On(159, std::bind(&Game::Handlers::ChangeTeam, std::placeholders::_1, this));//change team room
         this->On(161, std::bind(&Game::Handlers::PlayerChat, std::placeholders::_1, this));//chat message
         this->On(162, std::bind(&Game::Handlers::PlayerChat, std::placeholders::_1, this));//chat message
+        this->On(163, std::bind(&Game::Handlers::PlayerInviteJoin, std::placeholders::_1, this));//invite and join
 
     #if defined(RELEASE_1_0_3)
         this->On(173, std::bind(&Game::Handlers::JoinPlaza, std::placeholders::_1, this));

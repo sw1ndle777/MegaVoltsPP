@@ -66,6 +66,7 @@ namespace Game
                                 send_msg(player_session.get(), 258, 0, 1, 0, reinterpret_cast<uint8_t*>(&sv_uptime_tick), sizeof(sv_uptime_tick)); // broadcasted players room tick
                                 player_acc_cache->state = PlayerInfo::State::Normal;
                                 player_acc_cache->playing = true;
+                                player_acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
                                 player_acc_cache.unlock();
                             }
                         }

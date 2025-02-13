@@ -42,6 +42,7 @@ namespace Game
             if (room_cache->has_password || join_result == NetEngine::Room::Join::ReqResult::Password)
             {
                 auto room_pass_req = std::string(joinRoomReq->password);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player try to join with password: ({})", room_pass_req);
                 if (room_pass_req.empty() || room_pass_req != room_cache->password)
                 {
                     send_msg(session, 140, 0, NetEngine::Room::Join::Result::InvalidPassword, 0);

@@ -502,6 +502,159 @@ namespace Game
                 case 63: PlayerFriendList(callback, main_server); break;
             }
         }
+        inline void PlayerInviteJoin(SCallbackData& callback, CMainServer* main_server)
+        {
+            CServer* server = callback.server;
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+                {
+                    CMessage message(session->GetEncryptionKey());
+                    message.SetSession(session->GetSessionId());
+                    message.SetCommand(order, mission, extra, option);
+                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                    session->Send(message);
+                };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            auto session_id = session->GetSessionId();
+
+            auto self_acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+
+            const auto& option = callback.message->GetOption();
+            const auto& extra = callback.message->GetExtra();
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] option: ({}), extra: ({})", option, extra);
+            switch (option) {
+                case 1: {//JOIN
+                    auto joinReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(callback.message->GetData());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] player want to join player id ({})", joinReq->player_id);
+                    auto target_acc_cache = main_server->GetAccCacheUniqueByAccountId(joinReq->player_id);
+                    if (self_acc_cache->in_room) {
+                        if (target_acc_cache->in_room && self_acc_cache->room_id == target_acc_cache->room_id) {//is in same room
+                            send_msg(session, 163, 0, 9, 0);//generic fail msg
+                            return;
+                        }
+                        if (self_acc_cache->state == 8) {//is ready or host
+                            send_msg(session, 163, 0, 5, 0);
+                            return;
+                        }
+                    }
+                    if (target_acc_cache->acc_info.Index != -1) {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] found target join player acc info nickname: ({})", target_acc_cache->acc_info.Nickname);
+                        if (!target_acc_cache->in_room) {
+                            send_msg(session, 163, 0, 2, 0);//target is in lobby
+                            return;
+                        }
+                        //now need info for current room
+                        auto room_cache = main_server->GetRoomCacheUnique(target_acc_cache->room_id);
+                        if (room_cache->max_players == room_cache->neutralteam_session_ids.size() || room_cache->max_players == (room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size())) {//room is full
+                            send_msg(session, 163, 0, 14, 0);
+                            return;
+                        }
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] target join player is okay to join and will receive confirmation");
+                        //all good
+                        if (extra == 28) {//send him cumfirmation
+                            //remove this
+                            struct joinConfirmInfoStruct
+                            {
+                                std::uint16_t data1;
+                                std::uint16_t data2;
+                                std::uint16_t data3;
+                                joinConfirmInfoStruct(const std::uint16_t& data1 = 0, const std::uint16_t& data2 = 0, const std::uint16_t& data3 = 0)
+                                {
+                                    std::memset(this, 0, sizeof(joinConfirmInfoStruct));
+                                    this->data1 = data1;
+                                    this->data2 = data2;
+                                    this->data3 = data3;
+                                }
+                            };
+                            //remove this
+                            joinConfirmInfoStruct joinConfirmInfo = { 1, room_cache->room_id, 1 };
+                            send_msg(session, 163, 0, (
+                                room_cache->has_password ? 44 : 0
+                            ), 0, reinterpret_cast<uint8_t*>(&joinConfirmInfo), sizeof(joinConfirmInfoStruct));
+                            return;
+                        }
+                    }
+                    else {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] target join player cannot find cache");
+                        send_msg(session, 163, 0, 13, 0);//target is logged out!
+                    }
+                    break;
+                }
+                case 2: {//INVITE
+                    if (!self_acc_cache->in_room) {//aici nuj daca trb sa adaugi si check daca nu e in party ??
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] invite but self isnt in any room");
+                        return;
+                    }
+
+                    const auto& inviteReq = reinterpret_cast<MainPlayerBlockedAddReq*>(callback.message->GetData());
+                    const auto& target_nickname = Utility::ReadMicrovoltsString(inviteReq->nickname, sizeof(inviteReq->nickname));
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] player want to invite player ({})", target_nickname);
+                    auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
+                    if (target_acc_cache->acc_info.Index != -1) {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] found target invite player acc info nickname: ({})", target_acc_cache->acc_info.Nickname);
+                        if (target_acc_cache->in_room) {
+                            if (target_acc_cache->room_id != self_acc_cache->room_id) {//invite someone who is in another room
+                                if (target_acc_cache->playing) {
+                                    send_msg(session, 319, 0, 5, 0);//target is in battle!
+                                    return;
+                                }
+                            }
+                            else {//is already in your room
+                                send_msg(session, 319, 0, 11, 0);//Invite fail
+                                return;
+                            }
+                        }
+                        //now need info for current room
+                        auto room_cache = main_server->GetRoomCacheUnique(self_acc_cache->room_id);
+                        if (room_cache->max_players == room_cache->neutralteam_session_ids.size() || room_cache->max_players == (room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size())) {//room is full
+                            send_msg(session, 319, 0, 7, 0);
+                            return;
+                        }
+                        //all good, now send him an invite
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] room is okay to propose the player an invite");
+                        auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
+                        auto target_session = server->GetSessionById(sender_uniqueId.session);
+                        //remove this
+                        struct inviteInfoStruct
+                        {
+                            std::uint32_t unk1;
+                            char nickname[16];
+                            std::uint16_t roomId;
+                            std::uint16_t channelId;
+                            char roomTitle[32];
+                            char roomPassword[14];
+                            inviteInfoStruct(const std::uint32_t& data1 = 0, const char* newNickname = "", const std::uint16_t& roomId = 0, const std::uint16_t& data2 = 0, const char* newRoomTitle = "", const char* newRoomPass = "")
+                            {
+                                std::memset(this, 0, sizeof(inviteInfoStruct));
+                                this->unk1 = data1;
+                                this->roomId = roomId;
+                                this->channelId = data2;
+                                std::memset(this->nickname, 0, sizeof(nickname));
+                                std::strcpy(this->nickname, newNickname);
+                                std::memset(this->roomTitle, 0, sizeof(roomTitle));
+                                std::strcpy(this->roomTitle, newRoomTitle);
+                                std::memset(this->roomPassword, 0, sizeof(roomPassword));
+                                std::strcpy(this->roomPassword, newRoomPass);
+                            }
+                        };
+                        //remove this
+                        if (room_cache->has_password) {
+                            inviteInfoStruct inviteInfo = { 1, self_acc_cache->acc_info.Nickname.c_str(), room_cache->room_id, room_cache->channel_id, room_cache->title.c_str(), room_cache->password.c_str() };
+                            send_msg(target_session.get(), 319, 0, 44, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
+                        }
+                        else {
+                            inviteInfoStruct inviteInfo = { 1, self_acc_cache->acc_info.Nickname.c_str(), room_cache->room_id, room_cache->channel_id };
+                            send_msg(target_session.get(), 319, 0, 0, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
+                        }
+                    }
+                    else {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] target invite player cannot find cache");
+                        send_msg(session, 319, 0, 6, 0);//target is logged out!
+                    }
+                    break;
+                }
+            }
+        }
     }
     
 }

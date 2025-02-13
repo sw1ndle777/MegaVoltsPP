@@ -188,7 +188,6 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                       
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
