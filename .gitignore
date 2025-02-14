@@ -15,6 +15,7 @@
 *.dip
 
 # Ignore build directories
+.vs/
 bin/
 out/
 Release/
@@ -27,3 +28,5 @@ Debug/
 /src/Cast/obj
 /src/Cast/obj_1_1_1
 /src/MegaVoltsPP.sln
+/src/obj/
+/crash_dumps/
