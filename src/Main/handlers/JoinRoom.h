@@ -502,6 +502,14 @@ namespace Game
                 }
                     
             }
+
+            acc_cache->state = 7;
+            auto my_auto_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will broadcast to all player new state 7 (waiting) to avoid playing bug state");
+            for (const auto& room_player_session_id : players_ids)
+                if (auto player_session = server->GetSessionById(room_player_session_id))
+                    send_msg(player_session.get(), 312, 0, 0, 7, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
+
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_cache->room_id);
         }
     }  
