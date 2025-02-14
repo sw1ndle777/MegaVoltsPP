@@ -1543,6 +1543,90 @@ namespace NetEngine
                 }
             };
 
+            class MainUserJoinConfirmAck
+            {
+            public:
+                std::uint32_t server_id{};
+                std::uint16_t room_id{};
+                std::uint16_t channel_id{};
+                MainUserJoinConfirmAck(std::uint32_t serverId, std::uint16_t roomId, std::uint16_t channelId)
+                {
+                    std::memset(this, 0, sizeof(MainUserJoinConfirmAck));
+                    server_id = serverId;
+                    room_id = roomId;
+                    channel_id = channelId;
+
+                }
+                std::vector<std::uint8_t> Serialize() const
+                {
+                    std::vector<std::uint8_t> data;
+
+                    auto server_id_bytes = reinterpret_cast<const uint8_t*>(server_id);
+                    data.insert(data.end(), server_id_bytes, server_id_bytes + sizeof(server_id));
+
+                    auto room_id_bytes = reinterpret_cast<const uint8_t*>(room_id);
+                    data.insert(data.end(), room_id_bytes, room_id_bytes + sizeof(room_id));
+
+                    auto channel_id_bytes = reinterpret_cast<const uint8_t*>(channel_id);
+                    data.insert(data.end(), room_id_bytes, channel_id_bytes + sizeof(channel_id));
+
+                    return data;
+                }
+            };
+
+            class MainUserInviteAck
+            {
+            public:
+                std::uint32_t server_id{};
+                char nickname[16]{};
+                std::uint16_t room_id{};
+                std::uint16_t channel_id{};
+                char title[32];
+                char password[14];
+                MainUserInviteAck(std::uint32_t serverId, std::uint16_t roomId, std::uint16_t channelId, const std::string& nickname, const std::string& title = "", const std::string& pw = "")
+                {
+                    std::memset(this, 0, sizeof(MainUserInviteAck));
+                    server_id = serverId;
+                    room_id = roomId;
+                    channel_id = channelId;
+                    std::memset(this->nickname, 0, sizeof(this->nickname));
+                    std::strcpy(this->nickname, nickname.c_str());
+                    std::memset(this->title, 0, sizeof(this->title));
+                    std::strcpy(this->title, title.c_str());
+                    std::memset(this->password, 0, sizeof(this->password));
+                    std::strcpy(this->password, pw.c_str());
+
+                }
+                std::vector<std::uint8_t> Serialize(bool bSendTitle = false, bool bSendPassword = false) const
+                {
+                    std::vector<std::uint8_t> data;
+
+                    auto server_id_bytes = reinterpret_cast<const uint8_t*>(server_id);
+                    data.insert(data.end(), server_id_bytes, server_id_bytes + sizeof(server_id));
+
+                    auto nickname_bytes = reinterpret_cast<const uint8_t*>(nickname);
+                    data.insert(data.end(), nickname_bytes, nickname_bytes + sizeof(nickname));
+
+                    auto room_id_bytes = reinterpret_cast<const uint8_t*>(room_id);
+                    data.insert(data.end(), room_id_bytes, room_id_bytes + sizeof(room_id));
+
+                    auto channel_id_bytes = reinterpret_cast<const uint8_t*>(channel_id);
+                    data.insert(data.end(), room_id_bytes, channel_id_bytes + sizeof(channel_id));
+
+                    if (bSendTitle)
+                    {
+                        auto title_bytes = reinterpret_cast<const uint8_t*>(title);
+                        data.insert(data.end(), title_bytes, title_bytes + sizeof(title));
+                    }
+                    if (bSendPassword)
+                    {
+                        auto pw_bytes = reinterpret_cast<const uint8_t*>(password);
+                        data.insert(data.end(), pw_bytes, pw_bytes + sizeof(password));
+                    }
+                    return data;
+                }
+            };
+
 #pragma pack(pop)
         }
 
