@@ -2,10 +2,7 @@
 *.o
 *.obj
 *.exe
-*.dll
 *.so
-*.lib
-*.a
 *.pdb
 *.class
 *.log

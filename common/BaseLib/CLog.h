@@ -99,7 +99,7 @@ namespace BaseLib
 
                     auto& [source_debug_info, formattedMessage, color] = printData;
 
-                    fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, source_debug_info.c_str());
+                    fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "{}", source_debug_info.c_str());
 
                     std::regex re(R"(([^()]*)(\([^()]*\)))");
                     std::smatch match;

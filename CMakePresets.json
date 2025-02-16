@@ -11,16 +11,17 @@
             "displayName": "Windows Clang (MSVC)",
             "description": "Build using MSVC's Clang with Ninja",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/windows",
+            "binaryDir": "${sourceDir}/build/bin",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/Llvm/bin/clang.exe",
                 "CMAKE_CXX_COMPILER": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/Llvm/bin/clang++.exe",
-                "CMAKE_CXX_FLAGS": "-fuse-ld=lld -nostartfiles -stdlib=libc++",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld",
-                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_FLAGS": "-fuse-ld=lld -nostartfiles -stdlib=libc++ -gcodeview",
+                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld -Wl,/DEBUG",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
                 "CMAKE_C_COMPILER_TARGET": "x86_64-pc-windows-msvc",
                 "CMAKE_CXX_COMPILER_TARGET": "x86_64-pc-windows-msvc",
-                "CMAKE_CXX_STANDARD": "26"
+                "CMAKE_CXX_STANDARD": "26",
+				"CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/out/bin"
             }
         },
         {
@@ -28,13 +29,15 @@
             "displayName": "Linux Clang Cross-Compile (from Windows)",
             "description": "Cross-compile Linux binaries using MSVC's Clang",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/linux",
+            "binaryDir": "${sourceDir}/build/bin",
             "cacheVariables": {
-                "CMAKE_C_COMPILER": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/Llvm/bin/clang.exe",
-                "CMAKE_CXX_COMPILER": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/Llvm/bin/clang++.exe",
-                "CMAKE_CXX_FLAGS": "--target=x86_64-linux-gnu -stdlib=libc++",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld",
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+				"CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+				"CMAKE_MAKE_PROGRAM": "/usr/bin/ninja",
+                "CMAKE_CXX_FLAGS": "--target=x86_64-linux-gnu -fuse-ld=lld -nostartfiles -stdlib=libc++",
+                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld -Wl",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/out/bin"
             }
         }
     ],

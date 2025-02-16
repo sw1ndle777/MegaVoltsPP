@@ -9,6 +9,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Define `MainServer` executable
 add_executable(MainServer)
 
+# Define RELEASE_1_0_3 for this target
+target_compile_definitions(MainServer PRIVATE RELEASE_1_0_3)
+
 # Include directories
 target_include_directories(MainServer PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/handlers
@@ -35,5 +38,5 @@ target_link_libraries(MainServer PRIVATE common)
 
 # Enable warnings and optimizations
 target_compile_options(MainServer PRIVATE
-    -Wall -Wextra -Wpedantic -O2 -march=native -std=c++2c
+    -Wall -Wextra -Wpedantic -O2 -march=native -std=c++2c -finput-charset=UTF-8 -fexec-charset=UTF-8
 )
