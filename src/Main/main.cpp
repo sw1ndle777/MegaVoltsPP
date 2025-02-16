@@ -21,19 +21,21 @@
 std::ostream& outputStream = std::cout;
 
 using namespace NetEngine::Packets::Main;
-std::vector<std::uint8_t> loadFileCrossPlatform(const std::string& relativePath)
+std::vector<std::uint8_t> loadFileCrossPlatform(std::source_location source_location, const std::string& relativePath)
 {
-    std::vector<std::uint8_t> contents{};
-    try
+    std::filesystem::path basePath = "../cgd";
+
+    if (!std::filesystem::exists(basePath))
+        std::filesystem::create_directories(basePath);
+
+    std::filesystem::path filePath = basePath / relativePath;
+    auto contents = Utility::load_file(source_location, filePath.string());
+    if(contents.empty())
     {
-        std::filesystem::path filePath = std::filesystem::path("cgd") / relativePath;
-        contents = Utility::load_file(filePath.string());
+        BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "Error loading file ({}): {}", filePath.string(), "File not found");
     }
-    catch (const std::exception& e)
-    {
-        std::printf("Error loading file (%s): %s\n", relativePath.c_str(), e.what());
-    }
-    return contents;
+    else
+        return contents;
 }
 int main()
 {
@@ -60,17 +62,17 @@ int main()
     auto start_time = std::chrono::system_clock::now();
 
 
-    std::vector<std::uint8_t> buffer_iteminfo = loadFileCrossPlatform("iteminfo.cdb");
-    std::vector<std::uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform("itemweaponsinfo.cdb");
-    std::vector<std::uint8_t> buffer_setiteminfo = loadFileCrossPlatform("setiteminfo.cdb");
-    std::vector<std::uint8_t> buffer_vendorinfo = loadFileCrossPlatform("vendorinfo.cdb");
-    std::vector<std::uint8_t> buffer_upgradeinfo = loadFileCrossPlatform("upgradeinfo.cdb");
-    std::vector<std::uint8_t> buffer_gachaponinfo = loadFileCrossPlatform("gachaponinfo.cdb");
-    std::vector<std::uint8_t> buffer_gachaponpackageinfo = loadFileCrossPlatform("gachaponpackageinfo.cdb");
-    std::vector<std::uint8_t> buffer_itempackageinfo = loadFileCrossPlatform("itempackageinfo.cdb");
-    std::vector<std::uint8_t> buffer_roomoptioninfo = loadFileCrossPlatform("roomoptioninfo.cdb");
-    std::vector<std::uint8_t> buffer_gradeinfo = loadFileCrossPlatform("gradeinfo.cdb");
-    std::vector<std::uint8_t> buffer_rewardinfo = loadFileCrossPlatform("rewardinfo.cdb");
+    std::vector<std::uint8_t> buffer_iteminfo = loadFileCrossPlatform(std::source_location::current(), "iteminfo.cdb");
+    std::vector<std::uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform(std::source_location::current(), "itemweaponsinfo.cdb");
+    std::vector<std::uint8_t> buffer_setiteminfo = loadFileCrossPlatform(std::source_location::current(), "setiteminfo.cdb");
+    std::vector<std::uint8_t> buffer_vendorinfo = loadFileCrossPlatform(std::source_location::current(), "vendorinfo.cdb");
+    std::vector<std::uint8_t> buffer_upgradeinfo = loadFileCrossPlatform(std::source_location::current(), "upgradeinfo.cdb");
+    std::vector<std::uint8_t> buffer_gachaponinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponinfo.cdb");
+    std::vector<std::uint8_t> buffer_gachaponpackageinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponpackageinfo.cdb");
+    std::vector<std::uint8_t> buffer_itempackageinfo = loadFileCrossPlatform(std::source_location::current(), "itempackageinfo.cdb");
+    std::vector<std::uint8_t> buffer_roomoptioninfo = loadFileCrossPlatform(std::source_location::current(), "roomoptioninfo.cdb");
+    std::vector<std::uint8_t> buffer_gradeinfo = loadFileCrossPlatform(std::source_location::current(), "gradeinfo.cdb");
+    std::vector<std::uint8_t> buffer_rewardinfo = loadFileCrossPlatform(std::source_location::current(), "rewardinfo.cdb");
 
   
     CDBM iteminfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;

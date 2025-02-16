@@ -455,27 +455,30 @@ namespace Utility
             BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
         }
     }
-    std::vector<std::uint8_t> load_file(const std::string& filepath)
+    std::vector<std::uint8_t> load_file(std::source_location source_location, const std::string& filepath)
     {
-        std::ifstream ifs(filepath, std::ios::binary | std::ios::ate);
+        try
+        {
+            std::ifstream ifs(filepath, std::ios::binary | std::ios::ate);
 
-        if (!ifs)
-            std::printf("error loading file\n");
+            auto end = ifs.tellg();
+            ifs.seekg(0, std::ios::beg);
 
-        auto end = ifs.tellg();
-        ifs.seekg(0, std::ios::beg);
+            auto size = static_cast<std::size_t>(end - ifs.tellg());
 
-        auto size = static_cast<std::size_t>(end - ifs.tellg());
+            if (size == 0)
+                return {};
 
-        if (size == 0)
+            std::vector<uint8_t> buffer(size);
+
+            ifs.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+            return buffer;
+        }
+        catch (const std::exception& e)
+        {
+            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "Error loading file ({}): {}", filepath.c_str(), e.what());
             return {};
-
-        std::vector<uint8_t> buffer(size);
-
-        if (!ifs.read(reinterpret_cast<char*>(buffer.data()), buffer.size()))
-            std::printf("error reading file\n");
-
-        return buffer;
+        }
     }
     double GetCpuUsage(void* m_process_handle)
     {
