@@ -39,7 +39,7 @@ namespace Game
             //if (battery_chance < 45) return;
             
             std::array<std::uint32_t, 3> batteries = { 30, 50, 100 };
-            std::uint32_t index = Utility::Random::CustomGen(0, batteries.size() - 1);
+            std::uint32_t index = Utility::Random::CustomGen(0, static_cast<std::uint32_t>(batteries.size() - 1));
             auto battery_earnt = batteries[index];
             if (acc_cache->earnt_battery + battery_earnt > 1000) return;
             if(acc_cache->earnt_battery + acc_cache->acc_info.Energy > acc_cache->acc_info.MaximumEnergy) return;

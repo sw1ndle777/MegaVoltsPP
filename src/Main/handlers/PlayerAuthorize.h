@@ -134,7 +134,7 @@ namespace Game
             accInfoMsg.Headshots = frontAccount.Headshots;
             accInfoMsg.HighestKillStreak = frontAccount.HighestKillStreak;
             accInfoMsg.Unknown2 = 0;
-            accInfoMsg.PlayTime = frontAccount.PlayTime;
+            accInfoMsg.PlayTime = static_cast<std::uint32_t>(frontAccount.PlayTime);
             accInfoMsg.ClanId = frontAccount.ClanId;
             accInfoMsg.ClanPadding = 0;
             accInfoMsg.ZombieKillPoints = frontAccount.ZombieKills * 3;
@@ -174,7 +174,7 @@ namespace Game
             accInfoMsg.VIPLevel = frontAccount.VIPExperience;
         #endif
             accInfoMsg.AccountAuthkey = auth_key;
-            accInfoMsg.AccountId = frontAccount.Index;
+            //accInfoMsg.AccountId = frontAccount.Index;
 
             std::strcpy(accInfoMsg.Unused, "");
             std::strcpy(accInfoMsg.Nickname, frontAccount.Nickname.c_str());
@@ -254,8 +254,8 @@ namespace Game
         #endif
             send_msg(session, 413, 0, 59, 0); // final account info
 
-            main_server->SendServerMessage(session, std::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
-            main_server->SendServerMessage(session, std::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+            main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
+            main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
 
             //std::unordered_map<std::uint32_t, std::uint32_t> accountToSessionMap;
             boost::unordered_flat_map<std::uint32_t, std::uint32_t> accountToSessionMap;

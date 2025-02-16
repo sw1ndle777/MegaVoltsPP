@@ -22,7 +22,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\Utility.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CCrypt.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.h" />
@@ -40,7 +39,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CLog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\Utility.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CServer.cpp" />

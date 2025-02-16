@@ -52,7 +52,7 @@ namespace Game
                     auto new_roomListInfo = RoomListInfo(room->title.c_str(), room->room_id, room->channel_id, room->MapIndex, room->ModeIndex, room->max_players, room_size, room->is_playing, room->has_password, room->allow_observers, room->Restriction, 1, host_cache->ping);
                     new_rooms.push_back(new_roomListInfo);
                 }
-                auto rooms_data = MainRoomListInfoAck(new_rooms.size(), room_ids.size(), new_rooms).Serialize(extra);
+                auto rooms_data = MainRoomListInfoAck(static_cast<std::uint16_t>(new_rooms.size()), static_cast<std::uint16_t>(room_ids.size()), new_rooms).Serialize(extra);
                 send_msg(session, 142, 0, extra, 0, reinterpret_cast<uint8_t*>(rooms_data.data()), rooms_data.size());
             }
         }

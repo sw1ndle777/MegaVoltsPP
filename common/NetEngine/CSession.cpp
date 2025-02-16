@@ -60,8 +60,7 @@ namespace NetEngine
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
                 return;
             }
-           
-            auto self = shared_from_this();
+          
             asio::async_write(m_socket, 
                 asio::buffer(data_vec->data(), data_vec->size()),
                 asio::bind_executor(m_strand, 
@@ -99,7 +98,7 @@ namespace NetEngine
     {
 
         std::int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
-        CMessage packetMessage = CMessage(reinterpret_cast<std::uint8_t*>(data.data()), data.size(), encryptionKey);
+        CMessage packetMessage = CMessage(reinterpret_cast<std::uint8_t*>(data.data()), static_cast<std::uint16_t>(data.size()), encryptionKey);
 
         if (m_verbose) Utility::LogPackets(std::source_location::current(), packetMessage, m_sessionId);
         
@@ -167,7 +166,6 @@ namespace NetEngine
                 return;
             }
             asio::error_code errorCode;
-            auto self(shared_from_this());
 
             m_socket.async_read_some(asio::buffer(m_buffer.data(), m_buffer.size()), asio::bind_executor(m_strand, [this, self](const asio::error_code& errorCode, size_t bytesTransferred)
             {
@@ -233,7 +231,6 @@ namespace NetEngine
                 return;
             }
             asio::error_code errorCode;
-            auto self(shared_from_this());
 
             m_socket.async_read_some(asio::buffer(m_buffer.data(), m_buffer.size()), asio::bind_executor(m_strand, [this, self](const asio::error_code& errorCode, size_t bytesTransferred)
             {

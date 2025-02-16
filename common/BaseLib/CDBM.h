@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <Windows.h>
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -73,7 +72,6 @@ public:
     bool LoadCDB(std::vector<std::uint8_t>);
     bool LoadCDB(const char* szPath);
     bool SaveCDB(const char* szPath);
-    //std::vector<std::unordered_map<std::string, CDBField*>> GetDataRows();
     std::vector<boost::unordered_flat_map<std::string, CDBField*>> GetDataRows();
 protected:
     CDBHeader m_kHeader;
@@ -81,8 +79,6 @@ protected:
     std::vector<std::uint8_t> m_Data;
     std::uint32_t m_kBoxIterator = 0;
     std::uint32_t m_fileSize = 0;
-    //std::vector<std::unordered_map<std::string, CDBField*>> m_DataRows;
-    //std::unordered_map<std::string, CDBField*> m_TempDataRow;
     std::vector<boost::unordered_flat_map<std::string, CDBField*>> m_DataRows;
     boost::unordered_flat_map<std::string, CDBField*> m_TempDataRow;
     std::vector<std::string> m_DataFieldNames;

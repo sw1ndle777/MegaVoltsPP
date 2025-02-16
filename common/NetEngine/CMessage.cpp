@@ -144,7 +144,7 @@ namespace NetEngine
             crypt.RC5Decrypt32(data, &m_header, headerSize);
         }
 
-        std::uint16_t messageSize = m_header.size - headerSize;
+        std::uint16_t messageSize = static_cast<std::uint16_t>(m_header.size - headerSize);
 
         if (messageSize <= 0)
         {
@@ -253,22 +253,22 @@ namespace NetEngine
 
         case (std::uint32_t)Cryptography::EncryptionType::DEFAULT_ENCRYPTION:
             crypt.KeySetup(0);
-            crypt.RC5Encrypt64(partialData, completeData + headerSize, partialSize);
+            crypt.RC5Encrypt64(partialData, completeData + headerSize, static_cast<std::int32_t>(partialSize));
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::USER_ENCRYPTION:
             crypt.KeySetup(m_crypt);
-            crypt.RC5Encrypt64(partialData, completeData + headerSize, partialSize);
+            crypt.RC5Encrypt64(partialData, completeData + headerSize, static_cast<std::int32_t>(partialSize));
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::DEFAULT_LARGE_ENCRYPTION:
             crypt.KeySetup(0);
-            crypt.RC6Encrypt128(partialData, completeData + headerSize, partialSize);
+            crypt.RC6Encrypt128(partialData, completeData + headerSize, static_cast<std::int32_t>(partialSize));
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::USER_LARGE_ENCRYPTION:
             crypt.KeySetup(m_crypt);
-            crypt.RC6Encrypt128(partialData, completeData + headerSize, partialSize);
+            crypt.RC6Encrypt128(partialData, completeData + headerSize, static_cast<std::int32_t>(partialSize));
             break;
 
         default:
@@ -281,7 +281,7 @@ namespace NetEngine
         if (m_crypt >= 0)
         {
             crypt.KeySetup(0);
-            crypt.RC5Encrypt32(completeData, completeData, headerSize);
+            crypt.RC5Encrypt32(completeData, completeData, static_cast<std::int32_t>(partialSize));
         }
 
         std::free(partialData);

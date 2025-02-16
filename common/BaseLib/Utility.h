@@ -6,7 +6,9 @@
 #include <chrono>
 #include <map>
 #include <sstream>
+#ifdef _WIN64
 #pragma comment(lib, "libcrypto.lib")
+#endif
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
@@ -73,6 +75,7 @@ namespace Utility
         return object;
     }
     void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, std::uint16_t m_sessionId);
+    std::vector<std::uint8_t> load_file(const std::string& filepath);
     double GetCpuUsage(void* m_process_handle);
     std::int64_t GetMemoryUsage(void* m_process_handle);
 }

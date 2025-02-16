@@ -9,18 +9,75 @@ namespace BaseLib
             return true;
         }
 
+        if (!std::filesystem::exists(this->fileName))
+        {
+            std::cerr << "Config file not found, creating default settings.json...\n";
+            std::ofstream defaultConfig(this->fileName);
+
+            if (!defaultConfig.is_open())
+            {
+                std::cerr << "Failed to create default settings.json\n";
+                return false;
+            }
+
+            rapidjson::Document doc;
+            doc.SetObject();
+            rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+
+            rapidjson::Value servers(rapidjson::kObjectType);
+
+            auto createHostSettings = [&](const char* name, uint32_t port, uint32_t ipc, bool debug) {
+                rapidjson::Value obj(rapidjson::kObjectType);
+                obj.AddMember("host", "127.0.0.1", allocator);
+                obj.AddMember("port", port, allocator);
+                obj.AddMember("ipc_port", ipc, allocator);
+                obj.AddMember("asio_threads", 0, allocator);
+                obj.AddMember("debug", debug, allocator);
+                obj.AddMember("watchguard", false, allocator);
+                servers.AddMember(rapidjson::Value(name, allocator), obj, allocator);
+            };
+
+            createHostSettings("front", 13000, 12000, false);
+            createHostSettings("main", 13005, 12005, false);
+            createHostSettings("cast", 13006, 12006, false);
+
+            rapidjson::Value database(rapidjson::kObjectType);
+            database.AddMember("host", "127.0.0.1", allocator);
+            database.AddMember("port", 3306, allocator);
+            database.AddMember("db_name", "", allocator);
+            database.AddMember("user", "", allocator);
+            database.AddMember("password", "", allocator);
+            servers.AddMember("database", database, allocator);
+
+            rapidjson::Value website(rapidjson::kObjectType);
+            website.AddMember("host", "http://127.0.0.1", allocator);
+            website.AddMember("port", 80, allocator);
+            website.AddMember("timeout", 2000, allocator);
+            servers.AddMember("website", website, allocator);
+
+            doc.AddMember("servers", servers, allocator);
+
+            rapidjson::StringBuffer buffer;
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            doc.Accept(writer);
+
+            defaultConfig << buffer.GetString();
+            defaultConfig.close();
+            std::cerr << "Default settings.json created successfully.\n";
+        }
+
         this->config_doc.open(this->fileName);
         if (!this->config_doc.is_open())
         {
             return false;
         }
 
-        Json::CharReaderBuilder builder;
+        std::string content((std::istreambuf_iterator<char>(config_doc)), std::istreambuf_iterator<char>());
+        config_doc.close();
 
-        JSONCPP_STRING errs;
-        if (!parseFromStream(builder, this->config_doc, &this->config_root, &errs)) {
+        config_root.Parse(content.c_str());
+        if (config_root.HasParseError())
             return false;
-        }
 
         settingsLoaded = true;
         return true;
@@ -29,47 +86,37 @@ namespace BaseLib
 
     CSettings::ServerSettings CSettings::GetServerSettings()
     {
-        if (!this->settingsLoaded)
-        {
-            this->LoadOptions();
-        }
+        if (!settingsLoaded)
+            LoadOptions();
 
-        CSettings::ServerSettings serverSettings;
+        ServerSettings serverSettings;
+        const auto& servers = config_root["servers"];
 
-        Json::Value serverSettingsValue = this->config_root["servers"];
-        serverSettings.front.host = serverSettingsValue["front"].get("host", "").asString();
-        serverSettings.front.port = serverSettingsValue["front"].get("port", 13000).asUInt();
-        serverSettings.front.ipc_port = serverSettingsValue["front"].get("ipc_port", 12000).asUInt();
-        serverSettings.front.asio_threads = serverSettingsValue["front"].get("asio_threads", 0).asUInt();
-        serverSettings.front.debug = serverSettingsValue["front"].get("debug", false).asBool();
-        serverSettings.front.watchguard = serverSettingsValue["front"].get("watchguard", false).asBool();
+        auto getHostSettings = [&](const char* name, HostSettings& settings) {
+            const auto& obj = servers[name];
+            settings.host = obj["host"].GetString();
+            settings.port = obj["port"].GetUint();
+            settings.ipc_port = obj["ipc_port"].GetUint();
+            settings.asio_threads = obj["asio_threads"].GetUint();
+            settings.debug = obj["debug"].GetBool();
+            settings.watchguard = obj["watchguard"].GetBool();
+        };
 
-        serverSettings.main.host = serverSettingsValue["main"].get("host", "").asString();
-        serverSettings.main.port = serverSettingsValue["main"].get("port", 13005).asUInt();
-        serverSettings.main.ipc_port = serverSettingsValue["main"].get("ipc_port", 12005).asUInt();
-        serverSettings.main.asio_threads = serverSettingsValue["main"].get("asio_threads", 0).asUInt();
-        //serverSettings.main.pool_threads = serverSettingsValue["main"].get("pool_threads", 0).asUInt();
-        serverSettings.main.debug = serverSettingsValue["main"].get("debug", false).asBool();
-        serverSettings.main.watchguard = serverSettingsValue["main"].get("watchguard", false).asBool();
+        getHostSettings("front", serverSettings.front);
+        getHostSettings("main", serverSettings.main);
+        getHostSettings("cast", serverSettings.cast);
 
-        serverSettings.cast.host = serverSettingsValue["cast"].get("host", "").asString();
-        serverSettings.cast.port = serverSettingsValue["cast"].get("port", 13006).asUInt();
-        serverSettings.cast.ipc_port = serverSettingsValue["cast"].get("ipc_port", 12006).asUInt();
-        serverSettings.cast.asio_threads = serverSettingsValue["cast"].get("asio_threads", 0).asUInt();
-        //serverSettings.cast.pool_threads = serverSettingsValue["cast"].get("pool_threads", 0).asUInt();
-        serverSettings.cast.debug = serverSettingsValue["cast"].get("debug", false).asBool();
-        serverSettings.cast.watchguard = serverSettingsValue["cast"].get("watchguard", false).asBool();
+        const auto& db = servers["database"];
+        serverSettings.database.host = db["host"].GetString();
+        serverSettings.database.port = db["port"].GetUint();
+        serverSettings.database.db_name = db["db_name"].GetString();
+        serverSettings.database.user = db["user"].GetString();
+        serverSettings.database.password = db["password"].GetString();
 
-        serverSettings.database.host = serverSettingsValue["database"].get("host", "").asString();
-        serverSettings.database.port = serverSettingsValue["database"].get("port", 3306).asUInt();
-        serverSettings.database.db_name = serverSettingsValue["database"].get("db_name", "").asString();
-        serverSettings.database.user = serverSettingsValue["database"].get("user", "").asString();
-        serverSettings.database.password = serverSettingsValue["database"].get("password", "").asString();
-
-        serverSettings.website.host = serverSettingsValue["website"].get("host", "http://127.0.0.1").asString();
-        serverSettings.website.port = serverSettingsValue["website"].get("port", 80).asUInt();
-        serverSettings.website.timeout = serverSettingsValue["website"].get("timeout", 2000).asUInt();
-
+        const auto& web = servers["website"];
+        serverSettings.website.host = web["host"].GetString();
+        serverSettings.website.port = web["port"].GetUint();
+        serverSettings.website.timeout = web["timeout"].GetUint();
 
         return serverSettings;
     }

@@ -27,8 +27,8 @@ namespace Game
 
             CMessage frontServerInfoAckMessage = CMessage(session->GetEncryptionKey());
             frontServerInfoAckMessage.SetSession(session->GetSessionId());
-            frontServerInfoAckMessage.SetCommand(0x17, 0x00, 0, server_infos.size());
-            frontServerInfoAckMessage.SetData(reinterpret_cast<uint8_t*>(server_infos.data()), server_infos.size() * sizeof(Front::FrontServerInfo));
+            frontServerInfoAckMessage.SetCommand(0x17, 0x00, 0, static_cast<std::uint8_t>(server_infos.size()));
+            frontServerInfoAckMessage.SetData(reinterpret_cast<uint8_t*>(server_infos.data()), static_cast<std::uint16_t>(server_infos.size() * sizeof(Front::FrontServerInfo)));
 
             session->Send(frontServerInfoAckMessage);
             EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent ({}) channels info", server_infos.size());

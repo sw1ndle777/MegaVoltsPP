@@ -8,7 +8,6 @@
 #include "BaseLib/CLog.h"
 #include "BaseLib/CSettings.h"
 #include "NetEngine/Constants.h"
-#include "BaseLib/CThreadPool.h"
 #include "BaseLib/CDatabase.h"
 
 #include "NetEngine/CServer.h"
@@ -22,6 +21,9 @@ using namespace NetEngine::Packets::Front;
 
 int main()
 {
+
+    std::string crashDumpPath = (std::filesystem::path("crash_dumps") / "MegaVoltsPP_front.dmp").string();
+    std::string logFilePath = (std::filesystem::path("logs") / "MegaVoltsPP_front.log").string();
 
     CrashHandler::Init("../crash_dumps/MegaVoltsPP_front.dmp");
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);

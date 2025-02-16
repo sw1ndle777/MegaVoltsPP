@@ -1,17 +1,14 @@
 #pragma once
-#ifdef _DEBUG
-#pragma comment(lib, "jsoncpp_d.lib")
-#else
-#pragma comment(lib, "jsoncpp.lib")
-#endif
 
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <memory>
 #include <vector>
-
-#include <json.h>
+#include <filesystem>
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
 
 namespace BaseLib
 {
@@ -66,7 +63,7 @@ namespace BaseLib
         const char* fileName = "settings.json";
 
         std::ifstream config_doc;
-        Json::Value config_root;
+        rapidjson::Document config_root;
     };
 
     extern std::unique_ptr<CSettings> DefaultSettings;

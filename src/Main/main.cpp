@@ -1,18 +1,14 @@
 #define ASIO_STANDALONE
-
 #include <time.h>
 #include <iostream>
 #include <ostream>
 #include <filesystem>
 
-#include <bitfileextractor.hpp>
-#include <bitarchivereader.hpp>
 #include <chrono>
 
 #include "BaseLib/CLog.h"
 #include "BaseLib/CSettings.h"
 #include "NetEngine/Constants.h"
-#include "BaseLib/CThreadPool.h"
 #include "BaseLib/CDatabase.h"
 #include "BaseLib/CDBM.h"
 #include "BaseLib/CDBData.h"
@@ -25,8 +21,20 @@
 std::ostream& outputStream = std::cout;
 
 using namespace NetEngine::Packets::Main;
-using namespace bit7z;
-
+std::vector<std::uint8_t> loadFileCrossPlatform(const std::string& relativePath)
+{
+    std::vector<std::uint8_t> contents{};
+    try
+    {
+        std::filesystem::path filePath = std::filesystem::path("cgd") / relativePath;
+        contents = Utility::load_file(filePath.string());
+    }
+    catch (const std::exception& e)
+    {
+        std::printf("Error loading file (%s): %s\n", relativePath.c_str(), e.what());
+    }
+    return contents;
+}
 int main()
 {
     HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
@@ -51,36 +59,20 @@ int main()
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.main.host.c_str(), std::to_string(server_settings.main.port).c_str(), std::to_string(server_settings.main.ipc_port).c_str(), server_settings.main.debug, true, true, server_settings.main.watchguard, server_settings.main.asio_threads);
     auto start_time = std::chrono::system_clock::now();
 
-    std::vector<std::uint8_t> buffer_iteminfo;
-    std::vector<std::uint8_t> buffer_itemweaponsinfo;
-    std::vector<std::uint8_t> buffer_setiteminfo;
-    std::vector<std::uint8_t> buffer_vendorinfo;
-    std::vector<std::uint8_t> buffer_upgradeinfo;
-    std::vector<std::uint8_t> buffer_gachaponinfo;
-    std::vector<std::uint8_t> buffer_gachaponpackageinfo;
-    std::vector<std::uint8_t> buffer_itempackageinfo;
-    std::vector<std::uint8_t> buffer_roomoptioninfo;
-    std::vector<std::uint8_t> buffer_gradeinfo;
-    std::vector<std::uint8_t> buffer_rewardinfo;
-    try {
 
-        Bit7zLibrary lib{ "7z.dll" };
-        BitFileExtractor extractor{ lib, BitFormat::Zip };
-        extractor.setPassword("!dptmzpdl@xmfkdlvhtm@goqm!");
-        extractor.extractMatching("cgd.dip", "ENG\\iteminfo.cdb", buffer_iteminfo);
-        extractor.extractMatching("cgd.dip", "ENG\\itemweaponsinfo.cdb", buffer_itemweaponsinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\setiteminfo.cdb", buffer_setiteminfo);
-        extractor.extractMatching("cgd.dip", "ENG\\vendorinfo.cdb", buffer_vendorinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\upgradeinfo.cdb", buffer_upgradeinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\gachaponinfo.cdb", buffer_gachaponinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\gachaponpackageinfo.cdb", buffer_gachaponpackageinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\itempackageinfo.cdb", buffer_itempackageinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\roomoptionInfo.cdb", buffer_roomoptioninfo);
-        extractor.extractMatching("cgd.dip", "ENG\\gradeinfo.cdb", buffer_gradeinfo);
-        extractor.extractMatching("cgd.dip", "ENG\\rewardinfo.cdb", buffer_rewardinfo);
-        //extractor.extractMatching("cgd.dip", "ENG\\mapinfo.cdb", buffer_mapinfo);
-    }
-    catch (const bit7z::BitException& ex) { std::printf("%s\n", ex.what()); BaseLib::EventLog->Info(ex.what());}
+    std::vector<std::uint8_t> buffer_iteminfo = loadFileCrossPlatform("iteminfo.cdb");
+    std::vector<std::uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform("itemweaponsinfo.cdb");
+    std::vector<std::uint8_t> buffer_setiteminfo = loadFileCrossPlatform("setiteminfo.cdb");
+    std::vector<std::uint8_t> buffer_vendorinfo = loadFileCrossPlatform("vendorinfo.cdb");
+    std::vector<std::uint8_t> buffer_upgradeinfo = loadFileCrossPlatform("upgradeinfo.cdb");
+    std::vector<std::uint8_t> buffer_gachaponinfo = loadFileCrossPlatform("gachaponinfo.cdb");
+    std::vector<std::uint8_t> buffer_gachaponpackageinfo = loadFileCrossPlatform("gachaponpackageinfo.cdb");
+    std::vector<std::uint8_t> buffer_itempackageinfo = loadFileCrossPlatform("itempackageinfo.cdb");
+    std::vector<std::uint8_t> buffer_roomoptioninfo = loadFileCrossPlatform("roomoptioninfo.cdb");
+    std::vector<std::uint8_t> buffer_gradeinfo = loadFileCrossPlatform("gradeinfo.cdb");
+    std::vector<std::uint8_t> buffer_rewardinfo = loadFileCrossPlatform("rewardinfo.cdb");
+
+  
     CDBM iteminfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
     iteminfo_cdb.LoadCDB(buffer_iteminfo);
     itemweaponsinfo_cdb.LoadCDB(buffer_itemweaponsinfo);

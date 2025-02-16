@@ -496,7 +496,7 @@ namespace BaseLib
             }
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
-            return !stmt->execute(std::format("CREATE DATABASE {0}", name.c_str()));
+            return !stmt->execute(fmt::format("CREATE DATABASE {0}", name.c_str()));
         }
         catch (sql::SQLException& e)
         {

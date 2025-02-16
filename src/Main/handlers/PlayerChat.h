@@ -272,7 +272,7 @@ namespace Game
                 }
                 else
                 {
-                    main_server->SendServerMessage(session, std::format("chat type unknown {}", chat_type).c_str());
+                    main_server->SendServerMessage(session, fmt::format("chat type unknown {}", chat_type).c_str());
                 }
             }
         }

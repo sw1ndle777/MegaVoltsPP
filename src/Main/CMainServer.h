@@ -1,27 +1,28 @@
 #pragma once
-#ifndef CMAINSERVER_H
-#define CMAINSERVER_H
-
 #include <string>
 #include <functional>
 #include <unordered_set>
 #include <optional>
 #include <numeric>
 #include <ranges>
+
 #include "BaseLib/CLog.h"
+
 #include "NetEngine/CServer.h"
 #include "NetEngine/CSession.h"
 #include "NetEngine/Constants.h"
-#include "BaseLib/CDatabase.h"
-#include "BaseLib/CDBData.h"
 
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
+#include "BaseLib/CDatabase.h"
+#include "BaseLib/CDBData.h"
+
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+
 namespace Game
 {
     using namespace BaseLib;
@@ -2881,9 +2882,9 @@ namespace Game
                     {
                         std::uint32_t room_size = 0;
                         if (IsModeTeamBased(room->ModeIndex))
-                            room_size = room->redteam_session_ids.size() + room->blueteam_session_ids.size();
+                            room_size = static_cast<std::uint32_t>(room->redteam_session_ids.size() + room->blueteam_session_ids.size());
                         else
-                            room_size = room->neutralteam_session_ids.size();
+                            room_size = static_cast<std::uint32_t>(room->neutralteam_session_ids.size());
 
                         const auto& new_roomListInfo = RoomListInfo(room->title.c_str(), room->room_id, room->channel_id, room->MapIndex, room->ModeIndex, room->max_players, room_size, room->is_playing, room->has_password, room->allow_observers, room->Restriction, 1, host_cache->ping);
                         new_rooms.push_back(new_roomListInfo);
@@ -2998,7 +2999,7 @@ namespace Game
                     return false;
                     
             }
-            send_msg(session, 99, 0, 37, items.size(), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopItem));
+            send_msg(session, 99, 0, 37, static_cast<std::uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), static_cast<std::uint16_t>(items.size() * sizeof(ShopItem)));
             return true;
         }
         bool SendGiftItem(CSession* session, AccCacheResource& target_acc_cache, std::uint32_t item_id, std::string msg)
@@ -3013,12 +3014,10 @@ namespace Game
             };
             auto target_mailbox_received_count = 0;
             if (target_acc_cache->acc_info.Index == -1) //user offline
-            {
                 return false;
-            }
             else
             {
-                target_mailbox_received_count = GetGiftboxRecvCount(target_acc_cache->acc_info.Index);
+                target_mailbox_received_count = static_cast<std::uint32_t>(GetGiftboxRecvCount(target_acc_cache->acc_info.Index));
             }
             if (target_mailbox_received_count >= 100)
             {
@@ -3046,15 +3045,18 @@ namespace Game
                 }
 
                 send_msg(session, 66, 0, 37, unopened_gifts); // remainder of unopened mails
+                return true;
             }
+
+            return false;
         }
         void SendServerMessage(CSession* session, const std::string& message)
         {
             CMessage chatMsgAck = CMessage(session->GetEncryptionKey());
             chatMsgAck.SetSession(session->GetSessionId());
-            chatMsgAck.SetCommand(0x13C, 0, Chat::Type::Server, message.size());
-            auto msgData = MainChatAck("", message.data(), message.size()).Serialize(Chat::Type::Server, message.size());
-            chatMsgAck.SetData(reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+            chatMsgAck.SetCommand(0x13C, 0, Chat::Type::Server, static_cast<std::uint8_t>(message.size()));
+            auto msgData = MainChatAck("", message.data(), static_cast<std::uint32_t>(message.size())).Serialize(Chat::Type::Server, message.size());
+            chatMsgAck.SetData(reinterpret_cast<uint8_t*>(msgData.data()), static_cast<std::uint16_t>(msgData.size()));
             session->Send(chatMsgAck);
         }
        
@@ -3173,11 +3175,9 @@ namespace Game
             for (const auto& [name, command] : cmds)
             {
                 if (grade < command.required_grade) continue;
-                commands.push_back(std::format("/{}", name));
+                commands.push_back(fmt::format("/{}", name));
             }
             return commands;
         }
     }
 }
-
-#endif

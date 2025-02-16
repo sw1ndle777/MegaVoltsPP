@@ -161,28 +161,7 @@ std::vector<boost::unordered_flat_map<std::string, CDBField*>> CDBM::GetDataRows
 {
     return this->m_DataRows;
 }
-std::vector<std::uint8_t> load_file(const std::string& filepath)
-{
-    std::ifstream ifs(filepath, std::ios::binary | std::ios::ate);
 
-    if (!ifs)
-        std::printf("error loading file\n");
-
-    auto end = ifs.tellg();
-    ifs.seekg(0, std::ios::beg);
-
-    auto size = static_cast<std::size_t>(end - ifs.tellg());
-
-    if (size == 0) 
-        return {};
-
-    std::vector<uint8_t> buffer(size);
-
-    if (!ifs.read(reinterpret_cast<char*>(buffer.data()), buffer.size()))
-        std::printf("error reading file\n");
-
-    return buffer;
-}
 void write_file(const std::string& filepath, std::vector<std::uint8_t> from)
 {
     std::ofstream output(filepath.c_str(), std::ios::out | std::ios::binary);
@@ -194,7 +173,7 @@ void write_file(const std::string& filepath, std::vector<std::uint8_t> from)
 bool CDBM::LoadCDB(std::vector<std::uint8_t> contents)
 {
     std::uint32_t lastPos = 0;
-    this->m_fileSize = contents.size();
+    this->m_fileSize = static_cast<std::uint32_t>(contents.size());
     this->m_kHeader.m_iFieldCount = *reinterpret_cast<std::int32_t*>(&contents.data()[0]);
     lastPos += sizeof(std::int32_t);
     std::vector<std::string> fieldNames;
@@ -250,7 +229,28 @@ bool CDBM::LoadCDB(std::vector<std::uint8_t> contents)
     }
     return true;
 }
+std::vector<std::uint8_t> load_file(const std::string& filepath)
+{
+    std::ifstream ifs(filepath, std::ios::binary | std::ios::ate);
 
+    if (!ifs)
+        std::printf("error loading file\n");
+
+    auto end = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+
+    auto size = static_cast<std::size_t>(end - ifs.tellg());
+
+    if (size == 0)
+        return {};
+
+    std::vector<uint8_t> buffer(size);
+
+    if (!ifs.read(reinterpret_cast<char*>(buffer.data()), buffer.size()))
+        std::printf("error reading file\n");
+
+    return buffer;
+}
 bool CDBM::LoadCDB(const char* szPath)
 {
     auto contents = load_file(szPath);

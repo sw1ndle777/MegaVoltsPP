@@ -50,7 +50,7 @@ namespace Game
             detailsInfo.Grenade = target_acc_cache->acc_info.GrenadeKills;
             detailsInfo.Headshots = target_acc_cache->acc_info.Headshots;
             detailsInfo.HighestKillStreak = target_acc_cache->acc_info.HighestKillStreak;
-            detailsInfo.PlayTime = target_acc_cache->acc_info.PlayTime;
+            detailsInfo.PlayTime = static_cast<std::uint32_t>(target_acc_cache->acc_info.PlayTime);
             detailsInfo.Unknown1 = 0;
             detailsInfo.Unknown2 = 0;
         #if defined(RELEASE_1_1_1)

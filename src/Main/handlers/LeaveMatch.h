@@ -49,15 +49,15 @@ namespace Game
                 if (auto player_session = server->GetSessionById(id))
                     send_msg(player_session.get(), callback.message->GetOrder(), 0, 0, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // notify player leave room
             }
-            const std::uint32_t& total_players_playing = std::count_if(players.begin(), players.end(),
+            const std::uint32_t& total_players_playing = static_cast<std::uint32_t>(std::count_if(players.begin(), players.end(),
                 [main_server](const auto& id)
             {
                 auto player_acc_cache = main_server->GetAccCacheSharedBySessionId(id);
                 auto is_playing = player_acc_cache->playing;
                 player_acc_cache.unlock();
                 return is_playing;
-            });
-            std::uint32_t total_players_room = players.size();
+            }));
+            std::uint32_t total_players_room = static_cast<std::uint32_t>(players.size());
             if(total_players_room == 1) room_cache->is_playing = false;
             if (total_players_playing > 0)
             {

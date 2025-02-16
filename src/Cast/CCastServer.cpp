@@ -1,7 +1,6 @@
 #include "CCastServer.h"
 #include "BaseLib/Utility.h"
 #include "BaseLib/CDatabase.h"
-#include "BaseLib/CThreadPool.h"
 
 #include "handlers/ConnectionAuth.h"
 #include "handlers/CreateRoom.h"

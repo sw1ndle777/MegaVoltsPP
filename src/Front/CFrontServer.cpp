@@ -1,8 +1,6 @@
 #include "CFrontServer.h"
 #include "BaseLib/Utility.h"
 #include "BaseLib/CDatabase.h"
-#include "BaseLib/CThreadPool.h"
-
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
 

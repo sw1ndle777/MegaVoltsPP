@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CCASTSERVER_H
-#define CCASTSERVER_H
 
 #include <string>
 #include <functional>
@@ -384,5 +382,3 @@ namespace Game
         }
     };
 }
-
-#endif

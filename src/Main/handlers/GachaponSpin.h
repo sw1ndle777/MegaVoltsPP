@@ -23,7 +23,7 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto spin_count = callback.message->GetOption();
+            auto spin_count = static_cast<std::uint32_t>(callback.message->GetOption());
             auto gachaponSpinReq = reinterpret_cast<MainGachaponSpinReq*>(callback.message->GetData());
             if (acc_index == -1) return;
             auto gachapon_info = main_server->GetGachaponInfo(gachaponSpinReq->gachapon_id);
@@ -214,7 +214,7 @@ namespace Game
 
                 if (auto player_session = server->GetSessionById(lobby_player_session_id))
                     for (auto& announcement : lucky_items_announce)
-                        main_server->SendServerMessage(player_session.get(), std::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
+                        main_server->SendServerMessage(player_session.get(), fmt::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
                         //send_msg(player_session.get(), 402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
             }
         }

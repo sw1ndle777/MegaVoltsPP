@@ -43,7 +43,7 @@ namespace Game
                     }
                 }
                 if (items.size() > 0)
-                    send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), items.size(), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopSerialInfo));
+                    send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), static_cast<std::uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopSerialInfo));
 
             }
             else
@@ -86,7 +86,7 @@ namespace Game
                         acc_cache->acc_info.MicroPoints = acc_cache->acc_info.MicroPoints - mp_spent;
                         
                         
-                        send_msg(session, callback.message->GetOrder(), 0, 0, shop_items.size(), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // buy item ack
+                        send_msg(session, callback.message->GetOrder(), 0, 0, static_cast<std::uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // buy item ack
                         //send_msg(session, 99, 0, 37, shop_items.size(), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // update inventory items ack
                         MainCurrencyUpdateAck currency_update_data{ acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
                         send_msg(session, 307, 0, 1, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // update currency ack

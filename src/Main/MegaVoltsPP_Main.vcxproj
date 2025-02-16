@@ -71,7 +71,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <EnableASAN>false</EnableASAN>
@@ -139,11 +139,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\include;$(ProjectDir)..\..\deps\mariadb\include;$(ProjectDir)..\..\deps\openssl\include;$(ProjectDir)..\..\deps\fmt\include;$(ProjectDir)..\..\deps\json;$(ProjectDir)..\..\deps\bit7z;$(ProjectDir)..\..\deps\unordered\;$(ProjectDir)..\..\deps\imgui;$(ProjectDir)..\..\deps\StackWalker\;$(ProjectDir)..\..\deps\;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\asio\include;$(ProjectDir)..\..\deps\mariadb\include;$(ProjectDir)..\..\deps\openssl\include;$(ProjectDir)..\..\deps\fmt\include;$(ProjectDir)..\..\deps\unordered\;$(ProjectDir)..\..\deps\StackWalker\;$(ProjectDir)..\..\deps\;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin\\</OutDir>
     <IntDir>obj</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
-    <LibraryPath>$(ProjectDir)..\..\deps\fmt\lib;$(ProjectDir)..\..\deps\mariadb\lib;$(ProjectDir)..\..\deps\json\lib;$(ProjectDir)..\..\deps\openssl\lib;$(ProjectDir)..\..\deps\bit7z;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)..\..\deps\fmt\lib;$(ProjectDir)..\..\deps\mariadb\lib;$(ProjectDir)..\..\deps\openssl\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -251,7 +251,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>fmt.lib;bit7z.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

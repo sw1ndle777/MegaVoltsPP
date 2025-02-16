@@ -49,7 +49,7 @@ namespace Game
                     {
                         if (auto player_session = main_server->GetSessionById(player_session_id))
                         {
-                            auto msg = std::format("[MegaVolts Online] Cast Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",
+                            auto msg = fmt::format("[MegaVolts Online] Cast Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",
                                 static_cast<std::uint16_t>(info.count),
                                 static_cast<std::uint32_t>(info.mem),
                                 static_cast<double>(info.cpu));

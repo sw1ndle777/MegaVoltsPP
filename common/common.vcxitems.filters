@@ -48,9 +48,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h">
-      <Filter>BaseLib</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\Utility.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
@@ -84,9 +81,6 @@
       <Filter>BaseLib</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.cpp">
-      <Filter>BaseLib</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.cpp">
       <Filter>BaseLib</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\Utility.cpp">

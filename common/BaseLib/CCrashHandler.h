@@ -19,7 +19,6 @@
 
 #include <StackWalker.h>
 #include <ranges>
-#include <json.h>
 #include <thread>
 
 class CrashHandler
@@ -41,11 +40,4 @@ private:
     static LONG WINAPI WindowsCrashHandler(EXCEPTION_POINTERS* exceptionInfo);
 #endif
 
-#ifdef __linux__
-    // Handles different signals on Linux
-    static void LinuxCrashHandler(int sig);
-
-    // Registers all relevant signals for Linux
-    static void RegisterLinuxSignals();
-#endif
 };

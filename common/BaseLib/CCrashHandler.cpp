@@ -1,4 +1,7 @@
 #include "CCrashHandler.h"
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
 #include <BaseLib/CLog.h>
 std::string dumpFile;
 constinit static std::atomic<bool> g_isFinal = false;
@@ -25,86 +28,78 @@ enum class program_status
     normal_exit = 3,
 };
 static std::atomic<program_status> status = program_status::running;
-static void json_pretty_print(std::ostream& os, const Json::Value& jv, std::string* indent = nullptr)
+static void json_pretty_print(std::ostream& os, const rapidjson::Value& jv, std::string* indent = nullptr)
 {
     std::string indent_;
     if (!indent)
         indent = &indent_;
 
-    switch (jv.type())
+    if (jv.IsObject())
     {
-        case Json::objectValue:
-        { // Handle JSON object
-            os << "{\n";
-            indent->append(4, ' ');
-            bool first = true;
-            for (const auto& key : jv.getMemberNames())
+        os << "{\n";
+        indent->append(4, ' ');
+        bool first = true;
+        for (auto it = jv.MemberBegin(); it != jv.MemberEnd(); ++it)
+        {
+            if (!first)
             {
-                if (!first)
-                {
-                    os << ",\n";
-                }
-                first = false;
-                os << *indent << "\"" << key << "\" : ";
-                json_pretty_print(os, jv[key], indent);
+                os << ",\n";
             }
-            os << "\n";
-            indent->resize(indent->size() - 4);
-            os << *indent << "}";
-            break;
+            first = false;
+            os << *indent << "\"" << it->name.GetString() << "\" : ";
+            json_pretty_print(os, it->value, indent);
         }
-
-        case Json::arrayValue:
-        { // Handle JSON array
-            os << "[\n";
-            indent->append(4, ' ');
-            bool first = true;
-            for (const auto& item : jv)
+        os << "\n";
+        indent->resize(indent->size() - 4);
+        os << *indent << "}";
+    }
+    else if (jv.IsArray())
+    {
+        os << "[\n";
+        indent->append(4, ' ');
+        bool first = true;
+        for (auto& item : jv.GetArray())
+        {
+            if (!first)
             {
-                if (!first)
-                {
-                    os << ",\n";
-                }
-                first = false;
-                os << *indent;
-                json_pretty_print(os, item, indent);
+                os << ",\n";
             }
-            os << "\n";
-            indent->resize(indent->size() - 4);
-            os << *indent << "]";
-            break;
+            first = false;
+            os << *indent;
+            json_pretty_print(os, item, indent);
         }
-
-        case Json::stringValue:
-        { // Handle string values
-            os << "\"" << jv.asString() << "\"";
-            break;
-        }
-
-        case Json::uintValue: // Handle unsigned integers
-            os << "0x" << std::hex << jv.asUInt64() << std::dec;
-            break;
-
-        case Json::intValue: // Handle signed integers
-            os << "0x" << std::hex << jv.asInt64() << std::dec;
-            break;
-
-        case Json::realValue: // Handle double/float
-            os << jv.asDouble();
-            break;
-
-        case Json::booleanValue: // Handle booleans
-            os << (jv.asBool() ? "true" : "false");
-            break;
-
-        case Json::nullValue: // Handle null values
-            os << "null";
-            break;
+        os << "\n";
+        indent->resize(indent->size() - 4);
+        os << *indent << "]";
+    }
+    else if (jv.IsString())
+    {
+        os << "\"" << jv.GetString() << "\"";
+    }
+    else if (jv.IsUint64())
+    {
+        os << "0x" << std::hex << jv.GetUint64() << std::dec;
+    }
+    else if (jv.IsInt64())
+    {
+        os << "0x" << std::hex << jv.GetInt64() << std::dec;
+    }
+    else if (jv.IsDouble())
+    {
+        os << jv.GetDouble();
+    }
+    else if (jv.IsBool())
+    {
+        os << (jv.GetBool() ? "true" : "false");
+    }
+    else if (jv.IsNull())
+    {
+        os << "null";
     }
 
     if (indent->empty())
     {
-        os << "\n"; // Final newline after complete JSON
+        os << "\n";
     }
 }
 std::string GetCurrentTimestamp()
@@ -237,15 +232,14 @@ static void crash_handler_thread()
 class XStackWalker : public StackWalker
 {
 public:
-    XStackWalker() : StackWalker() {
-    };
-    Json::Value backtrace = Json::arrayValue;
+    XStackWalker() : StackWalker() {};
+    rapidjson::Document backtrace;
     uint32_t frame{};
 
     std::vector<uint32_t> printed_bases;
 
     auto has_base(const uintptr_t base) {
-        return std::ranges::find(printed_bases, base) != printed_bases.end();
+        return std::find(printed_bases.begin(), printed_bases.end(), base) != printed_bases.end();
     }
 
 protected:
@@ -253,22 +247,23 @@ protected:
 
     virtual void OnCallstackEntry(CallstackEntryType eType, CallstackEntry& entry) override
     {
-        if (backtrace.size() >= 10) return;
+        if (backtrace.Size() >= 10) return;
 
         std::string moduleName = entry.moduleName;
         uintptr_t offset = entry.offset;
         uintptr_t base = entry.baseOfImage;
 
-        Json::Value jentry(Json::arrayValue);
-        jentry.append(frame++);
-        jentry.append(static_cast<Json::UInt64>(offset));
-        jentry.append(moduleName);
+        rapidjson::Value jentry(rapidjson::kArrayType);
+        rapidjson::Document::AllocatorType& allocator = backtrace.GetAllocator();
+        jentry.PushBack(frame++, allocator);
+        jentry.PushBack(static_cast<uint64_t>(offset), allocator);
+        jentry.PushBack(rapidjson::Value(moduleName.c_str(), allocator).Move(), allocator);
         if (!has_base(base))
         {
-            jentry.append(static_cast<Json::UInt64>(base));
+            jentry.PushBack(static_cast<uint64_t>(base), allocator);
             printed_bases.emplace_back(base);
         }
-        backtrace.append(std::move(jentry));
+        backtrace.PushBack(std::move(jentry), allocator);
     }
 };
 
@@ -358,18 +353,18 @@ static inline void normal_exit() {
 }
 
 
-
-
-// Helper function to create a file path with a timestamp
-
-
 void CrashHandler::NotifyAndTerminate(const wchar_t* message, const wchar_t* title)
 {
+#ifdef _WIN64
     if (!g_isClosing.exchange(true))
         MessageBoxW(0, message, title, MB_SYSTEMMODAL | MB_ICONERROR);
 
     __fastfail(-1);
     TerminateProcess(GetCurrentProcess(), -1);
+#else
+    std::cerr << "ERROR: " << title << " - " << message << std::endl;
+    _exit(EXIT_FAILURE);
+#endif
 }
 
 
@@ -386,44 +381,36 @@ void CrashHandler::NotifyAndTerminate(const wchar_t* message, const wchar_t* tit
     XStackWalker sw;
     sw.ShowCallstack(thread, p->ContextRecord);
     
-    Json::Value report;
+    
     std::string backtrace;
     g_traceThread = 1;
     std::thread([&]
     {
         g_traceThread = GetCurrentThreadId();
         //auto trace = std::stacktrace::current();
-        Json::Value context;
-        const auto* rc = p->ContextRecord;
-        context["rbp"] = Json::UInt64(rc->Rbp);
-        context["rax"] = Json::UInt64(rc->Rax);
-        context["rcx"] = Json::UInt64(rc->Rcx);
-        context["rdx"] = Json::UInt64(rc->Rdx);
-        context["rbx"] = Json::UInt64(rc->Rbx);
-        context["rsi"] = Json::UInt64(rc->Rsi);
-        context["rdi"] = Json::UInt64(rc->Rdi);
-        /*
-        Json::Value stacktrace_cp23(Json::arrayValue);
-        for (const auto& frame : trace)
-        {
-            Json::Value entry(Json::objectValue);
-            entry["function"] = frame.description();
-            entry["source"] = frame.source_file();
-            entry["line"] = Json::UInt64(frame.source_line());
-            stacktrace_cp23.append(std::move(entry));
-        }
-        */
-        report["code"] = Json::UInt64((uintptr_t)p->ExceptionRecord->ExceptionCode);
-        report["address"] = Json::UInt64((uintptr_t)p->ExceptionRecord->ExceptionAddress); 
-        report["stacktrace_ida"] = std::move(sw.backtrace);
-        //report["stacktrace_msvc"] = std::move(stacktrace_cp23);
-        report["context"] = std::move(context);
+        rapidjson::Document report;
+        report.SetObject();
+        rapidjson::Document::AllocatorType& allocator = report.GetAllocator();
 
-        std::stringstream ss;
-        json_pretty_print(ss, report);
-        Json::StreamWriterBuilder writer;
-        writer["indentation"] = "";
-        backtrace = ss.str();//Json::writeString(writer, report);
+        rapidjson::Value context(rapidjson::kObjectType);
+        const auto* rc = p->ContextRecord;
+        context.AddMember("rbp", rc->Rbp, allocator);
+        context.AddMember("rax", rc->Rax, allocator);
+        context.AddMember("rcx", rc->Rcx, allocator);
+        context.AddMember("rdx", rc->Rdx, allocator);
+        context.AddMember("rbx", rc->Rbx, allocator);
+        context.AddMember("rsi", rc->Rsi, allocator);
+        context.AddMember("rdi", rc->Rdi, allocator);
+
+        report.AddMember("code", static_cast<uint64_t>(p->ExceptionRecord->ExceptionCode), allocator);
+        report.AddMember("address", reinterpret_cast<uint64_t>(p->ExceptionRecord->ExceptionAddress), allocator);
+        report.AddMember("stacktrace_ida", sw.backtrace, allocator);
+        report.AddMember("context", context, allocator);
+
+        rapidjson::StringBuffer buffer;
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+        report.Accept(writer);
+        std::string backtrace = buffer.GetString();
 
         if (constinit static bool saved = false; !saved)
         {
@@ -552,6 +539,7 @@ void CrashHandler::Init(const std::string& dumpFilePath)
     output_thread = std::thread(crash_handler_thread);
     AddVectoredExceptionHandler(TRUE, exception_handler);
     SetUnhandledExceptionFilter(exception_handler);
+#endif
     std::signal(SIGABRT, signal_handler);
     std::signal(SIGSEGV, signal_handler);
     std::signal(SIGILL, signal_handler);
@@ -559,24 +547,18 @@ void CrashHandler::Init(const std::string& dumpFilePath)
     std::signal(SIGFPE, signal_handler);
     std::signal(SIGINT, signal_handler);
     std::set_terminate(terminator);
+#ifdef _WIN64
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     _set_purecall_handler(terminator);
     _set_invalid_parameter_handler(&invalid_parameter_handler);
+#endif
     std::atexit(normal_exit);
 
-    //DWORD dwModeCrash = SetErrorMode(SEM_NOGPFAULTERRORBOX);
-    //SetErrorMode(dwModeCrash | SEM_NOGPFAULTERRORBOX);
-    //InitializeExceptionHandlers();
-    //DWORD dwModeCrash = SetErrorMode(SEM_NOGPFAULTERRORBOX);
-    //SetErrorMode(dwModeCrash | SEM_NOGPFAULTERRORBOX);
-    //SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)&WindowsCrashHandler);
-#elif __linux__
-    RegisterLinuxSignals();
-#endif
 }
 
 
 #ifdef _WIN64
+
 LONG WINAPI CrashHandler::WindowsCrashHandler(EXCEPTION_POINTERS* exceptionInfo)
 {
     std::string dumpFilePathWithTimestamp = GenerateDumpFilePath(dumpFile);
@@ -607,54 +589,3 @@ LONG WINAPI CrashHandler::WindowsCrashHandler(EXCEPTION_POINTERS* exceptionInfo)
 }
 #endif
 
-#ifdef __linux__
-// Helper function to register multiple signals
-void CrashHandler::RegisterLinuxSignals()
-{
-    signal(SIGSEGV, LinuxCrashHandler); // Handle segmentation fault
-    signal(SIGABRT, LinuxCrashHandler); // Handle abort signal
-    signal(SIGTERM, LinuxCrashHandler); // Handle termination signal
-    signal(SIGINT, LinuxCrashHandler);  // Handle interrupt signal
-    signal(SIGILL, LinuxCrashHandler);  // Handle illegal instruction signal
-    signal(SIGFPE, LinuxCrashHandler);  // Handle floating-point exception
-}
-
-// Handles multiple signals on Linux and logs stack trace
-void CrashHandler::LinuxCrashHandler(int sig)
-{
-    std::string dumpFilePathWithTimestamp = GenerateDumpFilePath(dumpFile);
-
-    try
-    {
-        std::ofstream dumpFileStream(dumpFilePathWithTimestamp, std::ios::out | std::ios::binary);
-
-        if (dumpFileStream.is_open())
-        {
-            // Write signal and timestamp
-            dumpFileStream << "Signal: " << strsignal(sig) << "\n";
-            dumpFileStream << "Timestamp: " << GetCurrentTimestamp() << "\n";
-
-            // Capture and write stacktrace using C++23 std::stacktrace
-            auto stacktrace = std::stacktrace::current();
-            dumpFileStream << "Stacktrace:\n";
-            for (const auto& entry : stacktrace)
-            {
-                dumpFileStream << entry << "\n";
-            }
-
-            dumpFileStream.close();
-            std::cerr << "Crash dump saved to " << dumpFilePathWithTimestamp << std::endl;
-        }
-        else
-        {
-            std::cerr << "Failed to create dump file: " << dumpFilePathWithTimestamp << std::endl;
-        }
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Exception in crash handler: " << e.what() << std::endl;
-    }
-
-    _exit(1);  // Exit immediately after handling the signal
-}
-#endif

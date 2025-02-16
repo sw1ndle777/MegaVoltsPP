@@ -9,7 +9,6 @@
 #include "BaseLib/CLog.h"
 #include "BaseLib/CSettings.h"
 #include "NetEngine/Constants.h"
-#include "BaseLib/CThreadPool.h"
 #include "BaseLib/CDatabase.h"
 
 #include "NetEngine/CServer.h"

@@ -11,9 +11,17 @@
 #include <fmt/format.h>
 #include <fmt/color.h>
 #include <regex>
-#include <source_location>
 #include <format>
-#include "CThreadPool.h"
+
+#include <iostream>
+#include <thread>
+#include <vector>
+#include <future>
+#include <functional>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+
 namespace BaseLib
 {
     class CLog

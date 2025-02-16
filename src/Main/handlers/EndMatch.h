@@ -883,9 +883,10 @@ namespace Game
                 auto endmatch_info = reinterpret_cast<MainRoomEndMatchClientInfo*>(callback.message->GetData() + sizeof(MainRoomEndMatchClientInfo) * i + sizeof(MainRoomEndMatchScoreClientInfo));
                 if (processed_unique_ids.find(endmatch_info->unique_id) != processed_unique_ids.end())
                     continue;
-
+                
                 auto client_unique_id = NetEngine::Packets::Core::UniqueId(endmatch_info->unique_id);
-                client_match_infos.insert({ client_unique_id.session, *endmatch_info });
+                auto client_session_id = client_unique_id.session;
+                client_match_infos.insert({ client_session_id, *endmatch_info });
                 processed_unique_ids.insert(endmatch_info->unique_id);
             }
             switch (room_cache->ModeIndex)

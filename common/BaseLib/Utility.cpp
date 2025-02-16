@@ -1,7 +1,14 @@
 #include "Utility.h"
+#ifdef _WIN64
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <processthreadsapi.h>
 #include <Psapi.h>
+#else
+#include <unistd.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#endif
 #include "CLog.h"
 namespace Utility
 {
@@ -92,10 +99,12 @@ namespace Utility
     }
     bool ContainsForbiddenSubstring(std::string_view str) 
     {
-        return std::ranges::any_of(forbiddenSubstrings, [&str](std::string_view forbidden)
+        for (const auto& forbidden : forbiddenSubstrings)
         {
-            return str.find(forbidden) != std::string_view::npos;
-        });
+            if (str.find(forbidden) != std::string_view::npos)
+                return true;
+        }
+        return false;
     }
     bool IsValidNickname(char nickname[16])
     {
@@ -103,31 +112,28 @@ namespace Utility
         ToLowercase(nicknameStr);
         std::string_view nicknameView{ nicknameStr };
 
-        if (std::ranges::find_if_not(nicknameView, [](char c)
-        {
-            return allowedChars.find(c) != std::string_view::npos;
-        }) != nicknameView.end())
-        {
-            return false;
-        }
+        for (char c : nicknameView)
+            if (allowedChars.find(c) == std::string_view::npos)
+                return false;
+
         if (ContainsForbiddenSubstring(nicknameView)) return false;
 
         return true;
     }
+
     bool IsValidNickname(const std::string_view nicknameView)
     {
         std::string lowercaseNickname = ToLowercase(std::string(nicknameView));
-        if (std::ranges::find_if_not(lowercaseNickname, [](char c)
-        {
-            return allowedChars.find(c) != std::string_view::npos;
-        }) != lowercaseNickname.end())
-        {
-            return false;
-        }
-        if (ContainsForbiddenSubstring(lowercaseNickname))  return false;
+
+        for (char c : lowercaseNickname)
+            if (allowedChars.find(c) == std::string_view::npos)
+                return false;
+
+        if (ContainsForbiddenSubstring(lowercaseNickname)) return false;
 
         return true;
     }
+
     std::uint32_t GetUnixEpoch()
     {
         auto now = std::chrono::system_clock::from_time_t(0);
@@ -145,7 +151,11 @@ namespace Utility
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
         std::tm now_tm;
+    #ifdef _WIN64
         localtime_s(&now_tm, &now_c);
+    #else
+        localtime_r(&now_c, &now_tm);
+    #endif
         return static_cast<std::uint32_t>(now_tm.tm_mon + 1);
     }
     std::uint32_t GetCurrentDay()
@@ -153,7 +163,11 @@ namespace Utility
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
         std::tm now_tm;
+    #ifdef _WIN64
         localtime_s(&now_tm, &now_c);
+    #else
+        localtime_r(&now_c, &now_tm);
+    #endif
         return static_cast<std::uint32_t>(now_tm.tm_mday);
     }
     std::uint32_t GetUtcTimeNowPlusSeconds(const std::uint32_t& seconds)
@@ -203,7 +217,7 @@ namespace Utility
 
         uint64_t minutes = milliseconds / ms_in_a_minute;
 
-        return std::format("{} Day(s) {} Hour(s) {} Minute(s)", days, hours, minutes);
+        return fmt::format("{} Day(s) {} Hour(s) {} Minute(s)", days, hours, minutes);
     }
     std::uint64_t GetUtcTimeNowInSeconds()
     {
@@ -343,7 +357,7 @@ namespace Utility
         RAND_bytes(salt.data(), kSaltLength);
 
         std::vector<unsigned char> hash(kHashLength);
-        PKCS5_PBKDF2_HMAC(password.c_str(), password.length(),
+        PKCS5_PBKDF2_HMAC(password.c_str(), static_cast<std::int32_t>(password.length()),
             salt.data(), kSaltLength,
             kIterations, EVP_sha256(),
             kHashLength, hash.data());
@@ -356,10 +370,10 @@ namespace Utility
     {
         BIO* b64 = BIO_new(BIO_f_base64());
         BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-        BIO* bio = BIO_new_mem_buf(str.data(), str.length());
+        BIO* bio = BIO_new_mem_buf(str.data(), static_cast<std::int32_t>(str.length()));
         bio = BIO_push(b64, bio);
         std::vector<unsigned char> output(str.length());
-        int len = BIO_read(bio, output.data(), output.size());
+        int len = BIO_read(bio, output.data(), static_cast<std::int32_t>(output.size()));
         output.resize(len);
         BIO_free_all(bio);
         return output;
@@ -371,7 +385,7 @@ namespace Utility
         BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
         BIO* bio = BIO_new(BIO_s_mem());
         bio = BIO_push(b64, bio);
-        BIO_write(bio, data.data(), data.size());
+        BIO_write(bio, data.data(), static_cast<std::int32_t>(data.size()));
         BIO_flush(bio);
         char* ptr;
         long len = BIO_get_mem_data(bio, &ptr);
@@ -427,53 +441,61 @@ namespace Utility
             data_buffer.reserve(static_cast<std::size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
 
             for (std::uint32_t i = 0; i < 4; i++)
-                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
+                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
 
             for (std::uint32_t i = 0; i < 4; i++)
-                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
 
             for (std::uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
             {
-                std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
+                fmt::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
                 if (i != packetMessage.GetDataSize() - 1)
                     data_buffer += ' ';
             }
             BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
         }
     }
+    std::vector<std::uint8_t> load_file(const std::string& filepath)
+    {
+        std::ifstream ifs(filepath, std::ios::binary | std::ios::ate);
+
+        if (!ifs)
+            std::printf("error loading file\n");
+
+        auto end = ifs.tellg();
+        ifs.seekg(0, std::ios::beg);
+
+        auto size = static_cast<std::size_t>(end - ifs.tellg());
+
+        if (size == 0)
+            return {};
+
+        std::vector<uint8_t> buffer(size);
+
+        if (!ifs.read(reinterpret_cast<char*>(buffer.data()), buffer.size()))
+            std::printf("error reading file\n");
+
+        return buffer;
+    }
     double GetCpuUsage(void* m_process_handle)
     {
-        auto fileTimeToUtc = [](const FILETIME* ftime) -> std::int64_t 
-        {
+    #ifdef _WIN64
+        auto fileTimeToUtc = [](const FILETIME* ftime) -> std::int64_t {
             LARGE_INTEGER li;
             li.LowPart = ftime->dwLowDateTime;
             li.HighPart = ftime->dwHighDateTime;
             return li.QuadPart;
         };
 
-        FILETIME now;
-        FILETIME creation_time;
-        FILETIME exit_time;
-        FILETIME kernel_time;
-        FILETIME user_time;
-        int64_t system_time;
-        int64_t time;
-        int64_t system_time_delta;
-        int64_t time_delta;
+        FILETIME now, creation_time, exit_time, kernel_time, user_time;
+        int64_t system_time, time, system_time_delta, time_delta;
 
         double cpu = -1;
-
-        
-
-        if (!m_process_handle)
-            return -1;
+        if (!m_process_handle) return -1;
 
         GetSystemTimeAsFileTime(&now);
+        if (!GetProcessTimes(m_process_handle, &creation_time, &exit_time, &kernel_time, &user_time)) return -1;
 
-        if (!GetProcessTimes(m_process_handle, &creation_time, &exit_time, &kernel_time, &user_time))
-        {
-            return -1;
-        }
         system_time = (fileTimeToUtc(&kernel_time) + fileTimeToUtc(&user_time)) / num_processors;
         time = fileTimeToUtc(&now);
 
@@ -491,20 +513,53 @@ namespace Utility
         cpu_last_system_time = system_time;
         cpu_last_time = time;
         return cpu;
+
+    #else
+        static long lastTotalUser, lastTotalUserLow, lastTotalSys, lastTotalIdle;
+        long totalUser, totalUserLow, totalSys, totalIdle;
+        double percent = -1.0;
+
+        FILE* file = fopen("/proc/stat", "r");
+        if (!file) return -1.0;
+
+        fscanf(file, "cpu %ld %ld %ld %ld", &totalUser, &totalUserLow, &totalSys, &totalIdle);
+        fclose(file);
+
+        if (lastTotalUser || lastTotalSys || lastTotalIdle)
+        {
+            long totalDiff = (totalUser - lastTotalUser) + (totalUserLow - lastTotalUserLow) +
+                (totalSys - lastTotalSys);
+            long totalTime = totalDiff + (totalIdle - lastTotalIdle);
+            percent = (totalDiff * 100.0) / totalTime;
+        }
+
+        lastTotalUser = totalUser;
+        lastTotalUserLow = totalUserLow;
+        lastTotalSys = totalSys;
+        lastTotalIdle = totalIdle;
+        return percent;
+    #endif
     }
 
     std::int64_t GetMemoryUsage(void* m_process_handle)
     {
+    #ifdef _WIN64
         int64_t memory_usage = 0;
-
         PROCESS_MEMORY_COUNTERS_EX pmc;
 
         if (GetProcessMemoryInfo(m_process_handle, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc)))
-            memory_usage = std::move(pmc.PrivateUsage);
+            memory_usage = pmc.PrivateUsage;
         else
             memory_usage = -1;
 
-        return memory_usage / static_cast<std::int64_t>(1024 * 1024);
+        return memory_usage / (1024 * 1024);
+
+    #else
+        struct rusage usage;
+        if (getrusage(RUSAGE_SELF, &usage) == 0)
+            return usage.ru_maxrss / 1024; // Convert from KB to MB
+        return -1;
+    #endif
     }
     
 }

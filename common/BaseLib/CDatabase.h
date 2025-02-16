@@ -1,9 +1,10 @@
 #pragma once
+#ifdef _WIN64
 #pragma comment(lib, "mariadbcpp.lib")
+#endif
 #include <conncpp.hpp>
 #include <iostream>
 #include "CLog.h"
-#include "CThreadPool.h"
 #include "Utility.h"
 #include <array>
 #include <NetEngine/Packets/PacketData.h>

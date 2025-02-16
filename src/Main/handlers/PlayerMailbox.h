@@ -120,7 +120,7 @@ namespace Game
                     send_msg(session, 104, 0, Mailbox::SendResult::Blacklist, 0);
                     return;
                 }
-                target_mailbox_received_count = main_server->GetMailboxRecvCount(target_index);
+                target_mailbox_received_count = static_cast<std::uint32_t>(main_server->GetMailboxRecvCount(target_index));
             }
             if (target_mailbox_received_count >= 100)
             {

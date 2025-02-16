@@ -456,8 +456,8 @@ namespace NetEngine
             #if defined(RELEASE_1_1_1)
                 std::uint32_t VIPLevel;//0xC0
             #endif
-                std::uint32_t AccountId;//0xC4
-                std::uint32_t AccountAuthkey;//0xC8
+                //std::uint32_t AccountId;//0xC4
+                std::uint64_t AccountAuthkey;//0xC8
                 char Unused[8];//0xCC
                 char ClanName[16];//0xD4
 
@@ -1561,13 +1561,13 @@ namespace NetEngine
                 {
                     std::vector<std::uint8_t> data;
 
-                    auto server_id_bytes = reinterpret_cast<const uint8_t*>(server_id);
+                    auto server_id_bytes = reinterpret_cast<const uint8_t*>(&server_id);
                     data.insert(data.end(), server_id_bytes, server_id_bytes + sizeof(server_id));
 
-                    auto room_id_bytes = reinterpret_cast<const uint8_t*>(room_id);
+                    auto room_id_bytes = reinterpret_cast<const uint8_t*>(&room_id);
                     data.insert(data.end(), room_id_bytes, room_id_bytes + sizeof(room_id));
 
-                    auto channel_id_bytes = reinterpret_cast<const uint8_t*>(channel_id);
+                    auto channel_id_bytes = reinterpret_cast<const uint8_t*>(&channel_id);
                     data.insert(data.end(), room_id_bytes, channel_id_bytes + sizeof(channel_id));
 
                     return data;
@@ -1601,16 +1601,16 @@ namespace NetEngine
                 {
                     std::vector<std::uint8_t> data;
 
-                    auto server_id_bytes = reinterpret_cast<const uint8_t*>(server_id);
+                    auto server_id_bytes = reinterpret_cast<const uint8_t*>(&server_id);
                     data.insert(data.end(), server_id_bytes, server_id_bytes + sizeof(server_id));
 
                     auto nickname_bytes = reinterpret_cast<const uint8_t*>(nickname);
                     data.insert(data.end(), nickname_bytes, nickname_bytes + sizeof(nickname));
 
-                    auto room_id_bytes = reinterpret_cast<const uint8_t*>(room_id);
+                    auto room_id_bytes = reinterpret_cast<const uint8_t*>(&room_id);
                     data.insert(data.end(), room_id_bytes, room_id_bytes + sizeof(room_id));
 
-                    auto channel_id_bytes = reinterpret_cast<const uint8_t*>(channel_id);
+                    auto channel_id_bytes = reinterpret_cast<const uint8_t*>(&channel_id);
                     data.insert(data.end(), room_id_bytes, channel_id_bytes + sizeof(channel_id));
 
                     if (bSendTitle)

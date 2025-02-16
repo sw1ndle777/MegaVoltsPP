@@ -1,0 +1,68 @@
+cmake_minimum_required(VERSION 3.16)
+project(common_lib LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON) # Needed for shared linking
+
+# Detect platform and set vcpkg paths
+if (WIN32)
+    set(VCPKG_DIR "${CMAKE_SOURCE_DIR}/../deps/libs/windows")
+else()
+    set(VCPKG_DIR "${CMAKE_SOURCE_DIR}/../deps/libs/linux")
+endif()
+
+# Use vcpkg toolchain
+set(CMAKE_TOOLCHAIN_FILE "${VCPKG_DIR}/scripts/buildsystems/vcpkg.cmake")
+
+# Define the static library
+add_library(common STATIC
+    BaseLib/CCrashHandler.cpp
+    BaseLib/CLog.cpp
+    BaseLib/CSettings.cpp
+    BaseLib/CThreadPool.cpp
+    BaseLib/Database.cpp
+    BaseLib/Utility.cpp
+    BaseLib/StackWalker.cpp
+    NetEngine/CMessage.cpp
+    NetEngine/CServer.cpp
+    NetEngine/CSession.cpp
+)
+
+# Include directories
+target_include_directories(common PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/BaseLib
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetEngine
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetEngine/Packets
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetEngine/Protocols
+)
+
+# 🔹 FIND PACKAGES CROSS-PLATFORM 🔹
+find_package(fmt CONFIG REQUIRED
+    PATHS "${VCPKG_DIR}/installed/x64-windows" "${VCPKG_DIR}/installed/x64-linux"
+)
+
+find_package(jsoncpp CONFIG REQUIRED
+    PATHS "${VCPKG_DIR}/installed/x64-windows" "${VCPKG_DIR}/installed/x64-linux"
+)
+
+find_package(OpenSSL REQUIRED
+    PATHS "${VCPKG_DIR}/installed/x64-windows" "${VCPKG_DIR}/installed/x64-linux"
+)
+
+find_package(MariaDB CONFIG REQUIRED
+    PATHS "${VCPKG_DIR}/installed/x64-windows" "${VCPKG_DIR}/installed/x64-linux"
+)
+
+# Link libraries
+target_link_libraries(common PRIVATE
+    fmt::fmt
+    jsoncpp
+    OpenSSL::Crypto
+    MariaDB::Connector
+)
+
+# Windows-specific linking
+if (WIN32)
+    target_link_libraries(common PRIVATE ws2_32)
+endif

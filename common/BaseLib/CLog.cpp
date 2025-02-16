@@ -53,7 +53,7 @@ namespace BaseLib
         char buffer[80];
         std::strftime(buffer, sizeof(buffer), "[%d-%m-%Y %H:%M:%S]", std::localtime(&time));
 
-        const std::string Output = std::format("{} {}", buffer, Text);
+        const std::string Output = fmt::format("{} {}", buffer, Text);
 
         //std::scoped_lock lock(WriteMutex);
         File << Output << std::endl;
@@ -80,7 +80,7 @@ namespace BaseLib
         vsprintf(buffer, format, arglist);
         va_end(arglist);
 
-        Write(std::format("[INFO] {}", buffer));
+        Write(fmt::format("[INFO] {}", buffer));
     }
 
     void CLog::Warning(const char* format, ...)
@@ -92,7 +92,7 @@ namespace BaseLib
         vsprintf(buffer, format, arglist);
         va_end(arglist);
 
-        Write(std::format("[WARNING] {}", buffer));
+        Write(fmt::format("[WARNING] {}", buffer));
     }
 
     void CLog::Error(const char* format, ...)
@@ -104,7 +104,7 @@ namespace BaseLib
         vsprintf(buffer, format, arglist);
         va_end(arglist);
 
-        Write(std::format("[ERROR] {}", buffer));
+        Write(fmt::format("[ERROR] {}", buffer));
     }
 
     void CLog::Verbose(const char* format, ...)
@@ -116,7 +116,7 @@ namespace BaseLib
         vsprintf(buffer, format, arglist);
         va_end(arglist);
 
-        Write(std::format("[VERBOSE] {}", buffer));
+        Write(fmt::format("[VERBOSE] {}", buffer));
     }
 
     std::unique_ptr<CLog> EventLog = std::make_unique<CLog>();
