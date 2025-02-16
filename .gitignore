@@ -9,11 +9,11 @@
 *.pdb
 *.class
 *.log
-*.json
 *.ini
 *.cgd
 *.dip
 *.dmp
+settings.json
 
 # Ignore build directories
 .vs/
@@ -30,3 +30,5 @@ Debug/
 /src/Cast/obj_1_1_1
 /src/obj/
 /crash_dumps/
+/build/
+/CMakeFiles
