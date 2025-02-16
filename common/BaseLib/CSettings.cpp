@@ -28,7 +28,7 @@ namespace BaseLib
 
             auto createHostSettings = [&](const char* name, uint32_t port, uint32_t ipc, bool debug) {
                 rapidjson::Value obj(rapidjson::kObjectType);
-                obj.AddMember("host", "127.0.0.1", allocator);
+                obj.AddMember("host", "0.0.0.0", allocator);
                 obj.AddMember("port", port, allocator);
                 obj.AddMember("ipc_port", ipc, allocator);
                 obj.AddMember("asio_threads", 0, allocator);
@@ -50,7 +50,7 @@ namespace BaseLib
             servers.AddMember("database", database, allocator);
 
             rapidjson::Value website(rapidjson::kObjectType);
-            website.AddMember("host", "http://127.0.0.1", allocator);
+            website.AddMember("host", "127.0.0.1", allocator);
             website.AddMember("port", 80, allocator);
             website.AddMember("timeout", 2000, allocator);
             servers.AddMember("website", website, allocator);
