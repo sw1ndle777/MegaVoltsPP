@@ -50,10 +50,23 @@ namespace Game
             auto room_mode = static_cast<NetEngine::Room::Mode::Index>(room_settings.settings.mode_index);
             Game::Room new_room =
             {
-                current_room_id , static_cast<std::uint32_t>(1), room_settings.title , room_settings.password, static_cast<NetEngine::Room::Map::Index>(room_settings.settings.map_index),
-                room_mode , static_cast<NetEngine::Room::Restriction::Type>(room_settings.settings.restriction),static_cast<NetEngine::Room::Balance::State>(room_settings.settings.team_balance), 
-                static_cast<std::uint32_t>(room_settings.settings.max_players * 2), score_limit, room_settings.settings.time, static_cast<bool>(room_settings.settings.allow_intruders), static_cast<bool>(room_settings.settings.allow_items),
-                static_cast<bool>(room_settings.settings.allow_observers), !std::string(room_settings.password).empty(), false, session_id
+                current_room_id,
+                static_cast<std::uint16_t>(1),
+                room_settings.title,
+                room_settings.password,
+                static_cast<NetEngine::Room::Map::Index>(room_settings.settings.map_index),
+                room_mode,
+                static_cast<NetEngine::Room::Restriction::Type>(room_settings.settings.restriction),
+                static_cast<NetEngine::Room::Balance::State>(room_settings.settings.team_balance),
+                static_cast<std::uint32_t>(room_settings.settings.max_players * 2),
+                score_limit,
+                room_settings.settings.time,
+                static_cast<bool>(room_settings.settings.allow_intruders),
+                static_cast<bool>(room_settings.settings.allow_items),
+                static_cast<bool>(room_settings.settings.allow_observers),
+                false,
+                !std::string(room_settings.password).empty(),
+                session_id
             };
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "create room with password: ({})", room_settings.password);
