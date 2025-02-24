@@ -281,7 +281,7 @@ namespace NetEngine
         if (m_crypt >= 0)
         {
             crypt.KeySetup(0);
-            crypt.RC5Encrypt32(completeData, completeData, static_cast<std::int32_t>(partialSize));
+            crypt.RC5Encrypt32(completeData, completeData, static_cast<std::int32_t>(headerSize));
         }
 
         std::free(partialData);
