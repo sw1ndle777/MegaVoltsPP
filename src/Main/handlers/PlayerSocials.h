@@ -626,7 +626,7 @@ namespace Game
                         auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
                         if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                         {
-                            auto invite_ack_data = MainUserInviteAck(1, room_cache->room_id, room_cache->channel_id, acc_cache->acc_info.Nickname.c_str(), room_cache->title.c_str(), room_cache->password.c_str()).Serialize(true, true);
+                            auto invite_ack_data = MainUserInviteAck(1, room_cache->room_id, room_cache->channel_id, acc_cache->acc_info.Nickname.c_str(), room_cache->title.c_str(), room_cache->password.c_str()).Serialize(room_cache->has_password);
                             send_msg(target_session.get(), 319, 0, room_cache->has_password ? 44 : 0, 0, reinterpret_cast<uint8_t*>(invite_ack_data.data()), invite_ack_data.size());
                         }
                     }

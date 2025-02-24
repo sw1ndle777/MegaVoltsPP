@@ -24,7 +24,6 @@
 #include "buildconf.hpp"
 #include <initializer_list>
 #include <vector>
-#include <stdint.h>
 
 
 namespace sql
@@ -52,7 +51,7 @@ namespace sql
     CArray(int64_t len);
     CArray(int64_t len, const T& fillValue);
 
-    /* This constructor takes existing array for "storing". Won't delete */
+    /* This constructor takes existing(stack?) array for "storing". Won't delete */
     CArray(T _arr[], size_t len);
     CArray(const T _arr[], size_t len);
 
@@ -67,7 +66,6 @@ namespace sql
 
     CArray(std::initializer_list<T> const& initList);
     CArray(const CArray& rhs);
-    //CArray(CArray&& moved);
 
     CArray() : arr(nullptr), length(0)
     {}

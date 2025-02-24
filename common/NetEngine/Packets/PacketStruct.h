@@ -1546,10 +1546,10 @@ namespace NetEngine
             class MainUserJoinConfirmAck
             {
             public:
-                std::uint32_t server_id{};
+                std::uint16_t server_id{};
                 std::uint16_t room_id{};
                 std::uint16_t channel_id{};
-                MainUserJoinConfirmAck(std::uint32_t serverId, std::uint16_t roomId, std::uint16_t channelId)
+                MainUserJoinConfirmAck(std::uint16_t serverId, std::uint16_t roomId, std::uint16_t channelId)
                 {
                     std::memset(this, 0, sizeof(MainUserJoinConfirmAck));
                     server_id = serverId;
@@ -1597,7 +1597,7 @@ namespace NetEngine
                     std::strcpy(this->password, pw.c_str());
 
                 }
-                std::vector<std::uint8_t> Serialize(bool bSendTitle = false, bool bSendPassword = false) const
+                std::vector<std::uint8_t> Serialize(bool bSendTitlePassword = false) const
                 {
                     std::vector<std::uint8_t> data;
 
@@ -1611,15 +1611,12 @@ namespace NetEngine
                     data.insert(data.end(), room_id_bytes, room_id_bytes + sizeof(room_id));
 
                     auto channel_id_bytes = reinterpret_cast<const uint8_t*>(&channel_id);
-                    data.insert(data.end(), room_id_bytes, channel_id_bytes + sizeof(channel_id));
+                    data.insert(data.end(), channel_id_bytes, channel_id_bytes + sizeof(channel_id));
 
-                    if (bSendTitle)
+                    if (bSendTitlePassword)
                     {
                         auto title_bytes = reinterpret_cast<const uint8_t*>(title);
                         data.insert(data.end(), title_bytes, title_bytes + sizeof(title));
-                    }
-                    if (bSendPassword)
-                    {
                         auto pw_bytes = reinterpret_cast<const uint8_t*>(password);
                         data.insert(data.end(), pw_bytes, pw_bytes + sizeof(password));
                     }

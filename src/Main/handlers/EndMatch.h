@@ -147,7 +147,7 @@ namespace Game
         {
             return { cl_info.melee_kills, cl_info.rifle_kills, cl_info.shotgun_kills, cl_info.sniper_kills, cl_info.gatling_kills, cl_info.bazooka_kills, cl_info.grenade_kills, cl_info.killstreak, cl_info.total_kills, cl_info.deaths, cl_info.headshots, cl_info.assists, 0, 0, 0, 0 };
         }
-        inline void ClearEndmMatchResponse(MainRoomEndMatchResponse& resp)
+        inline void ClearEndmMatchResponse(MainRoomEndMatchResponse& resp, std::uint32_t tmp, std::uint32_t txp)
         {
             resp.melee_kills = 0;
             resp.rifle_kills = 0;
@@ -161,8 +161,8 @@ namespace Game
             resp.deaths = 0;
             resp.headshots = 0;
             resp.assists = 0;
-            resp.total_mp = 0;
-            resp.total_xp = 0;
+            resp.total_mp = tmp;
+            resp.total_xp = txp;
             resp.unknown = 0;
             resp.unknown2 = 0;
         }
@@ -191,7 +191,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -243,7 +243,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -295,7 +295,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -347,7 +347,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -402,7 +402,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -456,7 +456,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -508,7 +508,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -563,7 +563,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -616,7 +616,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -670,7 +670,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -725,7 +725,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
@@ -779,7 +779,7 @@ namespace Game
                         if (playtime_seconds < 90)
                         {
                             no_rewards = true, earnt_battery = 0;
-                            ClearEndmMatchResponse(rsp);
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
                         }
                         else
                         {
