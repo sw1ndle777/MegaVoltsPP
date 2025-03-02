@@ -1,4 +1,7 @@
 #pragma once
+
+#include "LeaveParty.h"
+
 namespace Game
 {
     using namespace BaseLib;
@@ -34,6 +37,7 @@ namespace Game
             auto auth_key = acc_cache->acc_info.AuthKey;
             auto clan_id = acc_cache->acc_info.ClanId;
             auto in_room = acc_cache->in_room;
+            auto in_party = acc_cache->in_party;
             auto room_id = acc_cache->room_id;
             auto team_id = acc_cache->team_id;
             auto plaza_id = acc_cache->plaza_id;
@@ -137,7 +141,14 @@ namespace Game
                     }
                 };
 
-
+                if (in_party) {
+                    SCallbackData callback;
+                    callback.server = main_server;
+                    callback.session = (main_server->GetSessionById(session_id)).get();
+                    lock.unlock();
+                    LeaveParty(callback, main_server);
+                    lock.lock();
+                }
                
 
                 //acc_cache.lock();

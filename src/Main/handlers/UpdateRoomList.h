@@ -48,6 +48,7 @@ namespace Game
                     if (room->title.empty()) continue;
                     auto host_cache = main_server->GetAccCacheSharedBySessionId(room->host_session_id);
                     if (host_cache->acc_info.Index == -1) continue;
+                    if (host_cache->in_party) continue;
                     auto room_size = main_server->IsModeTeamBased(room->ModeIndex) ? room->redteam_session_ids.size() + room->blueteam_session_ids.size() : room->neutralteam_session_ids.size();
                     auto new_roomListInfo = RoomListInfo(room->title.c_str(), room->room_id, room->channel_id, room->MapIndex, room->ModeIndex, room->max_players, room_size, room->is_playing, room->has_password, room->allow_observers, room->Restriction, 1, host_cache->ping);
                     new_rooms.push_back(new_roomListInfo);

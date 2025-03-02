@@ -28,6 +28,7 @@ namespace BaseLib
         std::uint32_t PointPrice;
         std::uint32_t SellPointPrice;
         std::uint32_t Stock;
+        std::uint32_t BonusEffectId;
         ItemInfo()
         {
             this->Id = 0;
@@ -53,6 +54,18 @@ namespace BaseLib
             this->PointPrice = 0;
             this->SellPointPrice = 0;
             this->Stock = -1;
+            this->BonusEffectId = 0;
+        }
+    };
+
+    struct EffectInfo {
+        std::uint32_t id;
+        std::uint32_t key;
+        std::uint32_t valueA;
+        EffectInfo() {
+            this->id = 0;
+            this->key = 0;
+            this->valueA = 0;
         }
     };
 

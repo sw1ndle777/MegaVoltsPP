@@ -110,9 +110,10 @@ namespace NetEngine
             bool useEncryption;
             bool useMultithreaded;
             std::uint32_t concurrent_threads;
+            std::uint32_t playtime_min_seconds;
             bool useWatchguard;
             //std::uint32_t pool_threads;
-            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, std::uint32_t concurrent_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads) {}
+            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, std::uint32_t concurrent_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads), playtime_min_seconds(playtime_min_seconds) {}
         };
 
     public:
@@ -140,6 +141,7 @@ namespace NetEngine
         void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);
         bool IsMultiThreaded();
         std::uint64_t GetStartTime() const { return this->start_time; }
+        std::uint32_t GetPlaytimeMinSeconds() const { return this->m_playtimeMinSeconds; }
         void SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, std::vector<std::uint8_t> payload);
         void SendFrontIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
         void SendMainIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
@@ -209,6 +211,7 @@ namespace NetEngine
         bool m_useMultithreaded = false;
         bool m_watchguard = false;
         std::uint32_t m_concurrentThreads = 1;
+        std::uint32_t m_playtimeMinSeconds = 90;
         //std::uint32_t m_poolThreads = 1;
         std::uint32_t m_availableConcurrentThreads = std::jthread::hardware_concurrency();
         std::function<void(std::shared_ptr<CSession>)> m_OnDisconnect;

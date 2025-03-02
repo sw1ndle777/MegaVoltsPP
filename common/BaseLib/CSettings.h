@@ -22,6 +22,7 @@ namespace BaseLib
             std::uint32_t port;
             std::uint32_t ipc_port;
             std::uint32_t asio_threads;
+            std::uint32_t playtime_min_seconds;
             //std::uint32_t pool_threads;
             bool debug;
             bool watchguard;

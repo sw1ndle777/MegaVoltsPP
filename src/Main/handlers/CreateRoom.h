@@ -48,13 +48,18 @@ namespace Game
             const auto& playerlimit_info = main_server->GetRoomOptionInfoByTypeCache(room_options, NetEngine::Room::Option::Type::PlayerLimit, room_settings.settings.max_players * 2);
             const auto& weaponrestriction_info = main_server->GetRoomOptionInfoByTypeCache(room_options, NetEngine::Room::Option::Type::WeaponLimit, room_settings.settings.restriction);
             auto room_mode = static_cast<NetEngine::Room::Mode::Index>(room_settings.settings.mode_index);
+            auto new_map_index = static_cast<NetEngine::Room::Map::Index>(room_settings.settings.map_index);
+            if (new_map_index == NetEngine::Room::Map::Index::Random) //remove this later!
+            {
+                new_map_index = NetEngine::Room::Map::Index::HouseTop;
+            }
             Game::Room new_room =
             {
                 current_room_id,
                 static_cast<std::uint16_t>(1),
                 room_settings.title,
                 room_settings.password,
-                static_cast<NetEngine::Room::Map::Index>(room_settings.settings.map_index),
+                new_map_index,
                 room_mode,
                 static_cast<NetEngine::Room::Restriction::Type>(room_settings.settings.restriction),
                 static_cast<NetEngine::Room::Balance::State>(room_settings.settings.team_balance),

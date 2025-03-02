@@ -32,6 +32,7 @@ namespace BaseLib
                 obj.AddMember("port", port, allocator);
                 obj.AddMember("ipc_port", ipc, allocator);
                 obj.AddMember("asio_threads", 0, allocator);
+                obj.AddMember("playtime_min_seconds", 0, allocator);
                 obj.AddMember("debug", debug, allocator);
                 obj.AddMember("watchguard", false, allocator);
                 servers.AddMember(rapidjson::Value(name, allocator), obj, allocator);
@@ -98,6 +99,12 @@ namespace BaseLib
             settings.port = obj["port"].GetUint();
             settings.ipc_port = obj["ipc_port"].GetUint();
             settings.asio_threads = obj["asio_threads"].GetUint();
+            try {
+                settings.playtime_min_seconds = obj["playtime_min_seconds"].GetUint();
+            }
+            catch (int a) {
+                settings.playtime_min_seconds = 90;
+            }
             settings.debug = obj["debug"].GetBool();
             settings.watchguard = obj["watchguard"].GetBool();
         };

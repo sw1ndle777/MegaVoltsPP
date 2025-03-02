@@ -593,9 +593,9 @@ namespace NetEngine
                 Scrimmage = 9,
                 BombBattle = 10,
                 BossBattle = 11,
-                CLAN_TeamDeathMatch = 12,
-                CLAN_CaptureTheBattery = 13,
-                CLAN_Elimination = 14,
+                CLAN_TeamDeathMatch = 14,
+                CLAN_CaptureTheBattery = 15,
+                CLAN_Elimination = 16,
                 CLAN_Random = 17
                 
             };
@@ -779,6 +779,17 @@ namespace NetEngine
                 Disabled = 0, //Disable balance - Disable balance2
                 Enabled1 = 1, //Enable balance - Disable balance2
                 Enabled2 = 2  //Enable balance - Enable balance2
+            };
+        }
+
+        namespace Clan
+        {
+            enum IconUpdateMission : std::uint8_t
+            {
+                RoomPlayers = 0,
+                RoomObservers = 1,
+                PartyMembers = 2,
+                PlazaPlayers = 3
             };
         }
     }

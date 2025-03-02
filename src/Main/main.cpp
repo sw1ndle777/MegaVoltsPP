@@ -59,10 +59,12 @@ int main()
 
     Game::CMainServer* mainServer = new Game::CMainServer();
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.main.host.c_str(), std::to_string(server_settings.main.port).c_str(), std::to_string(server_settings.main.ipc_port).c_str(), server_settings.main.debug, true, true, server_settings.main.watchguard, server_settings.main.asio_threads);
+    settings.playtime_min_seconds = server_settings.main.playtime_min_seconds;
     auto start_time = std::chrono::system_clock::now();
 
 
     std::vector<std::uint8_t> buffer_iteminfo = loadFileCrossPlatform(std::source_location::current(), "iteminfo.cdb");
+    std::vector<std::uint8_t> buffer_effectinfo = loadFileCrossPlatform(std::source_location::current(), "effectinfo.cdb");
     std::vector<std::uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform(std::source_location::current(), "itemweaponsinfo.cdb");
     std::vector<std::uint8_t> buffer_setiteminfo = loadFileCrossPlatform(std::source_location::current(), "setiteminfo.cdb");
     std::vector<std::uint8_t> buffer_vendorinfo = loadFileCrossPlatform(std::source_location::current(), "vendorinfo.cdb");
@@ -75,11 +77,13 @@ int main()
     std::vector<std::uint8_t> buffer_rewardinfo = loadFileCrossPlatform(std::source_location::current(), "rewardinfo.cdb");
 
   
-    CDBM iteminfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
+    CDBM iteminfo_cdb, effectinfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
     iteminfo_cdb.LoadCDB(buffer_iteminfo);
+    effectinfo_cdb.LoadCDB(buffer_effectinfo);
     itemweaponsinfo_cdb.LoadCDB(buffer_itemweaponsinfo);
     
     auto iteminfo_data = iteminfo_cdb.GetDataRows();
+    auto effectinfo_data = effectinfo_cdb.GetDataRows();
     auto itemweaponsinfo_data = itemweaponsinfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < iteminfo_data.size(); i++)
     {
@@ -108,6 +112,7 @@ int main()
         new_item_info.PointPrice = data_fields.at("ii_buy_point")->GetInt();
         new_item_info.SellPointPrice = data_fields.at("ii_sell_point")->GetInt();
         new_item_info.Stock = data_fields.at("ii_stocks")->GetInt();
+        new_item_info.BonusEffectId = data_fields.at("ef_effect_2")->GetInt();
         mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
     for (std::uint32_t i = 0; i < itemweaponsinfo_data.size(); i++)
@@ -137,6 +142,7 @@ int main()
         new_item_info.PointPrice = data_fields.at("ii_buy_point")->GetInt();
         new_item_info.SellPointPrice = data_fields.at("ii_sell_point")->GetInt();
         new_item_info.Stock = data_fields.at("ii_stocks")->GetInt();
+        new_item_info.BonusEffectId = data_fields.at("ef_effect_2")->GetInt();
         mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
     auto end_time = std::chrono::system_clock::now();
@@ -148,6 +154,18 @@ int main()
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "{:d}", mainServer->GetItemsInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") items in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "{}\n", elapsed_time_str.c_str());
+
+    for (std::uint32_t i = 0; i < effectinfo_data.size(); i++)
+    {
+        BaseLib::EffectInfo new_effectinfo;
+        auto& data_fields = effectinfo_data[i];
+        new_effectinfo.id = data_fields.at("ei_id")->GetInt();
+        new_effectinfo.key = data_fields.at("ei_key")->GetInt();
+        new_effectinfo.valueA = data_fields.at("ei_valueA")->GetInt();
+        mainServer->AddEffectInfoCache(new_effectinfo.id, new_effectinfo);
+    }
+    fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "Load effectinfo count: ({})", mainServer->GetEffectInfoCacheSize());
+    BaseLib::EventLog->Info("CDBM::LoadCDB() - loaded (%d) effect infos", mainServer->GetEffectInfoCacheSize());
 
     start_time = std::chrono::system_clock::now();
     setiteminfo_cdb.LoadCDB(buffer_setiteminfo);

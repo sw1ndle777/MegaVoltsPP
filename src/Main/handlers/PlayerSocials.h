@@ -529,6 +529,28 @@ namespace Game
                     auto joinReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(callback.message->GetData());
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] player want to join player id ({})", joinReq->player_id);
                     auto target_acc_cache = main_server->GetAccCacheUniqueByAccountId(joinReq->player_id);
+                    if (target_acc_cache->in_party)
+                    {
+                        send_msg(session, 163, 0, 9, 0);//generic fail msg, you can only invite to party not join
+                        return;
+                    }
+                    if (target_acc_cache->in_plaza)
+                    {
+                        if (acc_cache->in_plaza && acc_cache->plaza_id == target_acc_cache->plaza_id) //in the same plaza dont do anything
+                        {
+                            send_msg(session, 163, 0, 9, 0);
+                            return;
+                        }
+                        auto current_plaza = main_server->GetPlazaCacheUnique(target_acc_cache->plaza_id);
+                        if (current_plaza->session_ids.size() >= current_plaza->max_players) //plaza is full
+                        {
+                            send_msg(session, 163, 0, 14, 0);
+                            return;
+                        }
+                        auto join_confirm_ack_data = MainUserJoinConfirmAck(1, (std::uint16_t)target_acc_cache->plaza_id, 1).Serialize();
+                        send_msg(session, 163, 0, 0, 1, reinterpret_cast<uint8_t*>(join_confirm_ack_data.data()), join_confirm_ack_data.size());
+                        return;
+                    }
                     if (acc_cache->in_room) 
                     {
                         if (target_acc_cache->in_room && acc_cache->room_id == target_acc_cache->room_id)  //is in same room
@@ -580,9 +602,9 @@ namespace Game
                 }
                 case 2: //INVITE
                 {
-                    if (!acc_cache->in_room)  //aici nuj daca trb sa adaugi si check daca nu e in party ??
+                    if (!acc_cache->in_room && !acc_cache->in_party)
                     {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] invite but self isnt in any room");
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] invite but self isnt in any room or party");
                         return;
                     }
 
@@ -608,6 +630,28 @@ namespace Game
                                 send_msg(session, 319, 0, 11, 0);//Invite fail
                                 return;
                             }
+                        }
+                        if (acc_cache->in_party)
+                        {
+                            auto party_cache = main_server->GetPartyCacheUnique(acc_cache->party_id);
+                            if (target_acc_cache->in_party && target_acc_cache->party_id == acc_cache->party_id)//in same party already
+                            {
+                                send_msg(session, 319, 0, 11, 0);
+                                return;
+                            }
+                            if (party_cache->members.size() >= party_cache->max_members)//party is full
+                            {
+                                send_msg(session, 319, 0, 7, 0);
+                                return;
+                            }
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] party is okay to propose the player an invite");
+                            MainUserInvitePartyAck inviteInfo = { 1, acc_cache->acc_info.Nickname.c_str(), acc_cache->party_id };
+                            auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
+                            if (auto target_session = server->GetSessionById(sender_uniqueId.session))
+                            {
+                                send_msg(target_session.get(), 319, 0, 60, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
+                            }
+                            return;
                         }
                         if (!main_server->IsRoomAlready(acc_cache->room_id))
                         {

@@ -620,6 +620,7 @@ namespace Game
    
 
     std::shared_mutex items_info_mutex;
+    std::shared_mutex effect_info_mutex;
     std::shared_mutex setitems_info_mutex;
     std::shared_mutex vendors_info_mutex;
     std::shared_mutex upgrades_info_mutex;
@@ -635,6 +636,7 @@ namespace Game
     std::shared_mutex rooms_cache_mutex;
     std::shared_mutex plaza_cache_mutex;
     std::shared_mutex room_ids_mutex;
+    std::shared_mutex party_ids_mutex;
     std::shared_mutex clan_cache_mutex;
     std::shared_mutex party_cache_mutex;
     std::shared_mutex mailbox_data_cache_mutex;
@@ -663,6 +665,7 @@ namespace Game
     */
 
     boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
+    boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
     boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     std::vector<BaseLib::VendorInfo> vendors_info; //read only
     boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
@@ -678,6 +681,7 @@ namespace Game
     boost::unordered_flat_map<std::uint32_t, Room> rooms_cache; //read & write
     boost::unordered_flat_map<std::uint32_t, Plaza> plaza_cache; //read & write
     std::vector<std::uint32_t> room_ids; //read & write 
+    std::vector<std::uint32_t> party_ids; //read & write
     boost::unordered_flat_map<std::uint32_t, Clan> clan_cache; //read & write
     boost::unordered_flat_map<std::uint16_t, Party> party_cache; //read & write
     boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
@@ -701,6 +705,7 @@ namespace Game
         this->On(53, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//block remove
         this->On(54, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//block 
         this->On(57, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//clan list
+        this->On(58, std::bind(&Game::Handlers::PartyList, std::placeholders::_1, this));//new party clan implement
         this->On(61, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend add
         this->On(62, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend remove
         this->On(63, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend list
@@ -733,7 +738,18 @@ namespace Game
         this->On(107, std::bind(&Game::Handlers::StartMatch, std::placeholders::_1, this));//start match room
         this->On(108, std::bind(&Game::Handlers::NextRoundUpdateMatch, std::placeholders::_1, this));//start elimination next round
         this->On(109, std::bind(&Game::Handlers::CreateParty, std::placeholders::_1, this));//create party
+        this->On(110, std::bind(&Game::Handlers::PartyJoin, std::placeholders::_1, this));//create party
         this->On(111, std::bind(&Game::Handlers::LeaveParty, std::placeholders::_1, this));//leave party
+        this->On(112, std::bind(&Game::Handlers::GetActiveClanList, std::placeholders::_1, this));//clan active list
+        this->On(113, std::bind(&Game::Handlers::GetActiveClanList, std::placeholders::_1, this));//clan active list
+        this->On(114, std::bind(&Game::Handlers::PartyChangeLeader, std::placeholders::_1, this));//party change host
+        this->On(115, std::bind(&Game::Handlers::ClanRegister, std::placeholders::_1, this));//clan register
+        this->On(116, std::bind(&Game::Handlers::PartySettings, std::placeholders::_1, this));//party settings
+        this->On(117, std::bind(&Game::Handlers::PartySettings, std::placeholders::_1, this));//party settings
+        this->On(119, std::bind(&Game::Handlers::PartyRegister, std::placeholders::_1, this));//party register
+        this->On(120, std::bind(&Game::Handlers::ClanRegister, std::placeholders::_1, this));//clan register
+        this->On(121, std::bind(&Game::Handlers::ClanOtherJoin, std::placeholders::_1, this));
+        this->On(122, std::bind(&Game::Handlers::ClanRoomLeave, std::placeholders::_1, this));
         this->On(124, std::bind(&Game::Handlers::UpdateRoomSettings, std::placeholders::_1, this));//change objects state room
         this->On(125, std::bind(&Game::Handlers::UpdateRoomSettings, std::placeholders::_1, this));//change settings room
         this->On(126, std::bind(&Game::Handlers::UpdateRoomSettings, std::placeholders::_1, this));//change settings room
@@ -755,11 +771,14 @@ namespace Game
         this->On(161, std::bind(&Game::Handlers::PlayerChat, std::placeholders::_1, this));//chat message
         this->On(162, std::bind(&Game::Handlers::PlayerChat, std::placeholders::_1, this));//chat message
         this->On(163, std::bind(&Game::Handlers::PlayerInviteJoin, std::placeholders::_1, this));//invite and join
+        this->On(168, std::bind(&Game::Handlers::PlayerCompleteGuideMission, std::placeholders::_1, this));//guide mission completion
+        this->On(169, std::bind(&Game::Handlers::PlayerAutomatchLobby, std::placeholders::_1, this));//automatch
+        this->On(177, std::bind(&Game::Handlers::PartyKickMember, std::placeholders::_1, this));//force kick a party member
 
-    #if defined(RELEASE_1_0_3)
+#if defined(RELEASE_1_0_3)
         this->On(173, std::bind(&Game::Handlers::JoinPlaza, std::placeholders::_1, this));
         this->On(174, std::bind(&Game::Handlers::LeavePlaza, std::placeholders::_1, this));
-    #endif
+#endif
 
         this->On(254, std::bind(&Game::Handlers::EndMatch, std::placeholders::_1, this));//end match
         this->On(256, std::bind(&Game::Handlers::LeaveMatch, std::placeholders::_1, this));//leave match

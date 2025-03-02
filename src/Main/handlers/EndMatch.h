@@ -166,6 +166,34 @@ namespace Game
             resp.unknown = 0;
             resp.unknown2 = 0;
         }
+        inline void AddBonusExpPoint(CMainServer *server, std::vector<BaseLib::Item> items, std::uint32_t selected_character, std::uint32_t &exp, std::uint32_t &point) {
+            float extra_procent_exp = 0, extra_procent_point = 0;
+            for (auto& item : items) {
+                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character)) {
+                    //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check item id ({})", (std::uint32_t)item.item_info.item_number.item_id);
+                    auto item_info = server->GetItemInfoCache(item.item_info.item_number.item_id);
+                    auto bonus_ef_id = item_info->BonusEffectId;
+                    //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found bonus effect id ({})", (std::uint32_t)bonus_ef_id);
+                    if (bonus_ef_id) {
+                        auto bonus_ef_info = server->GetEffectInfoCache(bonus_ef_id);
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found effect info key({}) value({}) for itemid({})", (std::uint32_t)bonus_ef_info->key, (std::uint32_t)bonus_ef_info->valueA, (std::uint32_t)item.item_info.item_number.item_id);
+                        if (bonus_ef_info->key == 122) {//bonus exp
+                            extra_procent_exp += bonus_ef_info->valueA / 10.0;
+                        }
+                        else if (bonus_ef_info->key == 123) {//bonus point
+                            extra_procent_point += bonus_ef_info->valueA / 10.0;
+                        }
+                    }
+                }
+            }
+            extra_procent_exp = extra_procent_exp / 100;
+            extra_procent_point = extra_procent_point / 100;
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player before have exp: ({}), point: ({})", exp, point);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player benefit of bonus exp procent: ({}) and bonus point procent: ({})", extra_procent_exp, extra_procent_point);
+            exp += (std::uint32_t)(extra_procent_exp * exp);
+            point += (std::uint32_t)(extra_procent_point * point);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player now will get exp: ({}), point: ({})", exp, point);
+        }
 
         inline void TeamDeathMatch(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache, 
             boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
@@ -188,7 +216,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -196,8 +225,10 @@ namespace Game
                         else
                         {
                             auto ri = main_server->GetRewardInfoCache(room_cache->ModeIndex);
-                            auto exp_earnt = no_rewards ? 0 : std::min(ri->ExpBase + (2 * rsp.total_kills * ri->ExpKill) + (2 * rsp.deaths * ri->ExpDeath) + (rsp.assists * ri->ExpAssist), ri->ExpMax);
-                            auto points_earnt = no_rewards ? 0 : std::min(ri->PointBase + (rsp.total_kills * ri->PointKill) + (rsp.deaths * ri->PointDeath) + (rsp.assists * ri->PointAssist), ri->PointMax);
+                            auto exp_earnt = no_rewards ? 0 : std::min(ri->ExpBase + (2 * rsp.total_kills * ri->ExpKill) + ((rsp.total_kills ? 2 : 1) * rsp.deaths * ri->ExpDeath) + (rsp.assists * ri->ExpAssist), ri->ExpMax);
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "calc point: {} {} {} {} {}", ri->PointBase , (rsp.total_kills * ri->PointKill) , (rsp.total_kills ? (rsp.deaths * ri->PointDeath) : 0) , (rsp.assists * ri->PointAssist), ri->PointMax);
+                            auto points_earnt = no_rewards ? 0 : std::min(ri->PointBase + (rsp.total_kills * ri->PointKill) + (rsp.total_kills ? (rsp.deaths * ri->PointDeath) : 0) + (rsp.assists * ri->PointAssist), ri->PointMax);
+                            AddBonusExpPoint(main_server, player_acc_cache->inventory_items, player_acc_cache->acc_info.SelectedCharacter, exp_earnt, points_earnt);
                             ri.unlock();
                             auto old_exp = player_acc_cache->acc_info.Experience;
                             rsp.total_mp = player_acc_cache->acc_info.MicroPoints + points_earnt;
@@ -240,7 +271,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -292,7 +324,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -344,7 +377,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -399,7 +433,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -453,7 +488,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -505,7 +541,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -560,7 +597,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -613,7 +651,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -667,7 +706,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -722,7 +762,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -776,7 +817,8 @@ namespace Game
                         auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0);
                         auto earnt_battery = player_acc_cache->earnt_battery;
                         player_acc_cache->earnt_battery = 0;
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                         {
                             no_rewards = true, earnt_battery = 0;
                             ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
@@ -827,7 +869,8 @@ namespace Game
 
                     if (auto player_session = server->GetSessionById(id))
                     {
-                        if (playtime_seconds < 90)
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        if (playtime_seconds < playtime_min_seconds)
                             send_msg(player_session.get(), 254, 0, 6, 0); // no rewards
                         else
                         {

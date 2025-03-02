@@ -156,6 +156,7 @@ namespace Game
         std::uint8_t fps_limit;
         std::uint32_t room_id;
         std::uint32_t plaza_id;
+        std::uint32_t party_id;
         bool playing;
         std::uint32_t slot_id;
         std::uint8_t team_id;
@@ -163,6 +164,7 @@ namespace Game
         std::uint64_t server_time;
         bool in_room;
         bool in_plaza;
+        bool in_party;
         std::uint64_t match_loaded_time;
         std::uint32_t earnt_battery;
         BaseLib::FrontAccount acc_info;
@@ -179,6 +181,7 @@ namespace Game
             : session_id(sessionId), server_time(serverTime), acc_info(accountInfo), inventory_items(inventoryItems)
         {
             plaza_id = 0;
+            party_id = 0;
             ping = 0;
             fps_limit = 0;
             room_id = 0;
@@ -188,6 +191,7 @@ namespace Game
             state = 0;
             in_room = false;
             in_plaza = false;
+            in_party = false;
             match_loaded_time = 0;
             earnt_battery = 0;
             items_deleted.clear();
@@ -206,6 +210,7 @@ namespace Game
             fps_limit = other.fps_limit;
             room_id = other.room_id;
             plaza_id = other.plaza_id;
+            party_id = other.party_id;
             playing = other.playing;
             slot_id = other.slot_id;
             team_id = other.team_id;
@@ -213,6 +218,7 @@ namespace Game
             server_time = other.server_time;
             in_room = other.in_room;
             in_plaza = other.in_plaza;
+            in_party = other.in_party;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
             acc_info = other.acc_info;
@@ -228,12 +234,13 @@ namespace Game
         }
         Player& operator=(const Player& other)
         {
-            if (this == &other) return *this; 
+            if (this == &other) return *this;
             session_id = other.session_id;
             ping = other.ping;
             fps_limit = other.fps_limit;
             room_id = other.room_id;
             plaza_id = other.plaza_id;
+            party_id = other.party_id;
             playing = other.playing;
             slot_id = other.slot_id;
             team_id = other.team_id;
@@ -241,6 +248,7 @@ namespace Game
             server_time = other.server_time;
             in_room = other.in_room;
             in_plaza = other.in_plaza;
+            in_party = other.in_party;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
             acc_info = other.acc_info;
@@ -258,6 +266,7 @@ namespace Game
         Player()
         {
             plaza_id = 0;
+            party_id = 0;
             acc_info = BaseLib::FrontAccount();
             session_id = 0;
             server_time = 0;
@@ -271,6 +280,7 @@ namespace Game
             earnt_battery = 0;
             in_plaza = false;
             in_room = false;
+            in_party = false;
             match_loaded_time = 0;
             inventory_items.clear();
             items_deleted.clear();
@@ -475,25 +485,47 @@ namespace Game
     struct Party
     {
         std::shared_mutex mutex;
+        std::uint32_t party_id;
         bool is_playing;
         bool is_queueing;
+        bool is_registered;
+        bool is_clan;
+        bool has_password;
+        std::string password;
+        std::uint8_t max_members;
+        std::uint16_t clan_id;
         std::uint16_t party_host_session_id;
         std::vector<std::uint16_t> members;
-        Party(const bool& is_playing = false, const bool& is_queueing = false, const std::uint16_t& party_host_session_id = 0) : is_playing(is_playing), is_queueing(is_queueing), party_host_session_id(party_host_session_id) { members.clear(); }
+        std::vector<std::uint16_t> kicked_members;
+        std::uint16_t mod_id;
+        std::uint16_t map_id;
+        Party(const bool& is_playing = false, const bool& is_queueing = false, const bool& is_clan = false, const std::uint8_t& max_members = 4, const std::uint16_t& party_host_session_id = 0, const std::uint16_t& clan_id = 0, const std::uint16_t& mod_id = 0, const std::uint16_t& map_id = 0) : is_playing(is_playing), is_queueing(is_queueing), is_clan(is_clan), max_members(max_members), party_host_session_id(party_host_session_id), clan_id(clan_id), mod_id(mod_id), map_id(map_id), is_registered(is_registered) {
+            members.clear(); kicked_members.clear();
+        }
         Party(const Party& other)
         {
             is_playing = other.is_playing;
             is_queueing = other.is_queueing;
+            is_clan = other.is_clan;
+            max_members = other.max_members;
+            clan_id = other.clan_id;
+            mod_id = other.mod_id;
+            map_id = other.map_id;
             party_host_session_id = other.party_host_session_id;
             members = other.members;
+            kicked_members = other.kicked_members;
+            is_registered = other.is_registered;
         }
         Party& operator=(const Party& other)
         {
             if (this == &other) return *this;
             is_playing = other.is_playing;
             is_queueing = other.is_queueing;
+            is_clan = other.is_clan;
             party_host_session_id = other.party_host_session_id;
             members = other.members;
+            kicked_members = other.kicked_members;
+            is_registered = other.is_registered;
             return *this;
         }
     };
@@ -564,6 +596,7 @@ namespace Game
     };
 
     extern std::shared_mutex items_info_mutex;
+    extern std::shared_mutex effect_info_mutex;
     extern std::shared_mutex setitems_info_mutex;
     extern std::shared_mutex vendors_info_mutex;
     extern std::shared_mutex upgrades_info_mutex;
@@ -579,6 +612,7 @@ namespace Game
     extern std::shared_mutex rooms_cache_mutex;
     extern std::shared_mutex plaza_cache_mutex;
     extern std::shared_mutex room_ids_mutex;
+    extern std::shared_mutex party_ids_mutex;
     extern std::shared_mutex clan_cache_mutex;
     extern std::shared_mutex party_cache_mutex;
     extern std::shared_mutex mailbox_data_cache_mutex;
@@ -592,6 +626,7 @@ namespace Game
 
 
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
+    extern boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     extern std::vector<BaseLib::VendorInfo> vendors_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
@@ -607,6 +642,7 @@ namespace Game
     extern boost::unordered_flat_map<std::uint32_t, Room> rooms_cache; //read & write
     extern boost::unordered_flat_map<std::uint32_t, Plaza> plaza_cache; //read & write
     extern std::vector<std::uint32_t> room_ids; //read & write
+    extern std::vector<std::uint32_t> party_ids; //read & write
     extern boost::unordered_flat_map<std::uint32_t, Clan> clan_cache; //read & write
     extern boost::unordered_flat_map<std::uint16_t, Party> party_cache; //read & write
     extern boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
@@ -967,6 +1003,64 @@ namespace Game
             {
                 auto locked_clan_cache = LockedResource{ std::unique_lock(clan_cache_mutex), clan_cache };
                 locked_clan_cache->erase(clan_id);
+            }
+        }
+
+        auto GetPartyCacheShared(const std::uint32_t& party_id)
+        {
+            std::shared_lock lock(party_cache_mutex);
+            auto it = party_cache.find(party_id);
+            if (it != party_cache.end())
+                return LockedResource{ std::shared_lock(it->second.mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_party_mutex;
+                static thread_local Party null_party;
+                return LockedResource{ std::shared_lock(null_party_mutex), null_party };
+            }
+        }
+
+        auto GetPartyCacheUnique(const std::uint32_t& party_id)
+        {
+            std::shared_lock lock(party_cache_mutex);
+            auto it = party_cache.find(party_id);
+            if (it != party_cache.end())
+                return LockedResource{ std::unique_lock(it->second.mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_party_mutex;
+                static thread_local Party null_party;
+                return LockedResource{ std::unique_lock(null_party_mutex), null_party };
+            }
+        }
+
+        auto IsPartyAlready(const std::uint32_t& party_id)
+        {
+            std::shared_lock lock(party_cache_mutex);
+            if (auto findit = party_cache.find(party_id); findit != party_cache.end())
+                return true;
+            else
+                return false;
+        }
+
+        void AddPartyCache(const std::uint32_t& party_id, const Party& new_party)
+        {
+            if (!IsPartyAlready(party_id))
+            {
+                auto locked_party_cache = LockedResource{ std::unique_lock(party_cache_mutex), party_cache };
+                locked_party_cache->emplace(party_id, new_party);
+            }
+        }
+
+        void RemovePartyCache(const std::uint32_t& party_id)
+        {
+            if (IsPartyAlready(party_id))
+            {
+                auto party_cache_locked = LockedResource{ std::unique_lock(party_cache_mutex), party_cache };
+                auto party_ids_locked = LockedResource{ std::unique_lock(party_ids_mutex), party_ids };
+
+                party_cache_locked->erase(party_id);
+                party_ids_locked->erase(std::remove(party_ids_locked->begin(), party_ids_locked->end(), party_id), party_ids_locked->end());
             }
         }
 
@@ -2028,6 +2122,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_iteminfo_mutex), null_item_info };
             }
         }
+
         std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const std::uint32_t& item_type, const std::uint8_t& char_id)
         {
 
@@ -2055,6 +2150,38 @@ namespace Game
             std::shared_lock lock(items_info_mutex);
             return items_info.size();
         }
+
+        void AddEffectInfoCache(const std::uint32_t& id, BaseLib::EffectInfo new_effect_info)
+        {
+            auto effect_info_locked = LockedResource{ std::unique_lock(effect_info_mutex), effect_info };
+
+            auto [it, inserted] = effect_info_locked->emplace(id, std::move(new_effect_info));
+        }
+        void RemoveEffectInfoCache(const std::uint32_t& id)
+        {
+            auto effect_info_locked = LockedResource{ std::unique_lock(effect_info_mutex), effect_info };
+            effect_info_locked->erase(id);
+        }
+        auto GetEffectInfoCache(const std::uint32_t& id)
+        {
+
+            std::shared_lock lock(effect_info_mutex);
+            auto it = effect_info.find(id);
+            if (it != effect_info.end())
+                return LockedResource{ std::shared_lock(effect_info_mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_effectinfo_mutex;
+                static thread_local BaseLib::EffectInfo null_effect_info;
+                return LockedResource{ std::shared_lock(null_effectinfo_mutex), null_effect_info };
+            }
+        }
+        auto GetEffectInfoCacheSize()
+        {
+            std::shared_lock lock(effect_info_mutex);
+            return effect_info.size();
+        }
+
         void AddSetItemInfoCache(const std::uint32_t& id, BaseLib::SetItemInfo& item_info)
         {
             auto setitems_info_locked = LockedResource{ std::unique_lock(setitems_info_mutex), setitems_info };
@@ -3078,6 +3205,10 @@ namespace Game
         {
             return items_info_mutex;
         }
+        auto& GetEffectInfoMutex()
+        {
+            return effect_info_mutex;
+        }
         auto& GetSetItemInfoMutex()
         {
             return setitems_info_mutex;
@@ -3137,6 +3268,10 @@ namespace Game
         auto& GetRoomIdsMutex()
         {
             return room_ids_mutex;
+        }
+        auto& GetPartyIdsMutex()
+        {
+            return party_ids_mutex;
         }
     };
     namespace Commands

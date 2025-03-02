@@ -49,6 +49,34 @@ namespace Game
                     return;
                 }
             }
+
+            auto in_party = acc_cache->in_party;
+            bool is_clan = false;
+            bool is_my_party = false;
+            bool is_vs_party = false;
+            if (in_party) {
+                if (room_cache->host_session_id == session_id) {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "host try to join room!");
+                    return;
+                }
+                auto host_cache = main_server->GetAccCacheSharedBySessionId(room_cache->host_session_id);
+                if (!host_cache->in_party) {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player try to join party a room which isnt a party!");
+                    return;
+                }
+                auto host_party_id = host_cache->party_id;
+                host_cache.unlock();
+                auto party_cache = main_server->GetPartyCacheShared(host_party_id);
+                is_clan = party_cache->is_clan;
+                party_cache.unlock();
+                if (acc_cache->party_id == host_party_id) {
+                    is_my_party = true;
+                }
+                else {
+                    is_vs_party = true;
+                }
+            }
+
             auto is_mode_teambased = main_server->IsModeTeamBased(static_cast<NetEngine::Room::Mode::Index>(room_cache->ModeIndex));
             auto observers_max_count = room_cache->allow_observers ? 10 : 0;
             auto room_players_max_count = room_cache->max_players;
@@ -145,7 +173,7 @@ namespace Game
                 settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;
             settings_info.has_password = has_password;
             settings_info.hide_password = false;
-            settings_info.is_clan_room = false;
+            settings_info.is_clan_room = (acc_cache->in_party ? (is_clan ? 2 : 1) : 0);
             auto settings_data = MainRoomSettingsInfoAck(room_cache->password.c_str(), settings_info).Serialize();
             std::uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
             std::uint8_t low_room_id_part = room_cache->room_id & 0xFF;

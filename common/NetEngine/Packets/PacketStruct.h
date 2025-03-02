@@ -1624,6 +1624,23 @@ namespace NetEngine
                 }
             };
 
+            class MainUserInvitePartyAck
+            {
+            public:
+                std::uint32_t unk1;
+                std::uint32_t unk2;
+                char nickname[16];
+                MainUserInvitePartyAck(const std::uint32_t& data1 = 0, const char* newNickname = "", const std::uint32_t& roomId = 0)
+                {
+                    std::memset(this, 0, sizeof(MainUserInvitePartyAck));
+                    this->unk1 = roomId;
+                    this->unk2 = 1;
+                    std::memset(this->nickname, 0, sizeof(nickname));
+                    std::strcpy(this->nickname, newNickname);
+
+                }
+            };
+
 #pragma pack(pop)
         }
 

@@ -8,7 +8,7 @@ namespace NetEngine
         m_sessionIdGenerator = IdGenerator(1, 65535);
         m_roomIdGenerator = IdGenerator(2048, 4096);
         m_plazaIdGenerator = IdGenerator(0, 65535);
-        m_queuePartyIdGenerator = IdGenerator(0, 65535);
+        m_queuePartyIdGenerator = IdGenerator(2048, 4096);
 
         //m_available_session_ids[0] = false; 
         //m_available_room_ids[0] = false;
@@ -26,6 +26,7 @@ namespace NetEngine
         m_useEncryption = settings.useEncryption;
         m_useMultithreaded = settings.useMultithreaded;
         m_concurrentThreads = settings.concurrent_threads;
+        m_playtimeMinSeconds = settings.playtime_min_seconds;
         m_watchguard = settings.useWatchguard;
         //m_poolThreads = settings.pool_threads;
 
