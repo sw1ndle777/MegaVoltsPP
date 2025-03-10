@@ -40,6 +40,7 @@ namespace BaseLib
         std::string Password;
         std::string Salt;
         std::uint8_t Grade;
+        std::uint8_t PCRoom;
         std::uint64_t AuthKey;
         std::uint32_t ClanId;
         std::uint32_t ClanKills;
@@ -54,6 +55,9 @@ namespace BaseLib
         std::uint32_t Experience;
         bool Tutorial;
         std::uint32_t Story;
+        std::uint8_t GuideMission;
+        std::uint64_t Achievement;
+        std::uint64_t VoiceType;
         std::uint32_t VIPExperience;
         std::uint32_t MaximumItems;
         std::uint32_t MaximumEnergy;
@@ -95,6 +99,7 @@ namespace BaseLib
             this->Password = "";
             this->Salt = "";
             this->Grade = -1;
+            this->PCRoom = -1;
             this->AuthKey = -1;
             this->ClanId = -1;
             this->ClanKills = -1;
@@ -109,6 +114,9 @@ namespace BaseLib
             this->Experience = -1;
             this->Tutorial = false;
             this->Story = -1;
+            this->GuideMission = -1;
+            this->Achievement = -1;
+            this->VoiceType = -1;
             this->VIPExperience = -1;
             this->MaximumItems = -1;
             this->MaximumEnergy = -1;
@@ -147,10 +155,12 @@ namespace BaseLib
         FrontAccount(
             const std::uint32_t& index,            
             const std::string&   username,         const std::string&   password,       const std::string&   salt,               const std::uint8_t&  grade,
-            const std::uint64_t& auth_key,         const std::uint32_t& clan_id,        const std::uint32_t& clan_kills,         const std::uint32_t& clan_deaths,
+            const std::uint8_t& pc_room,           const std::uint64_t& auth_key,       const std::uint32_t& clan_id,            const std::uint32_t& clan_kills,
+            const std::uint32_t& clan_deaths,
             const std::uint32_t& clan_assists,     const std::uint64_t& clan_contrib,   const std::uint64_t& clan_wins,          const std::uint64_t& clan_loses, 
             const std::uint64_t& clan_draws,       const std::string&   nickname,       const std::uint32_t& level,
-            const std::uint32_t& experience,       const bool&          tutorial,       const std::uint32_t& story,              const std::uint32_t& vip_exp,
+            const std::uint32_t& experience,       const bool&          tutorial,       const std::uint32_t& story,              const std::uint8_t& guide_mission,
+            const std::uint64_t& achievement,      const std::uint64_t& voice_type,     const std::uint32_t& vip_exp,
             const std::uint32_t& max_items,        const std::uint32_t& max_energy,     const std::uint32_t& selected_char,      const std::uint64_t& playtime,
             const std::uint64_t& muteduntil,       const std::uint32_t& coins,          const std::uint32_t& energy,             const std::uint32_t& luckypoints,
             const std::uint32_t& micropoints,      const std::uint32_t& rocktokens,     const std::uint32_t& coupons,            const std::uint32_t& wins,
@@ -166,6 +176,7 @@ namespace BaseLib
             this->Password = password;
             this->Salt = salt;
             this->Grade = grade;
+            this->PCRoom = pc_room;
             this->AuthKey = auth_key;
             this->ClanId = clan_id;
             this->ClanKills = clan_kills;
@@ -180,6 +191,9 @@ namespace BaseLib
             this->Experience = experience;
             this->Tutorial = tutorial;
             this->Story = story;
+            this->GuideMission = guide_mission;
+            this->Achievement = achievement;
+            this->VoiceType = voice_type;
             this->VIPExperience = vip_exp;
             this->MaximumItems = max_items;
             this->MaximumEnergy = max_energy;

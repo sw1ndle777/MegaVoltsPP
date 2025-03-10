@@ -3,23 +3,24 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 namespace BaseLib
 {
+#pragma pack(push, 1)
     struct ItemInfo
     {
         std::uint32_t Id;
-        std::string Name;
-        std::string NameTime;
-        std::string NameOption;
+        //std::string Name;
+        //std::string NameTime;
+        //std::string NameOption;
         bool IsNaomiUsable;
         bool IsKaiUsable;
         bool IsPandoraUsable;
         bool IsChipUsable;
         bool IsKnoxUsable;
         bool IsSimonUsable;
-        bool IsAmeliaUsable;
-        bool IsSharkillUsable;
-        bool IsSophitiaUsable;
+        //bool IsAmeliaUsable;
+        //bool IsSharkillUsable;
+        //bool IsSophitiaUsable;
         std::uint32_t Type;
-        std::uint32_t InventoryType;
+        //std::uint32_t InventoryType;
         bool IsUpgradable;
         std::uint32_t LimitedTime;
         std::uint32_t Durability;
@@ -32,20 +33,20 @@ namespace BaseLib
         ItemInfo()
         {
             this->Id = 0;
-            this->Name = "";
-            this->NameTime = "";
-            this->NameOption = "";
+            //this->Name = "";
+            //this->NameTime = "";
+            //this->NameOption = "";
             this->IsNaomiUsable = false;
             this->IsKaiUsable = false;
             this->IsPandoraUsable = false;
             this->IsChipUsable = false;
             this->IsKnoxUsable = false;
             this->IsSimonUsable = false;
-            this->IsAmeliaUsable = false;
-            this->IsSharkillUsable = false;
-            this->IsSophitiaUsable = false;
+            //this->IsAmeliaUsable = false;
+            //this->IsSharkillUsable = false;
+            //this->IsSophitiaUsable = false;
             this->Type = -1;
-            this->InventoryType = -1;
+            //this->InventoryType = -1;
             this->IsUpgradable = false;
             this->LimitedTime = -1;
             this->Durability = 0;
@@ -57,6 +58,7 @@ namespace BaseLib
             this->BonusEffectId = 0;
         }
     };
+#pragma pack(pop)
 
     struct EffectInfo {
         std::uint32_t id;
@@ -66,6 +68,23 @@ namespace BaseLib
             this->id = 0;
             this->key = 0;
             this->valueA = 0;
+        }
+    };
+
+    struct CollectionInfo {
+        std::uint32_t id;
+        std::uint32_t setIndex;
+        std::uint32_t rewardPoint;
+        std::uint32_t rewardExp;
+        std::uint32_t rewardItem;
+        std::uint32_t missionType;
+        CollectionInfo() {
+            this->id = 0;
+            this->setIndex = 0;
+            this->rewardPoint = 0;
+            this->rewardExp = 0;
+            this->rewardItem = 0;
+            this->missionType = 0;
         }
     };
 
@@ -223,7 +242,7 @@ namespace BaseLib
     struct GachaponInfo
     {
         std::uint32_t Id;
-        std::string Name;
+        //std::string Name;
         std::uint32_t Type;
         std::uint32_t InfoId;
         std::uint32_t LimitedGrade;
@@ -234,7 +253,7 @@ namespace BaseLib
         GachaponInfo()
         {
             this->Id = -1;
-            this->Name = "";
+            //this->Name = "";
             this->Type = -1;
             this->InfoId = -1;
             this->LimitedGrade = -1;

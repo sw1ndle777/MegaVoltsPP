@@ -10,11 +10,11 @@ namespace Game
         inline void ServerConnect(std::shared_ptr<CSession> session, CFrontServer* front_server)
         {
             std::unique_lock lock(session->GetMutex());
-            //const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
+            const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
             auto utc_now = Utility::GetUtcTimeNow();
             auto time_zone = "GMT+2";
             auto readable_time = Utility::GetReadableTime(utc_now, time_zone);
-            FrontEngineServerConnectionAck frontEngineServerConnectionAck = FrontEngineServerConnectionAck(static_cast<std::int32_t>(rand() + 1), utc_now);
+            FrontEngineServerConnectionAck frontEngineServerConnectionAck = FrontEngineServerConnectionAck(random_number, utc_now);
 
             session->SetEncryptionKey(frontEngineServerConnectionAck.cryptoKey);
 

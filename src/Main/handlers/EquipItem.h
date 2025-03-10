@@ -99,7 +99,7 @@ namespace Game
                     }
                     const auto& item = item_inv.value();
                     auto item_info = main_server->GetItemInfoCache(item.item_info.item_number.item_id);
-                    if (item_info->Name.empty())
+                    if (!item_info->Id)
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) attempt equip but can't find item in item info cache or it has no namme item id: ({})", acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
                         continue;
@@ -167,7 +167,7 @@ namespace Game
 
                     const auto& item = item_inv.value();
                     auto item_info = main_server->GetItemInfoCache(item.item_info.item_number.item_id);
-                    if (item_info->Name.empty())
+                    if (!item_info->Id)
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) attempt switch but can't find item in item info cache or it has no namme item id: ({})", acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
                         continue;
@@ -182,8 +182,8 @@ namespace Game
                             for (const auto& uneqipped_item : uneqipped_items)
                             {
                                 auto uneqipped_item_info = main_server->GetItemInfoCache(uneqipped_item.item_info.item_number.item_id);
-                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) switch unequipped item ({}) ({}) from character ({})",
-                                    acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Name.c_str(), uneqipped_item_info->NameTime.c_str(), main_server->GetCharacterStr(character_id).c_str());
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) switch unequipped item ({}) from character ({})",
+                                    acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Id, main_server->GetCharacterStr(character_id).c_str());
                             }
                         }
                     }
@@ -201,8 +201,8 @@ namespace Game
                                     for (const auto& uneqipped_item : uneqipped_items)
                                     {
                                         auto uneqipped_item_info = main_server->GetItemInfoCache(uneqipped_item.item_info.item_number.item_id);
-                                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) unequipped item ({}) ({}) from character ({})",
-                                            acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Name.c_str(), uneqipped_item_info->NameTime.c_str(), main_server->GetCharacterStr(character_id).c_str());
+                                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) unequipped item ({}) from character ({})",
+                                            acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Id, main_server->GetCharacterStr(character_id).c_str());
                                     }
                                     break;
                                 }
@@ -214,8 +214,8 @@ namespace Game
                             for (const auto& uneqipped_item : uneqipped_items)
                             {
                                 auto uneqipped_item_info = main_server->GetItemInfoCache(uneqipped_item.item_info.item_number.item_id);
-                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) switch unequipped item ({}) ({}) from character ({})",
-                                    acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Name.c_str(), uneqipped_item_info->NameTime.c_str(), main_server->GetCharacterStr(character_id).c_str());
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) switch unequipped item ({}) from character ({})",
+                                    acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Id, main_server->GetCharacterStr(character_id).c_str());
                             }
                         }
                     }
@@ -224,8 +224,8 @@ namespace Game
 
                     main_server->UpdatePlayerItemEquip(acc_cache, item.item_info.serial_info, character_id, true);
 
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) switch {} item ({}) ({}) to character ({})",
-                        acc_cache->acc_info.Nickname.c_str(), item.is_equipped ? "unequipped" : "equipped", item_info->Name.c_str(), item_info->NameTime.c_str(), main_server->GetCharacterStr(character_id).c_str());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) switch {} item ({}) to character ({})",
+                        acc_cache->acc_info.Nickname.c_str(), item.is_equipped ? "unequipped" : "equipped", item_info->Id, main_server->GetCharacterStr(character_id).c_str());
 
                     if (item.item_info.expire_date == ItemExpire::Type::Unused)
                         main_server->UpdatePlayerItemExpireDate(acc_cache, item.item_info.serial_info, item_info->LimitedTime == 0 ? ItemExpire::Type::Unlimited : Utility::GetUtcTimeNowPlusSeconds(item_info->LimitedTime));
@@ -238,8 +238,8 @@ namespace Game
                 for (const auto& item : updated_items)
                 {
                     auto item_info = main_server->GetItemInfoCache(item.item_info.item_number.item_id);
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) single {} item ({}) ({}) to character ({})", 
-                        acc_cache->acc_info.Nickname.c_str(), item.is_equipped ? "equipped" : "unequipped", item_info->Name.c_str(), item_info->NameTime.c_str(), main_server->GetCharacterStr(current_character).c_str());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) single {} item ({}) to character ({})", 
+                        acc_cache->acc_info.Nickname.c_str(), item.is_equipped ? "equipped" : "unequipped", item_info->Id, main_server->GetCharacterStr(current_character).c_str());
                 }
             }
             else if (equip_update_type == EquipUpdate::Type::Multiple) // needs rework
@@ -253,8 +253,8 @@ namespace Game
                         for (const auto& uneqipped_item : uneqipped_items)
                         {
                             auto uneqipped_item_info = main_server->GetItemInfoCache(uneqipped_item.item_info.item_number.item_id);
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) multiple unequipped item ({}) ({}) from character ({})",
-                                acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Name.c_str(), uneqipped_item_info->NameTime.c_str(), main_server->GetCharacterStr(current_character).c_str());
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) multiple unequipped item ({}) from character ({})",
+                                acc_cache->acc_info.Nickname.c_str(), uneqipped_item_info->Id, main_server->GetCharacterStr(current_character).c_str());
                         }
                     }
                     else // equip item serial
@@ -267,7 +267,7 @@ namespace Game
                         }
                         const auto& item = item_inv.value();
                         auto item_info = main_server->GetItemInfoCache(item.item_info.item_number.item_id);
-                        if (item_info->Name.empty())
+                        if (!item_info->Id)
                         {
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) attempt equip but can't find item in item info cache or it has no namme item id: ({})", acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
                             continue;
@@ -294,8 +294,8 @@ namespace Game
 
                         main_server->UpdatePlayerItemEquip(acc_cache, item.item_info.serial_info, current_character, true);
 
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) multiple {} item ({}) ({}) to character ({})",
-                            acc_cache->acc_info.Nickname.c_str(), item.is_equipped ? "unequipped" : "equipped", item_info->Name.c_str(), item_info->NameTime.c_str(), main_server->GetCharacterStr(current_character).c_str());
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) multiple {} item ({}) to character ({})",
+                            acc_cache->acc_info.Nickname.c_str(), item.is_equipped ? "unequipped" : "equipped", item_info->Id, main_server->GetCharacterStr(current_character).c_str());
 
                         if (item.item_info.expire_date == ItemExpire::Type::Unused)
                             main_server->UpdatePlayerItemExpireDate(acc_cache, item.item_info.serial_info, item_info->LimitedTime == 0 ? ItemExpire::Type::Unlimited : Utility::GetUtcTimeNowPlusSeconds(item_info->LimitedTime));

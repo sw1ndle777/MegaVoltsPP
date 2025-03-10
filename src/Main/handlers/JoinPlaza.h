@@ -12,7 +12,7 @@ namespace Game
             auto cache_acc = main_server->GetAccCacheSharedBySessionId(sess_id);
             RoomUserPlayerInfo1 my_info1{}; RoomUserPlayerInfo2 my_info2{};
             my_info1.grade = cache_acc->acc_info.Grade;
-            my_info1.vip_level = cache_acc->acc_info.VIPExperience;
+            my_info1.vip_level = cache_acc->acc_info.PCRoom;
             my_info1.character = cache_acc->acc_info.SelectedCharacter;
             my_info1.team = cache_acc->team_id;
         #if defined(RELEASE_1_0_3)
@@ -124,6 +124,11 @@ namespace Game
             {
                 if (main_server->IsPlazaBroadcastable(plaza))
                 {
+                    auto my_player_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+                    auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                    auto my_voice_id = my_player_cache->voice_id;
+                    my_player_cache.unlock();
+
                     auto playerEnterInfoData = get_equipped_data(main_server, session_id);
                     auto& players_ids = plaza->session_ids;
                     for (const auto& plaza_player_session_id : players_ids)
@@ -132,8 +137,16 @@ namespace Game
                         if (auto player_session = server->GetSessionById(plaza_player_session_id))
                         {
                             send_msg(player_session.get(), 424, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
+                            send_msg(player_session.get(), 314, 0, 0, my_voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+
                             auto other_player_equipped_data = get_equipped_data(main_server, plaza_player_session_id);
                             send_msg(session, 424, 0, 0, 1, reinterpret_cast<uint8_t*>(other_player_equipped_data.data()), other_player_equipped_data.size());
+
+                            auto player_cache = main_server->GetAccCacheSharedBySessionId(plaza_player_session_id);
+                            auto other_unique_id = NetEngine::Packets::Core::UniqueId(plaza_player_session_id, 1).data;
+                            auto other_voice_id = player_cache->voice_id;
+                            send_msg(session, 314, 0, 0, other_voice_id, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
+                            player_cache.unlock();
                         }
                     }
                 }
@@ -182,7 +195,7 @@ namespace Game
                     std::uint16_t current_plaza_id = 0;
                     server->GetNextAvailablePlazaId(current_plaza_id);
                     //server->SetPlazaIdAvailable(current_plaza_id);
-                    auto new_plaza = Plaza(current_plaza_id, 2);
+                    auto new_plaza = Plaza(current_plaza_id, 32);
                     if (current_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);
                     acc_cache->plaza_id = current_plaza_id;
                     acc_cache->in_plaza = true;
@@ -242,7 +255,7 @@ namespace Game
                 {
                     std::uint16_t current_plaza_id = plaza_id;
                     //server->SetPlazaIdAvailable(current_plaza_id);
-                    auto new_plaza = Plaza(current_plaza_id, 2);
+                    auto new_plaza = Plaza(current_plaza_id, 32);
                     if (current_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);
                     acc_cache->plaza_id = current_plaza_id;
                     acc_cache->in_plaza = true;

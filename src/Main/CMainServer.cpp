@@ -88,6 +88,16 @@ namespace Game
         }
         static void Info(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
+            if (acc_cache->in_party)
+            {
+                if (main_server->IsPartyAlready(acc_cache->party_id))
+                {
+                    auto party = main_server->GetPartyCacheShared(acc_cache->party_id);
+                    acc_cache.unlock();
+                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Party Info: is_registered: ({}) is_queueing: ({}), has_password: ({}), password: ({}), is_clan: ({}), clan_id: ({}), is_playing: ({}), max_members: ({}), members.size(): ({})", party->is_registered, party->is_queueing, party->has_password, party->password.c_str(), party->is_clan, party->clan_id, party->is_playing, party->max_members, party->members.size()).c_str());
+                    acc_cache.lock();
+                }
+            }
             if (acc_cache->in_room)
             {
                 if (main_server->IsRoomAlready(acc_cache->room_id))
@@ -621,6 +631,7 @@ namespace Game
 
     std::shared_mutex items_info_mutex;
     std::shared_mutex effect_info_mutex;
+    std::shared_mutex collection_info_mutex;
     std::shared_mutex setitems_info_mutex;
     std::shared_mutex vendors_info_mutex;
     std::shared_mutex upgrades_info_mutex;
@@ -666,6 +677,7 @@ namespace Game
 
     boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
     boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
+    boost::unordered_flat_map<std::uint32_t, BaseLib::CollectionInfo> collection_info; //read only
     boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     std::vector<BaseLib::VendorInfo> vendors_info; //read only
     boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
@@ -706,6 +718,7 @@ namespace Game
         this->On(54, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//block 
         this->On(57, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//clan list
         this->On(58, std::bind(&Game::Handlers::PartyList, std::placeholders::_1, this));//new party clan implement
+        this->On(59, std::bind(&Game::Handlers::PlayerCompleteAchievement, std::placeholders::_1, this));//achievement achivement mission completion
         this->On(61, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend add
         this->On(62, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend remove
         this->On(63, std::bind(&Game::Handlers::PlayerSocials, std::placeholders::_1, this));//friend list
@@ -768,6 +781,7 @@ namespace Game
         this->On(142, std::bind(&Game::Handlers::UpdateRoomList, std::placeholders::_1, this));//rooms info
         this->On(158, std::bind(&Game::Handlers::GameEventMessage, std::placeholders::_1, this));//game event message
         this->On(159, std::bind(&Game::Handlers::ChangeTeam, std::placeholders::_1, this));//change team room
+        this->On(160, std::bind(&Game::Handlers::SelectVoiceType, std::placeholders::_1, this));//select voicetype
         this->On(161, std::bind(&Game::Handlers::PlayerChat, std::placeholders::_1, this));//chat message
         this->On(162, std::bind(&Game::Handlers::PlayerChat, std::placeholders::_1, this));//chat message
         this->On(163, std::bind(&Game::Handlers::PlayerInviteJoin, std::placeholders::_1, this));//invite and join

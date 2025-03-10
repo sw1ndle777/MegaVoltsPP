@@ -65,8 +65,31 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_cache->acc_info.Index == -1) return;
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player update state: before ({}) now ({})", static_cast<std::uint32_t>(acc_cache->state), static_cast<std::uint32_t>(player_state));
+            acc_cache->state = player_state;
+
             if (player_state == PlayerInfo::State::GachaponMachine)
             {
+                if (acc_cache->in_plaza && acc_cache->acc_info.GuideMission == 7) // Finish Guide Mission "go to gachapon"
+                {
+                    auto current_coll = main_server->GetCollectionInfoCache(53);
+                    acc_cache->acc_info.GuideMission = 8;
+                    if (current_coll->rewardExp > 0)
+                    {
+                        acc_cache->acc_info.Experience += current_coll->rewardExp;
+                    }
+                    if (current_coll->rewardPoint > 0)
+                    {
+                        acc_cache->acc_info.MicroPoints += current_coll->rewardPoint;
+                    }
+                    MainCompleteMissionReq mission_data;
+                    mission_data.collection_id = 53;
+                    send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
+                    std::vector<std::uint16_t> empty_vec;
+                    ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
+                }
+
                 std::vector<MainGachaponSaleInfo> gachapon_sale_info;
                 auto sales_db = main_server->GetGachaponSaleIdsCacheShared();
                 for (auto& sale_id : *sales_db)
@@ -87,7 +110,6 @@ namespace Game
                 send_msg(session, 307, 0x0, 0, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // currency update ack
 
             }
-            acc_cache->state = player_state;
 
 
 
@@ -98,6 +120,7 @@ namespace Game
                 {
                     auto room = main_server->GetRoomCacheShared(acc_cache->room_id);
                     auto selected_character = acc_cache->acc_info.SelectedCharacter;
+                    auto voice_id = acc_cache->voice_id;
                     std::vector<BaseLib::Item> my_equipped_items;
                     for (const auto& item : acc_cache->inventory_items)
                         if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character))
@@ -115,7 +138,10 @@ namespace Game
                     {
                         if (room_player_session_id == session_id) continue;
                         if (auto player_session = server->GetSessionById(room_player_session_id))
+                        {
                             send_msg(player_session.get(), 414, 0, selected_character, 17, reinterpret_cast<uint8_t*>(&equip_data), sizeof(MainRoomPlayersEquipInfoUpdateRoomAck));
+                            send_msg(player_session.get(), 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                        }
                     }
                 }
             }
@@ -125,6 +151,7 @@ namespace Game
                 {
                     auto plaza = main_server->GetPlazaCacheShared(acc_cache->plaza_id);
                     auto selected_character = acc_cache->acc_info.SelectedCharacter;
+                    auto voice_id = acc_cache->voice_id;
                     std::vector<BaseLib::Item> my_equipped_items;
                     for (const auto& item : acc_cache->inventory_items)
                         if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character))
@@ -139,7 +166,40 @@ namespace Game
                     {
                         if (plaza_player_session_id == session_id) continue;
                         if (auto player_session = server->GetSessionById(plaza_player_session_id))
+                        {
                             send_msg(player_session.get(), 414, 0, selected_character, 17, reinterpret_cast<uint8_t*>(&equip_data), sizeof(MainRoomPlayersEquipInfoUpdateRoomAck));
+                            send_msg(player_session.get(), 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                        }
+                    }
+                }
+            }
+            if (acc_cache->in_party && acc_cache->in_room)
+            {
+                bool is_going_to_waiting = (static_cast<std::uint32_t>(player_state) == 7);
+                auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
+                auto party_cache = main_server->GetPartyCacheUnique(acc_cache->party_id);
+                bool is_ruined = (room_cache->blueteam_session_ids.size() == 0 || room_cache->redteam_session_ids.size() == 0);
+                if (is_ruined && is_going_to_waiting)
+                {
+                    auto target_room_id = room_cache->room_id;
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to switch state to waiting in a party battle that need to be dismembered");
+                    send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0);
+                    send_msg(session, 120, 0, 45, 0);
+                    auto my_team_id = acc_cache->team_id;
+                    acc_cache->room_id = 0;
+                    acc_cache->in_room = false;
+                    acc_cache->playing = false;
+                    party_cache->is_registered = false;
+                    party_cache->is_queueing = false;
+                    main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
+                    main_server->RoomPlayersSlotReorder(room_cache);
+                    std::uint32_t player_count = room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size();
+                    if (player_count == 0)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "last player remaining in endmatch screen leave so now room will be removed");
+                        main_server->RemoveRoomCache(target_room_id);
+                        main_server->SetRoomIdAvailable(target_room_id);
+                        party_cache->is_playing = false;
                     }
                 }
             }

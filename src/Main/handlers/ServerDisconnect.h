@@ -38,6 +38,7 @@ namespace Game
             auto clan_id = acc_cache->acc_info.ClanId;
             auto in_room = acc_cache->in_room;
             auto in_party = acc_cache->in_party;
+            auto party_id = acc_cache->party_id;
             auto room_id = acc_cache->room_id;
             auto team_id = acc_cache->team_id;
             auto plaza_id = acc_cache->plaza_id;
@@ -141,16 +142,6 @@ namespace Game
                     }
                 };
 
-                if (in_party) {
-                    SCallbackData callback;
-                    callback.server = main_server;
-                    callback.session = (main_server->GetSessionById(session_id)).get();
-                    lock.unlock();
-                    LeaveParty(callback, main_server);
-                    lock.lock();
-                }
-               
-
                 //acc_cache.lock();
 
 
@@ -204,6 +195,68 @@ namespace Game
                     main_server->RemoveRoomCache(room_id);
                     server->SetRoomIdAvailable(room_id);
                 }
+            }
+
+            if (in_party && main_server->IsPartyAlready(party_id))
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now leave party on disconnect");
+                acc_cache.lock();
+                auto party_id = acc_cache->party_id;
+                auto party_cache = main_server->GetPartyCacheUnique(party_id);
+
+                if (party_cache->party_host_session_id == session_id) {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party will need change host");
+                    if (!in_room)
+                    {
+                        party_cache->is_registered = false;
+                        party_cache->is_queueing = false;
+                        for (const auto& party_member_session_id : party_cache->members)
+                        {
+                            if (auto player_session = server->GetSessionById(party_member_session_id))
+                                send_msg(player_session.get(), 120, 0, 45, 0);
+                        }
+                    }
+                    std::uint16_t new_leader_index = 0;
+                    std::uint16_t new_leader = 0;
+                    for (const auto& member : party_cache->members)
+                    {
+                        if (member != party_cache->party_host_session_id) {
+                            new_leader = member;
+                            break;
+                        }
+                        new_leader_index++;
+                    }
+                    for (const auto& party_member_session_id : party_cache->members)
+                    {
+                        if (party_member_session_id == party_cache->party_host_session_id) continue;
+                        if (auto player_session = server->GetSessionById(party_member_session_id))
+                            send_msg(player_session.get(), 114, 0, 1, static_cast<std::uint8_t>(new_leader_index));
+                    }
+                    party_cache->party_host_session_id = new_leader;
+                }
+
+
+                auto remove_myself = std::remove(party_cache->members.begin(), party_cache->members.end(), session_id);
+                party_cache->members.erase(remove_myself, party_cache->members.end());
+
+                for (const auto& party_member_session_id : party_cache->members)
+                {
+                    if (auto player_session = server->GetSessionById(party_member_session_id))
+                        send_msg(player_session.get(), 419, 0, 0, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                }
+
+                acc_cache->party_id = 0;
+                acc_cache->in_party = false;
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) left party id: ({})", acc_cache->acc_info.Nickname.c_str(), party_id);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now party have member count: ({})", party_cache->members.size());
+
+                if (party_cache->members.size() == 0) {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party is empty so will be deleted id: ({})", party_id);
+                    main_server->RemovePartyCache(party_id);
+                    main_server->SetQueuePartyIdAvailable(party_id);
+                }
+                acc_cache.unlock();
             }
 
             if (main_server->IsPlazaAlready(plaza_id))

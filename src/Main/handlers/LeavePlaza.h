@@ -48,6 +48,27 @@ namespace Game
                 }
             }
             send_msg(session, 174, 0, 0, 0); // leave plaza success
+            acc_cache.unlock();
+
+            if (acc_cache->state == 0 && acc_cache->acc_info.GuideMission == 9) // Done guide mission "View roomlist"
+            {
+                auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+                auto current_coll = main_server->GetCollectionInfoCache(55);
+                acc_cache->acc_info.GuideMission = 10;
+                if (current_coll->rewardExp > 0)
+                {
+                    acc_cache->acc_info.Experience += current_coll->rewardExp;
+                }
+                if (current_coll->rewardPoint > 0)
+                {
+                    acc_cache->acc_info.MicroPoints += current_coll->rewardPoint;
+                }
+                MainCompleteMissionReq mission_data;
+                mission_data.collection_id = 55;
+                send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
+                std::vector<std::uint16_t> empty_vec;
+                ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
+            }
         }
     }
 }

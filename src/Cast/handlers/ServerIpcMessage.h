@@ -91,6 +91,27 @@ namespace Game
                     CastServerInfo(auth_key, cast_server);
                     break;
                 }
+                case PacketIds::Ipc::MainToCastSendPingAssure:
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "send ping assure from cast");
+                    struct MainToCastSendPingAssureInfo
+                    {
+                        std::uint32_t session_id;
+                    } info;
+                    auto data = Utility::FromVector<MainToCastSendPingAssureInfo>(payload);
+                    if (auto player_session = cast_server->GetSessionByIdNoLock(data.session_id))
+                    {
+                        CMessage castPingAck = CMessage(player_session->GetEncryptionKey());
+                        castPingAck.SetSession(player_session->GetSessionId());
+                        castPingAck.SetCommand(72, 1, 0x00, 0);
+                        player_session->Send(castPingAck);
+                        player_session->Send(castPingAck);
+                        player_session->Send(castPingAck);
+                        castPingAck.SetOption(3);
+                        player_session->Send(castPingAck);
+                    }
+                    break;
+                }
                 default:
                 {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Unhandled server IPC message ID: {}", msg_id);

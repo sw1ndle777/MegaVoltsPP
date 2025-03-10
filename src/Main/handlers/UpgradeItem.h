@@ -154,13 +154,13 @@ namespace Game
             const auto& current_item_info = item_inv.value().item_info;
             if (current_item_info.energy < current_upgrade.UseExp)
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) has no battery to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str());
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) has no battery to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 return;
             }
             if (current_item_info.repair != item_info->Durability)
             {
                 send_msg(session, 101, 0, static_cast<std::uint8_t>(Items::Upgrade::Result::RepairItem), 0);
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) has no funds to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str());
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) has no funds to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 return;
             }
             if (acc_cache->acc_info.MicroPoints < current_upgrade.BuyPoint || acc_cache->acc_info.RockTokens < current_upgrade.BuyCash)
@@ -198,7 +198,7 @@ namespace Game
                     ShopItem shop_item = { {upgraded_item_info->Id , upgraded_item_info->Stock }, item_inv.value().item_info.expire_date, item_inv.value().item_info.serial_info.data };
                     auto upgradeItemAckData = MainUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeSuccess));
                     send_msg(session, 101, upgrade_type, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeSuccess), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) upgraded item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) upgraded item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 }
             }
             else
@@ -252,7 +252,7 @@ namespace Game
                     main_server->UpdatePlayerItemEnergy(acc_cache, item_inv.value().item_info.serial_info, energy_to_refund);
                     auto upgradeItemAckData = MainUpgradeItemAck(ShopItem(), item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailLow));
                     send_msg(session, 101, static_cast<std::uint8_t>(Items::Upgrade::FailType::NoChange), static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailLow), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());;
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) failed to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) failed to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 }
                 else
                 {
@@ -264,7 +264,7 @@ namespace Game
                         const ShopItem& shop_item = { {previous_upgrade_item_info->Id, previous_upgrade_item_info->Stock} , item_inv.value().item_info.expire_date , item_inv.value().item_info.serial_info.data };
                         auto upgradeItemAckData = MainUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailHigh));
                         send_msg(session, 101, upgrade_type, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailHigh), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) failed to upgrade and downgraded item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str());
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) failed to upgrade and downgraded item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                     }
                 }
             }

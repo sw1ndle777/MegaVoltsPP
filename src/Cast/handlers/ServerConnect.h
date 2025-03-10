@@ -10,8 +10,8 @@ namespace Game
         inline void ServerConnect(std::shared_ptr<CSession> session, CCastServer* cast_server)
         {
             std::shared_lock lock(session->GetMutex());
-            //auto random_number = Utility::Random::CustomGen(100000000, 999999999);
-            CastEngineServerConnectionAck castEngineServerConnectionAck = CastEngineServerConnectionAck(static_cast<std::int32_t>(rand() + 1));
+            auto random_number = Utility::Random::CustomGen(100000000, 999999999);
+            CastEngineServerConnectionAck castEngineServerConnectionAck = CastEngineServerConnectionAck(random_number);
 
             CMessage castEngineServerConnectionAckMessage = CMessage();
             castEngineServerConnectionAckMessage.SetSession(session->GetSessionId());

@@ -17,6 +17,7 @@ namespace Game
             auto acc_index = acc_cache->acc_info.Index;
             auto in_room = acc_cache->in_room;
             auto room_id = acc_cache->room_id;
+            acc_cache->sent_ping_once = true;
             if (acc_index == -1 || callback.message->GetMission() != 1)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player session ({})'s ping couldn't update due to its account index being -1 or mission header being 1", session_id);
@@ -44,7 +45,7 @@ namespace Game
                 {
                     CMessage updatePingAck(player_session->GetEncryptionKey());
                     updatePingAck.SetSession(id);
-                    updatePingAck.SetCommand(callback.message->GetOrder() + 1, callback.message->GetMission() + 1, callback.message->GetExtra(), callback.message->GetOption());
+                    updatePingAck.SetCommand(callback.message->GetOrder() + 1, callback.message->GetMission() + 1, 0, callback.message->GetOption());
                     updatePingAck.SetData(reinterpret_cast<uint8_t*>(update_data.data()), static_cast<std::uint16_t>(update_data.size()));
                     player_session->Send(updatePingAck);
                 }
@@ -54,7 +55,7 @@ namespace Game
             //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) broadcasted ping: ({}) to room id: ({})", acc_cache->acc_info.Nickname.c_str(), acc_cache->ping, room->room_id);
             
             auto player_ids = main_server->GetRoomSortedPlayerSessionIds(room);
-            for (const auto& id : player_ids)
+            if (callback.message->GetMission() == 1) for (const auto& id : player_ids)
             {
                 if (id == session_id) continue;
                 update_ping(id);

@@ -50,7 +50,9 @@ namespace NetEngine
                 FrontToMainDisconnectPlayer = 3,
                 MainToCastHostChange = 4,
                 MainToCastReqServerInfo = 5,
-                CastToMainAckServerInfo = 6
+                CastToMainAckServerInfo = 6,
+                CastToMainPlayerAuthorizeInfo = 7,
+                MainToCastSendPingAssure = 8
             };
         }
 
@@ -254,7 +256,8 @@ namespace NetEngine
                 BoxInventoryFull = 0x07,
                 CoinMax = 0x13,
                 Unknown1 = 0x08,
-                Unknown2 = 0x23
+                Unknown2 = 0x23,
+                VoiceUnlock = 0x9F
             };
         }
 
@@ -370,6 +373,7 @@ namespace NetEngine
             Command = 3,
             Team = 5,
             Clan = 7,
+            Party = 8,
             Tip
         };
     }

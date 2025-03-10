@@ -30,7 +30,7 @@ namespace Game
                 const auto& item_deleted = main_server->GetPlayerItemInventory(acc_cache, deleteItemReq->items[i]);
                 if (!item_deleted.has_value()) continue;
                 auto item_info = main_server->GetItemInfoCache(item_deleted.value().item_info.item_number.item_id);
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) deleted item name: ({}), item id: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str(), item_deleted.value().item_info.item_number.item_id);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) item id: ({})", acc_cache->acc_info.Nickname.c_str(), item_deleted.value().item_info.item_number.item_id);
                 items_deleted.push_back(deleteItemReq->items[i]);
             }
             if (items_deleted.size() > 0)

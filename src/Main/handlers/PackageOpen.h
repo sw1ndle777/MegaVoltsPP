@@ -7,7 +7,32 @@ namespace Game
 
     namespace Handlers
     {
+        enum VoiceType : std::uint8_t
+        {
+            VoiceA = 0,
+            VoiceB = 1,
+            VoiceC = 2,
+            VoiceD = 3,
+            SpecialVoiceA = 4,
+            SpecialVoiceB = 5,
+            SpecialVoiceC = 6,
+            SpecialVoiceD = 7
+        };
 
+        void setVoice(std::uint64_t& data, std::uint32_t character, std::uint8_t voice) {
+            std::uint8_t bit_position = (12 * character) + (voice - 4);
+            data |= (1ULL << bit_position);
+        }
+
+        void unsetVoice(std::uint64_t& data, std::uint32_t character, std::uint8_t voice) {
+            std::uint8_t bit_position = (12 * character) + (voice - 4);
+            data &= ~(1ULL << bit_position);
+        }
+
+        bool isVoiceUnlocked(std::uint64_t data, std::uint32_t character, std::uint8_t voice) {
+            std::uint8_t bit_position = (12 * character) + (voice - 4);
+            return (data & (1ULL << bit_position)) != 0;
+        }
         //std::unordered_map<std::uint32_t, std::uint32_t> coupon_map =
         boost::unordered_flat_map<std::uint32_t, std::uint32_t> coupon_map =
         {
@@ -51,7 +76,22 @@ namespace Game
             if (mission == 1)
             {
                 const auto& usePackageReq = reinterpret_cast<MainUsePackageItemReq*>(callback.message->GetData());
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) used package ({})", acc_cache->acc_info.Nickname.c_str(), item_used_info->Name.c_str());
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) used package ({})", acc_cache->acc_info.Nickname.c_str(), item_used_info->Id);
+                if (used_item.item_info.item_number.item_id >= 4810000 && used_item.item_info.item_number.item_id <= 4810015) // VoiceType Card
+                {
+                    auto voice_index = ((used_item.item_info.item_number.item_id - 4810000) % 4) + 4;
+                    auto cha_id = ((used_item.item_info.item_number.item_id - 4810000) / 4);
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to use voice card for character: ({}) voice index: ({})", cha_id, voice_index);
+                    std::uint64_t unlocked_voices = acc_cache->acc_info.VoiceType;
+                    if (!isVoiceUnlocked(unlocked_voices, cha_id, voice_index))
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will unlock voice");
+                        setVoice(unlocked_voices, cha_id, voice_index);
+                        acc_cache->acc_info.VoiceType = unlocked_voices;
+                        send_msg(session, 102, 1, Items::Package::Result::VoiceUnlock, 0, reinterpret_cast<uint8_t*>(&item), sizeof(ItemSerialInfo));
+                        send_msg(session, 413, 0, 59, 0, reinterpret_cast<uint8_t*>(&unlocked_voices), sizeof(unlocked_voices));
+                    }
+                }
                 if (used_item.item_info.item_number.item_id == 4303000) // Kill-Death reset
                 {
                     acc_cache->acc_info.Kills = 0;

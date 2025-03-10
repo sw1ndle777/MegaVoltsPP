@@ -25,6 +25,25 @@ namespace Game
             session->Send(castConnAckMsg);
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connected with auth_key: ({}) from server_id: ({})", session->GetSessionId(), static_cast<std::uint64_t>(castConnecReq->Authkey), static_cast<std::uint32_t>(castConnecReq->UniqueId.server));
+
+            struct PlayerAuthorizeCastToMainInfo
+            {
+                std::uint32_t session_id;
+            } info;
+            info.session_id = session->GetSessionId();
+
+            cast_server->SendMainIpc(PacketIds::Ipc::CastToMainPlayerAuthorizeInfo, Utility::ToVector(info));
+
+            //fix of the year or biggest coincidence
+            return;
+            CMessage castPingAck = CMessage(session->GetEncryptionKey());
+            castPingAck.SetSession(session->GetSessionId());
+            castPingAck.SetCommand(72, 1, 0x00, 0);
+            session->Send(castPingAck);
+            session->Send(castPingAck);
+            session->Send(castPingAck);
+            castPingAck.SetOption(3);
+            session->Send(castPingAck);
         }
     }
     

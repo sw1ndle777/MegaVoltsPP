@@ -452,6 +452,11 @@ namespace Utility
                 if (i != packetMessage.GetDataSize() - 1)
                     data_buffer += ' ';
             }
+            /*
+            if (packetMessage.GetOrder() == 142 || packetMessage.GetOrder() == 71) {
+                return;
+            }
+            */
             BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
         }
     }

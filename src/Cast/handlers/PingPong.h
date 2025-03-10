@@ -14,7 +14,7 @@ namespace Game
 
             CMessage castPingAck = CMessage(session->GetEncryptionKey());
             castPingAck.SetSession(session->GetSessionId());
-            castPingAck.SetCommand(72, callback.message->GetMission(), 0x00, callback.message->GetOption());
+            castPingAck.SetCommand(72, 1, 0x00, callback.message->GetOption());
             session->Send(castPingAck);
         }
     }

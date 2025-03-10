@@ -201,7 +201,12 @@ namespace NetEngine
     {
         std::unique_lock lock(m_sessions_mutex);
         const auto& id = session->GetSessionId();
-        if (id == 0 || m_sessions.count(id)) return false;
+        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) will be given to player", id);
+        if (id == 0 || m_sessions.count(id))
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) cannot add", id);
+            return false;
+        }
 
         m_sessions[id] = session;
         //m_available_session_ids[id] = false; 
@@ -212,18 +217,25 @@ namespace NetEngine
         std::unique_lock lock(m_sessions_mutex);
 
         auto it = m_sessions.find(id);
-        if (id == 0 || !m_sessions.count(id)) return;
+        if (id == 0 || !m_sessions.count(id))
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) could not find", id);
+            return;
+        }
 
         m_sessions.erase(it);
         m_sessionIdGenerator.free(id);
         //m_available_session_ids[id] = true;
-        //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got removed and now available", id);
+        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got removed and now available", id);
     }
     
     bool CServer::GetNextAvailableSessionId(std::uint16_t& outId)
     {
         std::unique_lock lock(m_sessions_mutex);
-        return m_sessionIdGenerator.getNext(outId);
+        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player request a session id, right now exist: ({}) session ids", m_sessions.size());
+        auto ret_status = m_sessionIdGenerator.getNext(outId);
+        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player request a session id, will give him: ({}) session id", outId);
+        return ret_status;
         /*
         for (std::uint16_t id = 1; id < m_available_session_ids.size(); id++) 
         {

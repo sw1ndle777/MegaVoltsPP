@@ -41,6 +41,7 @@ namespace Game
             movementMsg.SetCommand(322, 0, 0, 1);
 
             ClientPlayerInfoBasic* player_info = (ClientPlayerInfoBasic*)callback.message->GetData();
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) ani1: ({}) ani2: ({}) wpn: ({}) unk: ({})", data_size, self_session_id, static_cast<uint32_t>(player_info->animation1), static_cast<uint32_t>(player_info->animation2), static_cast<uint32_t>(player_info->weapon), static_cast<uint32_t>(player_info->unknown));
             if (data_size == 28)
             {
                 ClientPlayerInfoBullet* bullets_info = (ClientPlayerInfoBullet*)callback.message->GetData();

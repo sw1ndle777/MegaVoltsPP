@@ -60,7 +60,7 @@ namespace NetEngine
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
                 return;
             }
-          
+            
             asio::async_write(m_socket, 
                 asio::buffer(data_vec->data(), data_vec->size()),
                 asio::bind_executor(m_strand, 
@@ -72,6 +72,16 @@ namespace NetEngine
                     self->Disconnect();
                 }
             }));
+            
+            /*
+            std::error_code ec;
+            asio::write(m_socket, asio::buffer(data_vec->data(), data_vec->size()), ec);
+            if (ec)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to send data: ({})", ec.message().c_str());
+                self->Disconnect();
+            }
+            */
         });
     }
     void CSession::SetEncryptionKey(std::int32_t key)

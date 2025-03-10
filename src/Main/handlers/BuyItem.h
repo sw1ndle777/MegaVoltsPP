@@ -39,7 +39,7 @@ namespace Game
                     {
                         auto item_info = main_server->GetItemInfoCache(item_bought.id);
                         items.push_back({ item_bought , Utility::GetUtcTimeNowPlusSeconds(item_info->LimitedTime) });
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) bought item name: ({}), item id: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str(), item_info->Id);
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) bought item id: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                     }
                 }
                 if (items.size() > 0)
@@ -73,7 +73,7 @@ namespace Game
 
                         rt_spent = rt_spent + item_info->CashPrice;
                         mp_spent = mp_spent + item_info->PointPrice;
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) bought item name: ({}), item id: ({}), new serial: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str(), item_info->Id, new_item.serial_info.data);
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) bought item id: ({}), new serial: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id, new_item.serial_info.data);
                     }
                     else
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) request buy id: ({}) failed because it doesn't exist in vendor info", acc_cache->acc_info.Nickname.c_str(), item_bought_id);
@@ -135,7 +135,7 @@ namespace Game
                     main_server->AddPlayerItemInventory(acc_cache, { inv_item_info,item_info->Stock, false, 0, false });
                 #endif
                     coupon_spent = coupon_spent + item_info->CouponPrice;
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) bought item name: ({}), item id: ({}), serial: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str(), item_info->Id, new_item.serial_info.data);
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) bought item id: ({}), serial: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id, new_item.serial_info.data);
                 }
                 else
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) request buy id: ({}) failed because it doesn't exist in vendor info", acc_cache->acc_info.Nickname.c_str(), item_bought_id);

@@ -165,6 +165,8 @@ namespace Game
         bool in_room;
         bool in_plaza;
         bool in_party;
+        bool sent_ping_once;
+        std::uint8_t voice_id;
         std::uint64_t match_loaded_time;
         std::uint32_t earnt_battery;
         BaseLib::FrontAccount acc_info;
@@ -192,6 +194,8 @@ namespace Game
             in_room = false;
             in_plaza = false;
             in_party = false;
+            sent_ping_once = false;
+            voice_id = 0;
             match_loaded_time = 0;
             earnt_battery = 0;
             items_deleted.clear();
@@ -219,6 +223,8 @@ namespace Game
             in_room = other.in_room;
             in_plaza = other.in_plaza;
             in_party = other.in_party;
+            sent_ping_once = other.sent_ping_once;
+            voice_id = other.voice_id;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
             acc_info = other.acc_info;
@@ -249,6 +255,8 @@ namespace Game
             in_room = other.in_room;
             in_plaza = other.in_plaza;
             in_party = other.in_party;
+            sent_ping_once = other.sent_ping_once;
+            voice_id = other.voice_id;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
             acc_info = other.acc_info;
@@ -281,6 +289,8 @@ namespace Game
             in_plaza = false;
             in_room = false;
             in_party = false;
+            sent_ping_once = false;
+            voice_id = 0;
             match_loaded_time = 0;
             inventory_items.clear();
             items_deleted.clear();
@@ -597,6 +607,7 @@ namespace Game
 
     extern std::shared_mutex items_info_mutex;
     extern std::shared_mutex effect_info_mutex;
+    extern std::shared_mutex collection_info_mutex;
     extern std::shared_mutex setitems_info_mutex;
     extern std::shared_mutex vendors_info_mutex;
     extern std::shared_mutex upgrades_info_mutex;
@@ -627,6 +638,7 @@ namespace Game
 
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
+    extern boost::unordered_flat_map<std::uint32_t, BaseLib::CollectionInfo> collection_info;
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     extern std::vector<BaseLib::VendorInfo> vendors_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
@@ -1056,6 +1068,7 @@ namespace Game
         {
             if (IsPartyAlready(party_id))
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will remove party cache: ({})", party_id);
                 auto party_cache_locked = LockedResource{ std::unique_lock(party_cache_mutex), party_cache };
                 auto party_ids_locked = LockedResource{ std::unique_lock(party_ids_mutex), party_ids };
 
@@ -2094,6 +2107,12 @@ namespace Game
             return std::find(vendor_item_ids.begin(), vendor_item_ids.end(), item_id) != vendor_item_ids.end();
         }
 
+        void RehashItemsInfo()
+        {
+            auto items_info_locked = LockedResource{ std::unique_lock(items_info_mutex), items_info };
+            items_info_locked->max_load_factor(0.7f);
+            items_info_locked->rehash(0);
+        }
         void AddItemInfoCache(const std::uint32_t& id, BaseLib::ItemInfo item_info)
         {
             auto items_info_locked = LockedResource{ std::unique_lock(items_info_mutex), items_info };
@@ -2180,6 +2199,37 @@ namespace Game
         {
             std::shared_lock lock(effect_info_mutex);
             return effect_info.size();
+        }
+
+        void AddCollectionInfoCache(const std::uint32_t& id, BaseLib::CollectionInfo new_collection_info)
+        {
+            auto collection_info_locked = LockedResource{ std::unique_lock(collection_info_mutex), collection_info };
+
+            auto [it, inserted] = collection_info_locked->emplace(id, std::move(new_collection_info));
+        }
+        void RemoveCollectionInfoCache(const std::uint32_t& id)
+        {
+            auto collection_info_locked = LockedResource{ std::unique_lock(collection_info_mutex), collection_info };
+            collection_info_locked->erase(id);
+        }
+        auto GetCollectionInfoCache(const std::uint32_t& id)
+        {
+
+            std::shared_lock lock(collection_info_mutex);
+            auto it = collection_info.find(id);
+            if (it != collection_info.end())
+                return LockedResource{ std::shared_lock(collection_info_mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_collectioninfo_mutex;
+                static thread_local BaseLib::CollectionInfo null_collection_info;
+                return LockedResource{ std::shared_lock(null_collectioninfo_mutex), null_collection_info };
+            }
+        }
+        auto GetCollectionInfoCacheSize()
+        {
+            std::shared_lock lock(collection_info_mutex);
+            return collection_info.size();
         }
 
         void AddSetItemInfoCache(const std::uint32_t& id, BaseLib::SetItemInfo& item_info)
@@ -3208,6 +3258,10 @@ namespace Game
         auto& GetEffectInfoMutex()
         {
             return effect_info_mutex;
+        }
+        auto& GetCollectionInfoMutex()
+        {
+            return collection_info_mutex;
         }
         auto& GetSetItemInfoMutex()
         {

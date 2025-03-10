@@ -23,6 +23,14 @@ namespace Game
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+
+            if (acc_cache->in_room)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to create room while he is in room or party: refuse");
+                send_msg(session, 138, 0, NetEngine::Room::Create::Result::Failed, 0);
+                return;
+            }
+
             auto acc_index = acc_cache->acc_info.Index;
 
             auto score_limit = callback.message->GetExtra();
@@ -93,6 +101,36 @@ namespace Game
             acc_cache->state = PlayerInfo::State::HostReady;
             acc_cache->slot_id = 0;
             //server->SetRoomIdAvailable(current_room_id);
+
+            /*leave plaza start*/
+            if (acc_cache->in_plaza) {
+                auto plaza_id = acc_cache->plaza_id;
+                if (main_server->IsPlazaAlready(plaza_id))
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player will leave plaza: ({})", plaza_id);
+                    auto current_plaza = main_server->GetPlazaCacheUnique(plaza_id);
+                    auto& session_ids = current_plaza->session_ids;
+                    if (main_server->IsSessionIdAlready(session_id, session_ids))
+                    {
+                        if (main_server->IsPlazaBroadcastable(current_plaza))
+                        {
+                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                            for (const auto& plaza_player_session_id : session_ids)
+                            {
+                                if (plaza_player_session_id == session_id) continue;
+                                if (auto player_session = server->GetSessionById(plaza_player_session_id))
+                                    send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            }
+                        }
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
+                        auto remove_myself = std::remove(current_plaza->session_ids.begin(), current_plaza->session_ids.end(), session_id);
+                        current_plaza->session_ids.erase(remove_myself, current_plaza->session_ids.end());
+                        acc_cache->plaza_id = 0;
+                        acc_cache->in_plaza = false;
+                    }
+                }
+            }
+            /*leave plaza end*/
 
             new_room.has_password = !(new_room.password.empty());
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "NewRoom password: ({}), HasPassword: ({})", new_room.password, new_room.has_password);

@@ -58,6 +58,20 @@ namespace Game
                     }
                     break;
                 }
+                case PacketIds::Ipc::CastToMainPlayerAuthorizeInfo:
+                {
+                    struct PlayerAuthorizeCastToMainInfo
+                    {
+                        std::uint32_t session_id;
+                    };
+                    auto info = Utility::FromVector<PlayerAuthorizeCastToMainInfo>(payload);
+                    if (auto player_session = main_server->GetSessionById(info.session_id))
+                    {
+                        auto msg = fmt::format("[CAST] session id: ({})", static_cast<std::uint32_t>(info.session_id));
+                        main_server->SendServerMessage(player_session.get(), msg.c_str());
+                    }
+                    break;
+                }
                 default:
                 {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Unhandled server IPC message ID: {}", msg_id);

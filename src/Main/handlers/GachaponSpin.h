@@ -140,7 +140,7 @@ namespace Game
                     acc_cache->acc_info.MicroPoints -= money_spent;
                 break;
             }
-            std::vector<std::string> lucky_items_announce;
+            std::vector<GachaponAnnouncement> lucky_items_announce;
             for (const auto& item : extracted_items)
             {
                 auto lucky_type = (item.size() > 0) ? item[0].LuckyType : 0;
@@ -149,7 +149,7 @@ namespace Game
                 {
                     auto is_rare = extracted.ItemType == Items::Gachapon::Rarity::Rare;
                     auto item_info = main_server->GetItemInfoCache(extracted.ItemId);
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) won from capsule {} item: ({} - {})", acc_cache->acc_info.Nickname.c_str(), is_rare ? "rare" : "normal", item_info->Name.c_str(), item_info->NameTime.c_str());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) won from capsule {} item: ({})", acc_cache->acc_info.Nickname.c_str(), is_rare ? "rare" : "normal", item_info->Id);
 
                     if (extracted.LuckyType == Items::Gachapon::LuckyType::CopperLucky)
                     {
@@ -184,9 +184,9 @@ namespace Game
                     #endif
                         if (is_rare)
                         {
-                            //GachaponWonItemMsg itemWon = { gachaponSpinReq->gachapon_id, extracted.ItemId };
-                            //GachaponAnnouncement announcement = { itemWon, acc_cache->acc_info.Nickname.c_str() };
-                            lucky_items_announce.push_back(item_info->Name);
+                            GachaponWonItemMsg itemWon = { gachaponSpinReq->gachapon_id, extracted.ItemId };
+                            GachaponAnnouncement announcement = { itemWon, acc_cache->acc_info.Nickname.c_str() };
+                            lucky_items_announce.push_back(announcement);
                         }
 
 
@@ -214,8 +214,8 @@ namespace Game
 
                 if (auto player_session = server->GetSessionById(lobby_player_session_id))
                     for (auto& announcement : lucky_items_announce)
-                        main_server->SendServerMessage(player_session.get(), fmt::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
-                        //send_msg(player_session.get(), 402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
+                        send_msg(player_session.get(), 402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
+                        //main_server->SendServerMessage(player_session.get(), fmt::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
             }
         }
     }

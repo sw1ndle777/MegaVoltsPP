@@ -28,6 +28,17 @@ namespace Game
                 session->Send(message);
             };
 
+            /*
+            PlayerPingUpdateInfo ping_data{};
+            ping_data.ping = 2;
+            auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
+            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            */
+
             BaseLib::FrontAccount frontAccount;
             std::vector<Item> acc_items;
             std::vector<FriendInfo> acc_friends;
@@ -149,7 +160,7 @@ namespace Game
         #if defined(RELEASE_1_0_3)
             accInfoMsg.Energy = 50;//frontAccount.Energy;
             accInfoMsg.Energy2 = frontAccount.Energy;
-            accInfoMsg.GoldenMode = 0;
+            accInfoMsg.GoldenMode = frontAccount.PCRoom;//PCROOM PC BANG PC ROOM
             accInfoMsg.unused = 38;
 
         #else
@@ -170,6 +181,7 @@ namespace Game
             accInfoMsg.SinglewaveHighscore = frontAccount.SingleWaveHighScore;
             accInfoMsg.Unknown4 = 24;
             accInfoMsg.Story = frontAccount.Story;
+            accInfoMsg.Achievements[0] = frontAccount.Achievement;
         #if defined(RELEASE_1_1_1)
             accInfoMsg.VIPLevel = frontAccount.VIPExperience;
         #endif
@@ -252,10 +264,67 @@ namespace Game
         #else
             send_msg(session, 75, 0, 16, 0); // final equip info
         #endif
-            send_msg(session, 413, 0, 59, 0); // final account info
 
-            main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
-            main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+            //std::uint64_t unlocked_voice_types = 0xFFFFFFFFFFFFFFFF;
+            send_msg(session, 413, 0, 59, 0, reinterpret_cast<uint8_t*>(&frontAccount.VoiceType), sizeof(frontAccount.VoiceType)); // final account info
+
+            //send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            /*
+            PlayerPingUpdateInfo ping_data{};
+            ping_data.ping = 2;
+            auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
+            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            */
+            //send_msg(session, 71, 1, 0, 3);
+            //send_msg(session, 72, 1, 0, 3);
+
+            
+            auto shared_acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+            auto before_state = shared_acc_cache->state;
+            shared_acc_cache.unlock();
+            auto timer = std::make_shared<asio::steady_timer>(main_server->GetIoContext(), std::chrono::milliseconds(990));
+            timer->async_wait([timer, main_server, session_id, send_msg, before_state](const asio::error_code& ec)
+                {
+                    if (!ec)
+                    {
+                        auto shared_acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+                        auto sent_ping = shared_acc_cache->sent_ping_once;
+                        auto after_state = shared_acc_cache->state;
+                        shared_acc_cache.unlock();
+                        if (!sent_ping && before_state == after_state)
+                        {
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player did not send ping in sometime indicate failure cha sel bug");
+                            if (auto player_session = main_server->GetSessionById(session_id))
+                            {
+                                //send_msg(player_session.get(), 110, 0, 43, 0);
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ask cast to send ping assure");
+                                struct MainToCastSendPingAssureInfo
+                                {
+                                    std::uint32_t session_id;
+                                } info;
+                                info.session_id = session_id;
+                                main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
+                                PlayerPingUpdateInfo ping_data{};
+                                ping_data.ping = 2;
+                                auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
+                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                send_msg(player_session.get(), 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                            }
+                        }
+                    }
+                    else {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "delay check error");
+                    }
+                });
+            
+            //main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
+            //main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+            main_server->SendServerMessage(session, fmt::format("[MAIN] session id: ({}), server time: ({})", session->GetSessionId(), server_time).c_str());
 
             //std::unordered_map<std::uint32_t, std::uint32_t> accountToSessionMap;
             boost::unordered_flat_map<std::uint32_t, std::uint32_t> accountToSessionMap;
@@ -382,7 +451,11 @@ namespace Game
                     {
                         if (playerMonthlyRewardData.day_count < 31)
                         {
-                            if (!is_gift_box_full || !is_inventory_full)
+                            if (is_inventory_full && is_gift_box_full)
+                            {
+                                send_msg(callback.session, 66, 0, 7, 0);
+                            }
+                            else
                             {
                                 playerMonthlyRewardData.day_count++;
                                 if (BaseLib::Database->UpdatePlayerMonthlyDayCount(frontAccount.Index, playerMonthlyRewardData.day_count, Utility::GetUtcTimeNow64()))
@@ -433,19 +506,23 @@ namespace Game
             else
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) failed to get monthly rewards info for month ({})", session->GetSessionId(), current_month);
 
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) has guide missions ({})", session->GetSessionId(), frontAccount.GuideMission);
 
             struct guide_mission
             {
-                std::uint32_t collection_id = 47;
+                std::uint32_t collection_id = 46;
                 std::uint32_t reward_point = 200;
                 std::uint32_t reward_exp = 30;
                 std::uint32_t type = 1;
-            }guideMissionData;
+            } guideMissionData;
+            guideMissionData.collection_id = frontAccount.GuideMission + 46;
 
             send_msg(session, 167, 0, 1, 10, reinterpret_cast<uint8_t*>(&guideMissionData), sizeof(guideMissionData)); // guide mission completed all
             //send_msg(session, 167, 1, 3, 5); // daily mission idk
 
             //send_msg(session, 66, 0, 51, 1);// popup daily reward
+            //send_msg(session, 66, 0, 7, 0);
+            //send_msg(session, 66, 0, 51, 3);
 
             /*
             asio::post([callback, auth_key, main_server]()

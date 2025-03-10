@@ -40,7 +40,8 @@ namespace Game
                     this->clanRoomNumber = roomNumber;
                     this->numPlayers = players;
                     this->maxPlayers = maxP;
-                    this->hasMatchStarted = matchStarted;
+                    this->hasMatchStarted = (matchStarted == 2 ? 1 : 0);
+                    this->isQueueing = (matchStarted == 1 ? 1 : 0);
                     this->leaderLevel = leaderLvl + 1;
                     std::strcpy(this->leaderName, leader);
                 }
@@ -264,6 +265,29 @@ namespace Game
             };
 #pragma pack(pop)
         }
+        inline void SelectVoiceType(SCallbackData& callback, CMainServer* main_server)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+                {
+                    CMessage message(session->GetEncryptionKey());
+                    message.SetSession(session->GetSessionId());
+                    message.SetCommand(order, mission, extra, option);
+                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                    session->Send(message);
+                };
+            std::shared_lock lock(callback.session->GetMutex());
+            CSession* session = callback.session;
+            CServer* server = callback.server;
+            auto session_id = session->GetSessionId();
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+            auto acc_index = acc_cache->acc_info.Index;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            if (acc_index == -1) return;
+
+            acc_cache->voice_id = callback.message->GetOption();
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player select voice id: ({})", acc_cache->voice_id);
+            send_msg(session, 160, 0, 0, callback.message->GetOption());
+        }
         inline void PlayerAutomatchLobby(SCallbackData& callback, CMainServer* main_server)
         {
             auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
@@ -375,6 +399,8 @@ namespace Game
                 newParty.clan_id = acc_cache->acc_info.ClanId;
                 newParty.max_members = 4;
                 newParty.party_host_session_id = session_id;
+                newParty.mod_id = 15;
+                newParty.map_id = 14;
                 newParty.members.push_back(session_id);
                 main_server->AddPartyCache(party_id, newParty);
 
@@ -382,6 +408,36 @@ namespace Game
 
                 acc_cache->in_party = true;
                 acc_cache->party_id = party_id;
+                
+                /*leave plaza start*/
+                if (acc_cache->in_plaza) {
+                    auto plaza_id = acc_cache->plaza_id;
+                    if (main_server->IsPlazaAlready(plaza_id))
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player will leave plaza: ({})", plaza_id);
+                        auto current_plaza = main_server->GetPlazaCacheUnique(plaza_id);
+                        auto& session_ids = current_plaza->session_ids;
+                        if (main_server->IsSessionIdAlready(session_id, session_ids))
+                        {
+                            if (main_server->IsPlazaBroadcastable(current_plaza))
+                            {
+                                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                                for (const auto& plaza_player_session_id : session_ids)
+                                {
+                                    if (plaza_player_session_id == session_id) continue;
+                                    if (auto player_session = server->GetSessionById(plaza_player_session_id))
+                                        send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                }
+                            }
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
+                            auto remove_myself = std::remove(current_plaza->session_ids.begin(), current_plaza->session_ids.end(), session_id);
+                            current_plaza->session_ids.erase(remove_myself, current_plaza->session_ids.end());
+                            acc_cache->plaza_id = 0;
+                            acc_cache->in_plaza = false;
+                        }
+                    }
+                }
+                /*leave plaza end*/
 
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) created a new party entity id: ({})", acc_cache->acc_info.Nickname.c_str(), party_id);
             }
@@ -392,6 +448,25 @@ namespace Game
             send_msg(session, 109, 0, 1, 0, reinterpret_cast<uint8_t*>(createPartyReq), sizeof(MainCreatePartyReq));
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) create party -> unknown: ({})", acc_cache->acc_info.Nickname.c_str(), createPartyReq->unknown);
+
+            if (acc_cache->acc_info.GuideMission == 10) // Done guide mission "Create a party"
+            {
+                auto current_coll = main_server->GetCollectionInfoCache(56);
+                acc_cache->acc_info.GuideMission = 11;
+                if (current_coll->rewardExp > 0)
+                {
+                    acc_cache->acc_info.Experience += current_coll->rewardExp;
+                }
+                if (current_coll->rewardPoint > 0)
+                {
+                    acc_cache->acc_info.MicroPoints += current_coll->rewardPoint;
+                }
+                MainCompleteMissionReq mission_data;
+                mission_data.collection_id = 56;
+                send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
+                std::vector<std::uint16_t> empty_vec;
+                ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
+            }
         }
         inline void PartyList(SCallbackData& callback, CMainServer* main_server)
         {
@@ -430,7 +505,11 @@ namespace Game
                     }
                     auto party = main_server->GetPartyCacheUnique(party_id);
                     if (party->is_clan && party->party_host_session_id == member_session_id) {
-                        structs::PartyInfo current_party((std::uint16_t)party_id, (std::uint16_t)clan_id, (std::uint32_t)party->members.size(), party->max_members, party->is_playing, member_acc_cache->acc_info.Level, member_acc_cache->acc_info.Nickname.c_str());
+                        bool queueState = 0;
+                        if (member_acc_cache->in_room) {
+                            queueState = (member_acc_cache->playing ? 2 : 1);
+                        }
+                        structs::PartyInfo current_party((std::uint16_t)party_id, (std::uint16_t)clan_id, (std::uint32_t)party->members.size(), party->max_members, queueState, member_acc_cache->acc_info.Level, member_acc_cache->acc_info.Nickname.c_str());
                         selfClanInfoList.push_back(current_party);
                     }
                 }
@@ -480,12 +559,16 @@ namespace Game
                 send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 43, callback.message->GetOption());
                 return;
             }
-            if (party->is_playing) {
-                send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 5, callback.message->GetOption());
-                return;
-            }
             if (party->members.size() >= party->max_members) {
                 send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 7, callback.message->GetOption());
+                return;
+            }
+            std::uint32_t party_room_id = 0;
+            auto leader_acc_cache = main_server->GetAccCacheSharedBySessionId(party->party_host_session_id);
+            party_room_id = leader_acc_cache->in_room ? leader_acc_cache->room_id : 0;
+            leader_acc_cache.unlock();
+            if (party_room_id != 0 || party->is_registered) {
+                send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 5, callback.message->GetOption());
                 return;
             }
 
@@ -669,6 +752,36 @@ namespace Game
             acc_cache->in_party = true;
             acc_cache->party_id = req_info->roomId;
             party->members.push_back(session_id);
+
+            /*leave plaza start*/
+            if (acc_cache->in_plaza) {
+                auto plaza_id = acc_cache->plaza_id;
+                if (main_server->IsPlazaAlready(plaza_id))
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player will leave plaza: ({})", plaza_id);
+                    auto current_plaza = main_server->GetPlazaCacheUnique(plaza_id);
+                    auto& session_ids = current_plaza->session_ids;
+                    if (main_server->IsSessionIdAlready(session_id, session_ids))
+                    {
+                        if (main_server->IsPlazaBroadcastable(current_plaza))
+                        {
+                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                            for (const auto& plaza_player_session_id : session_ids)
+                            {
+                                if (plaza_player_session_id == session_id) continue;
+                                if (auto player_session = server->GetSessionById(plaza_player_session_id))
+                                    send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            }
+                        }
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
+                        auto remove_myself = std::remove(current_plaza->session_ids.begin(), current_plaza->session_ids.end(), session_id);
+                        current_plaza->session_ids.erase(remove_myself, current_plaza->session_ids.end());
+                        acc_cache->plaza_id = 0;
+                        acc_cache->in_plaza = false;
+                    }
+                }
+            }
+            /*leave plaza end*/
 
             struct info2 {
                 std::uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
@@ -1074,6 +1187,14 @@ namespace Game
             }
 
             if (self_party_id && target_party_id && (self_players.size() == target_players.size()) && target_is_register) {
+                self_party_cache.lock();
+                self_party_cache->is_registered = false;
+                self_party_cache->is_queueing = false;
+                self_party_cache.unlock();
+                target_party_cache.lock();
+                target_party_cache->is_registered = false;
+                target_party_cache->is_queueing = false;
+                target_party_cache.unlock();
                 //now will create a clan room where the host is the target !
                 std::uint32_t score_limit = 5;
                 RoomSettings clan_room_setting;
@@ -1221,6 +1342,7 @@ namespace Game
             bool other_party_assure_leave = false;
             if (is_leader_leave) {
                 self_party_cache->is_registered = false;
+                self_party_cache->is_queueing = false;
             }
             self_party_cache.unlock();
 
@@ -1243,6 +1365,7 @@ namespace Game
                             auto target_party_cache = main_server->GetPartyCacheUnique(player_cache->party_id);
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "target party assured leave");
                             target_party_cache->is_registered = false;
+                            target_party_cache->is_queueing = false;
                             target_party_cache.unlock();
                             other_party_assure_leave = true;
                         }
@@ -1320,10 +1443,7 @@ namespace Game
                 for (std::uint32_t i = 0; i < party_ids_count; i++) {
                     auto c_party_id = party_ids[i];
                     auto c_party = main_server->GetPartyCacheShared(c_party_id);
-                    if (c_party_id / 10000) {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found a party with illegal id: ({}) by ({})", c_party_id, c_party->party_host_session_id);
-                        continue;
-                    }
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check party id: ({}) by ({})", c_party_id, c_party->party_host_session_id);
                     bool is_match = (c_party->is_registered && !c_party->is_clan && c_party->members.size() == my_party_count);
                     c_party.unlock();
                     if (is_match) {
@@ -1348,6 +1468,7 @@ namespace Game
                     callback.message = &msg;
                     acc_cache.unlock();
                     lock.unlock();
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will join battle with party id: ({})", match_party_id);
                     ClanOtherJoin(callback, main_server);
                     return;
                 }

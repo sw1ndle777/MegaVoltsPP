@@ -1079,6 +1079,34 @@ namespace Game
             auto mission = callback.message->GetMission();
             if (extra == 6)
             {
+                if (mission == 2 && extra == 6) //Storymod
+                {
+                    struct StoryDoneStruct {
+                        std::uint8_t done_episode;
+                    };
+                    auto story_done = reinterpret_cast<StoryDoneStruct*>(callback.message->GetData());
+                    auto story_episode = story_done->done_episode;
+                    auto current_story = acc_cache->acc_info.Story;
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player current story: ({}), done story episode: ({})", current_story, story_episode);
+                    if (current_story == story_episode - 1)
+                    {
+                        acc_cache->acc_info.Story = story_episode;
+                        uint32_t item_got_id = 4600100;
+                        auto item_info = main_server->GetItemInfoCache(item_got_id);
+                        auto serial_index = main_server->FindLowestAvailableItemSerialInfoId(acc_cache->inventory_items);
+                        ShopItem new_item = { {item_got_id , item_info->Stock} , ItemExpire::Type::Unused,  ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_Game, Utility::GetUtcTimeNow()) };
+                        const InventoryItemInfo& inv_item_info = { {item_got_id , item_info->Stock } ,ItemExpire::Type::Unused, new_item.serial_info, item_info->Durability, 0 };
+                        main_server->AddPlayerItemInventory(acc_cache, { inv_item_info,item_info->Stock, false, 0, false });
+                        send_msg(session, 66, 3, 51, 0, reinterpret_cast<uint8_t*>(&new_item), sizeof(ShopItem));
+                        //main_server->SendInventoryItem(session, acc_cache, { 4600100 });//make it better
+                    }
+                    else
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "check failed and player will not reward");
+                    }
+                    return;
+                }
+
                 auto end_single_wave_time = Utility::GetUtcTimeNowInSeconds();
                 auto playtime_seconds = end_single_wave_time - acc_cache->match_loaded_time;
                 auto endmatch_sw = reinterpret_cast<SingleWaveEndReq*>(callback.message->GetData());
@@ -1106,7 +1134,12 @@ namespace Game
             room_cache->is_playing = false;
             room_cache->kick_voters_session_ids.clear();
 
-            send_msg(session, 256, 0, 33, 0); // notify leave match
+            auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
+            for (const auto& room_player_session_id : players)
+            {
+                if (auto player_session = server->GetSessionById(room_player_session_id))
+                    send_msg(player_session.get(), 256, 0, 33, 0); // notify leave match
+            }
         }
 
         /*

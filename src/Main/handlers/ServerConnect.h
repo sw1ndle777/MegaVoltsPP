@@ -9,9 +9,10 @@ namespace Game
     {
         inline void ServerConnect(std::shared_ptr<CSession> session, CMainServer* main_server)
         {
-            //const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
             std::unique_lock lock(session->GetMutex());
-            MainEngineServerConnectionAck mainEngineServerConnectionAck = MainEngineServerConnectionAck(static_cast<std::int32_t>(rand() + 1), session->GetSessionId(), 1);
+            const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
+            //static_cast<std::int32_t>(rand() + 1)
+            MainEngineServerConnectionAck mainEngineServerConnectionAck = MainEngineServerConnectionAck(random_number, session->GetSessionId(), 1);
 
             session->SetEncryptionKey(mainEngineServerConnectionAck.cryptoKey);
 

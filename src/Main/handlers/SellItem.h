@@ -42,7 +42,7 @@ namespace Game
             MainCurrencyUpdateAck currency_update_data = { acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
             send_msg(session, 307, 0, 1, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data));
 
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sold item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Name.c_str());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sold item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
         }
     }
     

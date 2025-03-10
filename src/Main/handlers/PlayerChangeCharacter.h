@@ -28,7 +28,21 @@ namespace Game
             auto auth_key = acc_cache->acc_info.AuthKey;
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
+            acc_cache.unlock();
             send_msg(session, 74, 0, CharacterSelectInfo::Result::Ok, static_cast<std::uint8_t>(selected_character));
+            acc_cache.lock();
+
+            if (acc_cache->state < 2)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ask cast to send ping assure");
+                struct MainToCastSendPingAssureInfo
+                {
+                    std::uint32_t session_id;
+                } info;
+                info.session_id = session->GetSessionId();
+                main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
+                send_msg(session, 72, 0, 0, 0);
+            }
 
             
             /*
@@ -49,18 +63,18 @@ namespace Game
             acc_cache.unlock();
             auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room);
 
-            const auto& my_set_item = main_server->GetItemByType(my_equipped_items, 25).item_info.item_number.item_id;
+            auto my_set_item = main_server->GetItemByType(my_equipped_items, 25).item_info.item_number.item_id;
             auto my_setitem_info = main_server->GetSetItemInfoCache(my_set_item);
-            const auto& my_hair_id = main_server->GetItemByType(my_equipped_items, 0).item_info.item_number.item_id;
-            const auto& my_face_id = main_server->GetItemByType(my_equipped_items, 1).item_info.item_number.item_id;
-            const auto& my_upper_id = main_server->GetItemByType(my_equipped_items, 2).item_info.item_number.item_id;
-            const auto& my_under_id = main_server->GetItemByType(my_equipped_items, 3).item_info.item_number.item_id;
-            const auto& my_pants_id = main_server->GetItemByType(my_equipped_items, 4).item_info.item_number.item_id;
-            const auto& my_shirt_id = main_server->GetItemByType(my_equipped_items, 5).item_info.item_number.item_id;
-            const auto& my_boots_id = main_server->GetItemByType(my_equipped_items, 6).item_info.item_number.item_id;
-            const auto& my_acc_head_id = main_server->GetItemByType(my_equipped_items, 7).item_info.item_number.item_id;
-            const auto& my_acc_waist_id = main_server->GetItemByType(my_equipped_items, 8).item_info.item_number.item_id;
-            const auto& my_acc_back_id = main_server->GetItemByType(my_equipped_items, 9).item_info.item_number.item_id;
+            auto my_hair_id = main_server->GetItemByType(my_equipped_items, 0).item_info.item_number.item_id;
+            auto my_face_id = main_server->GetItemByType(my_equipped_items, 1).item_info.item_number.item_id;
+            auto my_upper_id = main_server->GetItemByType(my_equipped_items, 2).item_info.item_number.item_id;
+            auto my_under_id = main_server->GetItemByType(my_equipped_items, 3).item_info.item_number.item_id;
+            auto my_pants_id = main_server->GetItemByType(my_equipped_items, 4).item_info.item_number.item_id;
+            auto my_shirt_id = main_server->GetItemByType(my_equipped_items, 5).item_info.item_number.item_id;
+            auto my_boots_id = main_server->GetItemByType(my_equipped_items, 6).item_info.item_number.item_id;
+            auto my_acc_head_id = main_server->GetItemByType(my_equipped_items, 7).item_info.item_number.item_id;
+            auto my_acc_waist_id = main_server->GetItemByType(my_equipped_items, 8).item_info.item_number.item_id;
+            auto my_acc_back_id = main_server->GetItemByType(my_equipped_items, 9).item_info.item_number.item_id;
             auto my_EquippedHairItemId = EquipItemNumber(my_hair_id ? my_hair_id : (my_setitem_info->Hair > 0 ? my_setitem_info->Id : 0), 0);
             auto my_EquippedFaceItemId = EquipItemNumber(my_face_id ? my_face_id : (my_setitem_info->Face > 0 ? my_setitem_info->Id : 0), 1);
             auto my_EquippedUpperItemId = EquipItemNumber(my_upper_id ? my_upper_id : (my_setitem_info->Upper > 0 ? my_setitem_info->Id : 0), 2);
