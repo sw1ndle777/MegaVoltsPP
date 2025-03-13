@@ -1008,10 +1008,15 @@ namespace NetEngine
                 std::uint32_t deaths : 8;//9
                 std::uint32_t headshots : 8;//10
                 std::uint32_t assists : 8;//11
-                std::uint32_t unknown;//12
+                //std::uint32_t unknown;//12
+                std::uint32_t unknown1 : 8;
+                std::uint32_t unknown2 : 8;
+                std::uint32_t unknown3 : 8;
+                std::uint32_t unknown4 : 8;
                 std::uint32_t total_mp;//16
                 std::uint32_t total_xp;//20
-                std::uint32_t unknown2;//24
+                //std::uint32_t unknown2;//24
+                std::uint32_t unique_id;
             };
             struct MainRoomEndMatchResponseBossBattle
             {

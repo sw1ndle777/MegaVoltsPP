@@ -231,6 +231,20 @@ namespace BaseLib
                     Day30 int unsigned NOT NULL,
                     Day31 int unsigned NOT NULL,
                     PRIMARY KEY (Month))");
+
+                    CreateTable("player_daily_mission", R"(
+                    ID int unsigned NOT NULL AUTO_INCREMENT,
+                    PlayerId int unsigned NOT NULL,
+                    UpdateTime BIGINT UNSIGNED NOT NULL,
+                    Mission1 int unsigned NOT NULL,
+                    Mission2 int unsigned NOT NULL,
+                    Mission3 int unsigned NOT NULL,
+                    GoalMission1 int unsigned NOT NULL,
+                    GoalMission2 int unsigned NOT NULL,
+                    GoalMission3 int unsigned NOT NULL,
+                    PRIMARY KEY (ID),
+                    KEY IX_player_daily_mission_PlayerId (PlayerId),
+                    CONSTRAINT FK_player_daily_mission_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
                 }
                 
                 else
@@ -2147,6 +2161,98 @@ namespace BaseLib
         }
         catch (sql::SQLException& e)
         {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    bool CDatabase::GetPlayerDailyMission(const std::uint32_t& acc_id, PlayerDailyMission* outDailyMission) {
+        try {
+            if (!conn || !conn->isValid()) {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM player_daily_mission WHERE PlayerId = ?"));
+            pstmt->setUInt(1, acc_id);
+
+            std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+            if (result->next()) {
+                *outDailyMission = PlayerDailyMission{
+                    acc_id,
+                    result->getUInt64("UpdateTime"),
+                    result->getUInt("Mission1"),
+                    result->getUInt("Mission2"),
+                    result->getUInt("Mission3"),
+                    result->getUInt("GoalMission1"),
+                    result->getUInt("GoalMission2"),
+                    result->getUInt("GoalMission3")
+                };
+                return true;
+            }
+            return false;
+        }
+        catch (sql::SQLException& e) {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    bool CDatabase::InsertPlayerDailyMission(const std::uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
+        try {
+            if (!conn || !conn->isValid()) {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "INSERT INTO player_daily_mission (PlayerId, UpdateTime, Mission1, Mission2, Mission3, GoalMission1, GoalMission2, GoalMission3) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
+            pstmt->setUInt(1, acc_id);
+            pstmt->setUInt64(2, dailyMission.update_time);
+            pstmt->setUInt(3, dailyMission.mission1);
+            pstmt->setUInt(4, dailyMission.mission2);
+            pstmt->setUInt(5, dailyMission.mission3);
+            pstmt->setUInt(6, dailyMission.goal_mission1);
+            pstmt->setUInt(7, dailyMission.goal_mission2);
+            pstmt->setUInt(8, dailyMission.goal_mission3);
+
+            pstmt->executeUpdate();
+            return true;
+        }
+        catch (sql::SQLException& e) {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+    bool CDatabase::UpdatePlayerDailyMission(const std::uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
+        try {
+            if (!conn || !conn->isValid()) {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "UPDATE player_daily_mission SET UpdateTime = ?, Mission1 = ?, Mission2 = ?, Mission3 = ?, GoalMission1 = ?, GoalMission2 = ?, GoalMission3 = ? WHERE PlayerId = ?"));
+            pstmt->setUInt64(1, dailyMission.update_time);
+            pstmt->setUInt(2, dailyMission.mission1);
+            pstmt->setUInt(3, dailyMission.mission2);
+            pstmt->setUInt(4, dailyMission.mission3);
+            pstmt->setUInt(5, dailyMission.goal_mission1);
+            pstmt->setUInt(6, dailyMission.goal_mission2);
+            pstmt->setUInt(7, dailyMission.goal_mission3);
+            pstmt->setUInt(8, acc_id);
+
+            pstmt->executeUpdate();
+            return true;
+        }
+        catch (sql::SQLException& e) {
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
             return false;
         }

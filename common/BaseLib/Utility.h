@@ -42,6 +42,7 @@ namespace Utility
     std::uint32_t GetCurrentDay();
     std::uint32_t GetUtcTimeNowPlusSeconds(const std::uint32_t& seconds);
     std::uint64_t GetUtcTimeNow64();
+    std::uint64_t GetLast6AMUtc();
     std::uint64_t GetUtcTimeNowInMilliseconds();
     std::string FormatMilliseconds(std::uint64_t milliseconds);
     std::uint64_t GetUtcTimeNowInSeconds();

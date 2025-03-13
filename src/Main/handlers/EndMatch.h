@@ -72,24 +72,70 @@ namespace Game
             };
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(my_id, 1).data;
             auto old_level = player_acc_cache->acc_info.Level;
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check if level up, current level: ({})", old_level);
             auto gi = main_server->GetGradeInfoCache(old_level + 2);
             if (gi->Grade)
             {
                 if (player_acc_cache->acc_info.Experience >= gi->Exp)
                 {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will level up: ({})", gi->Grade - 1);
                     player_acc_cache->acc_info.Level = old_level + 1;
+                    if (gi->RewardPoint)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will get point reward: ({})", gi->RewardPoint);
+                        player_acc_cache->acc_info.MicroPoints += gi->RewardPoint;
+                        /*
+                        MainCurrencyUpdateAck currency_update_data = { player_acc_cache->acc_info.RockTokens, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Coins };
+                        if (auto my_session = server->GetSessionById(my_id))
+                        {
+                            send_msg(my_session.get(), 307, 0x0, 0, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // currency update ack
+                        }
+                        */
+                    }
+                    if (gi->RewardItem)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will get item reward: ({})", gi->RewardItem);
+                        if (auto my_session = server->GetSessionById(my_id))
+                        {
+                            main_server->SendInventoryItem(my_session.get(), player_acc_cache, { gi->RewardItem });
+                        }
+                    }
                     for (const auto& others_id : playing_players)
                     {
                         if (others_id == my_id) continue;
-                        if (auto other_session = server->GetSessionById(my_id))
+                        if (auto other_session = server->GetSessionById(others_id))
                             send_msg(other_session.get(), 311, 0, 0, static_cast<std::uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                     }
                 }
             }
+
+            return;//OLD CODE BUT CLIENT DONT UNDERSTAND MULTI LEVEL UP
+            /*
+            auto gi = main_server->GetGradeInfoLevelForExp(old_level + 1, player_acc_cache->acc_info.Experience);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "got level to check level: ({})", gi->Grade - 1);
+            if (gi->Grade)
+            {
+                if (gi->Grade - 1 > old_level)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check next level eligible: ({})", gi->Grade - 1);
+                    if (player_acc_cache->acc_info.Experience >= gi->Exp)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "next level match exp and will level up");
+                        player_acc_cache->acc_info.Level = gi->Grade - 1;
+                        for (const auto& others_id : playing_players)
+                        {
+                            if (others_id == my_id) continue;
+                            if (auto other_session = server->GetSessionById(others_id))
+                                send_msg(other_session.get(), 311, 0, 0, static_cast<std::uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                        }
+                    }
+                }
+            }
+            */
         }
         inline void ProcessUpdatePlayerAccCache( AccCacheResource& player_acc_cache, bool draw, bool blue_team_win, std::uint32_t melee_kills, std::uint32_t rifle_kills, std::uint32_t shotgun_kills, 
             std::uint32_t sniper_kills, std::uint32_t gatling_kills, std::uint32_t bazooka_kills, std::uint32_t grenade_kills, std::uint32_t kills, std::uint32_t deaths, std::uint32_t headshots, 
-            std::uint32_t assists, std::uint32_t killstreak, std::uint32_t earnt_battery, std::uint32_t total_xp ,std::uint32_t total_mp, std::uint64_t playtime_seconds)
+            std::uint32_t assists, std::uint32_t killstreak, std::uint32_t earnt_battery, std::uint32_t total_xp ,std::uint32_t total_mp, std::uint64_t playtime_seconds, bool is_clan_match)
         {
 
             auto safe_add_uint32 = [](std::uint32_t& target, std::uint32_t value_to_add)
@@ -117,6 +163,14 @@ namespace Game
             safe_add_uint32(player_acc_cache->acc_info.Headshots, headshots);
             safe_add_uint32(player_acc_cache->acc_info.Assists, assists);
             safe_add_uint8(player_acc_cache->acc_info.HighestKillStreak, killstreak);
+
+            if (is_clan_match)
+            {
+                safe_add_uint32(player_acc_cache->acc_info.ClanKills, kills);
+                safe_add_uint32(player_acc_cache->acc_info.ClanDeaths, deaths);
+                safe_add_uint32(player_acc_cache->acc_info.ClanAssists, assists);
+                safe_add_uint64(player_acc_cache->acc_info.ClanContribution, (static_cast<std::uint64_t>(kills) * 6 + assists));//TODO: own contribution math
+            }
           
             if (player_acc_cache->acc_info.Energy + earnt_battery <= player_acc_cache->acc_info.MaximumEnergy)
                 safe_add_uint32(player_acc_cache->acc_info.Energy, earnt_battery);
@@ -127,20 +181,40 @@ namespace Game
             safe_add_uint64(player_acc_cache->acc_info.PlayTime, playtime_seconds);
 
             if (draw)
+            {
                 safe_add_uint32(player_acc_cache->acc_info.Draws, 1);
+                if (is_clan_match)
+                    safe_add_uint64(player_acc_cache->acc_info.ClanDraws, 1);
+            }
             else if (blue_team_win)
             {
                 if (player_acc_cache->team_id == Team::IdType::Blue)
+                {
                     safe_add_uint32(player_acc_cache->acc_info.Wins, 1);
+                    if (is_clan_match)
+                        safe_add_uint64(player_acc_cache->acc_info.ClanWins, 1);
+                }
                 else
+                {
                     safe_add_uint32(player_acc_cache->acc_info.Loses, 1);
+                    if (is_clan_match)
+                        safe_add_uint64(player_acc_cache->acc_info.ClanLoses, 1);
+                }
             }
             else
             {
                 if (player_acc_cache->team_id == Team::IdType::Blue)
+                {
                     safe_add_uint32(player_acc_cache->acc_info.Loses, 1);
+                    if (is_clan_match)
+                        safe_add_uint64(player_acc_cache->acc_info.ClanLoses, 1);
+                }
                 else
+                {
                     safe_add_uint32(player_acc_cache->acc_info.Wins, 1);
+                    if (is_clan_match)
+                        safe_add_uint64(player_acc_cache->acc_info.ClanWins, 1);
+                }
             }
         }
         inline MainRoomEndMatchResponse GetEndMatchResponse(MainRoomEndMatchClientInfo& cl_info)
@@ -163,8 +237,8 @@ namespace Game
             resp.assists = 0;
             resp.total_mp = tmp;
             resp.total_xp = txp;
-            resp.unknown = 0;
-            resp.unknown2 = 0;
+            //resp.unknown = 0;
+            //resp.unknown2 = 0;
         }
         inline void AddBonusExpPoint(CMainServer *server, std::vector<BaseLib::Item> items, std::uint32_t selected_character, std::uint32_t &exp, std::uint32_t &point) {
             float extra_procent_exp = 0, extra_procent_point = 0;
@@ -238,7 +312,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -291,7 +365,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -344,7 +418,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }   
                         }
                     }
@@ -400,7 +474,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -455,7 +529,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -508,7 +582,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -564,7 +638,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -618,7 +692,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -673,7 +747,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -729,7 +803,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -784,7 +858,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -837,7 +911,7 @@ namespace Game
                             if (!no_rewards)
                             {
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
-                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds);
+                                    rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, false);
                             }
                         }
                     }
@@ -891,8 +965,259 @@ namespace Game
             }
         }
 
+        inline void NewProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            {
+                CMessage message(session->GetEncryptionKey());
+                message.SetSession(session->GetSessionId());
+                message.SetCommand(order, mission, extra, option);
+                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                session->Send(message);
+            };
+            CSession* session = callback.session;
+            CServer* server = callback.server;
+            auto self_session_id = session->GetSessionId();
+            auto end_match_time = Utility::GetUtcTimeNowInSeconds();
+            auto all_room_players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
+            auto playing_players = main_server->GetRoomSortedPlayerPlayingAndObserverSessionIds(room_cache);
+            auto endmatch_score_header = reinterpret_cast<MainRoomEndMatchScoreClientInfo*>(callback.message->GetData());
+            auto blue_team_win = endmatch_score_header->blue_score > endmatch_score_header->red_score;
+            auto draw = endmatch_score_header->blue_score == endmatch_score_header->red_score;
+            bool is_clan_match = room_cache->is_clan_room;
+            auto clan_id_1 = room_cache->clan_id_1;
+            auto clan_id_2 = room_cache->clan_id_2;
+            boost::unordered_flat_set<std::uint32_t> processed_unique_ids;
+            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse> end_match_infos;
+            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
+
+            for (const auto& id : playing_players)
+            {
+                if (id == self_session_id) continue;
+                if (auto player_session = server->GetSessionById(id))
+                    send_msg(player_session.get(), callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption(), callback.message->GetData(), callback.message->GetDataSize());
+            }
+
+            for (std::size_t i = 0; i < callback.message->GetOption(); i++)
+            {
+                auto endmatch_info = reinterpret_cast<MainRoomEndMatchClientInfo*>(callback.message->GetData() + sizeof(MainRoomEndMatchClientInfo) * i + sizeof(MainRoomEndMatchScoreClientInfo));
+                if (processed_unique_ids.find(endmatch_info->unique_id) != processed_unique_ids.end())
+                    continue;
+
+                auto client_unique_id = NetEngine::Packets::Core::UniqueId(endmatch_info->unique_id);
+                auto client_session_id = client_unique_id.session;
+                client_match_infos.insert({ client_session_id, *endmatch_info });
+                processed_unique_ids.insert(endmatch_info->unique_id);
+            }
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "was clan fight: ({}) between ({}) and ({})", is_clan_match, clan_id_1, clan_id_2);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now handle mod id: ({})", static_cast<std::uint32_t>(room_cache->ModeIndex));
+            for (const auto& id : playing_players)
+            {
+                if (client_match_infos.find(id) == client_match_infos.end())  continue;
+                auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(id);
+                if (player_acc_cache->acc_info.Index != -1)
+                {
+                    auto playtime_seconds = end_match_time - player_acc_cache->match_loaded_time;
+                    if (auto player_session = server->GetSessionById(id))
+                    {
+                        auto& match_info = client_match_infos[id];
+                        auto my_unique_id = match_info.unique_id;
+                        auto unknown1 = match_info.unknown1, unknown2 = match_info.unknown2, unknown3 = match_info.unknown3, unknown4 = match_info.unknown4;
+                        auto rsp = GetEndMatchResponse(match_info);
+                        auto playtime_min_seconds = main_server->GetPlaytimeMinSeconds();
+                        auto no_rewards = (rsp.total_kills == 0 && rsp.deaths == 0 && rsp.assists == 0) || (playtime_seconds < playtime_min_seconds) || (player_acc_cache->team_id == NetEngine::Team::IdType::Observer);
+                        auto earnt_battery = player_acc_cache->earnt_battery;
+                        player_acc_cache->earnt_battery = 0;
+                        if (no_rewards)
+                        {
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) dont get endmatch reward", player_acc_cache->acc_info.Nickname);
+                            earnt_battery = 0;
+                            ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
+                        }
+                        else
+                        {
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player id:({}) nick:({}) will possible get endmatch reward", id, player_acc_cache->acc_info.Nickname);
+                            auto kills = match_info.total_kills;
+                            auto deaths = match_info.deaths;
+                            auto assists = match_info.assists;
+                            auto melee_kills = match_info.melee_kills;
+                            auto rifle_kills = match_info.rifle_kills;
+                            auto shotgun_kills = match_info.shotgun_kills;
+                            auto sniper_kills = match_info.sniper_kills;
+                            auto gatling_kills = match_info.gatling_kills;
+                            auto bazooka_kills = match_info.bazooka_kills;
+                            auto grenade_kills = match_info.grenade_kills;
+                            auto killstreak = match_info.killstreak;
+                            auto headshots = match_info.headshots;
+                            auto ri = main_server->GetRewardInfoCache(room_cache->ModeIndex);
+                            std::uint32_t exp_earn = 0;
+                            std::uint32_t point_earn = 0;
+                            bool isClan = false;
+                            switch (room_cache->ModeIndex)
+                            {
+                                case NetEngine::Room::Mode::Index::CLAN_Elimination:
+                                case NetEngine::Room::Mode::Index::CLAN_TeamDeathMatch:
+                                    isClan = true;
+                                case NetEngine::Room::Mode::Index::TeamDeathMatch:
+                                case NetEngine::Room::Mode::Index::FreeForAll:
+                                case NetEngine::Room::Mode::Index::ItemMatch:
+                                case NetEngine::Room::Mode::Index::Elimination:
+                                case NetEngine::Room::Mode::Index::SuperItemMatch:
+                                {
+                                    std::uint32_t calc_exp = ri->ExpBase;
+                                    std::uint32_t calc_point = ri->PointBase;
+
+                                    calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist);
+                                    calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist);
+
+                                    exp_earn = std::max(ri->ExpBase, calc_exp);
+                                    point_earn = std::max(ri->PointBase, calc_point);
+
+                                    if (isClan)
+                                    {
+                                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "is clan mod");
+                                    }
+
+                                    exp_earn = std::min(ri->ExpMax, exp_earn);
+                                    point_earn = std::min(ri->ExpMax, point_earn);
+                                    break;
+                                }
+                                case NetEngine::Room::Mode::Index::CLAN_CaptureTheBattery:
+                                    isClan = true;
+                                case NetEngine::Room::Mode::Index::CaptureTheBattery:
+                                {
+                                    auto TeamBatteryCaptures = unknown2;
+                                    auto MyBatteryCaptures = unknown1;
+
+                                    std::uint32_t calc_exp = ri->ExpBase;
+                                    std::uint32_t calc_point = ri->PointBase;
+
+                                    calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist) + (TeamBatteryCaptures * ri->ExpMission) + (MyBatteryCaptures * ri->ExpMissionWin);
+                                    calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist) + (TeamBatteryCaptures * ri->PointMission) + (MyBatteryCaptures * ri->PointMissionWin);
+
+                                    exp_earn = std::max(ri->ExpBase, calc_exp);
+                                    point_earn = std::max(ri->PointBase, calc_point);
+
+                                    if (isClan)
+                                    {
+                                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "is clan mod");
+                                    }
+
+                                    exp_earn = std::min(ri->ExpMax, exp_earn);
+                                    point_earn = std::min(ri->ExpMax, point_earn);
+                                    break;
+                                }
+                                case NetEngine::Room::Mode::Index::BombBattle:
+                                {
+                                    auto RoundWin = unknown2;
+
+                                    std::uint32_t calc_exp = ri->ExpBase;
+                                    std::uint32_t calc_point = ri->PointBase;
+
+                                    calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist) + (RoundWin * ri->ExpMissionWin);
+                                    calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist) + (RoundWin * ri->PointMissionWin);
+
+                                    exp_earn = std::max(ri->ExpBase, calc_exp);
+                                    point_earn = std::max(ri->PointBase, calc_point);
+
+                                    exp_earn = std::min(ri->ExpMax, exp_earn);
+                                    point_earn = std::min(ri->ExpMax, point_earn);
+                                    break;
+                                }
+                                case NetEngine::Room::Mode::Index::ZombieMode:
+                                {
+                                    auto ZombiKill = killstreak;
+                                    auto Infected = melee_kills;
+                                    auto Survived = unknown2;
+
+                                    std::uint32_t calc_exp = ri->ExpBase;
+                                    std::uint32_t calc_point = ri->PointBase;
+
+                                    calc_exp += (ZombiKill * ri->ExpModeKill) + (Infected * ri->ExpKill) + (deaths * ri->ExpDeath) + (Survived * ri->ExpMissionWin);
+                                    calc_point += (ZombiKill * ri->PointModeKill) + (Infected * ri->PointKill) - (deaths * ri->PointDeath) + (Survived * ri->PointMissionWin);
+
+                                    exp_earn = std::max(ri->ExpBase, calc_exp);
+                                    point_earn = std::max(ri->PointBase, calc_point);
+
+                                    exp_earn = std::min(ri->ExpMax, exp_earn);
+                                    point_earn = std::min(ri->ExpMax, point_earn);
+                                    break;
+                                }
+                                case NetEngine::Room::Mode::Index::ArmsRace:
+                                {
+                                    auto Mission = unknown1;
+
+                                    std::uint32_t calc_exp = ri->ExpBase;
+                                    std::uint32_t calc_point = ri->PointBase;
+
+                                    calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist) + (Mission * ri->ExpMission);
+                                    calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist) + (Mission * ri->PointMission);
+
+                                    exp_earn = std::max(ri->ExpBase, calc_exp);
+                                    point_earn = std::max(ri->PointBase, calc_point);
+
+                                    exp_earn = std::min(ri->ExpMax, exp_earn);
+                                    point_earn = std::min(ri->ExpMax, point_earn);
+                                    break;
+                                }
+                                default:
+                                {
+                                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "unknown mod id, no reward");
+                                    no_rewards = true, earnt_battery = 0;
+                                    ClearEndmMatchResponse(rsp, player_acc_cache->acc_info.MicroPoints, player_acc_cache->acc_info.Experience); end_match_infos.insert({ id,rsp });
+                                }
+                            }
+                            auto pcroom_state = player_acc_cache->acc_info.PCRoom;
+                            AddBonusExpPoint(main_server, player_acc_cache->inventory_items, player_acc_cache->acc_info.SelectedCharacter, exp_earn, point_earn);
+                            if (pcroom_state > 1)
+                            {
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "pcroom state with bonus exp and point enabled");
+                                exp_earn += std::ceil(0.28 * exp_earn);
+                                point_earn += std::floor(0.47 * point_earn);
+                            }
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player final have exp: ({}), point: ({})", exp_earn, point_earn);
+                            ri.unlock();
+                            rsp.unknown1 = unknown1;
+                            rsp.unknown2 = unknown2;
+                            rsp.unknown3 = unknown3;
+                            rsp.unknown4 = unknown4;
+                            rsp.unique_id = my_unique_id;
+                            rsp.total_mp = player_acc_cache->acc_info.MicroPoints + point_earn;
+                            rsp.total_xp = player_acc_cache->acc_info.Experience + exp_earn;
+                            end_match_infos.insert({ id, rsp });
+                            ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
+                                rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, is_clan_match);
+                        }
+                        ProcessLevelUp(main_server, server, player_acc_cache, id, all_room_players);
+                    }
+                    player_acc_cache->playing = false;
+                    player_acc_cache->state = room_cache->host_session_id == id ? PlayerInfo::State::HostReady : PlayerInfo::State::Waiting;
+                }
+                player_acc_cache.unlock();
+            }
+
+            for (const auto& id : playing_players)
+            {
+                if (end_match_infos.find(id) == end_match_infos.end())
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "dont find endmatch info for player: ({})", id);
+                    continue;
+                }
+
+                if (auto player_session = server->GetSessionById(id))
+                {
+                    auto& endmatchinfo_response = end_match_infos[id];
+                    send_msg(player_session.get(), 254, 0, 1, 0, reinterpret_cast<uint8_t*>(&endmatchinfo_response), sizeof(MainRoomEndMatchResponse));
+                }
+            }
+        }
+
         inline void ProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
         {
+            NewProcessPvpModes(callback, main_server, room_cache);
+            return;
+
             auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
@@ -1110,6 +1435,13 @@ namespace Game
                 auto end_single_wave_time = Utility::GetUtcTimeNowInSeconds();
                 auto playtime_seconds = end_single_wave_time - acc_cache->match_loaded_time;
                 auto endmatch_sw = reinterpret_cast<SingleWaveEndReq*>(callback.message->GetData());
+
+                if (endmatch_sw->type == 1 || endmatch_sw->type == 2)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "single wave check player level up");
+                    std::vector<std::uint16_t> empty_vec;
+                    ProcessLevelUp(main_server, server, acc_cache, session_id, empty_vec);
+                }
 
                 switch (endmatch_sw->type)
                 {

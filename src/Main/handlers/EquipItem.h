@@ -35,6 +35,8 @@ namespace Game
 
             //al meu
             if (equip_remove_type == 17) equip_remove_type = 25;
+            if (equip_remove_type == 19) equip_remove_type = 22;
+            if (equip_remove_type == 20) equip_remove_type = 23;
            
             for (std::uint32_t i = 0; i < equip_items_count; i++)
             {

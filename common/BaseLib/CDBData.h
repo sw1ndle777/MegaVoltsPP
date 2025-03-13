@@ -7,7 +7,7 @@ namespace BaseLib
     struct ItemInfo
     {
         std::uint32_t Id;
-        //std::string Name;
+        std::string Name;
         //std::string NameTime;
         //std::string NameOption;
         bool IsNaomiUsable;
@@ -85,6 +85,23 @@ namespace BaseLib
             this->rewardExp = 0;
             this->rewardItem = 0;
             this->missionType = 0;
+        }
+    };
+
+    struct DailyMissionInfo {
+        std::uint32_t id;
+        std::uint32_t setIndex;
+        std::uint32_t rewardPoint;
+        std::uint32_t rewardExp;
+        std::uint32_t rewardItem;
+        std::uint32_t goal;
+        DailyMissionInfo() {
+            this->id = 0;
+            this->setIndex = 0;
+            this->rewardPoint = 0;
+            this->rewardExp = 0;
+            this->rewardItem = 0;
+            this->goal = 0;
         }
     };
 

@@ -249,6 +249,16 @@ namespace BaseLib
             : month(0), rewards{} {
         }
     };
+    struct PlayerDailyMission {
+        std::uint32_t player_account_id;
+        std::uint64_t update_time;
+        std::uint32_t mission1;
+        std::uint32_t mission2;
+        std::uint32_t mission3;
+        std::uint32_t goal_mission1;
+        std::uint32_t goal_mission2;
+        std::uint32_t goal_mission3;
+    };
     struct ClanInfo
     {
         std::uint32_t id;
@@ -387,6 +397,9 @@ namespace BaseLib
         bool GetPlayerMonthlyDayCount(const std::uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards);
         bool InsertPlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update);
         bool UpdatePlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update);
+        bool GetPlayerDailyMission(const std::uint32_t& acc_id, PlayerDailyMission* outDailyMission);
+        bool InsertPlayerDailyMission(const std::uint32_t& acc_id, const PlayerDailyMission& dailyMission);
+        bool UpdatePlayerDailyMission(const std::uint32_t& acc_id, const PlayerDailyMission& dailyMission);
         std::vector<GachaponSaleInfo> GetGachaponSalesInfo();
         bool DeleteGachaponSaleInfo(const std::uint32_t& gachapon_id);
         std::string GetDatabaseName();

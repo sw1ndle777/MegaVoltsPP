@@ -293,6 +293,8 @@ namespace Game
             BaseLib::Database->InsertPlayerBlockeds(blockeds_added);
             BaseLib::Database->DeletePlayerBlockeds(blockeds_deleted);
 
+            BaseLib::Database->UpdatePlayerDailyMission(acc_info.Index, acc_cache->daily_mission_info);
+
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "database updated account info ({})", acc_info.Nickname.c_str());
 
             auto notify_friend_logout = [&](const auto& friend_info)
@@ -369,7 +371,6 @@ namespace Game
                 main_server->RemovePlayerFriends(friend_info.friend_session_id, acc_index);
                 main_server->AddPlayerFriends(friend_info.friend_session_id, { friend_info.friend_account_id, acc_index, Userlist::Friends::State::Accepted, 0,  acc_info.Nickname.c_str() });
             }
-
 
             main_server->RemoveAccCache(session_id);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "removed acc cache for session id: ({})", session_id);

@@ -632,12 +632,14 @@ namespace Game
     std::shared_mutex items_info_mutex;
     std::shared_mutex effect_info_mutex;
     std::shared_mutex collection_info_mutex;
+    std::shared_mutex dailymission_info_mutex;
     std::shared_mutex setitems_info_mutex;
     std::shared_mutex vendors_info_mutex;
     std::shared_mutex upgrades_info_mutex;
     std::shared_mutex gachapons_info_mutex;
     std::shared_mutex packages_info_mutex;
     std::shared_mutex vendor_item_ids_mutex;
+    std::shared_mutex dailymission_ids_mutex;
     std::shared_mutex roomoptionsinfo_cache_mutex;
     std::shared_mutex grades_info_mutex;
     std::shared_mutex rewards_info_mutex;
@@ -678,6 +680,8 @@ namespace Game
     boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
     boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
     boost::unordered_flat_map<std::uint32_t, BaseLib::CollectionInfo> collection_info; //read only
+    boost::unordered_flat_map<std::uint32_t, BaseLib::DailyMissionInfo> dailymission_info; //read only
+    std::vector<std::uint32_t> dailymission_ids; //read only
     boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     std::vector<BaseLib::VendorInfo> vendors_info; //read only
     boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
@@ -740,7 +744,7 @@ namespace Game
         this->On(91, std::bind(&Game::Handlers::BuyItem, std::placeholders::_1, this));//shop coupon buy item
         this->On(92, std::bind(&Game::Handlers::GachaponSpin, std::placeholders::_1, this));//gachapon spin
         this->On(96, std::bind(&Game::Handlers::PlayerPickupDrop, std::placeholders::_1, this));//gachapon spin
-        this->On(97, std::bind(&Game::Handlers::RepairItem, std::placeholders::_1, this));//repair item
+        this->On(98, std::bind(&Game::Handlers::RepairItem, std::placeholders::_1, this));//repair item
         this->On(100, std::bind(&Game::Handlers::SellItem, std::placeholders::_1, this));//sell item
         this->On(101, std::bind(&Game::Handlers::UpgradeItem, std::placeholders::_1, this));//upgrade item
         this->On(102, std::bind(&Game::Handlers::PackageOpen, std::placeholders::_1, this));//package open

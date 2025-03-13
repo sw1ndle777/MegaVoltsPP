@@ -127,6 +127,7 @@ namespace Game
                     auto my_player_cache = main_server->GetAccCacheSharedBySessionId(session_id);
                     auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                     auto my_voice_id = my_player_cache->voice_id;
+                    auto my_pcroom_tier = my_player_cache->acc_info.PCRoom;
                     my_player_cache.unlock();
 
                     auto playerEnterInfoData = get_equipped_data(main_server, session_id);
@@ -138,6 +139,7 @@ namespace Game
                         {
                             send_msg(player_session.get(), 424, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
                             send_msg(player_session.get(), 314, 0, 0, my_voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            //send_msg(player_session.get(), 403, 0, 0, my_pcroom_tier, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
 
                             auto other_player_equipped_data = get_equipped_data(main_server, plaza_player_session_id);
                             send_msg(session, 424, 0, 0, 1, reinterpret_cast<uint8_t*>(other_player_equipped_data.data()), other_player_equipped_data.size());
@@ -145,7 +147,9 @@ namespace Game
                             auto player_cache = main_server->GetAccCacheSharedBySessionId(plaza_player_session_id);
                             auto other_unique_id = NetEngine::Packets::Core::UniqueId(plaza_player_session_id, 1).data;
                             auto other_voice_id = player_cache->voice_id;
+                            auto other_pcroom_tier = player_cache->acc_info.PCRoom;
                             send_msg(session, 314, 0, 0, other_voice_id, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
+                            //send_msg(session, 403, 0, 0, other_pcroom_tier, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
                             player_cache.unlock();
                         }
                     }

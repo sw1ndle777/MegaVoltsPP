@@ -196,6 +196,30 @@ namespace Utility
         auto now_c = std::chrono::system_clock::to_time_t(now);
         return static_cast<std::uint64_t>(now_c);
     }
+    std::uint64_t GetLast6AMUtc() {
+        // Get current UTC time
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+        // Convert to UTC time structure
+        std::tm utc_tm = *std::gmtime(&now_c);
+
+        // Set time to 6 AM of today
+        utc_tm.tm_hour = 6;
+        utc_tm.tm_min = 0;
+        utc_tm.tm_sec = 0;
+
+        // Convert back to time_t
+        std::time_t six_am_today = std::mktime(&utc_tm);
+
+        // If current time is before 6 AM, subtract one day
+        if (now_c < six_am_today) {
+            six_am_today -= 86400; // Subtract 24 hours in seconds
+        }
+
+        // Return as uint64_t
+        return static_cast<std::uint64_t>(six_am_today);
+    }
     std::uint64_t GetUtcTimeNowInMilliseconds() 
     {
         auto now = std::chrono::system_clock::now();

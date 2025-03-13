@@ -508,16 +508,93 @@ namespace Game
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) has guide missions ({})", session->GetSessionId(), frontAccount.GuideMission);
 
-            struct guide_mission
+            struct guide_daily_mission
             {
-                std::uint32_t collection_id = 46;
-                std::uint32_t reward_point = 200;
-                std::uint32_t reward_exp = 30;
-                std::uint32_t type = 1;
-            } guideMissionData;
-            guideMissionData.collection_id = frontAccount.GuideMission + 46;
+                std::uint32_t mission_id = 46;
+                std::uint32_t unk = 0;
+                std::uint32_t goal = 0;
+                std::uint32_t type = 1;//1 guide mission, 4 daily mission
 
-            send_msg(session, 167, 0, 1, 10, reinterpret_cast<uint8_t*>(&guideMissionData), sizeof(guideMissionData)); // guide mission completed all
+                guide_daily_mission(std::uint32_t id, std::uint32_t goal, std::uint32_t type)
+                {
+                    this->mission_id = id;
+                    this->goal = goal;
+                    this->type = type;
+                };
+            };
+            auto guideMissionData = guide_daily_mission(46, 0, 1);
+            guideMissionData.mission_id = frontAccount.GuideMission + 46;
+
+            send_msg(session, 167, 0, 1, 1, reinterpret_cast<uint8_t*>(&guideMissionData), sizeof(guideMissionData));
+
+            /*
+            //guideMissionData.mission_id = 30001;
+            //guideMissionData.goal = 3;
+            //guideMissionData.type = 4;
+            std::vector<guide_daily_mission> dailyMissions;
+            dailyMissions.push_back(guide_daily_mission(30000, 0, 4));
+            dailyMissions.push_back(guide_daily_mission(30001, 0, 4));
+            dailyMissions.push_back(guide_daily_mission(30002, 0, 4));
+            //dailyMissions.push_back(guide_daily_mission(30003, 0, 4));
+
+            send_msg(session, 167, 0, 1, dailyMissions.size(), reinterpret_cast<uint8_t*>(dailyMissions.data()), sizeof(guide_daily_mission) * dailyMissions.size());
+            */
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now check daily mission data of player");
+            PlayerDailyMission playerDailyMissionData;
+            playerDailyMissionData.update_time = 0;
+            bool daily_mission_existed = BaseLib::Database->GetPlayerDailyMission(frontAccount.Index, &playerDailyMissionData);
+            std::uint64_t now_time = Utility::GetUtcTimeNow64();
+            std::uint64_t last_6am = Utility::GetLast6AMUtc();
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player last update daily mission: ({}) and last 6am was: ({}) and now is time: ({})", playerDailyMissionData.update_time, last_6am, now_time);
+            if (playerDailyMissionData.update_time < last_6am)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player daily mission was outdated and now will update new");
+                auto new_ids = main_server->GetRandomDailyMissionIds(3,0,0,0);
+                playerDailyMissionData.mission1 = new_ids[0];
+                playerDailyMissionData.goal_mission1 = 0;
+                playerDailyMissionData.mission2 = new_ids[1];
+                playerDailyMissionData.goal_mission2 = 0;
+                playerDailyMissionData.mission3 = new_ids[2];
+                playerDailyMissionData.goal_mission3 = 0;
+                playerDailyMissionData.update_time = now_time;
+                if (daily_mission_existed)
+                    BaseLib::Database->UpdatePlayerDailyMission(frontAccount.Index, playerDailyMissionData);
+                else
+                    BaseLib::Database->InsertPlayerDailyMission(frontAccount.Index, playerDailyMissionData);
+            }
+            std::vector<guide_daily_mission> dailyMissions;
+            dailyMissions.push_back(guide_daily_mission(playerDailyMissionData.mission1, playerDailyMissionData.goal_mission1, 4));
+            dailyMissions.push_back(guide_daily_mission(playerDailyMissionData.mission2, playerDailyMissionData.goal_mission2, 4));
+            dailyMissions.push_back(guide_daily_mission(playerDailyMissionData.mission3, playerDailyMissionData.goal_mission3, 4));
+
+            send_msg(session, 167, 0, 1, dailyMissions.size(), reinterpret_cast<uint8_t*>(dailyMissions.data()), sizeof(guide_daily_mission)* dailyMissions.size());
+
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+            acc_cache->daily_mission_info = playerDailyMissionData;
+            acc_cache.unlock();
+
+            /*
+            struct daily_mission
+            {
+                std::uint32_t id;
+                std::uint32_t goal;
+                std::uint32_t reward;
+
+                daily_mission(std::uint32_t id, std::uint32_t goal, std::uint32_t reward)
+                {
+                    this->id = id;
+                    this->goal = goal;
+                    this->reward = reward;
+                };
+            };
+            std::vector<daily_mission> dailyMissions;
+            dailyMissions.push_back(daily_mission(30000, 5, 4060071));
+            dailyMissions.push_back(daily_mission(30001, 1, 4060071));
+            dailyMissions.push_back(daily_mission(30002, 30, 4060071));
+
+            send_msg(session, 93, 0, 0, 3, reinterpret_cast<uint8_t*>(dailyMissions.data()), sizeof(daily_mission) * 3);
+            */
             //send_msg(session, 167, 1, 3, 5); // daily mission idk
 
             //send_msg(session, 66, 0, 51, 1);// popup daily reward

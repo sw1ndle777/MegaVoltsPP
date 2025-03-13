@@ -314,7 +314,7 @@ namespace NetEngine
                 std::uint32_t collection_id;
                 std::uint32_t set_index;
                 std::uint32_t idk1;
-                std::uint32_t mission_type;//1 for guide mission and 4 for daily missions
+                std::uint32_t mission_type;//1 for guide mission and 4 for daily mission
             };
             struct MainVoteKickReq
             {

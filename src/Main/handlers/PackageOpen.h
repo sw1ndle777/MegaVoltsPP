@@ -189,7 +189,9 @@ namespace Game
                             auto real_mp = (items_won[0].ItemId - 4400000) * 100;
                             acc_cache->acc_info.MicroPoints = acc_cache->acc_info.MicroPoints + real_mp;
                             ShopItem new_item = { items_won[0].ItemId, ItemExpire::Type::Unused, ItemSerialInfo(0, 0, 0, 0, 0) };
-                            send_msg(session, 102, 1, Items::Package::Result::Package, 1, reinterpret_cast<uint8_t*>(&new_item), sizeof(ShopItem));
+                            MainCurrencyUpdateAck currency_update_data = { acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
+                            send_msg(session, 307, 0x0, 0, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // currency update ack
+                            send_msg(session, 102, 1, Items::Package::Result::Package, 2, reinterpret_cast<uint8_t*>(&new_item), sizeof(ShopItem));
                         }
                         else if (items_won.size() == 1 && items_won[0].ItemId > 4308000 && items_won[0].ItemId <= 4308020) // Coin Item
                         {

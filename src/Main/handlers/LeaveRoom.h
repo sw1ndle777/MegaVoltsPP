@@ -119,6 +119,8 @@ namespace Game
                 main_server->RemoveRoomPlayerCache(room, session_id, my_team_id);
                 main_server->RoomPlayersSlotReorder(room);
 
+                auto room_playing_players = main_server->GetRoomSortedPlayerPlayingWithoutObserverSessionIds(room);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, " player leave room and playing count is now: ({})", room_playing_players.size());
 
                 std::vector<std::uint32_t> players_ids;
                 std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;

@@ -301,6 +301,7 @@ namespace Game
                     auto player_cache = main_server->GetAccCacheSharedBySessionId(player_id);
                     auto unique_id = NetEngine::Packets::Core::UniqueId(player_id, 1).data;
                     auto voice_id = player_cache->voice_id;
+                    auto pcroom_tier = player_cache->acc_info.PCRoom;
                     std::vector<BaseLib::Item> equipped_items;
                     for (const auto& item : player_cache->inventory_items)
                         if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(player_cache->acc_info.SelectedCharacter))
@@ -348,6 +349,7 @@ namespace Game
                     player_cache.unlock();
 
                     send_msg(session, 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id));
+                    //send_msg(session, 403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id));
                 }
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent player info for: ({}) players", new_equipinfo.size());
                 send_msg(session, 303, 0, extra, block_size, reinterpret_cast<uint8_t*>(new_equipinfo.data()), new_equipinfo.size() * sizeof(MainRoomPlayersEquipInfoAck));
@@ -573,6 +575,7 @@ namespace Game
             });
             acc_cache.lock();
             auto voice_id = acc_cache->voice_id;
+            auto pcroom_tier = acc_cache->acc_info.PCRoom;
             auto my_auto_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
             acc_cache->slot_id = (current_team_id != NetEngine::Team::IdType::Observer) ? static_cast<std::uint8_t>(filtered_slots.back().second + 1) : 0xFF;
@@ -599,6 +602,7 @@ namespace Game
                     send_msg(player_session.get(), 421, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
                     send_msg(player_session.get(), 409, 0, 37, 1, reinterpret_cast<uint8_t*>(&my_clan_info), sizeof(PlayerRoomClanListInfo));
                     send_msg(player_session.get(), 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
+                    //send_msg(player_session.get(), 403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
                 }
                     
             }

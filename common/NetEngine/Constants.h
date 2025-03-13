@@ -597,8 +597,8 @@ namespace NetEngine
                 Scrimmage = 9,
                 BombBattle = 10,
                 BossBattle = 11,
-                CLAN_TeamDeathMatch = 14,
-                CLAN_CaptureTheBattery = 15,
+                CLAN_CaptureTheBattery = 14,
+                CLAN_TeamDeathMatch = 15,
                 CLAN_Elimination = 16,
                 CLAN_Random = 17
                 

@@ -1251,6 +1251,15 @@ namespace Game
                 auto new_clan_room_id = target_host_acc_cache->room_id;
                 target_host_acc_cache.unlock();
 
+                if (self_is_clan)
+                {
+                    auto target_room_cache = main_server->GetRoomCacheUnique(new_clan_room_id);
+                    target_room_cache->is_clan_room = true;
+                    target_room_cache->clan_id_1 = self_clan_id;
+                    target_room_cache->clan_id_2 = target_clan_id;
+                    target_room_cache.unlock();
+                }
+
                 acc_cache.unlock();
 
                 auto join_clan_room = [&](std::vector<uint16_t> players)

@@ -169,6 +169,7 @@ namespace Game
         std::uint8_t voice_id;
         std::uint64_t match_loaded_time;
         std::uint32_t earnt_battery;
+        PlayerDailyMission daily_mission_info;
         BaseLib::FrontAccount acc_info;
         std::vector<Item> inventory_items;
         std::vector<ItemSerialInfo> items_deleted;
@@ -237,6 +238,7 @@ namespace Game
             friends_pendings = other.friends_pendings;
             blockeds_deleted = other.blockeds_deleted;
             blockeds_added = other.blockeds_added;
+            daily_mission_info = other.daily_mission_info;
         }
         Player& operator=(const Player& other)
         {
@@ -269,6 +271,7 @@ namespace Game
             friends_pendings = other.friends_pendings;
             blockeds_deleted = other.blockeds_deleted;
             blockeds_added = other.blockeds_added;
+            daily_mission_info = other.daily_mission_info;
             return *this;
         }
         Player()
@@ -311,6 +314,7 @@ namespace Game
         std::string title;
         std::string password;
         NetEngine::Room::Map::Index MapIndex;
+        NetEngine::Room::Map::Index RandomMapIndex;
         NetEngine::Room::Mode::Index ModeIndex;
         NetEngine::Room::Restriction::Type Restriction;
         NetEngine::Room::Balance::State TeamBalance;
@@ -332,6 +336,9 @@ namespace Game
         std::vector<std::uint16_t> voters_session_ids;
         std::uint16_t vote_kick_target_session_id;
         bool is_kick_vote_running = false;
+        bool is_clan_room;
+        std::uint32_t clan_id_1;
+        std::uint32_t clan_id_2;
         Room(const std::uint16_t& roomId = 0, const std::uint16_t& channelId = 0, const std::string& title = "", const std::string& password = "",
             const NetEngine::Room::Map::Index& mapIndex = NetEngine::Room::Map::Index::Chess, const NetEngine::Room::Mode::Index& modeIndex = NetEngine::Room::Mode::Index::TeamDeathMatch,
             const NetEngine::Room::Restriction::Type& restriction = NetEngine::Room::Restriction::AllWeapons, const NetEngine::Room::Balance::State& teamBalance = NetEngine::Room::Balance::State::Disabled,
@@ -357,6 +364,7 @@ namespace Game
             title = other.title;
             password = other.password;
             MapIndex = other.MapIndex;
+            RandomMapIndex = other.RandomMapIndex;
             ModeIndex = other.ModeIndex;
             Restriction = other.Restriction;
             TeamBalance = other.TeamBalance;
@@ -378,6 +386,9 @@ namespace Game
             voters_session_ids = other.voters_session_ids;
             is_kick_vote_running = other.is_kick_vote_running;
             vote_kick_target_session_id = other.vote_kick_target_session_id;
+            is_clan_room = other.is_clan_room;
+            clan_id_1 = other.clan_id_1;
+            clan_id_2 = other.clan_id_2;
         }
         Room& operator=(const Room& other)
         {
@@ -387,6 +398,7 @@ namespace Game
             title = other.title;
             password = other.password;
             MapIndex = other.MapIndex;
+            RandomMapIndex = other.RandomMapIndex;
             ModeIndex = other.ModeIndex;
             Restriction = other.Restriction;
             TeamBalance = other.TeamBalance;
@@ -408,6 +420,9 @@ namespace Game
             voters_session_ids = other.voters_session_ids;
             is_kick_vote_running = other.is_kick_vote_running;
             vote_kick_target_session_id = other.vote_kick_target_session_id;
+            is_clan_room = other.is_clan_room;
+            clan_id_1 = other.clan_id_1;
+            clan_id_2 = other.clan_id_2;
             return *this;
         }
     };
@@ -608,12 +623,14 @@ namespace Game
     extern std::shared_mutex items_info_mutex;
     extern std::shared_mutex effect_info_mutex;
     extern std::shared_mutex collection_info_mutex;
+    extern std::shared_mutex dailymission_info_mutex;
     extern std::shared_mutex setitems_info_mutex;
     extern std::shared_mutex vendors_info_mutex;
     extern std::shared_mutex upgrades_info_mutex;
     extern std::shared_mutex gachapons_info_mutex;
     extern std::shared_mutex packages_info_mutex;
     extern std::shared_mutex vendor_item_ids_mutex;
+    extern std::shared_mutex dailymission_ids_mutex;
     extern std::shared_mutex roomoptionsinfo_cache_mutex;
     extern std::shared_mutex grades_info_mutex;
     extern std::shared_mutex rewards_info_mutex;
@@ -639,12 +656,14 @@ namespace Game
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::CollectionInfo> collection_info;
+    extern boost::unordered_flat_map<std::uint32_t, BaseLib::DailyMissionInfo> dailymission_info;
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     extern std::vector<BaseLib::VendorInfo> vendors_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
     extern std::vector<std::uint32_t> vendor_item_ids; //read only
+    extern std::vector<std::uint32_t> dailymission_ids; //read only
     extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::GradeInfo> grades_info; //read only
     extern boost::unordered_flat_map<std::uint32_t, BaseLib::RewardInfo> rewards_info; //read only
@@ -1571,6 +1590,42 @@ namespace Game
 
             return players_ids;
         }
+        auto GetRoomSortedPlayerPlayingAndObserverSessionIds(RoomCacheResource& room_cache)
+        {
+            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+
+            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids)
+                {
+                    for (const auto& id : team_session_ids)
+                    {
+                        auto player_cache = GetAccCacheSharedBySessionId(id);
+                        if (player_cache->acc_info.Index != -1 && player_cache->in_room && player_cache->room_id == room_cache->room_id && player_cache->playing)
+                            player_slot_pairs.emplace_back(id, player_cache->slot_id);
+
+                        player_cache.unlock();
+                    }
+                };
+            if (IsModeTeamBased(room_cache->ModeIndex))
+            {
+                addPlayerToSlotPairs(room_cache->blueteam_session_ids);
+                addPlayerToSlotPairs(room_cache->redteam_session_ids);
+            }
+            else
+                addPlayerToSlotPairs(room_cache->neutralteam_session_ids);
+
+            addPlayerToSlotPairs(room_cache->observers_session_ids);
+
+            std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
+                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                    return a.second < b.second;
+                });
+
+            std::vector<std::uint16_t> players_ids;
+            for (const auto& pair : player_slot_pairs)
+                players_ids.push_back(pair.first);
+
+            return players_ids;
+        }
         auto GetRoomSortedPlayerPlayingWithoutObserverSessionIds(RoomCacheResource& room_cache)
         {
             std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
@@ -2230,6 +2285,73 @@ namespace Game
         {
             std::shared_lock lock(collection_info_mutex);
             return collection_info.size();
+        }
+
+        auto GetRandomDailyMissionIds(std::uint32_t count, std::uint32_t id1, std::uint32_t id2, std::uint32_t id3) {
+            std::vector<std::uint32_t> result;
+            result.reserve(count);
+
+            std::random_device rd;
+            std::mt19937 gen(rd());
+
+            {
+                std::shared_lock lock(dailymission_ids_mutex);
+
+                if (dailymission_ids.size() < count) {
+                    return result;  // Not enough IDs to fulfill the request
+                }
+
+                while (result.size() < count) {
+                    auto random_it = std::next(dailymission_ids.begin(), gen() % dailymission_ids.size());
+                    std::uint32_t random_id = *random_it;
+
+                    // Exclude already used IDs and avoid duplicates
+                    if (random_id != id1 && random_id != id2 && random_id != id3 &&
+                        std::find(result.begin(), result.end(), random_id) == result.end()) {
+                        result.push_back(random_id);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        void AddDailyMissionInfoCache(const std::uint32_t& id, BaseLib::DailyMissionInfo new_dailymission_info)
+        {
+            auto dailymission_info_locked = LockedResource{ std::unique_lock(dailymission_info_mutex), dailymission_info };
+            auto dailymission_ids_locked = LockedResource{ std::unique_lock(dailymission_ids_mutex), dailymission_ids };
+
+            dailymission_ids_locked->push_back(id);
+
+            auto [it, inserted] = dailymission_info_locked->emplace(id, std::move(new_dailymission_info));
+        }
+        void RemoveDailyMissionInfoCache(const std::uint32_t& id)
+        {
+            auto dailymission_info_locked = LockedResource{ std::unique_lock(dailymission_info_mutex), dailymission_info };
+            auto dailymission_ids_locked = LockedResource{ std::unique_lock(dailymission_ids_mutex), dailymission_ids };
+
+            dailymission_ids_locked->erase(std::remove(dailymission_ids_locked->begin(), dailymission_ids_locked->end(), id), dailymission_ids_locked->end());
+
+            dailymission_info_locked->erase(id);
+        }
+        auto GetDailyMissionInfoCache(const std::uint32_t& id)
+        {
+
+            std::shared_lock lock(dailymission_info_mutex);
+            auto it = dailymission_info.find(id);
+            if (it != dailymission_info.end())
+                return LockedResource{ std::shared_lock(dailymission_info_mutex), it->second };
+            else
+            {
+                static thread_local std::shared_mutex null_dailymission_mutex;
+                static thread_local BaseLib::DailyMissionInfo null_dailymission_info;
+                return LockedResource{ std::shared_lock(null_dailymission_mutex), null_dailymission_info };
+            }
+        }
+        auto GetDailyMissionInfoCacheSize()
+        {
+            std::shared_lock lock(dailymission_info_mutex);
+            return dailymission_info.size();
         }
 
         void AddSetItemInfoCache(const std::uint32_t& id, BaseLib::SetItemInfo& item_info)
@@ -2943,6 +3065,31 @@ namespace Game
             auto grades_info_locked = LockedResource{ std::unique_lock(grades_info_mutex), grades_info };
             grades_info_locked->erase(grade);
         }
+        auto GetGradeInfoLevelForExp(std::uint32_t current_level, std::uint32_t total_exp)
+        {
+            std::shared_lock lock(grades_info_mutex);
+
+            BaseLib::GradeInfo* result = nullptr;
+
+            for (std::uint32_t level = current_level; ; ++level)
+            {
+                auto it = grades_info.find(level);
+                if (it == grades_info.end())
+                    break;
+
+                if (it->second.Exp >= total_exp)
+                    break;
+
+                result = &it->second;
+            }
+
+            if (result)
+                return LockedResource{ std::shared_lock(grades_info_mutex), *result };
+
+            static thread_local std::shared_mutex null_grade_mutex;
+            static thread_local BaseLib::GradeInfo null_grade_info;
+            return LockedResource{ std::shared_lock(null_grade_mutex), null_grade_info };
+        }
         auto GetGradeInfoCache(const std::uint32_t& grade)
         {
 
@@ -3326,6 +3473,10 @@ namespace Game
         auto& GetPartyIdsMutex()
         {
             return party_ids_mutex;
+        }
+        auto& GetDailyMissionIdsMutex()
+        {
+            return dailymission_ids_mutex;
         }
     };
     namespace Commands

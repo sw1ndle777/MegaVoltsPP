@@ -97,6 +97,7 @@ namespace Game
         #endif
             detailsInfo.Level = target_acc_cache->acc_info.Level + 1;
             detailsInfo.Grade = target_acc_cache->acc_info.Grade;
+            detailsInfo.Achievements[0] = target_acc_cache->acc_info.Achievement;
             detailsInfo.Channel = 1;
 
             detailsInfo.diorama1 = main_server->GetItemByType(equipped_items, 22).item_info.item_number.item_id;

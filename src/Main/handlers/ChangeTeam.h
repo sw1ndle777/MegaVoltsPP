@@ -34,6 +34,7 @@ namespace Game
             auto is_mode_teambased = main_server->IsModeTeamBased(room_cache->ModeIndex);
             auto is_ZombieMode = room_cache->ModeIndex == NetEngine::Room::Mode::Index::ZombieMode;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) wants to change team to team id ({})", acc_cache->acc_info.Nickname.c_str(), callback.message->GetOption());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "is playing: ({})", isPlaying);
             auto self_remove = [&](auto& team_session_ids)
             {
                 auto remove_myself = std::remove(team_session_ids.begin(), team_session_ids.end(), session_id);

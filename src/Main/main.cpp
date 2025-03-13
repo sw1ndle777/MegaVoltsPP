@@ -66,6 +66,7 @@ int main()
     std::vector<std::uint8_t> buffer_iteminfo = loadFileCrossPlatform(std::source_location::current(), "iteminfo.cdb");
     std::vector<std::uint8_t> buffer_effectinfo = loadFileCrossPlatform(std::source_location::current(), "effectinfo.cdb");
     std::vector<std::uint8_t> buffer_collectioninfo = loadFileCrossPlatform(std::source_location::current(), "collectioninfo.cdb");
+    std::vector<std::uint8_t> buffer_dailymissioninfo = loadFileCrossPlatform(std::source_location::current(), "dailymissioninfo.cdb");
     std::vector<std::uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform(std::source_location::current(), "itemweaponsinfo.cdb");
     std::vector<std::uint8_t> buffer_setiteminfo = loadFileCrossPlatform(std::source_location::current(), "setiteminfo.cdb");
     std::vector<std::uint8_t> buffer_vendorinfo = loadFileCrossPlatform(std::source_location::current(), "vendorinfo.cdb");
@@ -78,78 +79,84 @@ int main()
     std::vector<std::uint8_t> buffer_rewardinfo = loadFileCrossPlatform(std::source_location::current(), "rewardinfo.cdb");
 
   
-    CDBM iteminfo_cdb, effectinfo_cdb, collectioninfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
+    CDBM iteminfo_cdb, effectinfo_cdb, collectioninfo_cdb, dailymissioninfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
 
     iteminfo_cdb.LoadCDB(buffer_iteminfo);
     itemweaponsinfo_cdb.LoadCDB(buffer_itemweaponsinfo);
-    buffer_iteminfo.clear();
-    buffer_itemweaponsinfo.clear();
     
-    auto iteminfo_data = iteminfo_cdb.GetDataRows();
-    auto itemweaponsinfo_data = itemweaponsinfo_cdb.GetDataRows();
+    auto& iteminfo_data = iteminfo_cdb.GetDataRows();
+    auto& itemweaponsinfo_data = itemweaponsinfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < iteminfo_data.size(); i++)
     {
         BaseLib::ItemInfo new_item_info;
         auto& data_fields = iteminfo_data[i];
-        new_item_info.Id = data_fields.at("ii_id")->GetInt();
-        //new_item_info.Name = data_fields.at("ii_name")->GetString();
-        //new_item_info.NameTime = data_fields.at("ii_name_time")->GetString();
-        //new_item_info.NameOption = data_fields.at("ii_name_option")->GetString();
-        new_item_info.IsNaomiUsable = data_fields.at("ii_class_a")->GetBool();
-        new_item_info.IsKaiUsable = data_fields.at("ii_class_b")->GetBool();
-        new_item_info.IsPandoraUsable = data_fields.at("ii_class_c")->GetBool();
-        new_item_info.IsChipUsable = data_fields.at("ii_class_d")->GetBool();
-        new_item_info.IsKnoxUsable = data_fields.at("ii_class_e")->GetBool();
-        new_item_info.IsSimonUsable = data_fields.at("ii_class_f")->GetBool();
-        //new_item_info.IsAmeliaUsable = data_fields.at("ii_class_g")->GetBool();
-        //new_item_info.IsSharkillUsable = data_fields.at("ii_class_h")->GetBool();
-        //new_item_info.IsSophitiaUsable = data_fields.at("ii_class_i")->GetBool();
-        new_item_info.Type = data_fields.at("ii_type")->GetInt();
-        //new_item_info.InventoryType = data_fields.at("ii_type_inven")->GetInt();
-        new_item_info.IsUpgradable = data_fields.at("ii_upgradable")->GetBool();
-        new_item_info.LimitedTime = data_fields.at("ii_limited_time")->GetInt();
-        new_item_info.Durability = data_fields.at("ii_durable_value")->GetInt();
-        new_item_info.CouponPrice = data_fields.at("ii_buy_coupon")->GetInt();
-        new_item_info.CashPrice = data_fields.at("ii_buy_cash")->GetInt();
-        new_item_info.PointPrice = data_fields.at("ii_buy_point")->GetInt();
-        new_item_info.SellPointPrice = data_fields.at("ii_sell_point")->GetInt();
-        new_item_info.Stock = data_fields.at("ii_stocks")->GetInt();
-        new_item_info.BonusEffectId = data_fields.at("ef_effect_2")->GetInt();
+        new_item_info.Id = data_fields.at("ii_id").GetInt();
+        new_item_info.Name = data_fields.at("ii_name").GetString();
+        //new_item_info.NameTime = data_fields.at("ii_name_time").GetString();
+        //new_item_info.NameOption = data_fields.at("ii_name_option").GetString();
+        new_item_info.IsNaomiUsable = data_fields.at("ii_class_a").GetBool();
+        new_item_info.IsKaiUsable = data_fields.at("ii_class_b").GetBool();
+        new_item_info.IsPandoraUsable = data_fields.at("ii_class_c").GetBool();
+        new_item_info.IsChipUsable = data_fields.at("ii_class_d").GetBool();
+        new_item_info.IsKnoxUsable = data_fields.at("ii_class_e").GetBool();
+        new_item_info.IsSimonUsable = data_fields.at("ii_class_f").GetBool();
+        //new_item_info.IsAmeliaUsable = data_fields.at("ii_class_g").GetBool();
+        //new_item_info.IsSharkillUsable = data_fields.at("ii_class_h").GetBool();
+        //new_item_info.IsSophitiaUsable = data_fields.at("ii_class_i").GetBool();
+        new_item_info.Type = data_fields.at("ii_type").GetInt();
+        //new_item_info.InventoryType = data_fields.at("ii_type_inven").GetInt();
+        new_item_info.IsUpgradable = data_fields.at("ii_upgradable").GetBool();
+        new_item_info.LimitedTime = data_fields.at("ii_limited_time").GetInt();
+        new_item_info.Durability = data_fields.at("ii_durable_value").GetInt();
+        new_item_info.CouponPrice = data_fields.at("ii_buy_coupon").GetInt();
+        new_item_info.CashPrice = data_fields.at("ii_buy_cash").GetInt();
+        new_item_info.PointPrice = data_fields.at("ii_buy_point").GetInt();
+        new_item_info.SellPointPrice = data_fields.at("ii_sell_point").GetInt();
+        new_item_info.Stock = data_fields.at("ii_stocks").GetInt();
+        new_item_info.BonusEffectId = data_fields.at("ef_effect_2").GetInt();
         mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
-    iteminfo_data.clear();
     for (std::uint32_t i = 0; i < itemweaponsinfo_data.size(); i++)
     {
         BaseLib::ItemInfo new_item_info;
         auto& data_fields = itemweaponsinfo_data[i];
-        new_item_info.Id = data_fields.at("ii_id")->GetInt();
-        //new_item_info.Name = data_fields.at("ii_name")->GetString();
-        //new_item_info.NameTime = data_fields.at("ii_name_time")->GetString();
-        //new_item_info.NameOption = data_fields.at("ii_name_option")->GetString();
-        new_item_info.IsNaomiUsable = data_fields.at("ii_class_a")->GetBool();
-        new_item_info.IsKaiUsable = data_fields.at("ii_class_b")->GetBool();
-        new_item_info.IsPandoraUsable = data_fields.at("ii_class_c")->GetBool();
-        new_item_info.IsChipUsable = data_fields.at("ii_class_d")->GetBool();
-        new_item_info.IsKnoxUsable = data_fields.at("ii_class_e")->GetBool();
-        new_item_info.IsSimonUsable = data_fields.at("ii_class_f")->GetBool();
-        //new_item_info.IsAmeliaUsable = data_fields.at("ii_class_g")->GetBool();
-        //new_item_info.IsSharkillUsable = data_fields.at("ii_class_h")->GetBool();
-        //new_item_info.IsSophitiaUsable = data_fields.at("ii_class_i")->GetBool();
-        new_item_info.Type = data_fields.at("ii_type")->GetInt();
-        //new_item_info.InventoryType = data_fields.at("ii_type_inven")->GetInt();
-        new_item_info.IsUpgradable = data_fields.at("ii_upgradable")->GetBool();
-        new_item_info.LimitedTime = data_fields.at("ii_limited_time")->GetInt();
-        new_item_info.Durability = data_fields.at("ii_durable_value")->GetInt();
-        new_item_info.CouponPrice = data_fields.at("ii_buy_coupon")->GetInt();
-        new_item_info.CashPrice = data_fields.at("ii_buy_cash")->GetInt();
-        new_item_info.PointPrice = data_fields.at("ii_buy_point")->GetInt();
-        new_item_info.SellPointPrice = data_fields.at("ii_sell_point")->GetInt();
-        new_item_info.Stock = data_fields.at("ii_stocks")->GetInt();
-        new_item_info.BonusEffectId = data_fields.at("ef_effect_2")->GetInt();
+        new_item_info.Id = data_fields.at("ii_id").GetInt();
+        //new_item_info.Name = data_fields.at("ii_name").GetString();
+        //new_item_info.NameTime = data_fields.at("ii_name_time").GetString();
+        //new_item_info.NameOption = data_fields.at("ii_name_option").GetString();
+        new_item_info.IsNaomiUsable = data_fields.at("ii_class_a").GetBool();
+        new_item_info.IsKaiUsable = data_fields.at("ii_class_b").GetBool();
+        new_item_info.IsPandoraUsable = data_fields.at("ii_class_c").GetBool();
+        new_item_info.IsChipUsable = data_fields.at("ii_class_d").GetBool();
+        new_item_info.IsKnoxUsable = data_fields.at("ii_class_e").GetBool();
+        new_item_info.IsSimonUsable = data_fields.at("ii_class_f").GetBool();
+        //new_item_info.IsAmeliaUsable = data_fields.at("ii_class_g").GetBool();
+        //new_item_info.IsSharkillUsable = data_fields.at("ii_class_h").GetBool();
+        //new_item_info.IsSophitiaUsable = data_fields.at("ii_class_i").GetBool();
+        new_item_info.Type = data_fields.at("ii_type").GetInt();
+        //new_item_info.InventoryType = data_fields.at("ii_type_inven").GetInt();
+        new_item_info.IsUpgradable = data_fields.at("ii_upgradable").GetBool();
+        new_item_info.LimitedTime = data_fields.at("ii_limited_time").GetInt();
+        new_item_info.Durability = data_fields.at("ii_durable_value").GetInt();
+        new_item_info.CouponPrice = data_fields.at("ii_buy_coupon").GetInt();
+        new_item_info.CashPrice = data_fields.at("ii_buy_cash").GetInt();
+        new_item_info.PointPrice = data_fields.at("ii_buy_point").GetInt();
+        new_item_info.SellPointPrice = data_fields.at("ii_sell_point").GetInt();
+        new_item_info.Stock = data_fields.at("ii_stocks").GetInt();
+        new_item_info.BonusEffectId = data_fields.at("ef_effect_2").GetInt();
         mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
-    mainServer->RehashItemsInfo();
+    //mainServer->RehashItemsInfo();
+    iteminfo_data.clear();
+    iteminfo_data.shrink_to_fit();
     itemweaponsinfo_data.clear();
+    itemweaponsinfo_data.shrink_to_fit();
+    iteminfo_cdb.Clear();
+    itemweaponsinfo_cdb.Clear();
+    buffer_iteminfo.clear();
+    buffer_iteminfo.shrink_to_fit();
+    buffer_itemweaponsinfo.clear();
+    buffer_itemweaponsinfo.shrink_to_fit();
     auto end_time = std::chrono::system_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     auto elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -162,18 +169,21 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     effectinfo_cdb.LoadCDB(buffer_effectinfo);
-    buffer_effectinfo.clear();
-    auto effectinfo_data = effectinfo_cdb.GetDataRows();
+    auto& effectinfo_data = effectinfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < effectinfo_data.size(); i++)
     {
         BaseLib::EffectInfo new_effectinfo;
         auto& data_fields = effectinfo_data[i];
-        new_effectinfo.id = data_fields.at("ei_id")->GetInt();
-        new_effectinfo.key = data_fields.at("ei_key")->GetInt();
-        new_effectinfo.valueA = data_fields.at("ei_valueA")->GetInt();
+        new_effectinfo.id = data_fields.at("ei_id").GetInt();
+        new_effectinfo.key = data_fields.at("ei_key").GetInt();
+        new_effectinfo.valueA = data_fields.at("ei_valueA").GetInt();
         mainServer->AddEffectInfoCache(new_effectinfo.id, new_effectinfo);
     }
     effectinfo_data.clear();
+    effectinfo_data.shrink_to_fit();
+    effectinfo_cdb.Clear();
+    buffer_effectinfo.clear();
+    buffer_effectinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -186,21 +196,24 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     collectioninfo_cdb.LoadCDB(buffer_collectioninfo);
-    buffer_collectioninfo.clear();
-    auto collectioninfo_data = collectioninfo_cdb.GetDataRows();
+    auto& collectioninfo_data = collectioninfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < collectioninfo_data.size(); i++)
     {
         BaseLib::CollectionInfo new_collectioninfo;
         auto& data_fields = collectioninfo_data[i];
-        new_collectioninfo.id = data_fields.at("ci_id")->GetInt();
-        new_collectioninfo.rewardExp = data_fields.at("ci_rewardexp")->GetInt();;
-        new_collectioninfo.rewardItem = data_fields.at("ci_rewarditem")->GetInt();;
-        new_collectioninfo.rewardPoint = data_fields.at("ci_rewardpoint")->GetInt();;
-        new_collectioninfo.setIndex = data_fields.at("ci_set_index")->GetInt();
-        new_collectioninfo.missionType = data_fields.at("ci_mission_type")->GetInt();;
+        new_collectioninfo.id = data_fields.at("ci_id").GetInt();
+        new_collectioninfo.rewardExp = data_fields.at("ci_rewardexp").GetInt();;
+        new_collectioninfo.rewardItem = data_fields.at("ci_rewarditem").GetInt();;
+        new_collectioninfo.rewardPoint = data_fields.at("ci_rewardpoint").GetInt();;
+        new_collectioninfo.setIndex = data_fields.at("ci_set_index").GetInt();
+        new_collectioninfo.missionType = data_fields.at("ci_mission_type").GetInt();;
         mainServer->AddCollectionInfoCache(new_collectioninfo.id, new_collectioninfo);
     }
     collectioninfo_data.clear();
+    collectioninfo_data.shrink_to_fit();
+    collectioninfo_cdb.Clear();
+    buffer_collectioninfo.clear();
+    buffer_collectioninfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -212,27 +225,60 @@ int main()
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "{}\n", elapsed_time_str.c_str());
 
     start_time = std::chrono::system_clock::now();
+    dailymissioninfo_cdb.LoadCDB(buffer_dailymissioninfo);
+    auto& dailymissioninfo_data = dailymissioninfo_cdb.GetDataRows();
+    for (std::uint32_t i = 0; i < dailymissioninfo_data.size(); i++)
+    {
+        BaseLib::DailyMissionInfo new_dailymissioninfo;
+        auto& data_fields = dailymissioninfo_data[i];
+        new_dailymissioninfo.id = data_fields.at("di_id").GetInt();
+        new_dailymissioninfo.rewardExp = data_fields.at("di_rewardexp").GetInt();;
+        new_dailymissioninfo.rewardItem = data_fields.at("di_rewarditem").GetInt();;
+        new_dailymissioninfo.rewardPoint = data_fields.at("di_rewardpoint").GetInt();;
+        new_dailymissioninfo.setIndex = data_fields.at("di_set_index").GetInt();
+        new_dailymissioninfo.goal = data_fields.at("di_goal").GetInt();;
+        mainServer->AddDailyMissionInfoCache(new_dailymissioninfo.id, new_dailymissioninfo);
+    }
+    dailymissioninfo_data.clear();
+    dailymissioninfo_data.shrink_to_fit();
+    dailymissioninfo_cdb.Clear();
+    buffer_dailymissioninfo.clear();
+    buffer_dailymissioninfo.shrink_to_fit();
+    end_time = std::chrono::system_clock::now();
+    elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+    elapsed_time_str = Utility::readable_time(elapsed_time.count());
+    BaseLib::EventLog->Info("CDBM::LoadCDB() - loaded (%d) daily mission info in %s", mainServer->GetDailyMissionInfoCacheSize(), elapsed_time_str.c_str());
+    fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
+    fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
+    fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "{:d}", mainServer->GetDailyMissionInfoCacheSize());
+    fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") dailymission info in ");
+    fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "{}\n", elapsed_time_str.c_str());
+
+    start_time = std::chrono::system_clock::now();
     setiteminfo_cdb.LoadCDB(buffer_setiteminfo);
-    buffer_setiteminfo.clear();
-    auto setiteminfo_data = setiteminfo_cdb.GetDataRows();
+    auto& setiteminfo_data = setiteminfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < setiteminfo_data.size(); i++)
     {
         BaseLib::SetItemInfo new_setitem_info;
         auto& data_fields = setiteminfo_data[i];
-        new_setitem_info.Id = data_fields.at("si_id")->GetInt();
-        new_setitem_info.Hair = data_fields.at("si_hair")->GetInt();
-        new_setitem_info.Face = data_fields.at("si_face")->GetInt();
-        new_setitem_info.Upper = data_fields.at("si_upper")->GetInt();
-        new_setitem_info.Under = data_fields.at("si_under")->GetInt();
-        new_setitem_info.Pants = data_fields.at("si_pants")->GetInt();
-        new_setitem_info.Arms = data_fields.at("si_arms")->GetInt();
-        new_setitem_info.Boots = data_fields.at("si_boots")->GetInt();
-        new_setitem_info.AccessoryA = data_fields.at("si_acce_A")->GetInt();
-        new_setitem_info.AccessoryB = data_fields.at("si_acce_B")->GetInt();
-        new_setitem_info.AccessoryC = data_fields.at("si_acce_C")->GetInt();
+        new_setitem_info.Id = data_fields.at("si_id").GetInt();
+        new_setitem_info.Hair = data_fields.at("si_hair").GetInt();
+        new_setitem_info.Face = data_fields.at("si_face").GetInt();
+        new_setitem_info.Upper = data_fields.at("si_upper").GetInt();
+        new_setitem_info.Under = data_fields.at("si_under").GetInt();
+        new_setitem_info.Pants = data_fields.at("si_pants").GetInt();
+        new_setitem_info.Arms = data_fields.at("si_arms").GetInt();
+        new_setitem_info.Boots = data_fields.at("si_boots").GetInt();
+        new_setitem_info.AccessoryA = data_fields.at("si_acce_A").GetInt();
+        new_setitem_info.AccessoryB = data_fields.at("si_acce_B").GetInt();
+        new_setitem_info.AccessoryC = data_fields.at("si_acce_C").GetInt();
         mainServer->AddSetItemInfoCache(new_setitem_info.Id, new_setitem_info);
     }
     setiteminfo_data.clear();
+    setiteminfo_data.shrink_to_fit();
+    setiteminfo_cdb.Clear();
+    buffer_setiteminfo.clear();
+    buffer_setiteminfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -245,43 +291,46 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     vendorinfo_cdb.LoadCDB(buffer_vendorinfo);
-    buffer_vendorinfo.clear();
-    auto vendorinfo_data = vendorinfo_cdb.GetDataRows();
+    auto& vendorinfo_data = vendorinfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < vendorinfo_data.size(); i++)
     {
         BaseLib::VendorInfo new_vendorinfo;
         auto& data_fields = vendorinfo_data[i];
-        new_vendorinfo.Id = data_fields.at("vi_id")->GetInt();
-        new_vendorinfo.Category = data_fields.at("vi_category")->GetInt();
-        new_vendorinfo.Type = data_fields.at("vi_type")->GetInt();
-        new_vendorinfo.None = data_fields.at("vi_array_none")->GetInt();
-        new_vendorinfo.New = data_fields.at("vi_array_new")->GetInt();
-        new_vendorinfo.Hit = data_fields.at("vi_array_hit")->GetInt();
-        new_vendorinfo.ListType = data_fields.at("vi_list_type")->GetInt();
-        new_vendorinfo.List01 = data_fields.at("vi_list_01")->GetInt();
-        new_vendorinfo.List01_a = data_fields.at("vi_list_01_a")->GetInt();
-        new_vendorinfo.List01_b = data_fields.at("vi_list_01_b")->GetInt();
-        new_vendorinfo.List01_c = data_fields.at("vi_list_01_c")->GetInt();
-        new_vendorinfo.List01_d = data_fields.at("vi_list_01_d")->GetInt();
-        new_vendorinfo.List02 = data_fields.at("vi_list_02")->GetInt();
-        new_vendorinfo.List02_a = data_fields.at("vi_list_02_a")->GetInt();
-        new_vendorinfo.List02_b = data_fields.at("vi_list_02_b")->GetInt();
-        new_vendorinfo.List02_c = data_fields.at("vi_list_02_c")->GetInt();
-        new_vendorinfo.List02_d = data_fields.at("vi_list_02_d")->GetInt();
-        new_vendorinfo.List03 = data_fields.at("vi_list_03")->GetInt();
-        new_vendorinfo.List03_a = data_fields.at("vi_list_03_a")->GetInt();
-        new_vendorinfo.List03_b = data_fields.at("vi_list_03_b")->GetInt();
-        new_vendorinfo.List03_c = data_fields.at("vi_list_03_c")->GetInt();
-        new_vendorinfo.List03_d = data_fields.at("vi_list_03_d")->GetInt();
-        new_vendorinfo.List04 = data_fields.at("vi_list_04")->GetInt();
-        new_vendorinfo.List04_a = data_fields.at("vi_list_04_a")->GetInt();
-        new_vendorinfo.List04_b = data_fields.at("vi_list_04_b")->GetInt();
-        new_vendorinfo.List04_c = data_fields.at("vi_list_04_c")->GetInt();
-        new_vendorinfo.List04_d = data_fields.at("vi_list_04_d")->GetInt();
-        new_vendorinfo.IsGift = data_fields.at("vi_isgift")->GetBool();
+        new_vendorinfo.Id = data_fields.at("vi_id").GetInt();
+        new_vendorinfo.Category = data_fields.at("vi_category").GetInt();
+        new_vendorinfo.Type = data_fields.at("vi_type").GetInt();
+        new_vendorinfo.None = data_fields.at("vi_array_none").GetInt();
+        new_vendorinfo.New = data_fields.at("vi_array_new").GetInt();
+        new_vendorinfo.Hit = data_fields.at("vi_array_hit").GetInt();
+        new_vendorinfo.ListType = data_fields.at("vi_list_type").GetInt();
+        new_vendorinfo.List01 = data_fields.at("vi_list_01").GetInt();
+        new_vendorinfo.List01_a = data_fields.at("vi_list_01_a").GetInt();
+        new_vendorinfo.List01_b = data_fields.at("vi_list_01_b").GetInt();
+        new_vendorinfo.List01_c = data_fields.at("vi_list_01_c").GetInt();
+        new_vendorinfo.List01_d = data_fields.at("vi_list_01_d").GetInt();
+        new_vendorinfo.List02 = data_fields.at("vi_list_02").GetInt();
+        new_vendorinfo.List02_a = data_fields.at("vi_list_02_a").GetInt();
+        new_vendorinfo.List02_b = data_fields.at("vi_list_02_b").GetInt();
+        new_vendorinfo.List02_c = data_fields.at("vi_list_02_c").GetInt();
+        new_vendorinfo.List02_d = data_fields.at("vi_list_02_d").GetInt();
+        new_vendorinfo.List03 = data_fields.at("vi_list_03").GetInt();
+        new_vendorinfo.List03_a = data_fields.at("vi_list_03_a").GetInt();
+        new_vendorinfo.List03_b = data_fields.at("vi_list_03_b").GetInt();
+        new_vendorinfo.List03_c = data_fields.at("vi_list_03_c").GetInt();
+        new_vendorinfo.List03_d = data_fields.at("vi_list_03_d").GetInt();
+        new_vendorinfo.List04 = data_fields.at("vi_list_04").GetInt();
+        new_vendorinfo.List04_a = data_fields.at("vi_list_04_a").GetInt();
+        new_vendorinfo.List04_b = data_fields.at("vi_list_04_b").GetInt();
+        new_vendorinfo.List04_c = data_fields.at("vi_list_04_c").GetInt();
+        new_vendorinfo.List04_d = data_fields.at("vi_list_04_d").GetInt();
+        new_vendorinfo.IsGift = data_fields.at("vi_isgift").GetBool();
         mainServer->AddVendorInfo(new_vendorinfo);
     }
     vendorinfo_data.clear();
+    vendorinfo_data.shrink_to_fit();
+    vendorinfo_cdb.Clear();
+    buffer_vendorinfo.clear();
+    buffer_vendorinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -294,27 +343,30 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     upgradeinfo_cdb.LoadCDB(buffer_upgradeinfo);
-    buffer_upgradeinfo.clear();
-    auto upgradeinfo_data = upgradeinfo_cdb.GetDataRows();
+    auto& upgradeinfo_data = upgradeinfo_cdb.GetDataRows();
     for (std::uint32_t i = 0; i < upgradeinfo_data.size(); i++)
     {
         BaseLib::UpgradeInfo new_upgradeinfo;
         auto& data_fields = upgradeinfo_data[i];
-        new_upgradeinfo.GroupId = data_fields.at("ui_group")->GetInt();
-        new_upgradeinfo.UpgradeType = data_fields.at("ui_type")->GetInt();
-        new_upgradeinfo.ItemId = data_fields.at("ui_itemid")->GetInt();
-        new_upgradeinfo.ItemParentId = data_fields.at("ui_parentid")->GetInt();
-        new_upgradeinfo.Probability = data_fields.at("ui_prob")->GetInt();
-        new_upgradeinfo.AddedProbability = data_fields.at("ui_added_prob")->GetInt();
-        new_upgradeinfo.HoldProbability = data_fields.at("ui_hold_prob")->GetInt();
-        new_upgradeinfo.BuyCash = data_fields.at("ui_buy_cash")->GetInt();
-        new_upgradeinfo.BuyPoint = data_fields.at("ui_buy_point")->GetInt();
-        new_upgradeinfo.UseExp = data_fields.at("ui_use_exp")->GetInt();
-        new_upgradeinfo.RestoreCash = data_fields.at("ui_restore_cash")->GetInt();
-        new_upgradeinfo.RestorePoint = data_fields.at("ui_restore_point")->GetInt();
+        new_upgradeinfo.GroupId = data_fields.at("ui_group").GetInt();
+        new_upgradeinfo.UpgradeType = data_fields.at("ui_type").GetInt();
+        new_upgradeinfo.ItemId = data_fields.at("ui_itemid").GetInt();
+        new_upgradeinfo.ItemParentId = data_fields.at("ui_parentid").GetInt();
+        new_upgradeinfo.Probability = data_fields.at("ui_prob").GetInt();
+        new_upgradeinfo.AddedProbability = data_fields.at("ui_added_prob").GetInt();
+        new_upgradeinfo.HoldProbability = data_fields.at("ui_hold_prob").GetInt();
+        new_upgradeinfo.BuyCash = data_fields.at("ui_buy_cash").GetInt();
+        new_upgradeinfo.BuyPoint = data_fields.at("ui_buy_point").GetInt();
+        new_upgradeinfo.UseExp = data_fields.at("ui_use_exp").GetInt();
+        new_upgradeinfo.RestoreCash = data_fields.at("ui_restore_cash").GetInt();
+        new_upgradeinfo.RestorePoint = data_fields.at("ui_restore_point").GetInt();
         mainServer->AddUpgradeInfoCache(new_upgradeinfo.GroupId, static_cast<NetEngine::Items::Upgrade::Type>(new_upgradeinfo.UpgradeType), new_upgradeinfo);
     }
     upgradeinfo_data.clear();
+    upgradeinfo_data.shrink_to_fit();
+    upgradeinfo_cdb.Clear();
+    buffer_upgradeinfo.clear();
+    buffer_upgradeinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -327,46 +379,51 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     gachaponinfo_cdb.LoadCDB(buffer_gachaponinfo);
-    buffer_gachaponinfo.clear();
     gachaponpackageinfo_cdb.LoadCDB(buffer_gachaponpackageinfo);
-    buffer_gachaponpackageinfo.clear();
-    auto gachaponinfo_data = gachaponinfo_cdb.GetDataRows();
-    auto gachaponpackageinfo_data = gachaponpackageinfo_cdb.GetDataRows();
+    auto& gachaponinfo_data = gachaponinfo_cdb.GetDataRows();
+    auto& gachaponpackageinfo_data = gachaponpackageinfo_cdb.GetDataRows();
     //std::unordered_map<std::uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
     boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
     for (std::uint32_t i = 0; i < gachaponpackageinfo_data.size(); i++)
     {
         BaseLib::GachaponPackageItem new_gachaponpackageitem;
         auto& data_fields = gachaponpackageinfo_data[i];
-        new_gachaponpackageitem.Id = data_fields.at("gi_id")->GetInt();
-        new_gachaponpackageitem.Group = data_fields.at("gi_group")->GetInt();
-        new_gachaponpackageitem.InfoId = data_fields.at("gi_infoid")->GetInt();
-        new_gachaponpackageitem.ItemType = data_fields.at("gi_type")->GetInt();
-        new_gachaponpackageitem.LuckyType = data_fields.at("gi_luckytype")->GetInt();
-        new_gachaponpackageitem.Probability = data_fields.at("gi_prob")->GetInt();
-        new_gachaponpackageitem.ItemId = data_fields.at("gi_itemid")->GetInt();
+        new_gachaponpackageitem.Id = data_fields.at("gi_id").GetInt();
+        new_gachaponpackageitem.Group = data_fields.at("gi_group").GetInt();
+        new_gachaponpackageitem.InfoId = data_fields.at("gi_infoid").GetInt();
+        new_gachaponpackageitem.ItemType = data_fields.at("gi_type").GetInt();
+        new_gachaponpackageitem.LuckyType = data_fields.at("gi_luckytype").GetInt();
+        new_gachaponpackageitem.Probability = data_fields.at("gi_prob").GetInt();
+        new_gachaponpackageitem.ItemId = data_fields.at("gi_itemid").GetInt();
         gachapon_package_items[new_gachaponpackageitem.InfoId].push_back(new_gachaponpackageitem);
     }
-    gachaponinfo_data.clear();
     for (std::uint32_t i = 0; i < gachaponinfo_data.size(); i++)
     {
         BaseLib::GachaponInfo new_gachaponinfo;
         auto& data_fields = gachaponinfo_data[i];
-        new_gachaponinfo.Id = data_fields.at("gi_id")->GetInt();
-        //new_gachaponinfo.Name = data_fields.at("gi_name")->GetString();
-        new_gachaponinfo.Type = data_fields.at("gi_type")->GetInt();
-        new_gachaponinfo.InfoId = data_fields.at("gi_infoid")->GetInt();
-        new_gachaponinfo.LimitedGrade = data_fields.at("gi_limited_grade")->GetInt();
-        new_gachaponinfo.Price = data_fields.at("gi_price")->GetInt();
-        new_gachaponinfo.LuckyPoint = data_fields.at("gi_luckypoint")->GetInt();
+        new_gachaponinfo.Id = data_fields.at("gi_id").GetInt();
+        //new_gachaponinfo.Name = data_fields.at("gi_name").GetString();
+        new_gachaponinfo.Type = data_fields.at("gi_type").GetInt();
+        new_gachaponinfo.InfoId = data_fields.at("gi_infoid").GetInt();
+        new_gachaponinfo.LimitedGrade = data_fields.at("gi_limited_grade").GetInt();
+        new_gachaponinfo.Price = data_fields.at("gi_price").GetInt();
+        new_gachaponinfo.LuckyPoint = data_fields.at("gi_luckypoint").GetInt();
         const auto& items = gachapon_package_items[new_gachaponinfo.InfoId];
         for (const auto& item : items)
             new_gachaponinfo.Gachapons[item.Group].push_back(item);
 
         mainServer->AddGachaponInfoCache(new_gachaponinfo.Id, new_gachaponinfo);
     }
+    gachaponinfo_data.clear();
+    gachaponinfo_data.shrink_to_fit();
+    gachaponinfo_cdb.Clear();
+    buffer_gachaponinfo.clear();
+    buffer_gachaponinfo.shrink_to_fit();
     gachaponpackageinfo_data.clear();
-    gachapon_package_items.clear();
+    gachaponpackageinfo_data.shrink_to_fit();
+    gachaponpackageinfo_cdb.Clear();
+    buffer_gachaponpackageinfo.clear();
+    buffer_gachaponpackageinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -379,21 +436,24 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     itempackageinfo_cdb.LoadCDB(buffer_itempackageinfo);
-    buffer_itempackageinfo.clear();
-    auto itempackageinfo_data = itempackageinfo_cdb.GetDataRows();
+    auto& itempackageinfo_data = itempackageinfo_cdb.GetDataRows();
 
     for (std::uint32_t i = 0; i < itempackageinfo_data.size(); i++)
     {
         BaseLib::PackageInfo new_packageinfo;
         auto& data_fields = itempackageinfo_data[i];
-        new_packageinfo.InfoId = data_fields.at("ip_infoid")->GetInt();
-        new_packageinfo.GroupId = data_fields.at("ip_group")->GetInt();
-        new_packageinfo.ItemId = data_fields.at("ip_itemid")->GetInt();
-        new_packageinfo.Type = data_fields.at("ip_type")->GetInt();
-        new_packageinfo.Probability = data_fields.at("ip_prob")->GetInt();
+        new_packageinfo.InfoId = data_fields.at("ip_infoid").GetInt();
+        new_packageinfo.GroupId = data_fields.at("ip_group").GetInt();
+        new_packageinfo.ItemId = data_fields.at("ip_itemid").GetInt();
+        new_packageinfo.Type = data_fields.at("ip_type").GetInt();
+        new_packageinfo.Probability = data_fields.at("ip_prob").GetInt();
         mainServer->AddPackageItemCache(new_packageinfo.InfoId, new_packageinfo.GroupId, new_packageinfo);
     }
     itempackageinfo_data.clear();
+    itempackageinfo_data.shrink_to_fit();
+    itempackageinfo_cdb.Clear();
+    buffer_itempackageinfo.clear();
+    buffer_itempackageinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -406,23 +466,26 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     roomoptioninfo_cdb.LoadCDB(buffer_roomoptioninfo);
-    buffer_roomoptioninfo.clear();
-    auto roomoptioninfo_data = roomoptioninfo_cdb.GetDataRows();
+    auto& roomoptioninfo_data = roomoptioninfo_cdb.GetDataRows();
 
     for (std::uint32_t i = 0; i < roomoptioninfo_data.size(); i++)
     {
         BaseLib::RoomOptionInfo new_roomoptioninfo;
         auto& data_fields = roomoptioninfo_data[i];
-        new_roomoptioninfo.Id = data_fields.at("ro_id")->GetInt();
-        new_roomoptioninfo.Type = data_fields.at("ro_type")->GetInt();
-        new_roomoptioninfo.Name = data_fields.at("ro_text")->GetString();
-        new_roomoptioninfo.Data = data_fields.at("ro_data")->GetInt();
-        new_roomoptioninfo.Mode = data_fields.at("ro_mod")->GetInt();
-        new_roomoptioninfo.CombatType = data_fields.at("ro_combattype")->GetInt();
+        new_roomoptioninfo.Id = data_fields.at("ro_id").GetInt();
+        new_roomoptioninfo.Type = data_fields.at("ro_type").GetInt();
+        new_roomoptioninfo.Name = data_fields.at("ro_text").GetString();
+        new_roomoptioninfo.Data = data_fields.at("ro_data").GetInt();
+        new_roomoptioninfo.Mode = data_fields.at("ro_mod").GetInt();
+        new_roomoptioninfo.CombatType = data_fields.at("ro_combattype").GetInt();
 
         mainServer->AddRoomOptionInfoCache(new_roomoptioninfo.Mode, new_roomoptioninfo);
     }
     roomoptioninfo_data.clear();
+    roomoptioninfo_data.shrink_to_fit();
+    roomoptioninfo_cdb.Clear();
+    buffer_roomoptioninfo.clear();
+    buffer_roomoptioninfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -436,20 +499,23 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     gradeinfo_cdb.LoadCDB(buffer_gradeinfo);
-    buffer_gradeinfo.clear();
-    auto gradeinfo_data = gradeinfo_cdb.GetDataRows();
+    auto& gradeinfo_data = gradeinfo_cdb.GetDataRows();
 
     for(std::uint32_t i = 0; i < gradeinfo_data.size(); i++)
     {
         BaseLib::GradeInfo new_gradeinfo;
         auto& data_fields = gradeinfo_data[i];
-        new_gradeinfo.Grade = data_fields.at("gi_grade")->GetInt();
-        new_gradeinfo.Exp = data_fields.at("gi_exp")->GetInt();
-        new_gradeinfo.RewardPoint = data_fields.at("gi_reward_point")->GetInt();
-        new_gradeinfo.RewardItem = data_fields.at("gi_reward_item")->GetInt();
+        new_gradeinfo.Grade = data_fields.at("gi_grade").GetInt();
+        new_gradeinfo.Exp = data_fields.at("gi_exp").GetInt();
+        new_gradeinfo.RewardPoint = data_fields.at("gi_reward_point").GetInt();
+        new_gradeinfo.RewardItem = data_fields.at("gi_reward_item").GetInt();
         mainServer->AddGradeInfoCache(new_gradeinfo.Grade, new_gradeinfo);
     }
     gradeinfo_data.clear();
+    gradeinfo_data.shrink_to_fit();
+    gradeinfo_cdb.Clear();
+    buffer_gradeinfo.clear();
+    buffer_gradeinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
@@ -463,40 +529,43 @@ int main()
 
     start_time = std::chrono::system_clock::now();
     rewardinfo_cdb.LoadCDB(buffer_rewardinfo);
-    buffer_rewardinfo.clear();
-    auto rewardinfo_data = rewardinfo_cdb.GetDataRows();
+    auto& rewardinfo_data = rewardinfo_cdb.GetDataRows();
 
     for (std::uint32_t i = 0; i < rewardinfo_data.size(); i++)
     {
         BaseLib::RewardInfo new_rewardinfo;
         auto& data_fields = rewardinfo_data[i];
-        new_rewardinfo.GameMode = data_fields.at("ri_mod")->GetInt();
-        new_rewardinfo.ExpBase = data_fields.at("ri_exp_base")->GetInt();
-        new_rewardinfo.ExpMax = data_fields.at("ri_exp_max")->GetInt();
-        new_rewardinfo.ExpKill = data_fields.at("ri_exp_kill")->GetInt();
-        new_rewardinfo.ExpModeKill = data_fields.at("ri_exp_mod_kill")->GetInt();
-        new_rewardinfo.ExpDeath = data_fields.at("ri_exp_death")->GetInt();
-        new_rewardinfo.ExpAssist = data_fields.at("ri_exp_assist")->GetInt();
-        new_rewardinfo.ExpMission = data_fields.at("ri_exp_mission")->GetInt();
-        new_rewardinfo.ExpMissionWin = data_fields.at("ri_exp_mission_win")->GetInt();
-        new_rewardinfo.PointBase = data_fields.at("ri_poi_base")->GetInt();
-        new_rewardinfo.PointMax = data_fields.at("ri_poi_max")->GetInt();
-        new_rewardinfo.PointKill = data_fields.at("ri_poi_kill")->GetInt();
-        new_rewardinfo.PointModeKill = data_fields.at("ri_poi_mod_kill")->GetInt();
-        new_rewardinfo.PointDeath = data_fields.at("ri_poi_death")->GetInt();
-        new_rewardinfo.PointAssist = data_fields.at("ri_poi_assist")->GetInt();
-        new_rewardinfo.PointMission = data_fields.at("ri_poi_mission")->GetInt();
-        new_rewardinfo.PointMissionWin = data_fields.at("ri_poi_mission_win")->GetInt();
-        new_rewardinfo.ModeLimitedTime = data_fields.at("ri_mod_limited_time")->GetInt();
-        new_rewardinfo.PlayerLimitedTime = data_fields.at("ri_player_limited_time")->GetInt();
-        new_rewardinfo.PenaltyPoint = data_fields.at("ri_penalty_point")->GetInt();
-        new_rewardinfo.ExpEvent = data_fields.at("ri_event_exp")->GetInt();
-        new_rewardinfo.PointEvent = data_fields.at("ri_event_point")->GetInt();
-        new_rewardinfo.ClanExpBase = data_fields.at("ri_clan_base_exp")->GetInt();
-        new_rewardinfo.ClanExpBnus = data_fields.at("ri_clan_bonus_exp")->GetInt();
+        new_rewardinfo.GameMode = data_fields.at("ri_mod").GetInt();
+        new_rewardinfo.ExpBase = data_fields.at("ri_exp_base").GetInt();
+        new_rewardinfo.ExpMax = data_fields.at("ri_exp_max").GetInt();
+        new_rewardinfo.ExpKill = data_fields.at("ri_exp_kill").GetInt();
+        new_rewardinfo.ExpModeKill = data_fields.at("ri_exp_mod_kill").GetInt();
+        new_rewardinfo.ExpDeath = data_fields.at("ri_exp_death").GetInt();
+        new_rewardinfo.ExpAssist = data_fields.at("ri_exp_assist").GetInt();
+        new_rewardinfo.ExpMission = data_fields.at("ri_exp_mission").GetInt();
+        new_rewardinfo.ExpMissionWin = data_fields.at("ri_exp_mission_win").GetInt();
+        new_rewardinfo.PointBase = data_fields.at("ri_poi_base").GetInt();
+        new_rewardinfo.PointMax = data_fields.at("ri_poi_max").GetInt();
+        new_rewardinfo.PointKill = data_fields.at("ri_poi_kill").GetInt();
+        new_rewardinfo.PointModeKill = data_fields.at("ri_poi_mod_kill").GetInt();
+        new_rewardinfo.PointDeath = data_fields.at("ri_poi_death").GetInt();
+        new_rewardinfo.PointAssist = data_fields.at("ri_poi_assist").GetInt();
+        new_rewardinfo.PointMission = data_fields.at("ri_poi_mission").GetInt();
+        new_rewardinfo.PointMissionWin = data_fields.at("ri_poi_mission_win").GetInt();
+        new_rewardinfo.ModeLimitedTime = data_fields.at("ri_mod_limited_time").GetInt();
+        new_rewardinfo.PlayerLimitedTime = data_fields.at("ri_player_limited_time").GetInt();
+        new_rewardinfo.PenaltyPoint = data_fields.at("ri_penalty_point").GetInt();
+        new_rewardinfo.ExpEvent = data_fields.at("ri_event_exp").GetInt();
+        new_rewardinfo.PointEvent = data_fields.at("ri_event_point").GetInt();
+        new_rewardinfo.ClanExpBase = data_fields.at("ri_clan_base_exp").GetInt();
+        new_rewardinfo.ClanExpBnus = data_fields.at("ri_clan_bonus_exp").GetInt();
         mainServer->AddRewardInfoCache(new_rewardinfo.GameMode, new_rewardinfo);
     }
     rewardinfo_data.clear();
+    rewardinfo_data.shrink_to_fit();
+    rewardinfo_cdb.Clear();
+    buffer_rewardinfo.clear();
+    buffer_rewardinfo.shrink_to_fit();
     end_time = std::chrono::system_clock::now();
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());

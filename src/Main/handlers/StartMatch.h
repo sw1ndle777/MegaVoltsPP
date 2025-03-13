@@ -34,6 +34,8 @@ namespace Game
             acc_cache.lock();
             bool is_host = session_id == room_cache->host_session_id;
 
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) start match, is host: ({})", acc_cache->acc_info.Nickname.c_str(), is_host);
+
             switch (match_result)
             {
                 case NetEngine::Room::Match::Result::SingleWave:
@@ -43,12 +45,16 @@ namespace Game
                 }
                 case NetEngine::Room::Match::Result::Started:
                 {
+                    if (room_cache->host_session_id == session_id && room_cache->MapIndex == NetEngine::Room::Map::Index::Random) //set a real map id to RandomMapIndex !
+                    {
+                        room_cache->RandomMapIndex = NetEngine::Room::Map::Index::HouseTop;
+                    }
                     room_cache->is_playing = true;
                     acc_cache->playing = true;
-                    
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player normal started match and will broadcast to: ({}) players", players_ids.size());
                     for (const auto& room_player_session_id : players_ids)
                         if (auto player_session = server->GetSessionById(room_player_session_id))
-                            send_msg(player_session.get(), callback.message->GetOrder(), 0, NetEngine::Room::Match::Result::Started, room_cache->MapIndex, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match is loading
+                            send_msg(player_session.get(), callback.message->GetOrder(), 0, NetEngine::Room::Match::Result::Started, (room_cache->MapIndex == NetEngine::Room::Map::Index::Random ? room_cache->RandomMapIndex : room_cache->MapIndex), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match is loading
                     break;
                 }
                 case NetEngine::Room::Match::Result::Loaded:
@@ -63,6 +69,7 @@ namespace Game
                             if (auto player_session = server->GetSessionById(room_player_session_id))
                             {
                                 auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(room_player_session_id);
+                                if (!player_acc_cache->playing) continue;
                                 send_msg(player_session.get(), 258, 0, 1, 0, reinterpret_cast<uint8_t*>(&sv_uptime_tick), sizeof(sv_uptime_tick)); // broadcasted players room tick
                                 player_acc_cache->state = PlayerInfo::State::Normal;
                                 player_acc_cache->playing = true;
@@ -79,7 +86,10 @@ namespace Game
                             if (auto player_session = server->GetSessionById(room_player_session_id))
                             {
                                 auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(room_player_session_id);
+                                if (!player_acc_cache->playing) continue;
                                 send_msg(player_session.get(), 415, 0, 1, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match loaded
+                                //player_acc_cache->state = PlayerInfo::State::Normal;
+                                player_acc_cache->playing = true;
                                 player_acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
                                 player_acc_cache.unlock();
                             }  

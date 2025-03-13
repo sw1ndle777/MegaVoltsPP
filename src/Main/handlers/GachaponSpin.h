@@ -140,7 +140,7 @@ namespace Game
                     acc_cache->acc_info.MicroPoints -= money_spent;
                 break;
             }
-            std::vector<GachaponAnnouncement> lucky_items_announce;
+            std::vector<std::string> lucky_items_announce;
             for (const auto& item : extracted_items)
             {
                 auto lucky_type = (item.size() > 0) ? item[0].LuckyType : 0;
@@ -184,9 +184,10 @@ namespace Game
                     #endif
                         if (is_rare)
                         {
-                            GachaponWonItemMsg itemWon = { gachaponSpinReq->gachapon_id, extracted.ItemId };
-                            GachaponAnnouncement announcement = { itemWon, acc_cache->acc_info.Nickname.c_str() };
-                            lucky_items_announce.push_back(announcement);
+                            //GachaponWonItemMsg itemWon = { gachaponSpinReq->gachapon_id, extracted.ItemId };
+                            //GachaponAnnouncement announcement = { itemWon, acc_cache->acc_info.Nickname.c_str() };
+                            //lucky_items_announce.push_back(announcement);
+                            lucky_items_announce.push_back(item_info->Name);
                         }
 
 
@@ -214,8 +215,8 @@ namespace Game
 
                 if (auto player_session = server->GetSessionById(lobby_player_session_id))
                     for (auto& announcement : lucky_items_announce)
-                        send_msg(player_session.get(), 402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
-                        //main_server->SendServerMessage(player_session.get(), fmt::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
+                        main_server->SendServerMessage(player_session.get(), fmt::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
+                        //send_msg(player_session.get(), 402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
             }
         }
     }

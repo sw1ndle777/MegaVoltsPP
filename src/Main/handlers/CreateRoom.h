@@ -57,10 +57,12 @@ namespace Game
             const auto& weaponrestriction_info = main_server->GetRoomOptionInfoByTypeCache(room_options, NetEngine::Room::Option::Type::WeaponLimit, room_settings.settings.restriction);
             auto room_mode = static_cast<NetEngine::Room::Mode::Index>(room_settings.settings.mode_index);
             auto new_map_index = static_cast<NetEngine::Room::Map::Index>(room_settings.settings.map_index);
+            /*
             if (new_map_index == NetEngine::Room::Map::Index::Random) //remove this later!
             {
                 new_map_index = NetEngine::Room::Map::Index::HouseTop;
             }
+            */
             Game::Room new_room =
             {
                 current_room_id,
@@ -81,6 +83,7 @@ namespace Game
                 !std::string(room_settings.password).empty(),
                 session_id
             };
+            new_room.is_clan_room = false;
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "create room with password: ({})", room_settings.password);
 
