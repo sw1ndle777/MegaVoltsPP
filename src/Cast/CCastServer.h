@@ -40,8 +40,10 @@ namespace Game
         std::uint16_t plaza_id;
         std::uint16_t server_id;
         std::uint16_t state_id;
+        std::uint32_t health;
         bool in_room;
         bool in_plaza;
+        bool is_dead;
         std::uint64_t auth_key;
 
         Player(const std::uint16_t& sessionId = 0,
@@ -54,6 +56,8 @@ namespace Game
             const bool& inPlaza = false,
             const std::uint64_t& authKey = 0)
             : session_id(sessionId), host_session_id(hostSessionId), room_id(roomId), plaza_id(plazaId), server_id(severId), state_id(stateId), in_room(inRoom), in_plaza(inPlaza), auth_key(authKey) {
+                is_dead = false;
+                health = 0;
         }
 
         Player(const Player& other)
@@ -67,6 +71,8 @@ namespace Game
             in_room = other.in_room;
             in_plaza = other.in_plaza;
             auth_key = other.auth_key;
+            is_dead = other.is_dead;
+            health = other.health;
         }
         Player& operator=(const Player& other)
         {
@@ -80,6 +86,8 @@ namespace Game
             in_room = other.in_room;
             in_plaza = other.in_plaza;
             auth_key = other.auth_key;
+            is_dead = other.is_dead;
+            health = other.health;
             return *this;
         }
     };

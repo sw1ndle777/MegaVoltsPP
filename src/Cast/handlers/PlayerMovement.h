@@ -42,6 +42,13 @@ namespace Game
 
             ClientPlayerInfoBasic* player_info = (ClientPlayerInfoBasic*)callback.message->GetData();
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) ani1: ({}) ani2: ({}) wpn: ({}) unk: ({})", data_size, self_session_id, static_cast<uint32_t>(player_info->animation1), static_cast<uint32_t>(player_info->animation2), static_cast<uint32_t>(player_info->weapon), static_cast<uint32_t>(player_info->unknown));
+
+            auto direction_x = DirectX::PackedVector::XMConvertHalfToFloat(player_info->direction.directionX);
+            auto direction_y = DirectX::PackedVector::XMConvertHalfToFloat(player_info->direction.directionY);
+            auto direction_z = DirectX::PackedVector::XMConvertHalfToFloat(player_info->direction.directionZ);
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) dir: ({}) ({}) ({}) rot1: ({}) rot2: ({}) rot3: ({})", data_size, self_session_id, direction_x, direction_y, direction_z, extra, option, static_cast<std::uint32_t>(player_info->rotation));
+
             if (data_size == 28)
             {
                 ClientPlayerInfoBullet* bullets_info = (ClientPlayerInfoBullet*)callback.message->GetData();

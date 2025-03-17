@@ -78,6 +78,16 @@ namespace Game
            
             target_acc_cache->slot_id = acc_cache->slot_id;
 
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "current host have state: ({}) and target host state: ({})", static_cast<std::uint32_t>(acc_cache->state), static_cast<std::uint32_t>(target_acc_cache->state));
+            if (target_acc_cache->state == PlayerInfo::State::Waiting)
+            {
+                target_acc_cache->state = PlayerInfo::State::HostReady;
+            }
+            if (acc_cache->state == PlayerInfo::State::HostReady)
+            {
+                acc_cache->state = PlayerInfo::State::Waiting;
+            }
+
             struct RoomAuthData
             {
                 std::uint16_t room_id;

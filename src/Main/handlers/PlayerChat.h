@@ -43,6 +43,7 @@ namespace Game
                 auto party_id = acc_cache->party_id;
                 auto current_player_grade = acc_cache->acc_info.Grade;
                 auto clan_id = acc_cache->acc_info.ClanId;
+                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                 acc_cache.unlock();
 
                 std::uint8_t chat_color = 0;
@@ -95,8 +96,8 @@ namespace Game
                                 if (main_server->IsBlockedAlready(room_player_blockeds, acc_index)) continue;
                                 if (auto player_session = server->GetSessionById(id))
                                 {
-                                    auto msgData = MainChatAck(my_nickname.c_str(), chatReq->msg, message_length).Serialize(chat_type, message_length);
-                                    send_msg(player_session.get(), 316, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                    auto msgData = MainChatMatchAck(my_unique_id, chatReq->msg, message_length).Serialize(message_length);
+                                    send_msg(player_session.get(), 315, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                 }
                             }
                         }
@@ -231,8 +232,8 @@ namespace Game
                                 if (main_server->IsBlockedAlready(room_player_blockeds, acc_index)) continue;
                                 if (auto player_session = server->GetSessionById(id))
                                 {
-                                    auto msgData = MainChatAck(my_nickname.c_str(), chatReq->msg, message_length).Serialize(chat_type, message_length);
-                                    send_msg(player_session.get(), 316, chat_color, Chat::Type::Team, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                    auto msgData = MainChatMatchAck(my_unique_id, chatReq->msg, message_length).Serialize(message_length);
+                                    send_msg(player_session.get(), 315, chat_color, Chat::Type::Team, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                 }
                             }
                         }

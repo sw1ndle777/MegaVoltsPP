@@ -107,7 +107,9 @@ namespace Game
             auto assign_item = [&](int type, auto setitem_field)
             {
                 auto item = main_server->GetItemByType(equipped_items, type).item_info.item_number.item_id;
-                return item ? item : (setitem_field > 0 ? setitem_info->Id : 0);
+                auto result = item ? item : (setitem_field != UINT32_MAX ? setitem_info->Id : 0);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "for type ({}) setitem_field is ({}) result is ({})", type, setitem_field, result);
+                return result;
             };
             detailsInfo.EquippedHairItemId = assign_item(0, setitem_info->Hair);
             detailsInfo.EquippedFaceItemId = assign_item(1, setitem_info->Face);

@@ -36,6 +36,13 @@ namespace Game
             auto left_while_vote_kicked = room_cache->vote_kick_target_session_id == session_id;
             auto in_party = acc_cache->in_party;
 
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player leave match so will apply penality of 1 lose and 1 clan lose if clan room");
+            acc_cache->acc_info.Loses += 1;
+            if (room_cache->is_clan_room)
+            {
+                acc_cache->acc_info.ClanLoses += 1;
+            }
+
             if (left_while_vote_kicked)
             {
                 room_cache->voters_session_ids.clear();

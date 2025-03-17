@@ -14,7 +14,15 @@ namespace Game
             CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
-            auto room = cast_server->GetRoomCacheShared(self_player->room_id);
+            auto room = cast_server->GetRoomCacheUnique(self_player->room_id);
+            self_player.unlock();
+
+            auto respawnReq = reinterpret_cast<RespawnRequest*>(callback.message->GetData());
+            auto target_session_id = (std::uint32_t)respawnReq->target_unique_id.session;
+            auto target_player_cache = cast_server->GetPlayerCacheUnique(target_session_id);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player id: ({}) reset max hp", target_session_id);
+            target_player_cache->health = 0xF4240;
+            target_player_cache.unlock();
 
             auto broadcast = [&](auto player_session_id, auto& msg)
             {

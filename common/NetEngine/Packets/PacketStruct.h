@@ -931,14 +931,14 @@ namespace NetEngine
                 }
 
 
-                std::vector<std::uint8_t> Serialize(const std::uint8_t& extra, const std::uint32_t& msg_size, const std::uint32_t& unknown = 0) const
+                std::vector<std::uint8_t> Serialize(const std::uint8_t& extra, const std::uint32_t& msg_size, const std::uint32_t& whisperTargetUID = 0) const
                 {
                     std::vector<std::uint8_t> data;
 
                     if (extra == 2) // whisper
                     {
-                        const auto* unknown_bytes = reinterpret_cast<const uint8_t*>(&unknown);
-                        data.insert(data.end(), unknown_bytes, unknown_bytes + sizeof(unknown));
+                        const auto* unknown_bytes = reinterpret_cast<const uint8_t*>(&whisperTargetUID);
+                        data.insert(data.end(), unknown_bytes, unknown_bytes + sizeof(whisperTargetUID));
                     }
                     auto nickname_bytes = reinterpret_cast<const uint8_t*>(&nickname);
                     data.insert(data.end(), nickname_bytes, nickname_bytes + sizeof(nickname));
@@ -950,6 +950,37 @@ namespace NetEngine
                     return data;
                 }
             };
+
+            class MainChatMatchAck
+            {
+            public:
+                std::uint32_t unique_id;
+                char msg[256];
+                MainChatMatchAck(const std::uint32_t unique_id, const char* new_msg, const std::uint32_t& new_msg_size)
+                {
+                    std::memset(this, 0, sizeof(MainChatMatchAck));
+                    this->unique_id = unique_id;
+                    std::memset(msg, 0, sizeof(msg));
+                    std::uint32_t size_to_copy = std::min(new_msg_size, static_cast<std::uint32_t>(sizeof(msg)));
+                    std::strncpy(msg, new_msg, size_to_copy);
+                    msg[size_to_copy] = '\0';
+                }
+
+
+                std::vector<std::uint8_t> Serialize(const std::uint32_t& msg_size) const
+                {
+                    std::vector<std::uint8_t> data;
+
+                    const auto* unknown_bytes = reinterpret_cast<const uint8_t*>(&unique_id);
+                    data.insert(data.end(), unknown_bytes, unknown_bytes + sizeof(unique_id));
+
+                    auto msg_bytes = reinterpret_cast<const uint8_t*>(msg);
+                    data.insert(data.end(), msg_bytes, msg_bytes + msg_size);
+
+                    return data;
+                }
+            };
+
             struct MainRoomCreateAck
             {
                 std::uint16_t room_id;
@@ -1664,6 +1695,78 @@ namespace NetEngine
             struct CastJoinPlazaReq
             {
                 std::uint32_t plaza_id;
+            };
+
+            union PlayerInfoCastActionReq
+            {
+                struct
+                {
+                    std::uint32_t health : 20;
+                    std::uint32_t mode_index : 5;
+                    std::uint32_t player_status : 4;
+                };
+                std::uint32_t data;
+            };
+            struct PlayerVictimDataReq
+            {
+                Core::UniqueId victim_unique_id;
+                PlayerInfoCastActionReq player_info;
+                std::uint32_t idk2;
+            };
+            struct PlayerVictimWeapon2Req
+            {
+                std::uint32_t idk; // 0x00
+                std::uint16_t coord1_x;//0x4
+                std::uint16_t coord1_y;//0x6
+                std::uint16_t coord1_z; // 0x8
+                std::uint16_t coord2_x;//0xA
+                std::uint16_t coord2_y;//0xC
+                std::uint16_t coord2_z;//0xE
+                Core::UniqueId attacker_unique_id;//0x10 a1+0x14
+                PlayerVictimDataReq player_victims_data[26]; // array size is extra
+            };
+            struct PlayerVictimWeaponReq
+            {
+                std::uint32_t idk;
+                std::uint16_t coord1_x;
+                std::uint16_t coord1_y;
+                std::uint16_t coord1_z;
+                std::uint16_t coord2_x;
+                std::uint16_t coord2_y;
+                std::uint16_t coord2_z;
+                Core::UniqueId attacker_unique_id;
+                Core::UniqueId victim_unique_id;
+                PlayerInfoCastActionReq player_info;
+                std::uint32_t idk2;
+            };
+            struct AddProjectileReq
+            {
+                std::uint32_t projectile_id;
+                std::uint16_t coord_x;
+                std::uint16_t coord_y;
+                std::uint16_t coord_z;
+                std::uint16_t idk;
+                PlayerVictimDataReq player_victims_data[26];
+            };
+            struct ImpactProjectileReq
+            {
+                std::uint32_t idk;
+                std::uint16_t coord1_x;
+                std::uint16_t coord1_y;
+                std::uint16_t coord1_z;
+                std::uint16_t coord2_x;
+                std::uint16_t coord2_y;
+                std::uint16_t coord2_z;
+                Core::UniqueId attacker_unique_id;
+                std::uint32_t projectile_id;
+            };
+            struct RespawnRequest
+            {
+                std::uint16_t x;
+                std::uint16_t y;
+                std::uint16_t z;
+                std::uint16_t rotation;
+                Core::UniqueId target_unique_id;
             };
 
             // S2C

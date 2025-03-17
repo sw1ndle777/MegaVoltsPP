@@ -28,19 +28,25 @@ namespace Game
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
+            if (match_result == NetEngine::Room::Match::Result::Started)
+            {
+                acc_cache->playing = true;
+            }
+            auto nick_copy = acc_cache->acc_info.Nickname.c_str();
             auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
             acc_cache.unlock();
             auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
-            acc_cache.lock();
             bool is_host = session_id == room_cache->host_session_id;
 
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) start match, is host: ({})", acc_cache->acc_info.Nickname.c_str(), is_host);
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) start match, is host: ({})", nick_copy, is_host);
 
             switch (match_result)
             {
                 case NetEngine::Room::Match::Result::SingleWave:
                 {
+                    acc_cache.lock();
                     acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
+                    acc_cache.unlock();
                     break;
                 }
                 case NetEngine::Room::Match::Result::Started:
@@ -50,7 +56,7 @@ namespace Game
                         room_cache->RandomMapIndex = NetEngine::Room::Map::Index::HouseTop;
                     }
                     room_cache->is_playing = true;
-                    acc_cache->playing = true;
+                    //acc_cache->playing = true;
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player normal started match and will broadcast to: ({}) players", players_ids.size());
                     for (const auto& room_player_session_id : players_ids)
                         if (auto player_session = server->GetSessionById(room_player_session_id))
@@ -59,7 +65,7 @@ namespace Game
                 }
                 case NetEngine::Room::Match::Result::Loaded:
                 {
-                    acc_cache.unlock();
+                    //acc_cache.unlock();
                     if (is_host)
                     {
                         
@@ -69,7 +75,11 @@ namespace Game
                             if (auto player_session = server->GetSessionById(room_player_session_id))
                             {
                                 auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(room_player_session_id);
-                                if (!player_acc_cache->playing) continue;
+                                if (!player_acc_cache->playing)
+                                {
+                                    player_acc_cache.unlock();
+                                    continue;
+                                }
                                 send_msg(player_session.get(), 258, 0, 1, 0, reinterpret_cast<uint8_t*>(&sv_uptime_tick), sizeof(sv_uptime_tick)); // broadcasted players room tick
                                 player_acc_cache->state = PlayerInfo::State::Normal;
                                 player_acc_cache->playing = true;
@@ -86,9 +96,13 @@ namespace Game
                             if (auto player_session = server->GetSessionById(room_player_session_id))
                             {
                                 auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(room_player_session_id);
-                                if (!player_acc_cache->playing) continue;
+                                if (!player_acc_cache->playing)
+                                {
+                                    player_acc_cache.unlock();
+                                    continue;
+                                }
                                 send_msg(player_session.get(), 415, 0, 1, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match loaded
-                                //player_acc_cache->state = PlayerInfo::State::Normal;
+                                player_acc_cache->state = PlayerInfo::State::Normal;
                                 player_acc_cache->playing = true;
                                 player_acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
                                 player_acc_cache.unlock();

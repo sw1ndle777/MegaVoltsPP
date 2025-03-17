@@ -36,10 +36,26 @@ namespace Game
             {
                 if (user.first != session_id)
                 {
-                    if (acc_cache->in_plaza && user.second.in_plaza && !acc_cache->in_room && !user.second.in_room && !user.second.in_party)
-                        user_list.push_back({ user.second.acc_info.Nickname, NetEngine::Packets::Core::UniqueId(user.first, 1).data , user.second.acc_info.Level + 1, 0, 0 });
-                    else if (!acc_cache->in_plaza && !user.second.in_plaza && !user.second.in_room && !user.second.in_party)
-                        user_list.push_back({ user.second.acc_info.Nickname, NetEngine::Packets::Core::UniqueId(user.first, 1).data , user.second.acc_info.Level + 1, 0, 0 });
+                    if (acc_cache->in_plaza && user.second.in_plaza && !acc_cache->in_room && !user.second.in_room && !acc_cache->in_party && !user.second.in_party) {
+                        std::uint32_t clan_front_icon = 0, clan_back_icon = 0;
+                        if (user.second.acc_info.ClanId) {
+                            auto clan_info = main_server->GetClanCacheShared(user.second.acc_info.ClanId);
+                            clan_front_icon = clan_info->logo_front;
+                            clan_back_icon = clan_info->logo_back;
+                            clan_info.unlock();
+                        }
+                        user_list.push_back({ user.second.acc_info.Nickname, NetEngine::Packets::Core::UniqueId(user.first, 1).data , user.second.acc_info.Level + 1, clan_front_icon, clan_back_icon });
+                    }
+                    else if (!acc_cache->in_plaza && !user.second.in_plaza && !user.second.in_room && !user.second.in_party) {
+                        std::uint32_t clan_front_icon = 0, clan_back_icon = 0;
+                        if (user.second.acc_info.ClanId) {
+                            auto clan_info = main_server->GetClanCacheShared(user.second.acc_info.ClanId);
+                            clan_front_icon = clan_info->logo_front;
+                            clan_back_icon = clan_info->logo_back;
+                            clan_info.unlock();
+                        }
+                        user_list.push_back({ user.second.acc_info.Nickname, NetEngine::Packets::Core::UniqueId(user.first, 1).data , user.second.acc_info.Level + 1, clan_front_icon, clan_back_icon });
+                    }
                 }
             }
             

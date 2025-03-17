@@ -608,7 +608,7 @@ namespace Game
             auto assign_item = [&](int type, auto setitem_field)
                 {
                     auto item = main_server->GetItemByType(equipped_items, type).item_info.item_number.item_id;
-                    return item ? item : (setitem_field > 0 ? setitem_info->Id : 0);
+                    return item ? item : (setitem_field != UINT32_MAX ? setitem_info->Id : 0);
                 };
             joinInfo_new.EquippedHairItemId = assign_item(0, setitem_info->Hair);
             joinInfo_new.EquippedFaceItemId = assign_item(1, setitem_info->Face);
@@ -694,16 +694,16 @@ namespace Game
                 const auto& acc_head_id = main_server->GetItemByType(equipped_items, 7).item_info.item_number.item_id;
                 const auto& acc_waist_id = main_server->GetItemByType(equipped_items, 8).item_info.item_number.item_id;
                 const auto& acc_back_id = main_server->GetItemByType(equipped_items, 9).item_info.item_number.item_id;
-                const auto& EquippedHairItemId = hair_id ? hair_id : (setitem_info->Hair > 0 ? setitem_info->Id : 0);
-                const auto& EquippedFaceItemId = face_id ? face_id : (setitem_info->Face > 0 ? setitem_info->Id : 0);
-                const auto& EquippedUpperItemId = upper_id ? upper_id : (setitem_info->Upper > 0 ? setitem_info->Id : 0);
-                const auto& EquippedUnderItemId = under_id ? under_id : (setitem_info->Under > 0 ? setitem_info->Id : 0);
-                const auto& EquippedPantsItemId = pants_id ? pants_id : (setitem_info->Pants > 0 ? setitem_info->Id : 0);
-                const auto& EquippedShirtItemId = shirt_id ? shirt_id : (setitem_info->Arms > 0 ? setitem_info->Id : 0);
-                const auto& EquippedBootsItemId = boots_id ? boots_id : (setitem_info->Boots > 0 ? setitem_info->Id : 0);
-                const auto& EquippedGlassItemId = acc_head_id ? acc_head_id : (setitem_info->AccessoryA > 0 ? setitem_info->Id : 0);
-                const auto& EquippedAccessoryWaistItemId = acc_waist_id ? acc_waist_id : (setitem_info->AccessoryB > 0 ? setitem_info->Id : 0);
-                const auto& EquippedAccessoryBackItemId = acc_back_id ? acc_back_id : (setitem_info->AccessoryC > 0 ? setitem_info->Id : 0);
+                const auto& EquippedHairItemId = hair_id ? hair_id : (setitem_info->Hair != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedFaceItemId = face_id ? face_id : (setitem_info->Face != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedUpperItemId = upper_id ? upper_id : (setitem_info->Upper != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedUnderItemId = under_id ? under_id : (setitem_info->Under != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedPantsItemId = pants_id ? pants_id : (setitem_info->Pants != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedShirtItemId = shirt_id ? shirt_id : (setitem_info->Arms != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedBootsItemId = boots_id ? boots_id : (setitem_info->Boots != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedGlassItemId = acc_head_id ? acc_head_id : (setitem_info->AccessoryA != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedAccessoryWaistItemId = acc_waist_id ? acc_waist_id : (setitem_info->AccessoryB != UINT32_MAX ? setitem_info->Id : 0);
+                const auto& EquippedAccessoryBackItemId = acc_back_id ? acc_back_id : (setitem_info->AccessoryC != UINT32_MAX ? setitem_info->Id : 0);
                 const auto& EquippedMeleeItemId = main_server->GetItemByType(equipped_items, 10).item_info.item_number.item_id;
                 const auto& EquippedRifleItemId = main_server->GetItemByType(equipped_items, 11).item_info.item_number.item_id;
                 const auto& EquippedShotgunItemId = main_server->GetItemByType(equipped_items, 12).item_info.item_number.item_id;

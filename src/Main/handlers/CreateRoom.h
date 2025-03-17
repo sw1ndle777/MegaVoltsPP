@@ -84,6 +84,8 @@ namespace Game
                 session_id
             };
             new_room.is_clan_room = false;
+            new_room.clan_id_1 = 0;
+            new_room.clan_id_2 = 0;
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "create room with password: ({})", room_settings.password);
 
