@@ -45,8 +45,18 @@ namespace Game
                 auto drop_item_id = pickupDropReq->drop_item_id;
                 if (drop_item_ids.find(drop_item_id) == drop_item_ids.end()) return;
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) picked up drop item ({})", acc_cache->acc_info.Nickname.c_str(), drop_item_id);
-
-
+                /*
+                struct MainToCastSendPacketInfo
+                {
+                    std::uint32_t session_id;
+                    std::uint32_t data_size;
+                    std::uint32_t item_id;
+                } info;
+                info.session_id = session_id;
+                info.data_size = callback.message->GetDataSize();
+                info.item_id = pickupDropReq->drop_item_id;
+                main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPacket, Utility::ToVector(info));
+                */
                 auto serial_index = main_server->FindLowestAvailableItemSerialInfoId(acc_cache->inventory_items);
                 auto item_info = main_server->GetItemInfoCache(drop_item_id);
                 ShopItem new_item = { {drop_item_id ,item_info->Stock } , ItemExpire::Type::Unused ,ItemSerialInfo(serial_index, 1, 1, Items::Origin::From_Game, Utility::GetUtcTimeNow()) };

@@ -192,13 +192,13 @@ namespace Game
                     party_cache->is_registered = false;
                     party_cache->is_queueing = false;
                     main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
-                    main_server->RoomPlayersSlotReorder(room_cache);
+                    //main_server->RoomPlayersSlotReorder(room_cache);
                     std::uint32_t player_count = room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size();
                     if (player_count == 0)
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "last player remaining in endmatch screen leave so now room will be removed");
                         main_server->RemoveRoomCache(target_room_id);
-                        main_server->SetRoomIdAvailable(target_room_id);
+                        //main_server->SetRoomIdAvailable(target_room_id);
                         party_cache->is_playing = false;
                     }
                 }

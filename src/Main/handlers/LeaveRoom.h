@@ -44,6 +44,7 @@ namespace Game
                 room->kicked_session_ids.push_back(target_unique_id.session);
                 auto target_team_id = target_acc_cache->team_id;
                 auto target_slot = target_acc_cache->slot_id;
+                target_acc_cache->zombie_team = 0;
                 target_acc_cache->in_room = false;
                 target_acc_cache->slot_id = 0xFF;
                 target_acc_cache->playing = false;
@@ -52,7 +53,7 @@ namespace Game
                 target_acc_cache.unlock();
 
                 main_server->RemoveRoomPlayerCache(room, target_unique_id.session, target_team_id);
-                main_server->RoomPlayersSlotReorder(room);
+                //main_server->RoomPlayersSlotReorder(room);
 
                 std::vector<std::uint32_t> players_ids;
                 std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
@@ -111,13 +112,14 @@ namespace Game
                 if (leave_result != NetEngine::Room::Leave::Req::Result::Leave || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
                 auto room = main_server->GetRoomCacheUnique(acc_cache->room_id);
                 auto room_id = room->room_id;
+                acc_cache->zombie_team = 0;
                 acc_cache->in_room = false;
-                acc_cache->slot_id = 0xFF;
+                //acc_cache->slot_id = 0xFF;
                 acc_cache->playing = false;
                 acc_cache->state = PlayerInfo::State::Waiting;
                 acc_cache.unlock();
-                main_server->RemoveRoomPlayerCache(room, session_id, my_team_id);
-                main_server->RoomPlayersSlotReorder(room);
+                //main_server->RemoveRoomPlayerCache(room, session_id, my_team_id);
+                //main_server->RoomPlayersSlotReorder(room);
 
                 auto room_playing_players = main_server->GetRoomSortedPlayerPlayingWithoutObserverSessionIds(room);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, " player leave room and playing count is now: ({})", room_playing_players.size());
@@ -179,6 +181,9 @@ namespace Game
                         best_ping_acc_cache.unlock();
                     }
                 }
+
+                main_server->RemoveRoomPlayerCache(room, session_id, my_team_id);
+
                 send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0); // leave room ack
 
                 for (const auto& room_player_session_id : players_ids)
@@ -203,7 +208,7 @@ namespace Game
                             auto observer_cache_team_id = observer_cache->team_id;
                             observer_cache.unlock();
                             main_server->RemoveRoomPlayerCache(room, observer_id, observer_cache_team_id);
-                            main_server->RoomPlayersSlotReorder(room);
+                            //main_server->RoomPlayersSlotReorder(room);
                             if (auto observer_session = server->GetSessionById(observer_id))
                                 send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
                         }

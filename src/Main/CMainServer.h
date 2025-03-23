@@ -169,6 +169,7 @@ namespace Game
         std::uint8_t voice_id;
         std::uint64_t match_loaded_time;
         std::uint32_t earnt_battery;
+        std::uint32_t zombie_team;
         PlayerDailyMission daily_mission_info;
         BaseLib::FrontAccount acc_info;
         std::vector<Item> inventory_items;
@@ -199,6 +200,7 @@ namespace Game
             voice_id = 0;
             match_loaded_time = 0;
             earnt_battery = 0;
+            zombie_team = 0;
             items_deleted.clear();
             items_added.clear();
             items_updated.clear();
@@ -225,6 +227,7 @@ namespace Game
             in_plaza = other.in_plaza;
             in_party = other.in_party;
             sent_ping_once = other.sent_ping_once;
+            zombie_team = other.zombie_team;
             voice_id = other.voice_id;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
@@ -258,6 +261,7 @@ namespace Game
             in_plaza = other.in_plaza;
             in_party = other.in_party;
             sent_ping_once = other.sent_ping_once;
+            zombie_team = other.zombie_team;
             voice_id = other.voice_id;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
@@ -293,6 +297,7 @@ namespace Game
             in_room = false;
             in_party = false;
             sent_ping_once = false;
+            zombie_team = 0;
             voice_id = 0;
             match_loaded_time = 0;
             inventory_items.clear();
@@ -1784,26 +1789,68 @@ namespace Game
                 }
             }
         }
+
+        void RemoveSessionId(std::vector<std::uint16_t>& session_ids, std::uint16_t session_id) {
+            if (auto it = std::find(session_ids.begin(), session_ids.end(), session_id); it != session_ids.end()) {
+                std::swap(*it, session_ids.back());
+                session_ids.pop_back();
+            }
+        }
+
         void RemoveRoomPlayerCache(RoomCacheResource& room_cache, const std::uint16_t& session_id, const std::uint8_t& team_id)
         {
             if (IsRoomAlready(room_cache->room_id))
             {
-                //if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral))
+                if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral))
                 {
-                    auto remove_myself = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
-                    room_cache->neutralteam_session_ids.erase(remove_myself, room_cache->neutralteam_session_ids.end());
+                    for (int i = 0, j = room_cache->neutralteam_session_ids.size(); i < j; i++)
+                    {
+                        if (room_cache->neutralteam_session_ids[i] == session_id)
+                        {
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found leaving player at position: ({}) in team", i);
+                            auto last_index = room_cache->neutralteam_session_ids.size() - 1;
+                            auto last_id = room_cache->neutralteam_session_ids[last_index];
+
+                            if (room_cache->host_session_id == session_id)
+                            {
+                                auto remove_myself = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
+                                room_cache->neutralteam_session_ids.erase(remove_myself, room_cache->neutralteam_session_ids.end());
+                                break;
+                            }
+
+                            if (session_id != last_id)
+                            {
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "different position change");
+                                auto shared_target_cache = this->GetAccCacheSharedBySessionId(session_id);
+                                auto target_slot_id = shared_target_cache->slot_id;
+                                shared_target_cache.unlock();
+
+                                auto uni_target_cache = this->GetAccCacheUniqueBySessionId(last_id);
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "exchange slot id ({}) with ({})", uni_target_cache->slot_id, target_slot_id);
+                                uni_target_cache->slot_id = target_slot_id;
+                                uni_target_cache.unlock();
+
+                                room_cache->neutralteam_session_ids[i] = last_id;
+                            }
+                            room_cache->neutralteam_session_ids.pop_back();
+                            break;
+                        }
+                    }
+                    //RemoveSessionId(room_cache->neutralteam_session_ids, session_id);
+                    //auto remove_myself = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
+                    //room_cache->neutralteam_session_ids.erase(remove_myself, room_cache->neutralteam_session_ids.end());
                 }
-                //else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red))
+                else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red))
                 {
                     auto remove_myself2 = std::remove(room_cache->redteam_session_ids.begin(), room_cache->redteam_session_ids.end(), session_id);
                     room_cache->redteam_session_ids.erase(remove_myself2, room_cache->redteam_session_ids.end());
                 }
-                //else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue))
+                else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue))
                 {
                     auto remove_myself3 = std::remove(room_cache->blueteam_session_ids.begin(), room_cache->blueteam_session_ids.end(), session_id);
                     room_cache->blueteam_session_ids.erase(remove_myself3, room_cache->blueteam_session_ids.end());
                 }
-                //else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Observer))
+                else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Observer))
                 {
                     auto remove_myself4 = std::remove(room_cache->observers_session_ids.begin(), room_cache->observers_session_ids.end(), session_id);
                     room_cache->observers_session_ids.erase(remove_myself4, room_cache->observers_session_ids.end());

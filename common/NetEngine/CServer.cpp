@@ -137,7 +137,8 @@ namespace NetEngine
 
                 if (GetNextAvailableSessionId(session_id))
                 {
-                    auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
+                    //auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
+                    auto session = CSession::Create(std::move(m_socket), m_ioContext, this, settings, session_id);
                     if (m_OnDisconnect) session->SetOnDisconnectCallback(m_OnDisconnect);
                     if (m_OnConnect)  m_OnConnect(session);
                     AddSession(session);
@@ -183,7 +184,8 @@ namespace NetEngine
 
                     std::uint16_t session_id = 0;
 
-                    auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
+                    //auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
+                    auto session = CSession::Create(std::move(m_socket), m_ioContext, this, settings, session_id);
                     if (m_OnIpcMessage) session->SetOnIpcMessageCallback(m_OnIpcMessage);
                     session->DoReadIpc();
                 }
@@ -464,7 +466,7 @@ namespace NetEngine
 
             auto time_now = std::chrono::steady_clock::now();
             execution_vector.push_back({ session_id, order, time_now });
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
+            if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282) BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
                 "Handler started: Thread ID: {}, Session ID: {}, Order: {}",
                 thread_id, session_id, order);
         }
@@ -488,7 +490,7 @@ namespace NetEngine
                         std::chrono::steady_clock::now() - it->start_time);
 
                     // Log the elapsed time
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
+                    if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282) BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
                         "Handler completed: Thread ID: {}, Session ID: {}, Order: {}, Elapsed Time: {:.3f}ms",
                         thread_id, session_id, order, elapsed_time.count());
 

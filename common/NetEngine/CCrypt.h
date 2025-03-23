@@ -15,13 +15,54 @@ namespace NetEngine
         class CCrypt
         {
         public:
+            bool using_new_encryption = true;
+
+            std::uint32_t encrypt_tcp_header(std::uint32_t header)
+            {
+                if (!using_new_encryption) return header;
+                header = ~header;  // Bitwise NOT
+                header = (header << 13) | (header >> (32 - 13));  // Rotate left by 13
+                header ^= 0xA5A5A5A5;  // XOR with constant
+                header = ((header & 0xF0F0F0F0) >> 4) | ((header & 0x0F0F0F0F) << 4);  // Swap nibbles
+                header += 0xCAFEBABE;  // Add constant for diffusion
+                header = (header << 7) | (header >> (32 - 7));  // Rotate left by 7
+                header ^= (header >> 16);  // XOR mix upper and lower bits
+                header = ((header & 0xAAAAAAAA) >> 1) | ((header & 0x55555555) << 1);  // Swap alternating bits
+                return header;
+            }
+
+
+            std::uint32_t decrypt_tcp_header(std::uint32_t encrypted_header)
+            {
+                if (!using_new_encryption) return encrypted_header;
+                encrypted_header = ((encrypted_header & 0xAAAAAAAA) >> 1) | ((encrypted_header & 0x55555555) << 1);  // Reverse alternating bit swap
+                encrypted_header ^= (encrypted_header >> 16);  // Reverse XOR mix
+                encrypted_header = (encrypted_header >> 7) | (encrypted_header << (32 - 7));  // Rotate right by 7
+                encrypted_header -= 0xCAFEBABE;  // Subtract constant
+                encrypted_header = ((encrypted_header & 0xF0F0F0F0) >> 4) | ((encrypted_header & 0x0F0F0F0F) << 4);  // Reverse nibble swap
+                encrypted_header ^= 0xA5A5A5A5;  // Reverse XOR with constant
+                encrypted_header = (encrypted_header >> 13) | (encrypted_header << (32 - 13));  // Rotate right by 13
+                encrypted_header = ~encrypted_header;  // Bitwise NOT to restore original
+                return encrypted_header;
+            }
+
             uint32_t RC5S[26];
             uint32_t RC6S[84];
             int32_t UserKey;
 
             void RC5KeySetup()
             {
-                unsigned char K[16] = { 0x3d, 0x63, 0xc5, 0xa3, 0x6d, 0x9a, 0xdb, 0xa5, 0xd1, 0xb2, 0x7a, 0x17, 0xb6, 0x56, 0x2c, 0xba };
+                unsigned char K[16];
+                if (!using_new_encryption)
+                {
+                    unsigned char Kt[16] = { 0x3d, 0x63, 0xc5, 0xa3, 0x6d, 0x9a, 0xdb, 0xa5, 0xd1, 0xb2, 0x7a, 0x17, 0xb6, 0x56, 0x2c, 0xba };//original by nq games
+                    std::copy(std::begin(Kt), std::end(Kt), std::begin(K));
+                }
+                else
+                {
+                    unsigned char Kt[16] = { 0xc0, 0x58, 0x1e, 0x07, 0xd9, 0x39, 0x43, 0x12, 0x31, 0xd0, 0xce, 0x21, 0xdd, 0xaf, 0x90, 0xad };
+                    std::copy(std::begin(Kt), std::end(Kt), std::begin(K));
+                }
                 uint32_t A, B, L[4];
                 int i, j, k, l = 0;
                 char UserKeyBytes[4];
@@ -45,7 +86,17 @@ namespace NetEngine
 
             void RC6KeySetup()
             {
-                unsigned char K[32] = { 0x76, 0xb7, 0x4b, 0x98, 0x4c, 0x5b, 0xd5, 0xe3, 0xc1, 0x92, 0x33, 0x6a, 0x7b, 0xe6, 0xcc, 0xeb, 0x17, 0x9a, 0x77, 0xbc, 0x31, 0x5d, 0xe7, 0x39, 0xa9, 0x32, 0x54, 0x88, 0x66, 0xd3, 0xce, 0x43 };
+                unsigned char K[32];
+                if (!using_new_encryption)
+                {
+                    unsigned char Kt[32] = { 0x76, 0xb7, 0x4b, 0x98, 0x4c, 0x5b, 0xd5, 0xe3, 0xc1, 0x92, 0x33, 0x6a, 0x7b, 0xe6, 0xcc, 0xeb, 0x17, 0x9a, 0x77, 0xbc, 0x31, 0x5d, 0xe7, 0x39, 0xa9, 0x32, 0x54, 0x88, 0x66, 0xd3, 0xce, 0x43 };//original by nq games
+                    std::copy(std::begin(Kt), std::end(Kt), std::begin(K));
+                }
+                else
+                {
+                    unsigned char Kt[32] = { 0x55, 0x35, 0x34, 0xb1, 0x9f, 0x85, 0x46, 0x23, 0x46, 0x08, 0xb4, 0x75, 0xc3, 0xd4, 0x9e, 0x9c, 0x66, 0x0d, 0xab, 0x76, 0x74, 0xe7, 0x74, 0xf1, 0x35, 0x4b, 0x53, 0xc7, 0x4d, 0xe6, 0x69, 0xfe };
+                    std::copy(std::begin(Kt), std::end(Kt), std::begin(K));
+                }
                 uint32_t A, B, L[8];
                 int i, j, k, l = 0;
                 char UserKeyBytes[4];

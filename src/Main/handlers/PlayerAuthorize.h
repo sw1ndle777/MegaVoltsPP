@@ -308,12 +308,12 @@ namespace Game
                                 info.session_id = session_id;
                                 main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
                                 PlayerPingUpdateInfo ping_data{};
-                                ping_data.ping = 2;
+                                ping_data.ping = 60;
                                 auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
                                 send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-                                send_msg(player_session.get(), 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                //send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                //send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                //send_msg(player_session.get(), 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
                             }
                         }
                     }

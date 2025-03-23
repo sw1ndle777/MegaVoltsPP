@@ -120,7 +120,7 @@ namespace Game
                             acc_cache.unlock();
                             best_ping_acc_cache.unlock();
                             main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
-                            main_server->RoomPlayersSlotReorder(room_cache);
+                            //main_server->RoomPlayersSlotReorder(room_cache);
                         }
                     }
                 }
@@ -139,7 +139,7 @@ namespace Game
                     auto my_team_id = acc_cache->team_id;
                     acc_cache.unlock();
                     main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
-                    main_server->RoomPlayersSlotReorder(room_cache);
+                    //main_server->RoomPlayersSlotReorder(room_cache);
                 }
                 else
                 {
@@ -192,7 +192,7 @@ namespace Game
                             }
                         }
                         main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
-                        main_server->RoomPlayersSlotReorder(room_cache);
+                        //main_server->RoomPlayersSlotReorder(room_cache);
                         acc_cache.lock();
                     }
                     send_msg(session, 120, 0, 45, 0);

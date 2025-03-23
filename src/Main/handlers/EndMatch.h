@@ -1453,6 +1453,7 @@ namespace Game
             }
             if (!acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
             auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
+            acc_cache->zombie_team = 0;
             acc_cache.unlock();
             //auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
             auto is_pve = room_cache->ModeIndex == NetEngine::Room::Mode::Index::BossBattle;

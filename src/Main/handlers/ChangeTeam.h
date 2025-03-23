@@ -55,10 +55,11 @@ namespace Game
                 send_msg(session, 313, 0, NetEngine::Team::Change::Result::NoBehavior, acc_cache->team_id);
                 return;
             }
+            acc_cache->zombie_team = 0;
             if (is_ZombieMode)
             {
-                
-                acc_cache->team_id = team_option;
+                acc_cache->zombie_team = team_option;
+                //acc_cache->team_id = team_option;
                 //send_msg(session, 313, 0, NetEngine::Team::Change::Result::Success, team_option);
                 broadcast = true;
             }
@@ -176,12 +177,35 @@ namespace Game
             {
                 acc_cache.unlock();
                 const auto& players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
+
+                std::vector<PlayerRoomClanListInfo> players_clan_info;
+                for (const auto& room_player_session_id : players_ids)
+                {
+                    auto player_cache = main_server->GetAccCacheSharedBySessionId(room_player_session_id);
+                    if (player_cache->acc_info.ClanId)
+                    {
+                        if (main_server->IsClanAlready(player_cache->acc_info.ClanId))
+                        {
+                            auto clan_info = main_server->GetClanCacheShared(player_cache->acc_info.ClanId);
+                            auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, acc_cache->acc_info.ClanId, 0);
+                            clan_info.unlock();
+                            players_clan_info.push_back(info);
+                        }
+                    }
+                    else
+                        players_clan_info.push_back(PlayerRoomClanListInfo(player_cache->slot_id, "", 0, 0, 0, 0));
+                }
+
                 auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                 for (const auto& room_player_session_id : players_ids)
                 {
                     //if (room_player_session_id == session_id) continue;
                     if (auto player_session = server->GetSessionById(room_player_session_id))
+                    {
                         send_msg(player_session.get(), 313, 0, NetEngine::Team::Change::Result::Success, team_option, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+
+                        send_msg(player_session.get(), 409, 0, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo)* players_clan_info.size());
+                    }
                 }    
             }
         }

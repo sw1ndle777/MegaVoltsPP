@@ -542,8 +542,8 @@ namespace BaseLib
             }
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "INSERT INTO accounts (Username, Password, Salt, Grade, PCRoom, AuthKey, ClanId, ClanKills, ClanDeaths, ClanAssists, ClanContribution, ClanWins, ClanLoses, ClanDraws, Nickname, Level, Experience, Tutoral, Story, GuideMission, Achievement, VoiceType, VIPExperience, MaximumItems, MaximumEnergy, SelectedCharacter, PlayTime, MutedUntil, Coins, Energy, LuckyPoints, MicroPoints, RockTokens, Coupons, Wins, Loses, Draws, Kills, Deaths, Assists, Headshots, HighestKillStreak, MeleeKills, RifleKills, ShotgunKills, SniperKills, GatlingKills, BazookaKills, GrenadeKills, ZombieKills, Infections, SingleWaveDailyAttempts, SingleWaveHighestWave, SingleWaveHighScore, SingleWaveLastUpdate) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+                "INSERT INTO accounts (Username, Password, Salt, Grade, AuthKey, ClanId, ClanKills, ClanDeaths, ClanAssists, ClanContribution, ClanWins, ClanLoses, ClanDraws, Nickname, Level, Experience, Tutoral, Story, VIPExperience, MaximumItems, MaximumEnergy, SelectedCharacter, PlayTime, MutedUntil, Coins, Energy, LuckyPoints, MicroPoints, RockTokens, Coupons, Wins, Loses, Draws, Kills, Deaths, Assists, Headshots, HighestKillStreak, MeleeKills, RifleKills, ShotgunKills, SniperKills, GatlingKills, BazookaKills, GrenadeKills, ZombieKills, Infections, SingleWaveDailyAttempts, SingleWaveHighestWave, SingleWaveHighScore, SingleWaveLastUpdate) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
 
 
             std::time_t now = std::time(nullptr);
@@ -556,7 +556,7 @@ namespace BaseLib
             std::time_t truncated_time = std::chrono::system_clock::to_time_t(time_point);
             tm_time = *std::gmtime(&truncated_time);
 
-            
+
             std::string datetime_str = fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}",
                 tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
                 tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
@@ -565,57 +565,53 @@ namespace BaseLib
             pstmt->setString(2, hash.first.c_str());
             pstmt->setString(3, hash.second.c_str());
             pstmt->setByte(4, grade);
-            pstmt->setByte(5, 0);//pcroom state
-            pstmt->setUInt64(6, auth_key);
-            pstmt->setUInt(7, 0);//clan
-            pstmt->setUInt(8, 0);//ClanKills
-            pstmt->setUInt(9, 0);//ClanDeaths
-            pstmt->setUInt(10, 0);//ClanAssists
-            pstmt->setUInt64(11, 0);//ClanContribution
-            pstmt->setUInt64(12, 0);//ClanWins
-            pstmt->setUInt64(13, 0);//ClanLoses
-            pstmt->setUInt64(14, 0);//ClanDraws
-            pstmt->setString(15, nickname.c_str());
-            pstmt->setUInt(16, 0);//level
-            pstmt->setUInt(17, 0);//exp
-            pstmt->setByte(18, false);//tutorial
-            pstmt->setUInt(19, 0);//story
-            pstmt->setUInt(20, 0);//guide mission
-            pstmt->setUInt64(21, 0);         // achievement
-            pstmt->setUInt64(22, 0);         // voice type
-            pstmt->setUInt(23, 0);           // vip exp
-            pstmt->setUInt(24, max_items);   // max items
-            pstmt->setUInt(25, max_battery); // max battery
-            pstmt->setUInt(26, 0);           // selected char
-            pstmt->setUInt64(27, 0);         // playtime
-            pstmt->setUInt64(28, 0);         // muteduntil
-            pstmt->setUInt(29, coins);       // coins
-            pstmt->setUInt(30, energy);      // energy
-            pstmt->setUInt(31, 0);           // lucky points
-            pstmt->setUInt(32, mp);          // mp
-            pstmt->setUInt(33, rt);          // rt
-            pstmt->setUInt(34, coupons);     // coupons
-            pstmt->setUInt(35, 0);           // Wins
-            pstmt->setUInt(36, 0);           // Loses
-            pstmt->setUInt(37, 0);           // Draws
-            pstmt->setUInt(38, 0);           // Kills
-            pstmt->setUInt(39, 0);           // Deaths
-            pstmt->setUInt(40, 0);           // Assists
-            pstmt->setUInt(41, 0);           // Headshots
-            pstmt->setUInt(42, 0);           // HighestKillStreak
-            pstmt->setUInt(43, 0);           // MeleeKills
-            pstmt->setUInt(44, 0);           // RifleKills
-            pstmt->setUInt(45, 0);           // ShotgunKills
-            pstmt->setUInt(46, 0);           // SniperKills
-            pstmt->setUInt(47, 0);           // GatlingKills
-            pstmt->setUInt(48, 0);           // BazookaKills
-            pstmt->setUInt(49, 0);           // GrenadeKills
-            pstmt->setUInt(50, 0);           // ZombieKills
-            pstmt->setUInt(51, 0);           // Infections
-            pstmt->setUInt(52, 0);           // SingleWaveDailyAttempts
-            pstmt->setUInt(53, 0);           // SingleWaveHighestWave
-            pstmt->setUInt(54, 0);           // SingleWaveHighScore
-            pstmt->setUInt64(55, 0);         // SingleWaveLastUpdate
+            pstmt->setUInt64(5, auth_key);
+            pstmt->setUInt(6, 0);//clan
+            pstmt->setUInt(7, 0);//ClanKills
+            pstmt->setUInt(8, 0);//ClanDeaths
+            pstmt->setUInt(9, 0);//ClanAssists
+            pstmt->setUInt64(10, 0);//ClanContribution
+            pstmt->setUInt64(11, 0);//ClanWins
+            pstmt->setUInt64(12, 0);//ClanLoses
+            pstmt->setUInt64(13, 0);//ClanDraws
+            pstmt->setString(14, nickname.c_str());
+            pstmt->setUInt(15, 0);//level
+            pstmt->setUInt(16, 0);//exp
+            pstmt->setByte(17, false);//tutorial
+            pstmt->setUInt(18, 0);//story
+            pstmt->setUInt(19, 0);//vip exp
+            pstmt->setUInt(20, max_items);//max items
+            pstmt->setUInt(21, max_battery);//max battery
+            pstmt->setUInt(22, 0);//selected char
+            pstmt->setUInt64(23, 0);//playtime
+            pstmt->setUInt64(24, 0);//muteduntil
+            pstmt->setUInt(25, coins);//coins
+            pstmt->setUInt(26, energy);//energy
+            pstmt->setUInt(27, 0);//lucky points
+            pstmt->setUInt(28, mp);//mp
+            pstmt->setUInt(29, rt);//rt
+            pstmt->setUInt(30, coupons);//coupons
+            pstmt->setUInt(31, 0);//Wins
+            pstmt->setUInt(32, 0);//Loses
+            pstmt->setUInt(33, 0);//Draws
+            pstmt->setUInt(34, 0);//Kills
+            pstmt->setUInt(35, 0);//Deaths
+            pstmt->setUInt(36, 0);//Assists
+            pstmt->setUInt(37, 0);//Headshots
+            pstmt->setUInt(38, 0);//HighestKillStreak
+            pstmt->setUInt(39, 0);//MeleeKills
+            pstmt->setUInt(40, 0);//RifleKills
+            pstmt->setUInt(41, 0);//ShotgunKills
+            pstmt->setUInt(42, 0);//SniperKills
+            pstmt->setUInt(43, 0);//GatlingKills
+            pstmt->setUInt(44, 0);//BazookaKills
+            pstmt->setUInt(45, 0);//GrenadeKills
+            pstmt->setUInt(46, 0);//ZombieKills
+            pstmt->setUInt(47, 0);//Infections
+            pstmt->setUInt(48, 0);//SingleWaveDailyAttempts
+            pstmt->setUInt(49, 0);//SingleWaveHighestWave
+            pstmt->setUInt(50, 0);//SingleWaveHighScore
+            pstmt->setUInt64(51, 0);//SingleWaveLastUpdate
             return !pstmt->execute();
         }
         catch (sql::SQLException& e)

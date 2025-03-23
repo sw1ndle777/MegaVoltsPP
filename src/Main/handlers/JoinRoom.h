@@ -52,6 +52,8 @@ namespace Game
                 }
             }
 
+            acc_cache->zombie_team = 0;
+
             auto in_party = acc_cache->in_party;
             bool is_clan = false;
             bool is_my_party = false;
@@ -161,14 +163,14 @@ namespace Game
                 auto red_team_not_full = red_team_size < room_cache->max_players / 2;
                 if (blue_team_size <= red_team_size && blue_team_not_full)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "added to team blue");
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "({}) added to team blue", acc_cache->acc_info.Nickname.c_str());
                     room_cache->blueteam_session_ids.push_back(session_id);
                     acc_cache->team_id = Team::IdType::Blue;
                     current_team_id = Team::IdType::Blue;
                 }
                 else if ((red_team_size < blue_team_size && red_team_not_full) || (red_team_size <= blue_team_size && !blue_team_not_full && red_team_not_full))
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "added to team red");
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "({}) added to team red", acc_cache->acc_info.Nickname.c_str());
                     room_cache->redteam_session_ids.push_back(session_id);
                     acc_cache->team_id = Team::IdType::Red;
                     current_team_id = Team::IdType::Red;
@@ -199,7 +201,7 @@ namespace Game
             settings_info.restriction = room_cache->Restriction;
             settings_info.allow_intruders = room_cache->allow_intruders;
             settings_info.allow_observers = room_cache->allow_observers;
-            settings_info.team_balance = room_cache->TeamBalance;
+            settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;//room_cache->TeamBalance;
             if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle)
                 settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;
             settings_info.has_password = has_password;
@@ -252,6 +254,12 @@ namespace Game
                     info1.vip_level = player_cache->acc_info.PCRoom;
                     info1.character = player_cache->acc_info.SelectedCharacter;
                     info1.team = player_cache->team_id;
+                    if (player_cache->zombie_team)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player ({}) ({}) is zombie", player_id, player_cache->acc_info.Nickname.c_str());
+                        info1.team = player_cache->zombie_team;
+                    }
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send ({}) as team ({})", player_cache->acc_info.Nickname.c_str(), static_cast<std::uint32_t>(info1.team));
                 #if defined(RELEASE_1_0_3)
                     info1.level = player_cache->acc_info.Level + 1;
                 #else

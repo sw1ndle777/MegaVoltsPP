@@ -137,11 +137,13 @@ namespace NetEngine
         if (m_crypt < 0)
         {
             memcpy_s(&m_header, headerSize, data, headerSize);
+            //m_header.data = crypt.decrypt_tcp_header(m_header.data);
         }
         else
         {
             crypt.KeySetup(0);
             crypt.RC5Decrypt32(data, &m_header, headerSize);
+            //m_header.data = crypt.decrypt_tcp_header(m_header.data);
         }
 
         std::uint16_t messageSize = static_cast<std::uint16_t>(m_header.size - headerSize);
@@ -276,11 +278,14 @@ namespace NetEngine
             break;
         }
 
+        //m_header.data = crypt.encrypt_tcp_header(m_header.data);
         memcpy_s(completeData, headerSize, &m_header, headerSize);
 
         if (m_crypt >= 0)
         {
             crypt.KeySetup(0);
+            auto new_data = crypt.encrypt_tcp_header(m_header.data);
+            memcpy_s(completeData, headerSize, &new_data, headerSize);
             crypt.RC5Encrypt32(completeData, completeData, static_cast<std::int32_t>(headerSize));
         }
 

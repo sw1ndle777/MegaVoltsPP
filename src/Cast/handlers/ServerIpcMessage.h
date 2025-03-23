@@ -105,9 +105,33 @@ namespace Game
                         castPingAck.SetSession(player_session->GetSessionId());
                         castPingAck.SetCommand(72, 1, 0x00, 0);
                         player_session->Send(castPingAck);
-                        player_session->Send(castPingAck);
-                        player_session->Send(castPingAck);
-                        castPingAck.SetOption(3);
+                        //player_session->Send(castPingAck);
+                        //player_session->Send(castPingAck);
+                        //castPingAck.SetOption(3);
+                        //player_session->Send(castPingAck);
+                    }
+                    break;
+                }
+                case PacketIds::Ipc::MainToCastSendPacket:
+                {
+                    struct MainToCastSendPacketInfo
+                    {
+                        std::uint32_t session_id;
+                        std::uint32_t data_size;
+                        std::uint32_t item_id;
+                    };
+                    auto data = Utility::FromVector<MainToCastSendPacketInfo>(payload);
+                    if (auto player_session = cast_server->GetSessionByIdNoLock(data.session_id))
+                    {
+                        CMessage castPingAck = CMessage(player_session->GetEncryptionKey());
+                        castPingAck.SetSession(player_session->GetSessionId());
+                        castPingAck.SetCommand(96, 0, 0, 0);
+                        struct new_data {
+                            std::uint32_t item_id;
+                            std::uint32_t unk;
+                        } news_data;
+                        news_data.item_id = data.item_id;
+                        castPingAck.SetData(reinterpret_cast<uint8_t*>(&news_data), sizeof(news_data));
                         player_session->Send(castPingAck);
                     }
                     break;

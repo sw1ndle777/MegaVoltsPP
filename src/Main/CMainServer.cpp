@@ -74,7 +74,7 @@ namespace Game
             if (acc_cache->inventory_items.size() + args.size() - 1 > acc_cache->acc_info.MaximumItems)
             {
                 main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, you can't spawn {} items because your inventory will be over it's capacity.", acc_cache->acc_info.Nickname.c_str(), args.size() - 1).c_str());
-                return;
+                //return;
             }
             for (const auto& item_id_str : args)
             {
@@ -331,8 +331,8 @@ namespace Game
             auto player_room = main_server->GetRoomCacheUnique(player_room_id);
             player_room->kicked_session_ids.push_back(player_session_id);
 
-            main_server->RemoveRoomPlayerCache(player_room, player_session_id, player_team_id);
-            main_server->RoomPlayersSlotReorder(player_room);
+            //main_server->RemoveRoomPlayerCache(player_room, player_session_id, player_team_id);
+            //main_server->RoomPlayersSlotReorder(player_room);
 
             std::vector<std::uint32_t> players_ids;
             std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
@@ -383,7 +383,7 @@ namespace Game
                 }
             }
 
-            
+            main_server->RemoveRoomPlayerCache(player_room, player_session_id, player_team_id);
 
             if (auto player_session = main_server->GetSessionById(player_session_id))
                 send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByGm, 0);// leave room ack
@@ -410,7 +410,7 @@ namespace Game
                         auto observer_cache_team_id = observer_cache->team_id;
                         observer_cache.unlock();
                         main_server->RemoveRoomPlayerCache(player_room, observer_id, observer_cache_team_id);
-                        main_server->RoomPlayersSlotReorder(player_room);
+                        //main_server->RoomPlayersSlotReorder(player_room);
                         if (auto observer_session = main_server->GetSessionById(observer_id))
                             send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
                     }
@@ -610,19 +610,57 @@ namespace Game
             //    std::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {.2f}",
             //        sessions_count, mem_usage, cpu_usage).c_str());
         }
+        static void ShutdownPrepare(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
+        {
+            auto my_session_id = acc_cache->session_id;
+            acc_cache.unlock();
+            auto session_ids = main_server->GetSessions();
+            std::vector<std::uint16_t> my_session_ids;
+            for (auto& [id, session] : *session_ids)
+                my_session_ids.push_back(id);
+            session_ids.unlock();
+            std::uint32_t kicked_cnt = 0;
+            for (auto id : my_session_ids)
+            {
+                if (id == my_session_id) continue;
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "force command disconnect, session id: ({})", id);
+                main_server->DisconnectPlayer(main_server, id, Disconnect::Reason::Deny);
+                kicked_cnt++;
+            }
+            
+            /*
+            auto my_session_id = acc_cache->session_id;
+            std::uint32_t kicked_cnt = 0;
+            acc_cache.unlock();
+            std::shared_lock lock(main_server->GetAccountsCacheMutex());
+            for (const auto& acc : accounts_cache)
+            {
+                const auto& account = acc.second;
+                const auto& id = account.session_id;
+                const auto& auth_key = account.acc_info.AuthKey;
+                if (id == my_session_id) continue;
+                main_server->DisconnectPlayer(main_server, id, auth_key, Disconnect::Deny);
+                kicked_cnt++;
+            }
+            */
+            auto msg = fmt::format("success. all {} player was kick for prepare maintanance.", kicked_cnt);
+
+            main_server->SendServerMessage(callback.session, msg.c_str());
+        }
         static void Init()
         {
+            Commands::Register("shutdown_prepare", ShutdownPrepare, Userlist::User::Grade::GameMaster);
             Commands::Register("?", Help, Userlist::User::Grade::Tester);
-            Commands::Register("!", Announce, Userlist::User::Grade::Tester);
+            Commands::Register("!", Announce, Userlist::User::Grade::GameMaster);
             Commands::Register("item", Items, Userlist::User::Grade::Tester);
             Commands::Register("info", Info, Userlist::User::Grade::Tester);
             Commands::Register("online", Online, Userlist::User::Grade::Tester);
             Commands::Register("rooms", Rooms, Userlist::User::Grade::Tester);
-            Commands::Register("level", Level, Userlist::User::Grade::Tester);
-            Commands::Register("kick", Kick, Userlist::User::Grade::Tester);
-            Commands::Register("break", Break, Userlist::User::Grade::Tester);
-            Commands::Register("breakall", BreakAll, Userlist::User::Grade::Tester);
-            Commands::Register("reloadgachasale", ReloadGachaponSalesInfo, Userlist::User::Grade::Tester);
+            Commands::Register("level", Level, Userlist::User::Grade::GameMaster);
+            Commands::Register("kick", Kick, Userlist::User::Grade::GameMaster);
+            Commands::Register("break", Break, Userlist::User::Grade::GameMaster);
+            Commands::Register("breakall", BreakAll, Userlist::User::Grade::GameMaster);
+            Commands::Register("reloadgachasale", ReloadGachaponSalesInfo, Userlist::User::Grade::GameMaster);
             Commands::Register("cast", CastProcessInfo, Userlist::User::Grade::Tester);
             Commands::Register("main", MainProcessInfo, Userlist::User::Grade::Tester);
         }

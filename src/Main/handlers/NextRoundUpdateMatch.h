@@ -22,8 +22,9 @@ namespace Game
             CServer* server = callback.server;
             auto order = callback.message->GetOrder();
             auto session_id = session->GetSessionId();
-            auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
+            auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
+            acc_cache->zombie_team = 0;
 
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
             auto room_cache = main_server->GetRoomCacheShared(acc_cache->room_id);

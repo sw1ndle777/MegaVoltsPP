@@ -260,8 +260,7 @@ namespace Game
                         return;
                     }
                     auto itemPackageOpenData = MainUsePackageItemAck(item.data, nickname).Serialize(Items::Package::Result::ChangeNicknameSuccess);
-                    auto post_acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
-                    post_acc_cache->acc_info.Nickname = nickname;
+                    acc_cache->acc_info.Nickname = nickname;
                     send_msg(session, 102, 1, Items::Package::Result::ChangeNicknameSuccess, 0, reinterpret_cast<uint8_t*>(itemPackageOpenData.data(), itemPackageOpenData.size()));
                     /*
                     asio::post([main_server, session_id, item, nickname, session, send_msg]()

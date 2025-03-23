@@ -52,7 +52,8 @@ namespace NetEngine
                 MainToCastReqServerInfo = 5,
                 CastToMainAckServerInfo = 6,
                 CastToMainPlayerAuthorizeInfo = 7,
-                MainToCastSendPingAssure = 8
+                MainToCastSendPingAssure = 8,
+                MainToCastSendPacket = 9
             };
         }
 

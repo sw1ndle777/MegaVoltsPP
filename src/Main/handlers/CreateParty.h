@@ -1299,7 +1299,7 @@ namespace Game
                 settings_info.restriction = room_cache->Restriction;
                 settings_info.allow_intruders = room_cache->allow_intruders;
                 settings_info.allow_observers = room_cache->allow_observers;
-                settings_info.team_balance = room_cache->TeamBalance;
+                settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;//room_cache->TeamBalance;
                 if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle)
                     settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;
                 settings_info.has_password = room_cache->has_password;

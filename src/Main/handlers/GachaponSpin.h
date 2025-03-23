@@ -60,8 +60,9 @@ namespace Game
             else
                 gachapon_price = gachapon_info->Price;
 
-            if (gachapon_price == 0)
+            if (gachapon_price == 0 && gachapon_info->Type != 3)
             {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "cannot spin gachapon with price 0");
                 send_msg(session, 92, 0, Items::Gachapon::Spin::Result::Stuck, 0);
                 return;
             }

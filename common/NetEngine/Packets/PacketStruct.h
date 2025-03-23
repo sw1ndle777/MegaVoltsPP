@@ -1716,24 +1716,24 @@ namespace NetEngine
             struct PlayerVictimWeapon2Req
             {
                 std::uint32_t idk; // 0x00
-                std::uint16_t coord1_x;//0x4
-                std::uint16_t coord1_y;//0x6
-                std::uint16_t coord1_z; // 0x8
-                std::uint16_t coord2_x;//0xA
-                std::uint16_t coord2_y;//0xC
-                std::uint16_t coord2_z;//0xE
+                std::uint16_t pos_x;//0x4
+                std::uint16_t pos_y;//0x6
+                std::uint16_t pos_z; // 0x8
+                std::uint16_t dir_x;//0xA
+                std::uint16_t dir_y;//0xC
+                std::uint16_t dir_z;//0xE
                 Core::UniqueId attacker_unique_id;//0x10 a1+0x14
                 PlayerVictimDataReq player_victims_data[26]; // array size is extra
             };
             struct PlayerVictimWeaponReq
             {
                 std::uint32_t idk;
-                std::uint16_t coord1_x;
-                std::uint16_t coord1_y;
-                std::uint16_t coord1_z;
-                std::uint16_t coord2_x;
-                std::uint16_t coord2_y;
-                std::uint16_t coord2_z;
+                std::uint16_t pos_x;//0x4
+                std::uint16_t pos_y;//0x6
+                std::uint16_t pos_z; // 0x8
+                std::uint16_t dir_x;//0xA
+                std::uint16_t dir_y;//0xC
+                std::uint16_t dir_z;//0xE
                 Core::UniqueId attacker_unique_id;
                 Core::UniqueId victim_unique_id;
                 PlayerInfoCastActionReq player_info;
@@ -1746,18 +1746,30 @@ namespace NetEngine
                 std::uint16_t coord_y;
                 std::uint16_t coord_z;
                 std::uint16_t idk;
-                PlayerVictimDataReq player_victims_data[26];
+                //PlayerVictimDataReq player_victims_data[26];
             };
             struct ImpactProjectileReq
             {
                 std::uint32_t idk;
-                std::uint16_t coord1_x;
-                std::uint16_t coord1_y;
-                std::uint16_t coord1_z;
-                std::uint16_t coord2_x;
-                std::uint16_t coord2_y;
-                std::uint16_t coord2_z;
+                std::uint16_t pos_x;//0x4
+                std::uint16_t pos_y;//0x6
+                std::uint16_t pos_z; // 0x8
+                std::uint16_t dir_x;//0xA
+                std::uint16_t dir_y;//0xC
+                std::uint16_t dir_z;//0xE
                 Core::UniqueId attacker_unique_id;
+                std::uint32_t projectile_id;
+            };
+            struct PveProjectileImpactReq
+            {
+                std::uint32_t idk;
+                std::uint16_t pos_x;
+                std::uint16_t pos_y;
+                std::uint16_t pos_z;
+                std::uint16_t dir_x;
+                std::uint16_t dir_y;
+                std::uint16_t dir_z;
+                Core::UniqueId unique_id;
                 std::uint32_t projectile_id;
             };
             struct RespawnRequest
@@ -1768,7 +1780,20 @@ namespace NetEngine
                 std::uint16_t rotation;
                 Core::UniqueId target_unique_id;
             };
-
+            struct SniperRequestHit
+            {
+                std::uint32_t idk;
+                std::uint16_t pos_x;
+                std::uint16_t pos_y;
+                std::uint16_t pos_z;
+                std::uint16_t dir_x;
+                std::uint16_t dir_y;
+                std::uint16_t dir_z;
+                std::uint32_t attacker_unique_id;
+                std::uint32_t victim_unique_id;
+                PlayerInfoCastActionReq dmg_info;
+                std::uint32_t idk2;
+            };
             // S2C
 
             struct CastEngineServerConnectionAck

@@ -57,7 +57,7 @@ namespace Game
 
             auto req_info = reinterpret_cast<ImpactProjectileReq*>(callback.message->GetData());
             //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ImpactProjectileReq idk: ({})", (std::uint32_t)req_info->idk);
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ImpactProjectileReq: idk: ({}), coord1_x: ({}), coord1_y: ({}), coord1_z: ({}), coord2_x: ({}), coord2_y: ({}), coord2_z: ({}), attacker_unique_id: ({}), projectile_id: ({})", static_cast<std::uint32_t>(req_info->idk), ConvertHalfToFloat(req_info->coord1_x), ConvertHalfToFloat(req_info->coord1_y), ConvertHalfToFloat(req_info->coord1_z), ConvertHalfToFloat(req_info->coord2_x), ConvertHalfToFloat(req_info->coord2_y), ConvertHalfToFloat(req_info->coord2_z), static_cast<std::uint32_t>(req_info->attacker_unique_id.session), static_cast<std::uint32_t>(req_info->projectile_id));
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ImpactProjectileReq: idk: ({}), pos_x: ({}), pos_y: ({}), pos_z: ({}), dir_x: ({}), dir_y: ({}), dir_z: ({}), attacker_unique_id: ({}), projectile_id: ({})", static_cast<std::uint32_t>(req_info->idk), ConvertHalfToFloat(req_info->pos_x), ConvertHalfToFloat(req_info->pos_y), ConvertHalfToFloat(req_info->pos_z), ConvertHalfToFloat(req_info->dir_x), ConvertHalfToFloat(req_info->dir_y), ConvertHalfToFloat(req_info->dir_z), static_cast<std::uint32_t>(req_info->attacker_unique_id.session), static_cast<std::uint32_t>(req_info->projectile_id));
 
 
             auto broadcast = [&](auto player_session_id, auto& msg)

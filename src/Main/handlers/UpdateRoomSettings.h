@@ -262,7 +262,7 @@ namespace Game
 
                 main_server->RemoveRoomPlayerCache(room_cache, observer_id, observer_cache->team_id);
                 observer_cache.unlock();
-                main_server->RoomPlayersSlotReorder(room_cache);
+                //main_server->RoomPlayersSlotReorder(room_cache);
                 
                 if (auto player_session = server->GetSessionById(observer_id))
                     send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
@@ -396,8 +396,10 @@ namespace Game
                 room_cache->allow_drops = settings_info->allow_items;
                 room_cache->allow_intruders = settings_info->allow_intruders;
                 room_cache->MapIndex = static_cast<NetEngine::Room::Map::Index>(settings_info->map_index);
-                room_cache->TeamBalance = static_cast<NetEngine::Room::Balance::State>(settings_info->team_balance);
+                room_cache->TeamBalance = NetEngine::Room::Balance::State::Disabled;//static_cast<NetEngine::Room::Balance::State>(settings_info->team_balance);
+                settings_info->team_balance = NetEngine::Room::Balance::State::Disabled;
                 room_cache->ModeIndex = mode_id;
+                callback.message->SetData(reinterpret_cast<std::uint8_t*>(settings_info), data_size);
                 for (const auto& room_player_session_id : players_ids)
                     broadcastToPlayers(room_player_session_id, order, mission, extra, option);
             }
@@ -412,7 +414,7 @@ namespace Game
                 room_cache->allow_drops = settings_info->update_info.allow_items;
                 room_cache->allow_intruders = settings_info->update_info.allow_intruders;
                 room_cache->MapIndex = static_cast<NetEngine::Room::Map::Index>(settings_info->update_info.map_index);
-                room_cache->TeamBalance = static_cast<NetEngine::Room::Balance::State>(settings_info->update_info.team_balance);
+                room_cache->TeamBalance = NetEngine::Room::Balance::State::Disabled;//static_cast<NetEngine::Room::Balance::State>(settings_info->update_info.team_balance);
                 room_cache->ModeIndex = mode_id;
                 room_cache->title = settings_info->title;
                 for (const auto& room_player_session_id : players_ids)
@@ -429,7 +431,7 @@ namespace Game
                 room_cache->allow_drops = settings_info->update_info.allow_items;
                 room_cache->allow_intruders = settings_info->update_info.allow_intruders;
                 room_cache->MapIndex = static_cast<NetEngine::Room::Map::Index>(settings_info->update_info.map_index);
-                room_cache->TeamBalance = static_cast<NetEngine::Room::Balance::State>(settings_info->update_info.team_balance);
+                room_cache->TeamBalance = NetEngine::Room::Balance::State::Disabled;//static_cast<NetEngine::Room::Balance::State>(settings_info->update_info.team_balance);
                 room_cache->ModeIndex = mode_id;
                 room_cache->password = settings_info->password;
                 room_cache->has_password = true;
@@ -447,7 +449,7 @@ namespace Game
                 room_cache->allow_drops = settings_info->update_info.allow_items;
                 room_cache->allow_intruders = settings_info->update_info.allow_intruders;
                 room_cache->MapIndex = static_cast<NetEngine::Room::Map::Index>(settings_info->update_info.map_index);
-                room_cache->TeamBalance = static_cast<NetEngine::Room::Balance::State>(settings_info->update_info.team_balance);
+                room_cache->TeamBalance = NetEngine::Room::Balance::State::Disabled;//static_cast<NetEngine::Room::Balance::State>(settings_info->update_info.team_balance);
                 room_cache->ModeIndex = mode_id;
                 room_cache->title = settings_info->title;
                 room_cache->password = settings_info->password;
@@ -461,6 +463,7 @@ namespace Game
             {
                 if (!previous_is_team_based && is_team_based)
                 {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "previous wasnt team based and now is");
                     room_cache->redteam_session_ids.clear();
                     room_cache->blueteam_session_ids.clear();
                     for (const auto& id : room_cache->neutralteam_session_ids)
@@ -470,11 +473,13 @@ namespace Game
                         auto red_team_size = room_cache->redteam_session_ids.size();
                         if (blue_team_size == 0 || blue_team_size < red_team_size)
                         {
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) is now team blue", player_acc_cache->acc_info.Nickname.c_str());
                             room_cache->blueteam_session_ids.push_back(id);
                             player_acc_cache->team_id = Team::IdType::Blue;
                         }
                         else
                         {
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) is now team red", player_acc_cache->acc_info.Nickname.c_str());
                             room_cache->redteam_session_ids.push_back(id);
                             player_acc_cache->team_id = Team::IdType::Red;
                         }
@@ -494,7 +499,10 @@ namespace Game
                         {
                             auto player_cache = main_server->GetAccCacheSharedBySessionId(id);
                             if (player_cache->acc_info.Index != -1 && player_cache->in_room && player_cache->room_id == room_cache->room_id)
+                            {
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) at index ({}) is now team white", player_cache->acc_info.Nickname.c_str(), id);
                                 player_slot_pairs.emplace_back(id, player_cache->slot_id);
+                            }
 
                             player_cache.unlock();
                         }
@@ -515,6 +523,28 @@ namespace Game
                         player_acc_cache.unlock();
                     }
                 }
+
+
+                std::vector<PlayerRoomClanListInfo> players_clan_info;
+                for (const auto& room_player_session_id : players_ids)
+                {
+                    auto player_cache = main_server->GetAccCacheSharedBySessionId(room_player_session_id);
+                    if (player_cache->acc_info.ClanId)
+                    {
+                        if (main_server->IsClanAlready(player_cache->acc_info.ClanId))
+                        {
+                            auto clan_info = main_server->GetClanCacheShared(player_cache->acc_info.ClanId);
+                            auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, acc_cache->acc_info.ClanId, 0);
+                            clan_info.unlock();
+                            players_clan_info.push_back(info);
+                        }
+                    }
+                    else
+                        players_clan_info.push_back(PlayerRoomClanListInfo(player_cache->slot_id, "", 0, 0, 0, 0));
+                }
+                for (const auto& room_player_session_id : players_ids)
+                    if (auto player_session = server->GetSessionById(room_player_session_id))
+                        send_msg(player_session.get(), 409, 0, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info.size());
             }
         }
         inline void VoteKickAgree(SCallbackData& callback, CMainServer* main_server)
@@ -685,8 +715,7 @@ namespace Game
             player->state = PlayerInfo::State::Waiting;
             player.unlock();
            
-            main_server->RemoveRoomPlayerCache(room_cache, player_session_id, player_team_id);
-            main_server->RoomPlayersSlotReorder(room_cache);
+            //main_server->RoomPlayersSlotReorder(room_cache);
 
             std::vector<std::uint32_t> players_ids;
             std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
@@ -739,7 +768,7 @@ namespace Game
                 }
             }
 
-
+            main_server->RemoveRoomPlayerCache(room_cache, player_session_id, player_team_id);
 
             if (auto player_session = main_server->GetSessionById(player_session_id))
                 send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByKickVote, 0);// leave room ack
@@ -766,7 +795,7 @@ namespace Game
                         auto observer_cache_team_id = observer_cache->team_id;
                         observer_cache.unlock();
                         main_server->RemoveRoomPlayerCache(room_cache, observer_id, observer_cache_team_id);
-                        main_server->RoomPlayersSlotReorder(room_cache);
+                        //main_server->RoomPlayersSlotReorder(room_cache);
                         if (auto observer_session = main_server->GetSessionById(observer_id))
                             send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
                     }

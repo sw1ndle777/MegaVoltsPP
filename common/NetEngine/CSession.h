@@ -60,68 +60,20 @@ namespace NetEngine
         auto& GetStrand() {
             return m_strand;
         }
-        /*
-        std::uint16_t GetRoomId() {
-            return room_id.load();
-        }
 
-        void SetRoomId(std::uint16_t new_room_id) {
-            room_id.store(new_room_id);
+        static std::shared_ptr<CSession> Create(
+            asio::ip::tcp::socket&& socket,
+            asio::io_context& ioc,
+            CServer* server,
+            SSessionSettings settings,
+            std::uint16_t session_id
+        ) {
+            auto self = std::make_shared<CSession>(
+                std::move(socket), ioc, server, settings, session_id
+            );
+            self->m_self = self; // Post-construction initialization
+            return self;
         }
-
-        // Getter and Setter for plaza_id
-        std::uint16_t GetPlazaId() {
-            return plaza_id.load();
-        }
-
-        void SetPlazaId(std::uint16_t new_plaza_id) {
-            plaza_id.store(new_plaza_id);
-        }
-
-        // Getter and Setter for server_id
-        std::uint16_t GetServerId() {
-            return server_id.load();
-        }
-
-        void SetServerId(std::uint16_t new_server_id) {
-            server_id.store(new_server_id);
-        }
-
-        // Getter and Setter for state_id
-        std::uint16_t GetStateId() {
-            return state_id.load();
-        }
-
-        void SetStateId(std::uint16_t new_state_id) {
-            state_id.store(new_state_id);
-        }
-
-        // Getter and Setter for in_room
-        bool IsInRoom() {
-            return in_room.load();
-        }
-
-        void SetInRoom(bool is_in_room) {
-            in_room.store(is_in_room);
-        }
-
-        bool IsInPlaza() {
-            return in_plaza.load();
-        }
-
-        void SetInPlaza(bool is_in_plaza) {
-            in_plaza.store(is_in_plaza);
-        }
-
-        // Getter and Setter for auth_key
-        std::uint64_t GetAuthKey() {
-            return auth_key.load();
-        }
-
-        void SetAuthKey(std::uint64_t new_auth_key) {
-            auth_key.store(new_auth_key);
-        }
-        */
     private:
         
         void onPacket(Protocols::STcpPacketHeader& header, std::vector<std::uint8_t>& data);
@@ -147,14 +99,7 @@ namespace NetEngine
         std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback; 
         std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)> m_on_ipc_callback;
         bool m_ipc_identifier_skipped;
-        /*
-        std::atomic<std::uint16_t> room_id{ 0 };
-        std::atomic<std::uint16_t> plaza_id{ 0 };
-        std::atomic<std::uint16_t> server_id{ 0 };
-        std::atomic<std::uint16_t> state_id{ 0 };
-        std::atomic<bool> in_room{ false };
-        std::atomic<bool> in_plaza{ false };
-        std::atomic<std::uint64_t> auth_key{ 0 };
-        */
+
+        std::shared_ptr<CSession> m_self;
     };
 }
