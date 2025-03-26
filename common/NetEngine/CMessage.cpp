@@ -124,16 +124,14 @@ namespace NetEngine
         if (m_crypt < 0)
         {
             memcpy_s(m_header, headerSize, data, headerSize);
-            // m_header.data = crypt.decrypt_tcp_header(m_header.data);
         }
         else
         {
             crypt.KeySetup(0);
             crypt.RC5Decrypt32(data, m_header, headerSize);
-            //m_header.data = crypt.decrypt_tcp_header(m_header.data);
         }
 
-        std::uint16_t messageSize = static_cast<std::uint16_t>(m_header.size - headerSize);
+        std::uint16_t messageSize = static_cast<std::uint16_t>(m_header->size - headerSize);
 
         if (messageSize <= 0)
         {
@@ -143,7 +141,7 @@ namespace NetEngine
         thread_local std::vector<uint8_t> decryptBuffer;
         decryptBuffer.resize(messageSize * sizeof(std::uint8_t));
 
-        switch (m_header.crypt)
+        switch (m_header->crypt)
         {
         case (std::uint32_t)Cryptography::EncryptionType::NO_ENCRYPTION:
             memcpy_s(decryptBuffer.data(), messageSize, data + headerSize, messageSize);
@@ -189,7 +187,7 @@ namespace NetEngine
 
     void CMessage::generateBogus()
     {
-        m_header.bogus = std::rand() % 262143 + 1;
+        m_header->bogus = std::rand() % 262143 + 1;
     }
 
     std::vector<std::uint8_t> CMessage::GenerateMessage()
@@ -218,67 +216,51 @@ namespace NetEngine
             }
         }
         
-
         Cryptography::CCrypt crypt;
 
         constexpr std::size_t headerSize = sizeof(Protocols::STcpPacketHeader);
         constexpr std::size_t commandSize = sizeof(Protocols::SCommandHeader);
 
+        auto* partialData = m_buffer.data() + headerSize;
         std::size_t partialSize = commandSize + GetDataSize();
-        std::size_t completeSize = GetFullSize();
 
-        // todo: "inline" encrypt m_buffer, instead of temporary buffers
-
-        thread_local std::vector<uint8_t> completeVec;
-        thread_local std::vector<uint8_t> partialVec;
-        completeVec.resize(completeSize);
-        partialVec.resize(partialSize);
-
-        memcpy_s(partialVec.data(), commandSize, m_command, commandSize);
-        memcpy_s(partialVec.data() + headerSize, GetDataSize(), m_buffer.data() + dataOffset(), GetDataSize());
-
-        switch (m_header.crypt)
+        switch (m_header->crypt)
         {
         case (std::uint32_t)Cryptography::EncryptionType::NO_ENCRYPTION:
-            memcpy_s(completeVec.data() + headerSize, partialSize, partialVec.data(), partialSize);
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::DEFAULT_ENCRYPTION:
             crypt.KeySetup(0);
-            crypt.RC5Encrypt64(partialVec.data(), completeVec.data() + headerSize, static_cast<std::int32_t>(partialSize));
+            crypt.RC5Encrypt64(partialData, partialData static_cast<std::int32_t>(partialSize));
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::USER_ENCRYPTION:
             crypt.KeySetup(m_crypt);
-            crypt.RC5Encrypt64(partialVec.data(), completeVec.data() + headerSize, static_cast<std::int32_t>(partialSize));
+            crypt.RC5Encrypt64(partialData, partialData, static_cast<std::int32_t>(partialSize));
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::DEFAULT_LARGE_ENCRYPTION:
             crypt.KeySetup(0);
-            crypt.RC6Encrypt128(partialVec.data(), completeVec.data() + headerSize, static_cast<std::int32_t>(partialSize));
+            crypt.RC6Encrypt128(partialData, partialData, static_cast<std::int32_t>(partialSize));
             break;
 
         case (std::uint32_t)Cryptography::EncryptionType::USER_LARGE_ENCRYPTION:
             crypt.KeySetup(m_crypt);
-            crypt.RC6Encrypt128(partialVec.data(), completeVec.data() + headerSize, static_cast<std::int32_t>(partialSize));
+            crypt.RC6Encrypt128(partialData, partialData static_cast<std::int32_t>(partialSize));
             break;
 
         default:
             // Invalid packet
-            break;
+            throw std::runtime_error("invalid packet");
         }
-
-        //m_header.data = crypt.encrypt_tcp_header(m_header.data);
-        memcpy_s(completeVec.data(), headerSize, m_header, headerSize);
 
         if (m_crypt >= 0)
         {
             crypt.KeySetup(0);
-            auto new_data = crypt.encrypt_tcp_header(m_header.data);
-            memcpy_s(completeVec.data(), headerSize, &new_data, headerSize);
-            crypt.RC5Encrypt32(completeVec.data(), completeVec.data(), static_cast<std::int32_t>(headerSize));
+            m_header->data = crypt.encrypt_tcp_header(m_header->data);
+            crypt.RC5Encrypt32(m_buffer.data(), m_buffer.data(), static_cast<std::int32_t>(headerSize));
         }
 
-        return std::move(completeVec);
+        return std::move(m_buffer);
     }
 }
