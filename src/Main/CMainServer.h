@@ -151,6 +151,7 @@ namespace Game
     struct Player
     {
         std::shared_mutex mutex;
+        std::uint8_t server_id;
         std::uint16_t session_id;
         std::uint32_t ping;
         std::uint8_t fps_limit;
@@ -181,8 +182,8 @@ namespace Game
         std::vector<BaseLib::FriendInfo> friends_pendings;
         std::vector<BaseLib::BlockedInfo> blockeds_deleted;
         std::vector<BaseLib::BlockedInfo> blockeds_added;
-        Player(const std::uint16_t& sessionId, const std::uint64_t& serverTime, const BaseLib::FrontAccount& accountInfo, const std::vector<Item>& inventoryItems)
-            : session_id(sessionId), server_time(serverTime), acc_info(accountInfo), inventory_items(inventoryItems)
+        Player(std::uint8_t serverId, const std::uint16_t& sessionId, const std::uint64_t& serverTime, const BaseLib::FrontAccount& accountInfo, const std::vector<Item>& inventoryItems)
+            : server_id(serverId), session_id(sessionId), server_time(serverTime), acc_info(accountInfo), inventory_items(inventoryItems)
         {
             plaza_id = 0;
             party_id = 0;
@@ -212,6 +213,7 @@ namespace Game
         }
         Player(const Player& other)
         {
+            server_id = other.server_id;
             session_id = other.session_id;
             ping = other.ping;
             fps_limit = other.fps_limit;
@@ -246,6 +248,7 @@ namespace Game
         Player& operator=(const Player& other)
         {
             if (this == &other) return *this;
+            server_id = other.server_id;
             session_id = other.session_id;
             ping = other.ping;
             fps_limit = other.fps_limit;
@@ -280,6 +283,7 @@ namespace Game
         }
         Player()
         {
+            server_id = 0;
             plaza_id = 0;
             party_id = 0;
             acc_info = BaseLib::FrontAccount();
@@ -1867,6 +1871,7 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) leave room new handler", session_id);
 
             auto acc_cache = this->GetAccCacheUniqueBySessionId(session_id);
+			auto my_server_id = acc_cache->server_id;
             auto my_slot_id = acc_cache->slot_id;
             acc_cache.unlock();
 
@@ -1934,7 +1939,7 @@ namespace Game
             auto remove_myself_team = std::remove(team_list.begin(), team_list.end(), session_id);
             team_list.erase(remove_myself_team, team_list.end());
 
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, my_server_id).data;
             players_ids = this->GetRoomSortedPlayerSessionIds(room);
             for (const auto& room_player_session_id : players_ids)
             {
@@ -2309,7 +2314,7 @@ namespace Game
                 acc_cache.unlock();
                 send_msg(player_session.get(), 73, 0, reason, 0);
                 player_session.get()->Disconnect();
-                SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
+                //SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
                 // send ipc to cast to disconnect same session id
             }
             else
@@ -2332,7 +2337,7 @@ namespace Game
             {
                 send_msg(player_session.get(), 73, 0, reason, 0);
                 player_session.get()->Disconnect();
-                SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
+                //SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "MainToCastDisconnectPlayer auth key: ({}) session id: ({})", auth_key, session_id);
                 // send ipc to cast to disconnect same session id
             }

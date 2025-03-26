@@ -164,7 +164,7 @@ namespace Game
                     {
                         if (member_session_id == session_id) continue;
                         auto member_acc_cache = main_server->GetAccCacheSharedBySessionId(member_session_id);
-                        auto member_unique_id = NetEngine::Packets::Core::UniqueId(member_session_id, 1).data;
+                        auto member_unique_id = NetEngine::Packets::Core::UniqueId(member_session_id, member_acc_cache->server_id).data;
                         auto clan_member_info = PlayerClanInfo(member_acc_cache->acc_info.Nickname.c_str(), member_unique_id, member_acc_cache->acc_info.Level + 1);
                         clan_members.push_back(clan_member_info);
                     }
@@ -203,7 +203,7 @@ namespace Game
                 std::vector<PlayerFriendInfo> friends_accepted;
                 for (auto const& friend_info : *friends)
                     if (friend_info.state == Userlist::Friends::State::Accepted)
-                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data ,friend_info.friend_account_id,  friend_info.friend_nickname.c_str() });
+                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, acc_cache->server_id).data : NetEngine::Packets::Core::UniqueId(0).data ,friend_info.friend_account_id,  friend_info.friend_nickname.c_str() });
 
                 friends.unlock();
 
@@ -291,7 +291,7 @@ namespace Game
                         send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                         return;
                     }
-                    PlayerFriendInfo newFriendInfo = { NetEngine::Packets::Core::UniqueId(session_id, 1).data , acc_index , acc_cache->acc_info.Nickname.c_str() };
+                    PlayerFriendInfo newFriendInfo = { NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data , acc_index , acc_cache->acc_info.Nickname.c_str() };
                     send_msg(server->GetSessionById(target_acc_cache->session_id).get(), 61, 0, Userlist::Friends::AddResult::SendSingle, 0, reinterpret_cast<uint8_t*>(&newFriendInfo), sizeof(PlayerFriendInfo));
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request to player ({})", acc_cache->acc_info.Nickname.c_str(), target_acc_cache->acc_info.Nickname.c_str());
                 }
@@ -346,7 +346,7 @@ namespace Game
                         send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                         return;
                     }
-                    PlayerFriendInfo newFriendInfoForSender = { NetEngine::Packets::Core::UniqueId(session_id, 1).data , acc_index, acc_cache->acc_info.Nickname.c_str() };
+                    PlayerFriendInfo newFriendInfoForSender = { NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data , acc_index, acc_cache->acc_info.Nickname.c_str() };
                     auto target_session = server->GetSessionById(sender_uniqueId.session);
                     send_msg(target_session.get(), 61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
                     send_msg(target_session.get(), 61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
@@ -413,7 +413,7 @@ namespace Game
                 std::vector<PlayerFriendInfo> friends_accepted;
                 for (auto const& friend_info : *friends)
                     if (friend_info.state == Userlist::Friends::State::Accepted)
-                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data , friend_info.friend_account_id, friend_info.friend_nickname.c_str() });
+                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, acc_cache->server_id).data : NetEngine::Packets::Core::UniqueId(0).data , friend_info.friend_account_id, friend_info.friend_nickname.c_str() });
 
                 friends.unlock();
 
@@ -452,6 +452,7 @@ namespace Game
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             
             auto acc_index = acc_cache->acc_info.Index;
+            auto server_id = acc_cache->server_id;
             acc_cache.unlock();
             if (acc_index != -1)
             {
@@ -465,7 +466,7 @@ namespace Game
                 std::vector<PlayerFriendInfo> friends_accepted;
                 for (auto const& friend_info : *friends)
                     if (friend_info.state == Userlist::Friends::State::Accepted)
-                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data , friend_info.friend_account_id, friend_info.friend_nickname.c_str() });
+                        friends_accepted.push_back({ (friend_info.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friend_info.friend_session_id, server_id).data : NetEngine::Packets::Core::UniqueId(0).data , friend_info.friend_account_id, friend_info.friend_nickname.c_str() });
 
 
                 if (friends_accepted.size() <= 0)
@@ -646,7 +647,7 @@ namespace Game
                             }
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] party is okay to propose the player an invite");
                             MainUserInvitePartyAck inviteInfo = { 1, acc_cache->acc_info.Nickname.c_str(), acc_cache->party_id };
-                            auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
+                            auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, acc_cache->server_id);
                             if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                             {
                                 send_msg(target_session.get(), 319, 0, 60, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
@@ -667,7 +668,7 @@ namespace Game
                         }
                         //all good, now send him an invite
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] room is okay to propose the player an invite");
-                        auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
+                        auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, acc_cache->server_id);
                         if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                         {
                             auto invite_ack_data = MainUserInviteAck(1, room_cache->room_id, room_cache->channel_id, acc_cache->acc_info.Nickname.c_str(), room_cache->title.c_str(), room_cache->password.c_str()).Serialize(room_cache->has_password);

@@ -33,6 +33,7 @@ namespace BaseLib
                 obj.AddMember("ipc_port", ipc, allocator);
                 obj.AddMember("asio_threads", 0, allocator);
                 obj.AddMember("playtime_min_seconds", 0, allocator);
+                obj.AddMember("server_id", 1, allocator);
                 obj.AddMember("debug", debug, allocator);
                 obj.AddMember("watchguard", false, allocator);
                 servers.AddMember(rapidjson::Value(name, allocator), obj, allocator);
@@ -48,6 +49,7 @@ namespace BaseLib
             database.AddMember("db_name", "", allocator);
             database.AddMember("user", "", allocator);
             database.AddMember("password", "", allocator);
+            database.AddMember("minutes_interval_backup", 10, allocator);
             servers.AddMember("database", database, allocator);
 
             rapidjson::Value website(rapidjson::kObjectType);
@@ -105,6 +107,14 @@ namespace BaseLib
             catch (int a) {
                 settings.playtime_min_seconds = 90;
             }
+
+            try {
+                settings.server_id = obj["server_id"].GetUint();
+            }
+            catch (int a) {
+                settings.server_id = 1;
+            }
+
             settings.debug = obj["debug"].GetBool();
             settings.watchguard = obj["watchguard"].GetBool();
         };
@@ -120,6 +130,12 @@ namespace BaseLib
         serverSettings.database.user = db["user"].GetString();
         serverSettings.database.password = db["password"].GetString();
 
+        try {
+            serverSettings.database.minutes_interval_backup = db["minutes_interval_backup"].GetUint();
+        }
+        catch (int a) {
+            serverSettings.database.minutes_interval_backup = 10;
+        }
         const auto& web = servers["website"];
         serverSettings.website.host = web["host"].GetString();
         serverSettings.website.port = web["port"].GetUint();

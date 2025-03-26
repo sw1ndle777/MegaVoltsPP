@@ -23,10 +23,14 @@ namespace Game
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
+
+            auto acc_index = acc_cache->acc_info.Index;
+            if (acc_index == -1) return;
+
             auto selected_character = static_cast<Character::Type>(callback.message->GetOption());
             acc_cache->acc_info.SelectedCharacter = static_cast<std::uint32_t>(selected_character);
             auto auth_key = acc_cache->acc_info.AuthKey;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
 
             acc_cache.unlock();
             send_msg(session, 74, 0, CharacterSelectInfo::Result::Ok, static_cast<std::uint8_t>(selected_character));

@@ -25,9 +25,10 @@ namespace Game
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
             auto match_result = static_cast<NetEngine::Room::Match::Result>(callback.message->GetExtra());
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            
 
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             if (match_result == NetEngine::Room::Match::Result::Started)
             {
                 acc_cache->playing = true;

@@ -80,8 +80,11 @@ namespace NetEngine
         this->start_time = Utility::GetUtcTimeNowInMilliseconds();
         static const std::set<std::string> ipc_addresses = { "127.0.0.1", this->server_settings.front.host, this->server_settings.main.host, this->server_settings.cast.host};
 
-        if (m_watchguard)
+        if (m_watchguard && !m_watchdogUpdateScheduled) 
+        {
             startWatchdog(std::chrono::seconds(1), std::chrono::seconds(5));
+            m_watchdogUpdateScheduled = true;
+        }
 
 
         if (m_useMultithreaded)
@@ -105,8 +108,7 @@ namespace NetEngine
 
             AcceptSessions();
             AcceptIpcSessions(ipc_addresses);
-            //for (auto& t : threads)
-            //    t.join();
+
         }
         else
         {
@@ -537,23 +539,6 @@ namespace NetEngine
             }
         }).detach();
 
-        /*
-        m_watchdog_timer.expires_after(interval);
-        m_watchdog_timer.async_wait([this, interval, timeout](const asio::error_code& ec) 
-        {
-            if (!ec)
-            {
-                //asio::post(m_ioContext, [this, timeout]() {  });
-                watchdog(timeout);
-                startWatchdog(interval, timeout);
-            }
-            else
-            {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
-                    "[Watchdog] Timer error: {}", ec.message());
-            }
-        });
-        */
     }
 }
 

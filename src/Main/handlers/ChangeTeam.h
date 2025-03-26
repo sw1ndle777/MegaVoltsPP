@@ -27,6 +27,7 @@ namespace Game
             bool broadcast = false;
             //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) attempt equip but can't find item in item info cache or it has no namme item id: ({})", acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
+			auto my_server_id = acc_cache->server_id;
             auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
             auto isPlaying = acc_cache->playing;
             auto isHostObserver = (acc_cache->session_id == room_cache->host_session_id) && (team_option == NetEngine::Team::IdType::Observer);
@@ -196,7 +197,7 @@ namespace Game
                         players_clan_info.push_back(PlayerRoomClanListInfo(player_cache->slot_id, "", 0, 0, 0, 0));
                 }
 
-                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, my_server_id).data;
                 for (const auto& room_player_session_id : players_ids)
                 {
                     //if (room_player_session_id == session_id) continue;

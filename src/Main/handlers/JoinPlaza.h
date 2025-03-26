@@ -24,7 +24,7 @@ namespace Game
             my_info2.player_state = cache_acc->state;
             my_info2.ping = cache_acc->ping;
             my_info2.fps_limit = cache_acc->fps_limit;
-            const auto& my_unique_id = NetEngine::Packets::Core::UniqueId(sess_id, 1).data;
+            const auto& my_unique_id = NetEngine::Packets::Core::UniqueId(sess_id, cache_acc->server_id).data;
 
             std::vector<BaseLib::Item> my_equipped_items;
             for (const auto& item : cache_acc->inventory_items)
@@ -96,7 +96,7 @@ namespace Game
             auto channel_id = joinPlazaReq->channel_id;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join plaza attempt -> plaza id: ({}), plaza server/channel id: ({}), mission: ({}),  extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), plaza_id, channel_id, callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
             auto old_plaza_id = acc_cache->plaza_id;
-
+            auto server_id = acc_cache->server_id;
             auto removeOldPlazaPlayer = [&](std::uint32_t plaza_id)
             {
                 auto old_plaza = main_server->GetPlazaCacheUnique(plaza_id);
@@ -105,7 +105,7 @@ namespace Game
                 {
                     if (main_server->IsPlazaBroadcastable(old_plaza))
                     {
-                        auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                        auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, server_id).data;
                         for (const auto& plaza_player_session_id : session_ids)
                         {
                             if (plaza_player_session_id == session_id) continue;
@@ -125,7 +125,7 @@ namespace Game
                 if (main_server->IsPlazaBroadcastable(plaza))
                 {
                     auto my_player_cache = main_server->GetAccCacheSharedBySessionId(session_id);
-                    auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                    auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, server_id).data;
                     auto my_voice_id = my_player_cache->voice_id;
                     auto my_pcroom_tier = my_player_cache->acc_info.PCRoom;
                     my_player_cache.unlock();
@@ -145,7 +145,7 @@ namespace Game
                             send_msg(session, 424, 0, 0, 1, reinterpret_cast<uint8_t*>(other_player_equipped_data.data()), other_player_equipped_data.size());
 
                             auto player_cache = main_server->GetAccCacheSharedBySessionId(plaza_player_session_id);
-                            auto other_unique_id = NetEngine::Packets::Core::UniqueId(plaza_player_session_id, 1).data;
+                            auto other_unique_id = NetEngine::Packets::Core::UniqueId(plaza_player_session_id, server_id).data;
                             auto other_voice_id = player_cache->voice_id;
                             auto other_pcroom_tier = player_cache->acc_info.PCRoom;
                             send_msg(session, 314, 0, 0, other_voice_id, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));

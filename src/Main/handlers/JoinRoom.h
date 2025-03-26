@@ -281,7 +281,7 @@ namespace Game
                     info2.fps_limit = player_cache->fps_limit;
                     info2.player_state = player_cache->state;
                     info2.ping = player_cache->ping;
-                    auto unique_id = NetEngine::Packets::Core::UniqueId(player_id, 1).data;
+                    auto unique_id = NetEngine::Packets::Core::UniqueId(player_id, player_cache->server_id).data;
                     auto player_data = MainRoomPlayersInfoAck(player_cache->acc_info.Nickname.c_str(), unique_id, info1, info2).Serialize();
                     new_info.insert(new_info.end(), player_data.begin(), player_data.end());
                     block_size++;
@@ -319,7 +319,7 @@ namespace Game
                     auto player_id = players_ids[i];
                     if (player_id == session_id) continue;
                     auto player_cache = main_server->GetAccCacheSharedBySessionId(player_id);
-                    auto unique_id = NetEngine::Packets::Core::UniqueId(player_id, 1).data;
+                    auto unique_id = NetEngine::Packets::Core::UniqueId(player_id, player_cache->server_id).data;
                     auto voice_id = player_cache->voice_id;
                     auto pcroom_tier = player_cache->acc_info.PCRoom;
                     std::vector<BaseLib::Item> equipped_items;
@@ -393,7 +393,7 @@ namespace Game
                     {
                         if (main_server->IsPlazaBroadcastable(current_plaza))
                         {
-                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
                             for (const auto& plaza_player_session_id : session_ids)
                             {
                                 if (plaza_player_session_id == session_id) continue;
@@ -423,7 +423,7 @@ namespace Game
             my_info2.ping = acc_cache->ping;
 
 
-            const auto& my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            const auto& my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             std::vector<BaseLib::Item> my_equipped_items;
             for (const auto& item : acc_cache->inventory_items)
                 if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(acc_cache->acc_info.SelectedCharacter))
@@ -596,7 +596,7 @@ namespace Game
             acc_cache.lock();
             auto voice_id = acc_cache->voice_id;
             auto pcroom_tier = acc_cache->acc_info.PCRoom;
-            auto my_auto_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            auto my_auto_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
 
             acc_cache->slot_id = (current_team_id != NetEngine::Team::IdType::Observer) ? static_cast<std::uint8_t>(filtered_slots.back().second + 1) : 0xFF;
             send_msg(session, 140, 0, (current_team_id != NetEngine::Team::IdType::Observer) ? NetEngine::Room::Join::Result::JoinAsPlayer : NetEngine::Room::Join::Result::JoinAsObserver, 1);

@@ -23,12 +23,12 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             //auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(callback.message->GetExtra());
             if (acc_index == -1) return;
-
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             auto party_id = acc_cache->party_id;
             auto party_cache = main_server->GetPartyCacheUnique(party_id);
             

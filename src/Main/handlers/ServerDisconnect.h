@@ -43,7 +43,7 @@ namespace Game
             auto team_id = acc_cache->team_id;
             auto plaza_id = acc_cache->plaza_id;
             auto friends = main_server->GetFriendsList(session_id);
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             auto acc_info = acc_cache->acc_info;
             auto inventory_items = acc_cache->inventory_items;
             auto items_added = acc_cache->items_added;
@@ -53,6 +53,20 @@ namespace Game
             auto friends_deleted = acc_cache->friends_deleted;
             auto blockeds_added = acc_cache->blockeds_added;
             auto blockeds_deleted = acc_cache->blockeds_deleted;
+
+            BaseLib::Database->UpdateFrontAccount(acc_info);
+            const auto& [transform_items_added, transform_items_deleted] = main_server->TransformAddedAndDeletedItems(inventory_items, items_added, items_deleted);
+            BaseLib::Database->InsertInventoryItems(acc_index, transform_items_added);
+            BaseLib::Database->DeleteInventoryItems(acc_index, transform_items_deleted);
+            const auto& transform_items_updated = main_server->TransformUpdatedItems(inventory_items, items_updated, items_deleted);
+            BaseLib::Database->UpdateInventoryItems(acc_index, transform_items_updated);
+            BaseLib::Database->InsertPlayerFriends(friends_accepted);
+            BaseLib::Database->DeletePlayerFriends(friends_deleted);
+            BaseLib::Database->InsertPlayerBlockeds(blockeds_added);
+            BaseLib::Database->DeletePlayerBlockeds(blockeds_deleted);
+
+            BaseLib::Database->UpdatePlayerDailyMission(acc_info.Index, acc_cache->daily_mission_info);
+
             acc_cache.unlock();
 
             CServer* server = session->GetServer();
@@ -273,7 +287,7 @@ namespace Game
                 {
                     if (main_server->IsPlazaBroadcastable(current_plaza))
                     {
-                        auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+                        auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
                         const auto& players_ids = current_plaza->session_ids;
                         for (const auto& plaza_player_session_id : players_ids)
                         {
@@ -289,18 +303,7 @@ namespace Game
             }
 
 
-            BaseLib::Database->UpdateFrontAccount(acc_info);
-            const auto& [transform_items_added, transform_items_deleted] = main_server->TransformAddedAndDeletedItems(inventory_items, items_added, items_deleted);
-            BaseLib::Database->InsertInventoryItems(acc_index, transform_items_added);
-            BaseLib::Database->DeleteInventoryItems(acc_index, transform_items_deleted);
-            const auto& transform_items_updated = main_server->TransformUpdatedItems(inventory_items, items_updated, items_deleted);
-            BaseLib::Database->UpdateInventoryItems(acc_index, transform_items_updated);
-            BaseLib::Database->InsertPlayerFriends(friends_accepted);
-            BaseLib::Database->DeletePlayerFriends(friends_deleted);
-            BaseLib::Database->InsertPlayerBlockeds(blockeds_added);
-            BaseLib::Database->DeletePlayerBlockeds(blockeds_deleted);
-
-            BaseLib::Database->UpdatePlayerDailyMission(acc_info.Index, acc_cache->daily_mission_info);
+      
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "database updated account info ({})", acc_info.Nickname.c_str());
 

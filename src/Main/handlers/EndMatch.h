@@ -70,7 +70,7 @@ namespace Game
                 if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
                 session->Send(message);
             };
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(my_id, 1).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(my_id, player_acc_cache->server_id).data;
             auto old_level = player_acc_cache->acc_info.Level;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check if level up, current level: ({})", old_level);
             auto gi = main_server->GetGradeInfoCache(old_level + 2);
@@ -948,7 +948,7 @@ namespace Game
                             send_msg(player_session.get(), 254, 0, 6, 0); // no rewards
                         else
                         {
-                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(id, 1).data;
+                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(id, player_acc_cache->server_id).data;
                             auto my_reward_id = get_random_boss_reward();
                             pve_rewards.push_back({ my_unique_id, my_reward_id });
                             auto my_mp = player_acc_cache->acc_info.MicroPoints;
@@ -977,6 +977,7 @@ namespace Game
             };
             CSession* session = callback.session;
             CServer* server = callback.server;
+			
             auto self_session_id = session->GetSessionId();
             auto end_match_time = Utility::GetUtcTimeNowInSeconds();
             auto all_room_players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
@@ -1350,7 +1351,8 @@ namespace Game
             auto self_session_id = session->GetSessionId();
             auto end_match_time = Utility::GetUtcTimeNowInSeconds();
             auto playing_players = main_server->GetRoomSortedPlayerPlayingWithoutObserverSessionIds(room_cache);
-
+            auto server_settings = main_server->GetServerSettings();
+            auto server_id = server_settings->main.server_id;
             for (const auto& id : playing_players)
             {
                 if (id == self_session_id) continue;
@@ -1374,7 +1376,7 @@ namespace Game
                 if (auto player_session = server->GetSessionById(id))
                 {
                     std::vector<BossItem> others_rewards;
-                    auto my_unique_id = NetEngine::Packets::Core::UniqueId(id, 1).data;
+                    auto my_unique_id = NetEngine::Packets::Core::UniqueId(id, server_id).data;
                     std::copy_if(pve_rewards.begin(), pve_rewards.end(), std::back_inserter(others_rewards), [my_unique_id](const BossItem& item) {  return item.unique_id != my_unique_id;  });
                     auto other_rewards_ack = MainBossBattleEndMatchResultAck(others_rewards).Serialize();
                     send_msg(player_session.get(), 254, 0, 41, 0, reinterpret_cast<uint8_t*>(other_rewards_ack.data()), other_rewards_ack.size());
@@ -1398,7 +1400,7 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             if (acc_index == -1) return;
             auto extra = callback.message->GetExtra();
             auto mission = callback.message->GetMission();
