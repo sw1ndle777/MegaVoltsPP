@@ -337,6 +337,7 @@ namespace Game
         std::vector<std::uint16_t> redteam_session_ids;
         std::vector<std::uint16_t> observers_session_ids;
         std::vector<std::uint16_t> kicked_session_ids;
+        std::vector<std::uint16_t> kicked_index_ids;
         std::vector<std::uint16_t> kick_voters_session_ids;
         std::vector<std::uint16_t> voters_session_ids;
         std::uint16_t vote_kick_target_session_id;
@@ -359,6 +360,7 @@ namespace Game
             redteam_session_ids.clear();
             observers_session_ids.clear();
             kicked_session_ids.clear();
+            kicked_index_ids.clear();
             kick_voters_session_ids.clear();
             voters_session_ids.clear();
         }
@@ -387,6 +389,7 @@ namespace Game
             redteam_session_ids = other.redteam_session_ids;
             observers_session_ids = other.observers_session_ids;
             kicked_session_ids = other.kicked_session_ids;
+            kicked_index_ids = other.kicked_index_ids;
             kick_voters_session_ids = other.kick_voters_session_ids;
             voters_session_ids = other.voters_session_ids;
             is_kick_vote_running = other.is_kick_vote_running;
@@ -421,6 +424,7 @@ namespace Game
             redteam_session_ids = other.redteam_session_ids;
             observers_session_ids = other.observers_session_ids;
             kicked_session_ids = other.kicked_session_ids;
+            kicked_index_ids = other.kicked_index_ids;
             kick_voters_session_ids = other.kick_voters_session_ids;
             voters_session_ids = other.voters_session_ids;
             is_kick_vote_running = other.is_kick_vote_running;
@@ -1733,6 +1737,25 @@ namespace Game
 
             return player_ping_pairs.size() > 0 ? player_ping_pairs[0].first : 0;
         }
+        std::uint16_t GetBestPlayerPingSessionIdInRoomNoHost(RoomCacheResource& room_cache, const std::uint8_t& team_id, bool include_enemy)
+        {
+            const auto& session_ids = GetRoomSortedPlayerWithoutObserverSessionIds(room_cache);// by slot
+            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_ping_pairs;
+            for (const auto& id : session_ids)
+            {
+                auto player_cache = GetAccCacheSharedBySessionId(id);
+                if (player_cache->acc_info.Index != -1 && player_cache->in_room && player_cache->room_id == room_cache->room_id && id != room_cache->host_session_id && (include_enemy ? true : player_cache->team_id == team_id) && room_cache->is_playing == player_cache->playing)
+                    player_ping_pairs.emplace_back(id, player_cache->ping);
+
+                player_cache.unlock();
+            }
+            std::stable_sort(player_ping_pairs.begin(), player_ping_pairs.end(),
+                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                    return a.second >= b.second;
+                });
+
+            return player_ping_pairs.size() > 0 ? player_ping_pairs[0].first : 0;
+        }
        void AddRoomCache(const std::uint32_t& room_id, Room& new_room)
         {
             if (!IsRoomAlready(room_id))
@@ -1803,42 +1826,8 @@ namespace Game
             {
                 if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral))
                 {
-                    for (int i = 0, j = room_cache->neutralteam_session_ids.size(); i < j; i++)
-                    {
-                        if (room_cache->neutralteam_session_ids[i] == session_id)
-                        {
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found leaving player at position: ({}) in team", i);
-                            auto last_index = room_cache->neutralteam_session_ids.size() - 1;
-                            auto last_id = room_cache->neutralteam_session_ids[last_index];
-
-                            if (room_cache->host_session_id == session_id)
-                            {
-                                auto remove_myself = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
-                                room_cache->neutralteam_session_ids.erase(remove_myself, room_cache->neutralteam_session_ids.end());
-                                break;
-                            }
-
-                            if (session_id != last_id)
-                            {
-                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "different position change");
-                                auto shared_target_cache = this->GetAccCacheSharedBySessionId(session_id);
-                                auto target_slot_id = shared_target_cache->slot_id;
-                                shared_target_cache.unlock();
-
-                                auto uni_target_cache = this->GetAccCacheUniqueBySessionId(last_id);
-                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "exchange slot id ({}) with ({})", uni_target_cache->slot_id, target_slot_id);
-                                uni_target_cache->slot_id = target_slot_id;
-                                uni_target_cache.unlock();
-
-                                room_cache->neutralteam_session_ids[i] = last_id;
-                            }
-                            room_cache->neutralteam_session_ids.pop_back();
-                            break;
-                        }
-                    }
-                    //RemoveSessionId(room_cache->neutralteam_session_ids, session_id);
-                    //auto remove_myself = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
-                    //room_cache->neutralteam_session_ids.erase(remove_myself, room_cache->neutralteam_session_ids.end());
+                    auto remove_myself1 = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
+                    room_cache->neutralteam_session_ids.erase(remove_myself1, room_cache->neutralteam_session_ids.end());
                 }
                 else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red))
                 {
@@ -1858,7 +1847,364 @@ namespace Game
             }
         }
 
+        void NewRemoveRoomPlayer(RoomCacheResource& room, const std::uint16_t& session_id, const std::uint8_t& team_id, NetEngine::Room::Leave::Ack::Result leave_type, bool return_state)
+        {
+            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+                {
+                    CMessage message(session->GetEncryptionKey());
+                    message.SetSession(session->GetSessionId());
+                    message.SetCommand(order, mission, extra, option);
+                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+                    session->Send(message);
+                };
 
+            auto room_id = room->room_id;
+            if (!IsRoomAlready(room_id))
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "dont exist room ({})", room_id);
+                return;
+            }
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) leave room new handler", session_id);
+
+            auto acc_cache = this->GetAccCacheUniqueBySessionId(session_id);
+            auto my_slot_id = acc_cache->slot_id;
+            acc_cache.unlock();
+
+            auto session = this->GetSessionById(session_id);
+
+            auto& team_list = (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids : (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids : (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids : room->observers_session_ids)));
+
+            //new code start
+            auto players_ids = this->GetRoomSortedPlayerWithoutObserverSessionIds(room);
+            for (int i = 0, j = players_ids.size(); i < j; i++)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) at slot id ({})", players_ids[i], i);
+            }
+            auto players_ids_size = players_ids.size();
+            auto last_player_id = players_ids[players_ids_size - 1];
+
+            if (session_id != last_player_id)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player isnt last in room and need to rearrange");
+                auto reordered_acc_cache = this->GetAccCacheUniqueBySessionId(last_player_id);
+                auto reordered_prev_slot_id = reordered_acc_cache->slot_id;
+                auto reordered_team_id = reordered_acc_cache->team_id;
+                reordered_acc_cache->slot_id = my_slot_id;
+                reordered_acc_cache.unlock();
+
+                acc_cache.lock();
+                acc_cache->slot_id = reordered_prev_slot_id;
+                acc_cache.unlock();
+
+                if (room->host_session_id == session_id)
+                {
+                    room->host_session_id = last_player_id;
+                }
+
+                // Reorder the last player's team list to keep correct slot_id order
+                auto& reordered_team_list = (reordered_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
+                    (reordered_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
+                        (reordered_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
+                            room->observers_session_ids)));
+
+                // Remove last player from the current position in the list
+                auto old_index_it = std::find(reordered_team_list.begin(), reordered_team_list.end(), last_player_id);
+                reordered_team_list.erase(old_index_it);
+
+                // Find the new position in the list sorted by slot_id
+                auto new_index_it = std::lower_bound(reordered_team_list.begin(), reordered_team_list.end(), last_player_id,
+                    [&](const std::uint16_t& a, const std::uint16_t& b)
+                    {
+                        auto player_cache_a = this->GetAccCacheSharedBySessionId(a);
+                        auto player_cache_b = this->GetAccCacheSharedBySessionId(b);
+                        auto slot_id_a = player_cache_a->slot_id;
+                        auto slot_id_b = player_cache_b->slot_id;
+                        player_cache_a.unlock();
+                        player_cache_b.unlock();
+                        return slot_id_a < slot_id_b;
+                    });
+
+                // Insert the last player at the new sorted position
+                reordered_team_list.insert(new_index_it, last_player_id);
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "reordered last player ({}) in his team list", last_player_id);
+            }
+
+            //remove from team list
+            auto remove_myself_team = std::remove(team_list.begin(), team_list.end(), session_id);
+            team_list.erase(remove_myself_team, team_list.end());
+
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            players_ids = this->GetRoomSortedPlayerSessionIds(room);
+            for (const auto& room_player_session_id : players_ids)
+            {
+                if (room_player_session_id == session_id) continue;
+                if (auto player_session = this->GetSessionById(room_player_session_id))
+                    send_msg(player_session.get(), 422, 0, 0, my_slot_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+            }
+            acc_cache.lock();
+            acc_cache->zombie_team = 0;
+            acc_cache->in_room = false;
+            acc_cache->slot_id = 0xFF;
+            acc_cache->playing = false;
+            acc_cache->room_id = 0;
+            acc_cache->state = PlayerInfo::State::Waiting;
+            auto target_acc_index = acc_cache->acc_info.Index;
+            acc_cache.unlock();
+
+            switch (leave_type)
+            {
+                case NetEngine::Room::Leave::Ack::Result::KickedByKickVote:
+                case NetEngine::Room::Leave::Ack::Result::KickedByHost:
+                case NetEngine::Room::Leave::Ack::Result::KickedByGm:
+                {
+                    if (this->IsSessionIdAlready(session_id, room->kicked_index_ids))
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[critical error] player was already kicked previously");
+                        break;
+                    }
+
+                    room->kicked_index_ids.push_back(target_acc_index);
+                    break;
+                }
+            }
+
+            if (return_state)
+                send_msg(session.get(), 141, 0, leave_type, 0); // leave room ack
+
+            if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty())
+            {
+                if (!room->observers_session_ids.empty())
+                {
+                    for (const auto& observer_id : room->observers_session_ids)
+                    {
+                        auto observer_cache = this->GetAccCacheUniqueBySessionId(observer_id);
+                        if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != room_id) continue;
+                        observer_cache->in_room = false;
+                        observer_cache->slot_id = 0xFF;
+                        observer_cache->playing = false;
+                        observer_cache->state = PlayerInfo::State::Waiting;
+                        auto observer_cache_team_id = observer_cache->team_id;
+                        observer_cache.unlock();
+                        if (auto observer_session = this->GetSessionById(observer_id))
+                            send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
+                    }
+                }
+                this->RemoveRoomCache(room_id);
+                this->SetRoomIdAvailable(room_id);
+            }
+            //new code end
+
+            /*
+
+            bool using_other_team = false;
+
+            if (!room->neutralteam_session_ids.empty() || !room->redteam_session_ids.empty() || !room->blueteam_session_ids.empty())
+            {
+                if (room->host_session_id == session_id)
+                {
+                    auto players_ids = this->GetRoomSortedPlayerSessionIds(room);
+                    auto best_ping_session_id = this->GetBestPlayerPingSessionIdInRoomNoHost(room, team_id, true);
+                    auto best_ping_acc_cache = this->GetAccCacheUniqueBySessionId(best_ping_session_id);
+                    if (best_ping_acc_cache->acc_info.Index != -1)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player slot ({}) id ({}) is new host, room is:", best_ping_acc_cache->slot_id, best_ping_session_id);
+
+                        room->host_session_id = best_ping_session_id;
+                        for (const auto& id : players_ids)
+                            if (auto player_session = this->GetSessionById(id))
+                            {
+                                std::string c_nick;
+                                std::uint32_t c_sid;
+                                std::uint32_t c_slot;
+                                if (id == best_ping_session_id)
+                                {
+                                    c_nick = best_ping_acc_cache->acc_info.Nickname;
+                                    c_sid = best_ping_acc_cache->session_id;
+                                    c_slot = best_ping_acc_cache->slot_id;
+                                }
+                                else
+                                {
+                                    auto c_cache = this->GetAccCacheSharedBySessionId(id);
+                                    c_nick = c_cache->acc_info.Nickname;
+                                    c_sid = c_cache->session_id;
+                                    c_slot = c_cache->slot_id;
+                                    c_cache.unlock();
+                                }
+                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) ({}) at slot id ({})", c_nick.c_str(), c_sid, c_slot);
+                                if (id == session_id && !return_state) continue;
+                                send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
+                            }
+
+
+                        struct RoomAuthData
+                        {
+                            std::uint16_t room_id;
+                            std::uint64_t auth_key;
+                        };
+                        RoomAuthData new_host_data{ room_id, best_ping_acc_cache->acc_info.AuthKey };
+
+                        this->SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
+
+                        auto new_host_prev_slot_id = best_ping_acc_cache->slot_id;
+                        auto new_host_team_id = best_ping_acc_cache->team_id;
+                        best_ping_acc_cache->slot_id = 0;
+                        best_ping_acc_cache.unlock();
+
+                        auto target_leaver_cache = this->GetAccCacheUniqueBySessionId(session_id);
+                        target_leaver_cache->slot_id = new_host_prev_slot_id;
+                        using_other_team = (new_host_team_id != target_leaver_cache->team_id);
+                        target_leaver_cache.unlock();
+
+                        if (!using_other_team)
+                        {
+                            std::int32_t my_team_idx = -1;
+                            std::int32_t new_host_team_idx = -1;
+                            for (int i = 0, j = team_list.size(); i < j; i++)
+                            {
+                                if (team_list[i] == session_id)
+                                {
+                                    my_team_idx = i;
+                                }
+                                if (team_list[i] == best_ping_session_id)
+                                {
+                                    new_host_team_idx = i;
+                                }
+                            }
+                            team_list[new_host_team_idx] = session_id;
+                            team_list[my_team_idx] = best_ping_session_id;
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "at team index ({}) replaced with ({})", my_team_idx, new_host_team_idx);
+                        }
+                    }
+                    else
+                        best_ping_acc_cache.unlock();
+                }
+            }
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now room is:");
+            auto players_ids = this->GetRoomSortedPlayerSessionIds(room);
+            for (const auto& id : players_ids)
+                if (auto player_session = this->GetSessionById(id))
+                {
+                    std::string c_nick;
+                    std::uint32_t c_sid;
+                    std::uint32_t c_slot;
+                    auto c_cache = this->GetAccCacheSharedBySessionId(id);
+                    c_nick = c_cache->acc_info.Nickname;
+                    c_sid = c_cache->session_id;
+                    c_slot = c_cache->slot_id;
+                    c_cache.unlock();
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) ({}) at slot id ({})", c_nick.c_str(), c_sid, c_slot);
+                }
+
+            std::uint32_t my_slot = 0;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
+            for (int i = 0, j = team_list.size(); i < j; i++)
+            {
+                if (team_list[i] == session_id)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found leaving player at position: ({}) in team ({})", i, team_id);
+                    auto last_index = team_list.size() - 1;
+                    auto last_id = team_list[last_index];
+
+                    if (session_id != last_id)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "different position change");
+                        auto shared_target_cache = this->GetAccCacheSharedBySessionId(session_id);
+                        auto target_slot_id = shared_target_cache->slot_id;
+                        my_slot = target_slot_id;
+                        shared_target_cache.unlock();
+
+                        auto uni_target_cache = this->GetAccCacheUniqueBySessionId(last_id);
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "exchange slot id ({}) with ({})", uni_target_cache->slot_id, target_slot_id);
+                        uni_target_cache->slot_id = target_slot_id;
+                        uni_target_cache.unlock();
+
+                        team_list[i] = last_id;
+                    }
+                    team_list.pop_back();
+                    break;
+                }
+            }
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "after leave now room is:");
+            players_ids = this->GetRoomSortedPlayerSessionIds(room);
+            for (const auto& id : players_ids)
+                if (auto player_session = this->GetSessionById(id))
+                {
+                    std::string c_nick;
+                    std::uint32_t c_sid;
+                    std::uint32_t c_slot;
+                    auto c_cache = this->GetAccCacheSharedBySessionId(id);
+                    c_nick = c_cache->acc_info.Nickname;
+                    c_sid = c_cache->session_id;
+                    c_slot = c_cache->slot_id;
+                    c_cache.unlock();
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) ({}) at slot id ({})", c_nick.c_str(), c_sid, c_slot);
+                }
+
+            players_ids = this->GetRoomSortedPlayerSessionIds(room);
+            for (const auto& room_player_session_id : players_ids)
+            {
+                if (room_player_session_id == session_id) continue;
+                if (auto player_session = this->GetSessionById(room_player_session_id))
+                    send_msg(player_session.get(), 422, 0, 0, my_slot, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+            }
+
+            auto acc_cache = this->GetAccCacheUniqueBySessionId(session_id);
+            acc_cache->zombie_team = 0;
+            acc_cache->in_room = false;
+            acc_cache->slot_id = 0xFF;
+            acc_cache->playing = false;
+            acc_cache->room_id = 0;
+            acc_cache->state = PlayerInfo::State::Waiting;
+            auto target_acc_index = acc_cache->acc_info.Index;
+            acc_cache.unlock();
+
+            auto session = this->GetSessionById(session_id);
+            switch (leave_type)
+            {
+                case NetEngine::Room::Leave::Ack::Result::KickedByKickVote:
+                case NetEngine::Room::Leave::Ack::Result::KickedByHost:
+                case NetEngine::Room::Leave::Ack::Result::KickedByGm:
+                {
+                    if (this->IsSessionIdAlready(session_id, room->kicked_index_ids))
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[critical error] player was already kicked previously");
+                        break;
+                    }
+
+                    room->kicked_index_ids.push_back(target_acc_index);
+                    break;
+                }
+            }
+
+            if (return_state)
+                send_msg(session.get(), 141, 0, leave_type, 0); // leave room ack
+
+            if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty())
+            {
+                if (!room->observers_session_ids.empty())
+                {
+                    for (const auto& observer_id : room->observers_session_ids)
+                    {
+                        auto observer_cache = this->GetAccCacheUniqueBySessionId(observer_id);
+                        if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != room_id) continue;
+                        observer_cache->in_room = false;
+                        observer_cache->slot_id = 0xFF;
+                        observer_cache->playing = false;
+                        observer_cache->state = PlayerInfo::State::Waiting;
+                        auto observer_cache_team_id = observer_cache->team_id;
+                        observer_cache.unlock();
+                        if (auto observer_session = this->GetSessionById(observer_id))
+                            send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
+                    }
+                }
+                this->RemoveRoomCache(room_id);
+                this->SetRoomIdAvailable(room_id);
+            }
+            */
+        }
 
         std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info)
         {

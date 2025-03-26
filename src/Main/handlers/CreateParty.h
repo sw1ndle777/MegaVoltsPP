@@ -409,6 +409,17 @@ namespace Game
                 acc_cache->in_party = true;
                 acc_cache->party_id = party_id;
                 
+                /*leave room*/
+                if (acc_cache->in_room)
+                {
+                    auto room_id = acc_cache->room_id;
+                    acc_cache.unlock();
+                    auto room_cache = main_server->GetRoomCacheUnique(room_id);
+                    main_server->NewRemoveRoomPlayer(room_cache, session_id, my_team_id, NetEngine::Room::Leave::Ack::Result::Leave, false);
+                    room_cache.unlock();
+                    acc_cache.lock();
+                }
+
                 /*leave plaza start*/
                 if (acc_cache->in_plaza) {
                     auto plaza_id = acc_cache->plaza_id;

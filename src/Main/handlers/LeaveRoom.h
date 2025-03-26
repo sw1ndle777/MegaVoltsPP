@@ -40,18 +40,19 @@ namespace Game
                 auto target_acc_index = target_acc_cache->acc_info.Index;
                 if (target_acc_index == -1) return;
                 if (!target_acc_cache->in_room || target_acc_cache->room_id != room->room_id) return;
-                if (main_server->IsSessionIdAlready(target_unique_id.session, room->kicked_session_ids)) return;
-                room->kicked_session_ids.push_back(target_unique_id.session);
+                if (main_server->IsSessionIdAlready(acc_index, room->kicked_index_ids)) return;
+                //room->kicked_index_ids.push_back(acc_index);
                 auto target_team_id = target_acc_cache->team_id;
                 auto target_slot = target_acc_cache->slot_id;
-                target_acc_cache->zombie_team = 0;
-                target_acc_cache->in_room = false;
-                target_acc_cache->slot_id = 0xFF;
-                target_acc_cache->playing = false;
-                target_acc_cache->state = PlayerInfo::State::Waiting;
+                //target_acc_cache->zombie_team = 0;
+                //target_acc_cache->in_room = false;
+                //target_acc_cache->slot_id = 0xFF;
+                //target_acc_cache->playing = false;
+                //target_acc_cache->state = PlayerInfo::State::Waiting;
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) force kicked by host from room -> id: ({})", target_acc_cache->acc_info.Nickname.c_str(), room->room_id);
                 target_acc_cache.unlock();
 
+                /*
                 main_server->RemoveRoomPlayerCache(room, target_unique_id.session, target_team_id);
                 //main_server->RoomPlayersSlotReorder(room);
 
@@ -98,6 +99,9 @@ namespace Game
                     if (auto player_session = server->GetSessionById(room_player_session_id))
                         send_msg(player_session.get(), 422, 0, 0, target_slot, reinterpret_cast<uint8_t*>(&target_unique_id), sizeof(target_unique_id));
                 }
+                */
+
+                main_server->NewRemoveRoomPlayer(room, target_unique_id.session, target_team_id, NetEngine::Room::Leave::Ack::Result::KickedByHost, true);
             }
             else
             {
@@ -112,15 +116,16 @@ namespace Game
                 if (leave_result != NetEngine::Room::Leave::Req::Result::Leave || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
                 auto room = main_server->GetRoomCacheUnique(acc_cache->room_id);
                 auto room_id = room->room_id;
-                acc_cache->zombie_team = 0;
-                acc_cache->in_room = false;
+                //acc_cache->zombie_team = 0;
+                //acc_cache->in_room = false;
                 //acc_cache->slot_id = 0xFF;
-                acc_cache->playing = false;
-                acc_cache->state = PlayerInfo::State::Waiting;
+                //acc_cache->playing = false;
+                //acc_cache->state = PlayerInfo::State::Waiting;
                 acc_cache.unlock();
                 //main_server->RemoveRoomPlayerCache(room, session_id, my_team_id);
                 //main_server->RoomPlayersSlotReorder(room);
-
+                main_server->NewRemoveRoomPlayer(room, session_id, my_team_id, NetEngine::Room::Leave::Ack::Result::Leave, true);
+                /*
                 auto room_playing_players = main_server->GetRoomSortedPlayerPlayingWithoutObserverSessionIds(room);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, " player leave room and playing count is now: ({})", room_playing_players.size());
 
@@ -192,7 +197,7 @@ namespace Game
                     if (auto player_session = server->GetSessionById(room_player_session_id))
                         send_msg(player_session.get(), 422, 0, 0, my_slot, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                 }
-
+                
                 if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty())
                 {
                     if (!room->observers_session_ids.empty())
@@ -219,6 +224,7 @@ namespace Game
                 }
                 acc_cache.lock();
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) left room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_id);
+                */
             }        
         }
     }

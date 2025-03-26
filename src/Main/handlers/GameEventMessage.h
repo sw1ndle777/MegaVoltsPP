@@ -143,6 +143,7 @@ namespace Game
                             send_msg(player_session.get(), 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                         }
                     }
+                    acc_cache.lock();
                 }
             }
             if (acc_cache->in_plaza)
@@ -171,6 +172,8 @@ namespace Game
                             send_msg(player_session.get(), 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                         }
                     }
+
+                    acc_cache.lock();
                 }
             }
             if (acc_cache->in_party && acc_cache->in_room)
@@ -186,18 +189,20 @@ namespace Game
                     send_msg(session, 141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0);
                     send_msg(session, 120, 0, 45, 0);
                     auto my_team_id = acc_cache->team_id;
-                    acc_cache->room_id = 0;
-                    acc_cache->in_room = false;
-                    acc_cache->playing = false;
+                    //acc_cache->room_id = 0;
+                    //acc_cache->in_room = false;
+                    //acc_cache->playing = false;
                     party_cache->is_registered = false;
                     party_cache->is_queueing = false;
-                    main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
+                    acc_cache.unlock();
+                    main_server->NewRemoveRoomPlayer(room_cache, session_id, my_team_id, NetEngine::Room::Leave::Ack::Result::Leave, false);
+                    //main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
                     //main_server->RoomPlayersSlotReorder(room_cache);
                     std::uint32_t player_count = room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size();
                     if (player_count == 0)
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "last player remaining in endmatch screen leave so now room will be removed");
-                        main_server->RemoveRoomCache(target_room_id);
+                        //main_server->RemoveRoomCache(target_room_id);
                         //main_server->SetRoomIdAvailable(target_room_id);
                         party_cache->is_playing = false;
                     }

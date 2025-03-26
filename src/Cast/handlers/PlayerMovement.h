@@ -28,15 +28,7 @@ namespace Game
 
 
 
-            auto broadcast = [&](auto player_session_id, auto& msg)
-            {
-                msg.SetEncryptMethod(SendOption::EncryptionMethod::None);
-                msg.SetSession(player_session_id);
-                if (auto player_session = server->GetSessionById(player_session_id))
-                    player_session->Send(msg);
-                else
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "couldn't broadcast packet to session id: ({})", player_session_id);
-            };
+            
 
             CMessage movementMsg = CMessage();
             movementMsg.SetSession(self_session_id);
@@ -143,7 +135,12 @@ namespace Game
                     for (const auto& id : players)
                     {
                         //if (id == self_session_id) continue;
-                        broadcast(id, movementMsg);
+                        movementMsg.SetEncryptMethod(SendOption::EncryptionMethod::None);
+                        movementMsg.SetSession(id);
+                        if (auto player_session = server->GetSessionById(id))
+                            player_session->Send(movementMsg);
+                        else
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "couldn't broadcast packet to session id: ({})", id);
                     }
                 }
                 room.unlock();
@@ -156,7 +153,12 @@ namespace Game
                 for (const auto& id : players)
                 {
                     if (id == self_session_id) continue;
-                    broadcast(id, movementMsg);
+                    movementMsg.SetEncryptMethod(SendOption::EncryptionMethod::None);
+                    movementMsg.SetSession(id);
+                    if (auto player_session = server->GetSessionById(id))
+                        player_session->Send(movementMsg);
+                    else
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "couldn't broadcast packet to session id: ({})", id);
                 }
                 plaza.unlock();
             }

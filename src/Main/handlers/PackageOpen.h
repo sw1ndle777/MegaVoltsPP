@@ -7,6 +7,135 @@ namespace Game
 
     namespace Handlers
     {
+        MainAccountInfoAck GetNewAccInfoMsg(BaseLib::FrontAccount frontAccount, CMainServer* main_server, CSession* session, std::uint64_t server_time)
+        {
+            MainAccountInfoAck accInfoMsg = MainAccountInfoAck();
+            auto session_id = session->GetSessionId();
+            auto auth_key = frontAccount.AuthKey;
+            if (frontAccount.ClanId)
+            {
+                BaseLib::ClanInfo clanInfo;
+                if (!BaseLib::Database->GetClanInfo(frontAccount.ClanId, &clanInfo))
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "session id: ({}) player clan id: ({}) doesn't exist in database",
+                        session_id, frontAccount.ClanId);
+
+                    accInfoMsg.ClanLogoFront = 0;
+                    accInfoMsg.ClanLogoBack = 0;
+                    std::strcpy(accInfoMsg.ClanName, "");
+                }
+                else
+                {
+                    accInfoMsg.ClanLogoFront = clanInfo.logo_front;
+                    accInfoMsg.ClanLogoBack = clanInfo.logo_back;
+                    std::strcpy(accInfoMsg.ClanName, clanInfo.name.c_str());
+                    if (main_server->IsClanAlready(frontAccount.ClanId))
+                    {
+                        auto clan = main_server->GetClanCacheUnique(frontAccount.ClanId);
+                        clan->online_members.push_back(session_id);
+                        clan.unlock();
+                    }
+                    else
+                    {
+                        Clan newClan;
+                        newClan.clan_id = frontAccount.ClanId;
+                        newClan.logo_front = clanInfo.logo_front;
+                        newClan.logo_back = clanInfo.logo_back;
+                        newClan.clan_name = clanInfo.name;
+                        newClan.online_members.push_back(session_id);
+                        main_server->AddClanCache(frontAccount.ClanId, newClan);
+                    }
+                }
+                accInfoMsg.ClanContribution = frontAccount.ClanContribution;
+                accInfoMsg.ClanWins = frontAccount.ClanWins;
+                accInfoMsg.ClanLoses = frontAccount.ClanLoses;
+                accInfoMsg.ClanDraws = frontAccount.ClanDraws;
+                accInfoMsg.ClanKills = frontAccount.ClanKills;
+                accInfoMsg.ClanDeaths = frontAccount.ClanDeaths;
+                accInfoMsg.ClanAssists = frontAccount.ClanAssists;
+            }
+            else
+            {
+                accInfoMsg.ClanLogoFront = 0;
+                accInfoMsg.ClanLogoBack = 0;
+                std::strcpy(accInfoMsg.ClanName, "");
+                accInfoMsg.ClanLogoFront = 0;
+                accInfoMsg.ClanLogoBack = 0;
+                accInfoMsg.ClanContribution = 0;
+                accInfoMsg.ClanWins = 0;
+                accInfoMsg.ClanLoses = 0;
+                accInfoMsg.ClanDraws = 0;
+                accInfoMsg.ClanKills = 0;
+                accInfoMsg.ClanDeaths = 0;
+                accInfoMsg.ClanAssists = 0;
+            }
+
+            accInfoMsg.Diorama = 0;
+            accInfoMsg.Kills = frontAccount.Kills;
+            accInfoMsg.Deaths = frontAccount.Deaths;
+            accInfoMsg.Assists = frontAccount.Assists;
+            accInfoMsg.Wins = frontAccount.Wins;
+            accInfoMsg.Loses = frontAccount.Loses;
+            accInfoMsg.Draws = frontAccount.Draws;
+            accInfoMsg.Melee = frontAccount.MeleeKills;
+            accInfoMsg.Rifle = frontAccount.RifleKills;
+            accInfoMsg.Shotgun = frontAccount.ShotgunKills;
+            accInfoMsg.Sniper = frontAccount.SniperKills;
+            accInfoMsg.Gatling = frontAccount.GatlingKills;
+            accInfoMsg.Bazooka = frontAccount.BazookaKills;
+            accInfoMsg.Grenade = frontAccount.GrenadeKills;
+            accInfoMsg.Headshots = frontAccount.Headshots;
+            accInfoMsg.HighestKillStreak = frontAccount.HighestKillStreak;
+            accInfoMsg.Unknown2 = 0;
+            accInfoMsg.PlayTime = static_cast<std::uint32_t>(frontAccount.PlayTime);
+            accInfoMsg.ClanId = frontAccount.ClanId;
+            accInfoMsg.ClanPadding = 0;
+            accInfoMsg.ZombieKillPoints = frontAccount.ZombieKills * 3;
+            accInfoMsg.Infections = frontAccount.Infections;
+            accInfoMsg.Unknown3 = 210;
+            accInfoMsg.ServerTime = server_time;
+            accInfoMsg.UniqueId = NetEngine::Packets::Core::UniqueId(session->GetSessionId(), 1).data;
+            accInfoMsg.Grade = frontAccount.Grade;
+            accInfoMsg.SelectedCharacter = frontAccount.SelectedCharacter;
+            accInfoMsg.OwnedCharacters = 511;//all chars
+            accInfoMsg.Level = frontAccount.Level + 1;
+#if defined(RELEASE_1_0_3)
+            accInfoMsg.Energy = 50;//frontAccount.Energy;
+            accInfoMsg.Energy2 = frontAccount.Energy;
+            accInfoMsg.GoldenMode = frontAccount.PCRoom;//PCROOM PC BANG PC ROOM
+            accInfoMsg.unused = 38;
+
+#else
+            accInfoMsg.Coins = frontAccount.Coins;
+            accInfoMsg.Energy = frontAccount.Energy;
+#endif
+
+
+            accInfoMsg.LuckyPoints = frontAccount.LuckyPoints;
+            accInfoMsg.Experience = frontAccount.Experience;
+            accInfoMsg.MicroPoints = frontAccount.MicroPoints;
+            accInfoMsg.RockTokens = frontAccount.RockTokens;
+            accInfoMsg.Tutorial = frontAccount.Tutorial;
+            accInfoMsg.MaximumItems = frontAccount.MaximumItems;
+            accInfoMsg.MaximumEnergy = frontAccount.MaximumEnergy;
+            accInfoMsg.DailyAttempts = frontAccount.SingleWaveDailyAttempts;
+            accInfoMsg.HighestWave = frontAccount.SingleWaveHighestWave;
+            accInfoMsg.SinglewaveHighscore = frontAccount.SingleWaveHighScore;
+            accInfoMsg.Unknown4 = 24;
+            accInfoMsg.Story = frontAccount.Story;
+            accInfoMsg.Achievements[0] = frontAccount.Achievement;
+#if defined(RELEASE_1_1_1)
+            accInfoMsg.VIPLevel = frontAccount.VIPExperience;
+#endif
+            accInfoMsg.AccountAuthkey = auth_key;
+            //accInfoMsg.AccountId = frontAccount.Index;
+
+            std::strcpy(accInfoMsg.Unused, "");
+            std::strcpy(accInfoMsg.Nickname, frontAccount.Nickname.c_str());
+            return accInfoMsg;
+        }
+
         enum VoiceType : std::uint8_t
         {
             VoiceA = 0,
@@ -262,6 +391,8 @@ namespace Game
                     auto itemPackageOpenData = MainUsePackageItemAck(item.data, nickname).Serialize(Items::Package::Result::ChangeNicknameSuccess);
                     acc_cache->acc_info.Nickname = nickname;
                     send_msg(session, 102, 1, Items::Package::Result::ChangeNicknameSuccess, 0, reinterpret_cast<uint8_t*>(itemPackageOpenData.data(), itemPackageOpenData.size()));
+                    auto new_acc_info_msg = GetNewAccInfoMsg(acc_cache->acc_info, main_server, session, acc_cache->server_time);
+                    send_msg(session, 413, 0, 1, 1, reinterpret_cast<uint8_t*>(&new_acc_info_msg), sizeof(MainAccountInfoAck));
                     /*
                     asio::post([main_server, session_id, item, nickname, session, send_msg]()
                     {

@@ -322,6 +322,12 @@ namespace Game
                 main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] player {} is not in any room.", player->acc_info.Nickname.c_str()).c_str());
                 return;
             }
+            player.unlock();
+
+            auto player_room = main_server->GetRoomCacheUnique(player_room_id);
+            main_server->NewRemoveRoomPlayer(player_room, player_session_id, player_team_id, NetEngine::Room::Leave::Ack::Result::KickedByGm, true);
+
+            /*
             player->in_room = false;
             player->slot_id = 0xFF;
             player->playing = false;
@@ -418,6 +424,7 @@ namespace Game
                 main_server->RemoveRoomCache(player_room->room_id);
                 main_server->SetRoomIdAvailable(player_room->room_id);
             }
+            */
         }
 
         static void Break(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)

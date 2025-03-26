@@ -7,6 +7,65 @@ namespace Game
 
     namespace Handlers
     {
+        void SwapAndReorderTeamLists(RoomCacheResource& room, std::uint16_t old_host_id, std::uint16_t new_host_id, CMainServer* server)
+        {
+            // Get both players' caches
+            auto old_host_cache = server->GetAccCacheUniqueBySessionId(old_host_id);
+            auto new_host_cache = server->GetAccCacheUniqueBySessionId(new_host_id);
+
+            // Swap their slot IDs
+            auto old_host_slot_id = old_host_cache->slot_id;
+            auto new_host_slot_id = new_host_cache->slot_id;
+
+            old_host_cache->slot_id = new_host_slot_id;
+            new_host_cache->slot_id = old_host_slot_id;
+
+            auto old_team_id = old_host_cache->team_id;
+            auto new_team_id = new_host_cache->team_id;
+
+            old_host_cache.unlock();
+            new_host_cache.unlock();
+
+            // Reorder both team lists
+            auto reorder_team_list = [&](std::vector<std::uint16_t>& team_list, std::uint16_t player_id)
+                {
+                    auto old_index_it = std::find(team_list.begin(), team_list.end(), player_id);
+                    if (old_index_it != team_list.end())
+                    {
+                        team_list.erase(old_index_it);
+                    }
+
+                    auto new_index_it = std::lower_bound(team_list.begin(), team_list.end(), player_id,
+                        [&](const std::uint16_t& a, const std::uint16_t& b)
+                        {
+                            auto player_cache_a = server->GetAccCacheSharedBySessionId(a);
+                            auto player_cache_b = server->GetAccCacheSharedBySessionId(b);
+                            auto slot_id_a = player_cache_a->slot_id;
+                            auto slot_id_b = player_cache_b->slot_id;
+                            player_cache_a.unlock();
+                            player_cache_b.unlock();
+                            return slot_id_a < slot_id_b;
+                        });
+
+                    team_list.insert(new_index_it, player_id);
+                };
+
+            auto& old_team_list = (old_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
+                (old_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
+                    (old_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
+                        room->observers_session_ids)));
+
+            auto& new_team_list = (new_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
+                (new_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
+                    (new_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
+                        room->observers_session_ids)));
+
+            // Reorder the team lists
+            reorder_team_list(old_team_list, old_host_id);
+            reorder_team_list(new_team_list, new_host_id);
+
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Swapped and reordered slots between old host ({}) and new host ({})", old_host_id, new_host_id);
+        }
         inline void ChangeHost(SCallbackData& callback, CMainServer* main_server)
         {
             auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
@@ -57,7 +116,7 @@ namespace Game
             else
                 target_session_id = find_target_session(room_cache->neutralteam_session_ids);
 
-            if (target_session_id == 0)
+            if (target_session_id == 0 || target_session_id == session_id)
             {
                 send_msg(session, 128, 0, NetEngine::Room::ChangeHost::Result::NotInRoom, 0);
                 return;
@@ -76,7 +135,7 @@ namespace Game
             }
             room_cache->host_session_id = target_session_id;
            
-            target_acc_cache->slot_id = acc_cache->slot_id;
+            //target_acc_cache->slot_id = acc_cache->slot_id;
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "current host have state: ({}) and target host state: ({})", static_cast<std::uint32_t>(acc_cache->state), static_cast<std::uint32_t>(target_acc_cache->state));
             if (target_acc_cache->state == PlayerInfo::State::Waiting)
@@ -97,8 +156,11 @@ namespace Game
 
             main_server->SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
             target_acc_cache.unlock();
-            acc_cache->slot_id = target_slot_id;
+            //acc_cache->slot_id = target_slot_id;
             acc_cache.unlock();
+
+            SwapAndReorderTeamLists(room_cache, session_id, target_session_id, main_server);
+
             auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
             lock.unlock();
             for (const auto& room_player_session_id : players_ids)
@@ -254,18 +316,21 @@ namespace Game
                 if (observer_cache->acc_info.Index == -1) continue;
                 if (!observer_cache->in_room || observer_cache->room_id != room_cache->room_id) continue;
 
-                observer_cache->in_room = false;
-                observer_cache->slot_id = 0xFF;
-                observer_cache->playing = false;
-                observer_cache->state = PlayerInfo::State::Waiting;
+                //observer_cache->in_room = false;
+                //observer_cache->slot_id = 0xFF;
+                //observer_cache->playing = false;
+                //observer_cache->state = PlayerInfo::State::Waiting;
                 
+                auto player_team_id = observer_cache->team_id;
 
-                main_server->RemoveRoomPlayerCache(room_cache, observer_id, observer_cache->team_id);
+                //main_server->RemoveRoomPlayerCache(room_cache, observer_id, observer_cache->team_id);
                 observer_cache.unlock();
                 //main_server->RoomPlayersSlotReorder(room_cache);
+
+                main_server->NewRemoveRoomPlayer(room_cache, observer_id, player_team_id, NetEngine::Room::Leave::Ack::Result::Leave, true);
                 
-                if (auto player_session = server->GetSessionById(observer_id))
-                    send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
+                //if (auto player_session = server->GetSessionById(observer_id))
+                    //send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
             }
         }
         inline void IntrudersState(SCallbackData& callback, CMainServer* main_server)
@@ -471,7 +536,7 @@ namespace Game
                         auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(id);
                         auto blue_team_size = room_cache->blueteam_session_ids.size();
                         auto red_team_size = room_cache->redteam_session_ids.size();
-                        if (blue_team_size == 0 || blue_team_size < red_team_size)
+                        if (blue_team_size == 0 || blue_team_size <= red_team_size)
                         {
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) is now team blue", player_acc_cache->acc_info.Nickname.c_str());
                             room_cache->blueteam_session_ids.push_back(id);
@@ -522,6 +587,9 @@ namespace Game
                         player_acc_cache->team_id = Team::IdType::Neutral;
                         player_acc_cache.unlock();
                     }
+
+                    room_cache->redteam_session_ids.clear();
+                    room_cache->blueteam_session_ids.clear();
                 }
 
 
@@ -657,6 +725,11 @@ namespace Game
             acc_cache.unlock();
 
             auto target_session_id = room_cache->vote_kick_target_session_id;
+
+            auto target_acc_cache = main_server->GetAccCacheSharedBySessionId(target_session_id);
+            auto target_acc_index = target_acc_cache->acc_info.Index;
+            target_acc_cache.unlock();
+
             auto room_playing_players = main_server->GetRoomSortedPlayerPlayingWithoutObserverSessionIds(room_cache);
             auto total_y_voters = room_cache->voters_session_ids.size();
             auto total_n_voters = room_playing_players.size() - total_y_voters + 1;
@@ -670,7 +743,7 @@ namespace Game
 
 
             if(getting_kicked)
-                room_cache->kicked_session_ids.push_back(target_session_id);
+                room_cache->kicked_index_ids.push_back(target_acc_index);
 
             if (!getting_kicked)
             {
@@ -709,14 +782,16 @@ namespace Game
                 "player: ({}) got vote kicked out with Y: ({}) : N: ({}) from room id: ({})",
                 player_nickname.c_str(), total_y_voters, total_n_voters, player_room_id);
 
-            player->in_room = false;
-            player->slot_id = 0xFF;
-            player->playing = false;
-            player->state = PlayerInfo::State::Waiting;
+            //player->in_room = false;
+            //player->slot_id = 0xFF;
+            //player->playing = false;
+            //player->state = PlayerInfo::State::Waiting;
             player.unlock();
+
+            main_server->NewRemoveRoomPlayer(room_cache, player_session_id, player_team_id, NetEngine::Room::Leave::Ack::Result::KickedByKickVote, true);
            
             //main_server->RoomPlayersSlotReorder(room_cache);
-
+            /*
             std::vector<std::uint32_t> players_ids;
             std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
             auto insert_player_slot_pair = [&](const auto& session_ids)
@@ -804,7 +879,7 @@ namespace Game
                 main_server->SetRoomIdAvailable(room_cache->room_id);
             }
 
-            
+            */
         }
         inline void VoteKick(SCallbackData& callback, CMainServer* main_server)
         {

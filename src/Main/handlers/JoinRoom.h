@@ -27,18 +27,30 @@ namespace Game
             auto join_result = static_cast<NetEngine::Room::Join::ReqResult>(callback.message->GetExtra());
             if (acc_index == -1) return;
             const auto& joinRoomReq = reinterpret_cast<MainJoinRoomReq*>(callback.message->GetData());
+
+            if (acc_cache->in_room)
+            {
+                if (joinRoomReq->room_id == acc_cache->room_id)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "fail: already in room");
+                    send_msg(session, 140, 0, NetEngine::Room::Join::Result::GenericError, 0);
+                    return;
+                }
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "is in room previously and now will be removed");
+                auto old_room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
+                auto old_team_id = acc_cache->team_id;
+                acc_cache.unlock();
+                main_server->NewRemoveRoomPlayer(old_room_cache, session_id, old_team_id, NetEngine::Room::Leave::Ack::Result::Leave, false);
+                old_room_cache.unlock();
+                acc_cache.lock();
+            }
+
             auto room_cache = main_server->GetRoomCacheUnique(joinRoomReq->room_id);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) attempt to join Room No. ({}), channel id: ({})", session->GetSessionId(), joinRoomReq->room_id, joinRoomReq->channel_id);          
             if (room_cache->title.empty())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "fail: no title");
                 send_msg(session, 140, 0, NetEngine::Room::Join::Result::RoomDeleted, 0);
-                return;
-            }
-            if (acc_cache->in_room)
-            {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "fail: already in room");
-                send_msg(session, 140, 0, NetEngine::Room::Join::Result::GenericError, 0);
                 return;
             }
             if (room_cache->has_password || join_result == NetEngine::Room::Join::ReqResult::Password)
@@ -99,10 +111,10 @@ namespace Game
                 main_server->IsSessionIdAlready(session_id, room_cache->observers_session_ids))
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "already in room");
-                send_msg(session, 140, 0, NetEngine::Room::Join::Error::AlreadyInRoom, 0);
+                send_msg(session, 140, 0, NetEngine::Room::Join::Result::GenericError, 0);
                 return;
             }
-            if (main_server->IsSessionIdAlready(session_id, room_cache->kicked_session_ids))
+            if (main_server->IsSessionIdAlready(acc_index, room_cache->kicked_index_ids))
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player was kicked");
                 send_msg(session, 140, 0, NetEngine::Room::Join::Result::PreviouslyKicked, 0);
@@ -613,6 +625,36 @@ namespace Game
                     //send_msg(player_session.get(), 403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
                 }
                     
+            }
+
+            if (!is_my_party && !is_vs_party)
+            {
+                acc_cache.unlock();
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will re-broadcast clan info of existing players to each other to assure correct view");
+                players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
+                std::vector<PlayerRoomClanListInfo> players_clan_info_assure;
+                for (const auto& room_player_session_id : players_ids)
+                {
+                    auto player_cache = main_server->GetAccCacheSharedBySessionId(room_player_session_id);
+                    if (player_cache->acc_info.ClanId)
+                    {
+                        if (main_server->IsClanAlready(player_cache->acc_info.ClanId))
+                        {
+                            auto clan_info = main_server->GetClanCacheShared(player_cache->acc_info.ClanId);
+                            auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, acc_cache->acc_info.ClanId, 0);
+                            clan_info.unlock();
+                            players_clan_info_assure.push_back(info);
+                        }
+                    }
+                    else
+                        players_clan_info_assure.push_back(PlayerRoomClanListInfo(player_cache->slot_id, "", 0, 0, 0, 0));
+                }
+                for (const auto& room_player_session_id : players_ids)
+                    if (auto player_session = server->GetSessionById(room_player_session_id))
+                        send_msg(player_session.get(), 409, 0, 37, players_clan_info_assure.size(), reinterpret_cast<uint8_t*>(players_clan_info_assure.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info_assure.size());
+
+                acc_cache.lock();
             }
 
             acc_cache->state = 7;

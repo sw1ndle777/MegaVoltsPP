@@ -82,14 +82,21 @@ namespace Game
                 auto room = main_server->GetRoomCacheUnique(room_id);
 
                 auto left_while_vote_kicked = room->vote_kick_target_session_id == session_id;
+                acc_cache.lock();
+                auto my_team_id = acc_cache->team_id;
+                acc_cache.unlock();
 
+                main_server->NewRemoveRoomPlayer(room, session_id, my_team_id, (left_while_vote_kicked ? NetEngine::Room::Leave::Ack::Result::KickedByKickVote : NetEngine::Room::Leave::Ack::Result::Leave), false);
+
+                //acc_cache.lock();
+                /*
                 if (left_while_vote_kicked)
                 {
                     room->voters_session_ids.clear();
                     room->vote_kick_target_session_id = 0;
                     room->is_kick_vote_running = false;
-                    if (!main_server->IsSessionIdAlready(session_id, room->kicked_session_ids))
-                        room->kicked_session_ids.push_back(session_id);
+                    if (!main_server->IsSessionIdAlready(acc_index, room->kicked_index_ids))
+                        room->kicked_index_ids.push_back(acc_index);
                 }
 
                 //acc_cache.unlock();
@@ -194,6 +201,7 @@ namespace Game
                     main_server->RemoveRoomCache(room_id);
                     server->SetRoomIdAvailable(room_id);
                 }
+                */
             }
 
             if (in_party && main_server->IsPartyAlready(party_id))
