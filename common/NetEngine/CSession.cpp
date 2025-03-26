@@ -27,7 +27,7 @@ namespace NetEngine
     CSession::~CSession() {}
     void CSession::Disconnect()
     {
-        asio::dispatch(m_strand, [this]() {
+        asio::post(m_strand, [this]() {
             if (!m_socket.is_open()) return;
 
             asio::error_code errorCode;
@@ -51,12 +51,13 @@ namespace NetEngine
     void CSession::Send(CMessage& message)
     {
         auto order = message.GetOrder();
-        if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), message, m_sessionId);
+        if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) 
+            Utility::LogPackets(std::source_location::current(), message, m_sessionId);
         auto data = message.GenerateMessage();
         auto data_vec = std::make_shared<std::vector<std::uint8_t>>(
             &data[0], &data[message.GetFullSize()]);
 
-        asio::dispatch(m_strand, [this, self = std::move(m_self), data_vec]() {
+        asio::post(m_strand, [this, self = std::move(m_self), data_vec]() {
             if (!m_socket.is_open())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
@@ -172,7 +173,7 @@ namespace NetEngine
     }
     void CSession::DoRead()
     {
-        asio::dispatch(m_strand, [this, self = std::move(m_self)]() {
+        asio::post(m_strand, [this, self = std::move(m_self)]() {
             if (!m_socket.is_open())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
@@ -237,7 +238,7 @@ namespace NetEngine
     }
     void CSession::DoReadIpc()
     {
-        asio::dispatch(m_strand, [this, self = std::move(m_self)]() {
+        asio::post(m_strand, [this, self = std::move(m_self)]() {
             if (!m_socket.is_open())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
