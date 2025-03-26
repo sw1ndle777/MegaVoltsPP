@@ -234,7 +234,7 @@ namespace NetEngine
         completeVec.resize(completeSize);
         partialVec.resize(partialSize);
 
-        memcpy_s(partialVec.data(), commandSize, &m_command, commandSize);
+        memcpy_s(partialVec.data(), commandSize, m_command, commandSize);
         memcpy_s(partialVec.data() + headerSize, GetDataSize(), m_buffer.data() + dataOffset(), GetDataSize());
 
         switch (m_header.crypt)
@@ -269,7 +269,7 @@ namespace NetEngine
         }
 
         //m_header.data = crypt.encrypt_tcp_header(m_header.data);
-        memcpy_s(completeVec.data(), headerSize, &m_header, headerSize);
+        memcpy_s(completeVec.data(), headerSize, m_header, headerSize);
 
         if (m_crypt >= 0)
         {
