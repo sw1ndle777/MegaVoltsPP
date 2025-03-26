@@ -71,8 +71,8 @@ namespace NetEngine
         void resizeBuffer(size_t dataSize)
         {
             m_buffer.resize(minSize() + dataSize);
-            m_header = (Protocols::STcpPacketHeader*)m_buffer.data();
-            m_command = (Protocols::SCommandHeader*)m_buffer.data() + sizeof(Protocols::STcpPacketHeader);
+            m_header = (Protocols::STcpPacketHeader*)(m_buffer.data());
+            m_command = (Protocols::SCommandHeader*)(m_buffer.data() + sizeof(Protocols::STcpPacketHeader));
         }
 
     private:

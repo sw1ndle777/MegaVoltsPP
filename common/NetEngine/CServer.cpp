@@ -192,10 +192,17 @@ namespace NetEngine
                     session->DoReadIpc();
                 }
                 else
+                {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "non whitelisted IPC connection from: ({})", remote_ip.c_str());
+                    m_socket.close();
+                }
             }
             else
+            {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to accept session: ({})", ec.message().c_str());
+                return;
+            }
+               
 
             AcceptIpcSessions(ipc_addresses);
         });
