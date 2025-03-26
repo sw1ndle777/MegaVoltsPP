@@ -72,7 +72,7 @@ namespace NetEngine
         {
             m_buffer.resize(minSize() + dataSize);
             m_header = (Protocols::STcpPacketHeader*) m_buffer.data();
-            m_command = (Protocols::SCommandHeader*) m_buffer.data() + sizeof(Protocols::STcpPacketHeader);
+            m_command = (Protocols::SCommandHeader*) (m_header + 1);
         }
 
     private:
