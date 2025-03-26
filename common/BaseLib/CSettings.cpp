@@ -49,7 +49,6 @@ namespace BaseLib
             database.AddMember("db_name", "", allocator);
             database.AddMember("user", "", allocator);
             database.AddMember("password", "", allocator);
-            database.AddMember("minutes_interval_backup", 10, allocator);
             servers.AddMember("database", database, allocator);
 
             rapidjson::Value website(rapidjson::kObjectType);
@@ -130,12 +129,7 @@ namespace BaseLib
         serverSettings.database.user = db["user"].GetString();
         serverSettings.database.password = db["password"].GetString();
 
-        try {
-            serverSettings.database.minutes_interval_backup = db["minutes_interval_backup"].GetUint();
-        }
-        catch (int a) {
-            serverSettings.database.minutes_interval_backup = 10;
-        }
+
         const auto& web = servers["website"];
         serverSettings.website.host = web["host"].GetString();
         serverSettings.website.port = web["port"].GetUint();
