@@ -145,11 +145,17 @@ namespace NetEngine
                     session->DoRead();
                 }
                 else
+                {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session pool is full");
-               
+                    m_socket.close();
+                }
             }
             else
+            {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to accept session: ({})", ec.message().c_str());
+                m_socket.close();
+            }
+                
 
             AcceptSessions();
         });
@@ -167,8 +173,7 @@ namespace NetEngine
                 if (endpoint_error)
                 {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to retrieve remote endpoint: ({})", endpoint_error.message());
-                    AcceptIpcSessions(ipc_addresses);
-                    return;
+                    m_socket.close();
                 }
 
                 auto remote_ip = remote_endpoint.address().to_string();
@@ -190,10 +195,18 @@ namespace NetEngine
                     session->DoReadIpc();
                 }
                 else
+                {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "non whitelisted IPC connection from: ({})", remote_ip.c_str());
+                    m_socket.close();
+                }
+                   
             }
             else
+            {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to accept session: ({})", ec.message().c_str());
+                m_socket.close();
+            }
+                
 
             AcceptIpcSessions(ipc_addresses);
         });
