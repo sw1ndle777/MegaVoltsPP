@@ -43,7 +43,7 @@ namespace Game
                 auto party_id = acc_cache->party_id;
                 auto current_player_grade = acc_cache->acc_info.Grade;
                 auto clan_id = acc_cache->acc_info.ClanId;
-                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                 acc_cache.unlock();
 
                 std::uint8_t chat_color = 0;

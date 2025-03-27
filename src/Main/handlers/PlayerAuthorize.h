@@ -64,9 +64,7 @@ namespace Game
             boost::unordered_flat_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
             std::vector<Item> player_inventory_items;
             auto server_time = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
-            auto server_settings = main_server->GetServerSettings();
-			auto server_id = server_settings->main.server_id;
-            auto newPlayer = Player({ server_id, session->GetSessionId(), server_time, frontAccount, acc_items });
+            auto newPlayer = Player({ session->GetSessionId(), server_time, frontAccount, acc_items });
             main_server->TransformItems(acc_items, player_inventory_items);//check here
             main_server->TransformEquippedItems(acc_items, player_equipped_items);
             main_server->AddAccCache(session->GetSessionId(), newPlayer);
@@ -154,7 +152,7 @@ namespace Game
             accInfoMsg.Infections = frontAccount.Infections;
             accInfoMsg.Unknown3 = 210;
             accInfoMsg.ServerTime = server_time;
-            accInfoMsg.UniqueId = NetEngine::Packets::Core::UniqueId(session->GetSessionId(), newPlayer.server_id).data;
+            accInfoMsg.UniqueId = NetEngine::Packets::Core::UniqueId(session->GetSessionId(), 1).data;
             accInfoMsg.Grade = frontAccount.Grade;
             accInfoMsg.SelectedCharacter = frontAccount.SelectedCharacter;
             accInfoMsg.OwnedCharacters = 511;//all chars
@@ -283,7 +281,7 @@ namespace Game
             //send_msg(session, 71, 1, 0, 3);
             //send_msg(session, 72, 1, 0, 3);
 
-            
+            /*
             auto shared_acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             auto before_state = shared_acc_cache->state;
             shared_acc_cache.unlock();
@@ -323,10 +321,11 @@ namespace Game
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "delay check error");
                     }
                 });
+            */
             
-            //main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
-            //main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
-            main_server->SendServerMessage(session, fmt::format("[MAIN] session id: ({}), server time: ({})", session->GetSessionId(), server_time).c_str());
+            main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
+            main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+           // main_server->SendServerMessage(session, fmt::format("[MAIN] session id: ({}), server time: ({})", session->GetSessionId(), server_time).c_str());
 
             //std::unordered_map<std::uint32_t, std::uint32_t> accountToSessionMap;
             boost::unordered_flat_map<std::uint32_t, std::uint32_t> accountToSessionMap;
@@ -346,7 +345,7 @@ namespace Game
 
                     if (friendInfo.state == Userlist::Friends::State::Pending)
                     {
-                        friends_pending.push_back({ (friendInfo.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friendInfo.friend_session_id, newPlayer.server_id).data : NetEngine::Packets::Core::UniqueId(0).data ,
+                        friends_pending.push_back({ (friendInfo.friend_session_id != 0) ? NetEngine::Packets::Core::UniqueId(friendInfo.friend_session_id, 1).data : NetEngine::Packets::Core::UniqueId(0).data ,
                            friendInfo.friend_account_id, friendInfo.friend_nickname.c_str() });
                         friends_pending_db.push_back(friendInfo);
                     }

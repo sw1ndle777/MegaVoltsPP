@@ -311,7 +311,7 @@ namespace Game
             auto player = main_server->GetAccCacheUniqueByNickname(nickname);
             auto player_acc_index = player->acc_info.Index;
             auto player_session_id = player->session_id;
-            auto player_unique_id = NetEngine::Packets::Core::UniqueId(player_session_id, player->server_id);
+            auto player_unique_id = NetEngine::Packets::Core::UniqueId(player_session_id, 1);
             auto player_in_room = player->in_room;
             auto player_room_id = player->room_id;
             auto player_slot_id = player->slot_id;
@@ -758,6 +758,7 @@ namespace Game
     CMainServer::CMainServer()
     {
         Commands::Init();
+
         this->OnNewSession(std::bind(&Game::Handlers::ServerConnect, std::placeholders::_1, this));
         this->OnSessionDisconnected(std::bind(&Game::Handlers::ServerDisconnect, std::placeholders::_1, this));
         this->OnIpcMessage(std::bind(&Game::Handlers::ServerIpcMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, this));

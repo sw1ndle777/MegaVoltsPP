@@ -63,9 +63,9 @@ namespace Game
             auto player_state = static_cast<PlayerInfo::State>(callback.message->GetOption());
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session->GetSessionId());
             auto session_id = session->GetSessionId();
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_cache->acc_info.Index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player update state: before ({}) now ({})", static_cast<std::uint32_t>(acc_cache->state), static_cast<std::uint32_t>(player_state));
             acc_cache->state = player_state;
 

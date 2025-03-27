@@ -7,10 +7,8 @@ namespace Game
 
     namespace Handlers
     {
-        MainAccountInfoAck GetNewAccInfoMsg(AccCacheResource& acc_cache, CMainServer* main_server, CSession* session, std::uint64_t server_time)
+        MainAccountInfoAck GetNewAccInfoMsg(BaseLib::FrontAccount frontAccount, CMainServer* main_server, CSession* session, std::uint64_t server_time)
         {
-			auto& frontAccount = acc_cache->acc_info;
-
             MainAccountInfoAck accInfoMsg = MainAccountInfoAck();
             auto session_id = session->GetSessionId();
             auto auth_key = frontAccount.AuthKey;
@@ -97,7 +95,7 @@ namespace Game
             accInfoMsg.Infections = frontAccount.Infections;
             accInfoMsg.Unknown3 = 210;
             accInfoMsg.ServerTime = server_time;
-            accInfoMsg.UniqueId = NetEngine::Packets::Core::UniqueId(session->GetSessionId(), acc_cache->server_id).data;
+            accInfoMsg.UniqueId = NetEngine::Packets::Core::UniqueId(session->GetSessionId(), 1).data;
             accInfoMsg.Grade = frontAccount.Grade;
             accInfoMsg.SelectedCharacter = frontAccount.SelectedCharacter;
             accInfoMsg.OwnedCharacters = 511;//all chars
@@ -393,7 +391,7 @@ namespace Game
                     auto itemPackageOpenData = MainUsePackageItemAck(item.data, nickname).Serialize(Items::Package::Result::ChangeNicknameSuccess);
                     acc_cache->acc_info.Nickname = nickname;
                     send_msg(session, 102, 1, Items::Package::Result::ChangeNicknameSuccess, 0, reinterpret_cast<uint8_t*>(itemPackageOpenData.data(), itemPackageOpenData.size()));
-                    auto new_acc_info_msg = GetNewAccInfoMsg(acc_cache, main_server, session, acc_cache->server_time);
+                    auto new_acc_info_msg = GetNewAccInfoMsg(acc_cache->acc_info, main_server, session, acc_cache->server_time);
                     send_msg(session, 413, 0, 1, 1, reinterpret_cast<uint8_t*>(&new_acc_info_msg), sizeof(MainAccountInfoAck));
                     /*
                     asio::post([main_server, session_id, item, nickname, session, send_msg]()

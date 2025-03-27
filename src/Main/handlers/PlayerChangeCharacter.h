@@ -23,19 +23,15 @@ namespace Game
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
-
-            auto acc_index = acc_cache->acc_info.Index;
-            if (acc_index == -1) return;
-
             auto selected_character = static_cast<Character::Type>(callback.message->GetOption());
             acc_cache->acc_info.SelectedCharacter = static_cast<std::uint32_t>(selected_character);
             auto auth_key = acc_cache->acc_info.AuthKey;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
             acc_cache.unlock();
             send_msg(session, 74, 0, CharacterSelectInfo::Result::Ok, static_cast<std::uint8_t>(selected_character));
             acc_cache.lock();
-
+            /*
             if (acc_cache->state < 2)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ask cast to send ping assure");
@@ -45,8 +41,14 @@ namespace Game
                 } info;
                 info.session_id = session->GetSessionId();
                 main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
-                send_msg(session, 72, 0, 0, 0);
+                PlayerPingUpdateInfo ping_data{};
+                ping_data.ping = 60;
+                auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
+                send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+
+                //send_msg(session, 72, 0, 0, 0);
             }
+            */
 
             
             /*

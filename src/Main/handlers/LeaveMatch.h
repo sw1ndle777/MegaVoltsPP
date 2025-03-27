@@ -23,7 +23,7 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
             auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
             auto my_slot_id = acc_cache->slot_id;

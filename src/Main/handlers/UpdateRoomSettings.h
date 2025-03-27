@@ -769,13 +769,13 @@ namespace Game
             auto player_acc_index = player->acc_info.Index;
             auto player_session_id = player->session_id;
             auto player_nickname = player->acc_info.Nickname;
-            
+            auto player_unique_id = NetEngine::Packets::Core::UniqueId(player_session_id, 1);
             auto player_in_room = player->in_room;
             auto player_room_id = player->room_id;
             auto player_slot_id = player->slot_id;
             auto player_team_id = player->team_id;
             if (player_acc_index == -1)   return;
-            auto player_unique_id = NetEngine::Packets::Core::UniqueId(player_session_id, acc_cache->server_id);
+              
             if (!player_in_room || player_room_id != room_id) return;
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
@@ -907,7 +907,6 @@ namespace Game
             auto room_id = acc_cache->room_id;
 
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(room_id)) return;
-			auto server_id = acc_cache->server_id;
             auto acc_cache_nickname = acc_cache->acc_info.Nickname;
             auto room_cache = main_server->GetRoomCacheUnique(room_id);
             if (!room_cache->is_playing)
@@ -939,7 +938,7 @@ namespace Game
                 return;
             }
 
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, server_id).data;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_cache->acc_info.MicroPoints < 100) // 100mp cost for kick check
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,

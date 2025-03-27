@@ -34,7 +34,7 @@ namespace Game
                 session->Send(authorizeAck);
             };
 
-            if (!BaseLib::Database->GetFrontAccount(acc_user, &frontAccount))
+            if (!BaseLib::Database->GetFrontAccount(acc_user, acc_pass, acc_pass, &frontAccount))
             {
                 if (!BaseLib::Database->RegisterAccount(acc_user, acc_pass, 4, 10000000, 10000000, 250, 100, 5000, 1000, 5000, acc_user))
                 {
@@ -44,7 +44,7 @@ namespace Game
                 }
                 else
                 {
-                    if (!BaseLib::Database->GetFrontAccount(acc_user, &frontAccount))
+                    if (!BaseLib::Database->GetFrontAccount(acc_user, acc_pass, acc_pass, &frontAccount))
                     {
                         authorize(FrontAuthorize::Type::DontExist, 0x00);
                         EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "couldn't find id: ({}), password: ({})", acc_user.c_str(), acc_pass.c_str());

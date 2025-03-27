@@ -120,7 +120,7 @@ namespace Game
                     {
                         if (main_server->IsPlazaBroadcastable(current_plaza))
                         {
-                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                             for (const auto& plaza_player_session_id : session_ids)
                             {
                                 if (plaza_player_session_id == session_id) continue;

@@ -281,9 +281,9 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             acc_cache->voice_id = callback.message->GetOption();
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player select voice id: ({})", acc_cache->voice_id);
             send_msg(session, 160, 0, 0, callback.message->GetOption());
@@ -304,12 +304,12 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(callback.message->GetExtra());
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             struct info {
                 std::uint16_t mod_combo;
             };
@@ -380,11 +380,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(callback.message->GetExtra());
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             auto createPartyReq = reinterpret_cast<MainCreatePartyReq*>(callback.message->GetData());
 
             std::uint16_t party_id = 0;
@@ -432,7 +432,7 @@ namespace Game
                         {
                             if (main_server->IsPlazaBroadcastable(current_plaza))
                             {
-                                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+                                auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                                 for (const auto& plaza_player_session_id : session_ids)
                                 {
                                     if (plaza_player_session_id == session_id) continue;
@@ -495,11 +495,10 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1 || acc_cache->acc_info.ClanId == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
             auto clan_id = acc_cache->acc_info.ClanId;
             auto clan = main_server->GetClanCacheUnique(clan_id);
             acc_cache.unlock();
@@ -544,11 +543,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             struct info {
                 std::uint16_t roomId;
             };
@@ -664,7 +663,7 @@ namespace Game
             for (const auto& member_session_id : party->members)
             {
                 auto member_acc_cache = main_server->GetAccCacheSharedBySessionId(member_session_id);
-                auto member_unique_id = NetEngine::Packets::Core::UniqueId(member_session_id, member_acc_cache->server_id).data;
+                auto member_unique_id = NetEngine::Packets::Core::UniqueId(member_session_id, 1).data;
                 RoomUserPlayerInfo1 info1{ member_acc_cache->acc_info.Grade,
                     0,
                     member_acc_cache->acc_info.SelectedCharacter,
@@ -777,7 +776,7 @@ namespace Game
                     {
                         if (main_server->IsPlazaBroadcastable(current_plaza))
                         {
-                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+                            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                             for (const auto& plaza_player_session_id : session_ids)
                             {
                                 if (plaza_player_session_id == session_id) continue;
@@ -819,10 +818,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             if (!acc_cache->in_party) return;
 
             if (order == 112) {//idk ?
@@ -886,10 +886,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             if (!main_server->IsPartyAlready(acc_cache->party_id)) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "could not find party id ({})", acc_cache->party_id);
                 return;
@@ -928,10 +929,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             struct info {
                 std::uint32_t victimUniqueId;
             };
@@ -995,11 +997,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party is clan and will register");
 
@@ -1077,11 +1079,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-          
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             struct info {
                 std::uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
             };
@@ -1137,11 +1139,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             struct info {
                 std::uint16_t partyId;
                 std::uint16_t channelId;
@@ -1342,11 +1344,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to leave clan room");
             if (!acc_cache->in_party || !acc_cache->in_room) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player isnt in any clan room");
@@ -1427,11 +1429,11 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            
+            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
             if (acc_index == -1) return;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, acc_cache->server_id).data;
+
             if (!acc_cache->in_party) {
 
                 return;

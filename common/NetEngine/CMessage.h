@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <vector>
+#include <stdexcept>
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "Constants.h"
 #include "CCrypt.h"
@@ -71,8 +72,8 @@ namespace NetEngine
         void resizeBuffer(size_t dataSize)
         {
             m_buffer.resize(minSize() + dataSize);
-            m_header = (Protocols::STcpPacketHeader*)(m_buffer.data());
-            m_command = (Protocols::SCommandHeader*)(m_buffer.data() + sizeof(Protocols::STcpPacketHeader));
+            m_header = (Protocols::STcpPacketHeader*)m_buffer.data();
+            m_command = (Protocols::SCommandHeader*)(m_header + 1);
         }
 
     private:

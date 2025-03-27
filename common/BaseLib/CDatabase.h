@@ -365,6 +365,7 @@ namespace BaseLib
         bool CreateDatabase(const std::string& name);
         bool RegisterAccount(const std::string& username, const std::string& password, const std::uint8_t& grade, const std::uint32_t& mp, const std::uint32_t& rt, const std::uint32_t& coupons = 0, const std::uint32_t& coins = 0, const std::uint32_t& energy = 0, const std::uint32_t& max_items = 1000, const std::uint32_t& max_battery = 5000, const std::string& nickname = "");
         bool GetFrontAccount(const std::string& username, FrontAccount* outFrontAccount);
+		bool GetFrontAccount(const std::string& username, const std::string& password, const std::string& salt, FrontAccount* outFrontAccount);
         bool NicknameExists(const std::string_view& nickname);
         bool NicknameExists(const std::string_view& nickname, std::uint32_t& account_id);;
         bool UpdateNickname(const std::string_view& nickname, const std::uint64_t& authKey);

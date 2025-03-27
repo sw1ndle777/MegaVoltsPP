@@ -1391,6 +1391,110 @@ namespace BaseLib
             return false;
         }
     }
+    bool CDatabase::GetFrontAccount(const std::string& username, const std::string& password, const std::string& salt, FrontAccount* outFrontAccount)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT Id, Username, Password, Salt, Grade, AuthKey, ClanId, Level, Experience, Kills, Deaths, Assists, Wins, Loses, Draws, Nickname "
+                "FROM accounts WHERE Username = ? AND Password = ? AND Salt = ?"
+            ));
+
+            pstmt->setString(1, username.c_str());
+            pstmt->setString(2, password.c_str());
+            pstmt->setString(3, salt.c_str());
+
+            std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+
+            if (result->next())
+            {
+
+                *outFrontAccount = FrontAccount(result->getUInt("Id"),
+                    result->getString("Username").c_str(),
+                    result->getString("Password").c_str(),
+                    result->getString("Salt").c_str(),
+                    result->getByte("Grade"),
+                    0,
+                    result->getUInt64("AuthKey"),
+                    result->getUInt("ClanId"),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    result->getString("Nickname").c_str(),
+                    result->getUInt("Level"),
+                    result->getUInt("Experience"),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    result->getUInt("Wins"),
+                    result->getUInt("Loses"),
+                    result->getUInt("Draws"),
+                    result->getUInt("Kills"),
+                    result->getUInt("Deaths"),
+                    result->getUInt("Assists"),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                );
+                // Commit transaction
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                // Rollback transaction if not found
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
     bool CDatabase::UpdateNickname(const std::string_view& nickname, const std::uint64_t& authKey)
     {
         try
@@ -1541,26 +1645,49 @@ namespace BaseLib
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM clans WHERE Id = ?"));
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Selecting only necessary columns instead of SELECT *
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT Id, OwnerId, ClanName, ClanLogoFront, ClanLogoBack FROM clans WHERE Id = ?"
+            ));
             pstmt->setUInt(1, clanId);
 
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
             if (result->next())
             {
-                *outClanInfo = ClanInfo(result->getUInt("Id"),
+                *outClanInfo = ClanInfo(
+                    result->getUInt("Id"),
                     result->getUInt("OwnerId"),
                     result->getString("ClanName").c_str(),
                     result->getUInt("ClanLogoFront"),
                     result->getUInt("ClanLogoBack")
                 );
 
+                // Commit transaction
+                stmt->execute("COMMIT");
                 return true;
             }
-            else return false;
+            else
+            {
+                // Rollback transaction if no result
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
         catch (sql::SQLException& e)
         {
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+
+            // Rollback transaction on exception
+            if (conn->isValid())
+            {
+                std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+                stmt->execute("ROLLBACK");
+            }
+
             return false;
         }
     }
