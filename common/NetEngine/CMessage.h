@@ -4,7 +4,7 @@
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "Constants.h"
 #include "CCrypt.h"
-
+#include <memory>
 namespace NetEngine
 {
     struct SendOption
@@ -61,7 +61,7 @@ namespace NetEngine
             memcpy_s(m_buffer.data() + dataOffset(), sizeof(data), &data, sizeof(data));
 			m_header.size = minSize() + sizeof(data);
         }
-        std::vector<uint8_t> GenerateMessage();
+        std::shared_ptr<std::vector<uint8_t>> GenerateMessage();
         void ProcessMessage(uint8_t* data, uint16_t size);
     private:
         void generateBogus();

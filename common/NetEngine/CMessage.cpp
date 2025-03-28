@@ -163,7 +163,7 @@ namespace NetEngine
         m_header->bogus = std::rand() % 262143 + 1;
 		m_command->bogus = std::rand() % 262143 + 1;
     }
-    std::vector<uint8_t> CMessage::GenerateMessage()
+    std::shared_ptr<std::vector<uint8_t>> CMessage::GenerateMessage()
     {
 
         const auto data_size = dataSize();
@@ -217,6 +217,7 @@ namespace NetEngine
             m_header->data = crypt.encrypt_tcp_header(m_header->data);
             crypt.RC5Encrypt32(m_buffer.data(), m_buffer.data(), tcp_header_size);
         }
-        return m_buffer;
+        return std::make_shared<std::vector<uint8_t>>(m_buffer);
+        //return m_buffer;
     }
 }
