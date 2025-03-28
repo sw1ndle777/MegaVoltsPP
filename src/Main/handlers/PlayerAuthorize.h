@@ -210,12 +210,15 @@ namespace Game
                 coupons_item.item_info.serial_info = ItemSerialInfo(0, 0, 0, 0, Utility::GetUnixEpoch());
                 player_inventory_items.insert(player_inventory_items.begin(), coupons_item);
             }
-            uint32_t total_inventory_fragments = (player_inventory_items.size() + 1) <= 35 ? 1 : ((player_inventory_items.size() + 1) / 35) + 1;
+            constexpr std::uint32_t max_packet_size = 1440;
+            constexpr std::uint32_t full_header_size = 8;
+			constexpr std::uint32_t split_size = (max_packet_size - full_header_size) / sizeof(InventoryItemInfo);
+            uint32_t total_inventory_fragments = (player_inventory_items.size() + 1) <= split_size ? 1 : ((player_inventory_items.size() + 1) / split_size) + 1;
             for (uint32_t i = 0; i < total_inventory_fragments; i++)
             {
                 if (!player_inventory_items.empty())
                 {
-                    auto items_batch = main_server->GetTransformStockItems(player_inventory_items, i, 35);
+                    auto items_batch = main_server->GetTransformStockItems(player_inventory_items, i, split_size);
                     if (!items_batch.empty())
                         send_msg(session, 77, 0, (i == 0) ? 37 : 0, items_batch.size(), reinterpret_cast<uint8_t*>(items_batch.data()), items_batch.size() * sizeof(InventoryItemInfo));
                 }
@@ -266,7 +269,7 @@ namespace Game
         #endif
 
             //uint64_t unlocked_voice_types = 0xFFFFFFFFFFFFFFFF;
-            send_msg(session, 413, 0, 59, 0, reinterpret_cast<uint8_t*>(&frontAccount.VoiceType), sizeof(frontAccount.VoiceType)); // final account info
+            
 
             //send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
             /*
@@ -574,6 +577,8 @@ namespace Game
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             acc_cache->daily_mission_info = playerDailyMissionData;
             acc_cache.unlock();
+
+            send_msg(session, 413, 0, 59, 0, reinterpret_cast<uint8_t*>(&frontAccount.VoiceType), sizeof(frontAccount.VoiceType)); // final account info
 
             /*
             struct daily_mission

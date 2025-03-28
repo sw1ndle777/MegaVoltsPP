@@ -3239,8 +3239,8 @@ namespace Game
         auto GetTransformStockItems(const std::vector<Item>& items, const uint32_t& fragment_index = 0, const uint32_t& fragment_max_size = 35)
         {
             std::vector<InventoryItemInfo> new_items;
-            const uint32_t start_index = fragment_index * 35;
-            const uint32_t end_index = std::min(start_index + 35, static_cast<uint32_t>(items.size()));
+            const uint32_t start_index = fragment_index * fragment_max_size;
+            const uint32_t end_index = std::min(start_index + fragment_max_size, static_cast<uint32_t>(items.size()));
             for (auto i = start_index; i < end_index; i++)
             {
                 auto new_item = items[i].item_info;
