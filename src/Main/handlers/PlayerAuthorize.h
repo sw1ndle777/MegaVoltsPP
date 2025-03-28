@@ -271,6 +271,23 @@ namespace Game
             //uint64_t unlocked_voice_types = 0xFFFFFFFFFFFFFFFF;
             
 
+            auto timer = std::make_shared<asio::steady_timer>(main_server->GetIoContext(), std::chrono::milliseconds(100));
+            timer->async_wait([timer, main_server, session_id, send_msg, session](const asio::error_code& ec)
+                {
+                    CMessage keepAliveMsg = CMessage();
+                    keepAliveMsg.SetSession(session->GetSessionId());
+                    keepAliveMsg.SetCommand(0, 0, 0, 0);
+                    session->Send(keepAliveMsg);
+
+                    struct MainToCastSendPingAssureInfo
+                    {
+                        uint32_t session_id;
+                    } info;
+                    info.session_id = session_id;
+                    main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
+                });
+
+
             //send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
             /*
             PlayerPingUpdateInfo ping_data{};

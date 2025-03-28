@@ -101,10 +101,17 @@ namespace Game
                     auto data = Utility::FromVector<MainToCastSendPingAssureInfo>(payload);
                     if (auto player_session = cast_server->GetSessionByIdNoLock(data.session_id))
                     {
+
+                        CMessage keepAliveMsg = CMessage();
+                        keepAliveMsg.SetSession(player_session->GetSessionId());
+                        keepAliveMsg.SetCommand(0, 0, 0, 0);
+                        player_session->Send(keepAliveMsg);
+                        /*
                         CMessage castPingAck = CMessage(player_session->GetEncryptionKey());
                         castPingAck.SetSession(player_session->GetSessionId());
                         castPingAck.SetCommand(72, 1, 0x00, 0);
                         player_session->Send(castPingAck);
+                        */
                         //player_session->Send(castPingAck);
                         //player_session->Send(castPingAck);
                         //castPingAck.SetOption(3);
