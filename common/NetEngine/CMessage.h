@@ -63,6 +63,7 @@ namespace NetEngine
         }
         std::shared_ptr<std::vector<uint8_t>> GenerateMessage();
         void ProcessMessage(uint8_t* data, uint16_t size);
+        bool Created = false;
     private:
         void generateBogus();
 		static constexpr size_t tcp_header_size = sizeof(Protocols::STcpPacketHeader);

@@ -1,5 +1,6 @@
 #include "CMessage.h"
-
+#include <stdexcept>
+#include <format>
 namespace NetEngine
 {
     CMessage::CMessage(int32_t crypt_key)
@@ -165,6 +166,16 @@ namespace NetEngine
     }
     std::shared_ptr<std::vector<uint8_t>> CMessage::GenerateMessage()
     {
+        if (Created)
+        {
+			auto order = GetOrder();
+			auto mission = GetMission();
+			auto extra = GetExtra();
+			auto option = GetOption();
+			auto size = GetFullSize();
+			auto str = std::format("Message already created: order: {}, mission: {}, extra: {}, option: {}, size: {}", order, mission, extra, option, size);
+            std::runtime_error(str.c_str());
+        }
 
         const auto data_size = dataSize();
         const auto partial_size = data_size + command_header_size;
@@ -217,7 +228,10 @@ namespace NetEngine
             m_header->data = crypt.encrypt_tcp_header(m_header->data);
             crypt.RC5Encrypt32(m_buffer.data(), m_buffer.data(), tcp_header_size);
         }
-        return std::make_shared<std::vector<uint8_t>>(m_buffer);
+        
+
+        Created = true;
+        return std::make_shared<std::vector<uint8_t>>(std::move(m_buffer));
         //return m_buffer;
     }
 }

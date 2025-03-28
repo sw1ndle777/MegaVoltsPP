@@ -1193,7 +1193,7 @@ namespace NetEngine
                 {
                     uint32_t session : 16;
                     uint32_t server : 15;
-                    uint32_t  unknown : 1;
+                    uint32_t unknown : 1;
                 };
                 uint32_t data;
 

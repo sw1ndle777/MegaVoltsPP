@@ -458,8 +458,8 @@ namespace NetEngine
             #endif
                 //uint32_t AccountId;//0xC4
                 uint64_t AccountAuthkey;//0xC8
-                char Unused[8];//0xCC
-                char ClanName[16];//0xD4
+                char Unused[8];
+                char ClanName[16];//D0
 
                 union {
                     struct {
