@@ -21,7 +21,7 @@
 std::ostream& outputStream = std::cout;
 
 using namespace NetEngine::Packets::Main;
-std::vector<std::uint8_t> loadFileCrossPlatform(std::source_location source_location, const std::string& relativePath)
+std::vector<uint8_t> loadFileCrossPlatform(std::source_location source_location, const std::string& relativePath)
 {
     std::filesystem::path basePath = "../cgd";
 
@@ -48,7 +48,7 @@ int main()
     GetConsoleMode(hOut, &dwMode);
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(hOut, dwMode);//enable colors
-    std::srand(static_cast<std::uint32_t>(std::time(NULL)));
+    std::srand(static_cast<uint32_t>(std::time(NULL)));
 
     BaseLib::EventLog->Initialize("../logs/MegaVoltsPP_main.log", false);
     BaseLib::DefaultSettings->LoadOptions();
@@ -63,20 +63,20 @@ int main()
     auto start_time = std::chrono::system_clock::now();
 
 
-    std::vector<std::uint8_t> buffer_iteminfo = loadFileCrossPlatform(std::source_location::current(), "iteminfo.cdb");
-    std::vector<std::uint8_t> buffer_effectinfo = loadFileCrossPlatform(std::source_location::current(), "effectinfo.cdb");
-    std::vector<std::uint8_t> buffer_collectioninfo = loadFileCrossPlatform(std::source_location::current(), "collectioninfo.cdb");
-    std::vector<std::uint8_t> buffer_dailymissioninfo = loadFileCrossPlatform(std::source_location::current(), "dailymissioninfo.cdb");
-    std::vector<std::uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform(std::source_location::current(), "itemweaponsinfo.cdb");
-    std::vector<std::uint8_t> buffer_setiteminfo = loadFileCrossPlatform(std::source_location::current(), "setiteminfo.cdb");
-    std::vector<std::uint8_t> buffer_vendorinfo = loadFileCrossPlatform(std::source_location::current(), "vendorinfo.cdb");
-    std::vector<std::uint8_t> buffer_upgradeinfo = loadFileCrossPlatform(std::source_location::current(), "upgradeinfo.cdb");
-    std::vector<std::uint8_t> buffer_gachaponinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponinfo.cdb");
-    std::vector<std::uint8_t> buffer_gachaponpackageinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponpackageinfo.cdb");
-    std::vector<std::uint8_t> buffer_itempackageinfo = loadFileCrossPlatform(std::source_location::current(), "itempackageinfo.cdb");
-    std::vector<std::uint8_t> buffer_roomoptioninfo = loadFileCrossPlatform(std::source_location::current(), "roomoptioninfo.cdb");
-    std::vector<std::uint8_t> buffer_gradeinfo = loadFileCrossPlatform(std::source_location::current(), "gradeinfo.cdb");
-    std::vector<std::uint8_t> buffer_rewardinfo = loadFileCrossPlatform(std::source_location::current(), "rewardinfo.cdb");
+    std::vector<uint8_t> buffer_iteminfo = loadFileCrossPlatform(std::source_location::current(), "iteminfo.cdb");
+    std::vector<uint8_t> buffer_effectinfo = loadFileCrossPlatform(std::source_location::current(), "effectinfo.cdb");
+    std::vector<uint8_t> buffer_collectioninfo = loadFileCrossPlatform(std::source_location::current(), "collectioninfo.cdb");
+    std::vector<uint8_t> buffer_dailymissioninfo = loadFileCrossPlatform(std::source_location::current(), "dailymissioninfo.cdb");
+    std::vector<uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform(std::source_location::current(), "itemweaponsinfo.cdb");
+    std::vector<uint8_t> buffer_setiteminfo = loadFileCrossPlatform(std::source_location::current(), "setiteminfo.cdb");
+    std::vector<uint8_t> buffer_vendorinfo = loadFileCrossPlatform(std::source_location::current(), "vendorinfo.cdb");
+    std::vector<uint8_t> buffer_upgradeinfo = loadFileCrossPlatform(std::source_location::current(), "upgradeinfo.cdb");
+    std::vector<uint8_t> buffer_gachaponinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponinfo.cdb");
+    std::vector<uint8_t> buffer_gachaponpackageinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponpackageinfo.cdb");
+    std::vector<uint8_t> buffer_itempackageinfo = loadFileCrossPlatform(std::source_location::current(), "itempackageinfo.cdb");
+    std::vector<uint8_t> buffer_roomoptioninfo = loadFileCrossPlatform(std::source_location::current(), "roomoptioninfo.cdb");
+    std::vector<uint8_t> buffer_gradeinfo = loadFileCrossPlatform(std::source_location::current(), "gradeinfo.cdb");
+    std::vector<uint8_t> buffer_rewardinfo = loadFileCrossPlatform(std::source_location::current(), "rewardinfo.cdb");
 
   
     CDBM iteminfo_cdb, effectinfo_cdb, collectioninfo_cdb, dailymissioninfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
@@ -86,7 +86,7 @@ int main()
     
     auto& iteminfo_data = iteminfo_cdb.GetDataRows();
     auto& itemweaponsinfo_data = itemweaponsinfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < iteminfo_data.size(); i++)
+    for (uint32_t i = 0; i < iteminfo_data.size(); i++)
     {
         BaseLib::ItemInfo new_item_info;
         auto& data_fields = iteminfo_data[i];
@@ -116,7 +116,7 @@ int main()
         new_item_info.BonusEffectId = data_fields.at("ef_effect_2").GetInt();
         mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
-    for (std::uint32_t i = 0; i < itemweaponsinfo_data.size(); i++)
+    for (uint32_t i = 0; i < itemweaponsinfo_data.size(); i++)
     {
         BaseLib::ItemInfo new_item_info;
         auto& data_fields = itemweaponsinfo_data[i];
@@ -170,7 +170,7 @@ int main()
     start_time = std::chrono::system_clock::now();
     effectinfo_cdb.LoadCDB(buffer_effectinfo);
     auto& effectinfo_data = effectinfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < effectinfo_data.size(); i++)
+    for (uint32_t i = 0; i < effectinfo_data.size(); i++)
     {
         BaseLib::EffectInfo new_effectinfo;
         auto& data_fields = effectinfo_data[i];
@@ -197,7 +197,7 @@ int main()
     start_time = std::chrono::system_clock::now();
     collectioninfo_cdb.LoadCDB(buffer_collectioninfo);
     auto& collectioninfo_data = collectioninfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < collectioninfo_data.size(); i++)
+    for (uint32_t i = 0; i < collectioninfo_data.size(); i++)
     {
         BaseLib::CollectionInfo new_collectioninfo;
         auto& data_fields = collectioninfo_data[i];
@@ -227,7 +227,7 @@ int main()
     start_time = std::chrono::system_clock::now();
     dailymissioninfo_cdb.LoadCDB(buffer_dailymissioninfo);
     auto& dailymissioninfo_data = dailymissioninfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < dailymissioninfo_data.size(); i++)
+    for (uint32_t i = 0; i < dailymissioninfo_data.size(); i++)
     {
         BaseLib::DailyMissionInfo new_dailymissioninfo;
         auto& data_fields = dailymissioninfo_data[i];
@@ -257,7 +257,7 @@ int main()
     start_time = std::chrono::system_clock::now();
     setiteminfo_cdb.LoadCDB(buffer_setiteminfo);
     auto& setiteminfo_data = setiteminfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < setiteminfo_data.size(); i++)
+    for (uint32_t i = 0; i < setiteminfo_data.size(); i++)
     {
         BaseLib::SetItemInfo new_setitem_info;
         auto& data_fields = setiteminfo_data[i];
@@ -292,7 +292,7 @@ int main()
     start_time = std::chrono::system_clock::now();
     vendorinfo_cdb.LoadCDB(buffer_vendorinfo);
     auto& vendorinfo_data = vendorinfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < vendorinfo_data.size(); i++)
+    for (uint32_t i = 0; i < vendorinfo_data.size(); i++)
     {
         BaseLib::VendorInfo new_vendorinfo;
         auto& data_fields = vendorinfo_data[i];
@@ -344,7 +344,7 @@ int main()
     start_time = std::chrono::system_clock::now();
     upgradeinfo_cdb.LoadCDB(buffer_upgradeinfo);
     auto& upgradeinfo_data = upgradeinfo_cdb.GetDataRows();
-    for (std::uint32_t i = 0; i < upgradeinfo_data.size(); i++)
+    for (uint32_t i = 0; i < upgradeinfo_data.size(); i++)
     {
         BaseLib::UpgradeInfo new_upgradeinfo;
         auto& data_fields = upgradeinfo_data[i];
@@ -382,9 +382,9 @@ int main()
     gachaponpackageinfo_cdb.LoadCDB(buffer_gachaponpackageinfo);
     auto& gachaponinfo_data = gachaponinfo_cdb.GetDataRows();
     auto& gachaponpackageinfo_data = gachaponpackageinfo_cdb.GetDataRows();
-    //std::unordered_map<std::uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
-    boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
-    for (std::uint32_t i = 0; i < gachaponpackageinfo_data.size(); i++)
+    //std::unordered_map<uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
+    boost::unordered_flat_map<uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
+    for (uint32_t i = 0; i < gachaponpackageinfo_data.size(); i++)
     {
         BaseLib::GachaponPackageItem new_gachaponpackageitem;
         auto& data_fields = gachaponpackageinfo_data[i];
@@ -397,7 +397,7 @@ int main()
         new_gachaponpackageitem.ItemId = data_fields.at("gi_itemid").GetInt();
         gachapon_package_items[new_gachaponpackageitem.InfoId].push_back(new_gachaponpackageitem);
     }
-    for (std::uint32_t i = 0; i < gachaponinfo_data.size(); i++)
+    for (uint32_t i = 0; i < gachaponinfo_data.size(); i++)
     {
         BaseLib::GachaponInfo new_gachaponinfo;
         auto& data_fields = gachaponinfo_data[i];
@@ -438,7 +438,7 @@ int main()
     itempackageinfo_cdb.LoadCDB(buffer_itempackageinfo);
     auto& itempackageinfo_data = itempackageinfo_cdb.GetDataRows();
 
-    for (std::uint32_t i = 0; i < itempackageinfo_data.size(); i++)
+    for (uint32_t i = 0; i < itempackageinfo_data.size(); i++)
     {
         BaseLib::PackageInfo new_packageinfo;
         auto& data_fields = itempackageinfo_data[i];
@@ -468,7 +468,7 @@ int main()
     roomoptioninfo_cdb.LoadCDB(buffer_roomoptioninfo);
     auto& roomoptioninfo_data = roomoptioninfo_cdb.GetDataRows();
 
-    for (std::uint32_t i = 0; i < roomoptioninfo_data.size(); i++)
+    for (uint32_t i = 0; i < roomoptioninfo_data.size(); i++)
     {
         BaseLib::RoomOptionInfo new_roomoptioninfo;
         auto& data_fields = roomoptioninfo_data[i];
@@ -501,7 +501,7 @@ int main()
     gradeinfo_cdb.LoadCDB(buffer_gradeinfo);
     auto& gradeinfo_data = gradeinfo_cdb.GetDataRows();
 
-    for(std::uint32_t i = 0; i < gradeinfo_data.size(); i++)
+    for(uint32_t i = 0; i < gradeinfo_data.size(); i++)
     {
         BaseLib::GradeInfo new_gradeinfo;
         auto& data_fields = gradeinfo_data[i];
@@ -531,7 +531,7 @@ int main()
     rewardinfo_cdb.LoadCDB(buffer_rewardinfo);
     auto& rewardinfo_data = rewardinfo_cdb.GetDataRows();
 
-    for (std::uint32_t i = 0; i < rewardinfo_data.size(); i++)
+    for (uint32_t i = 0; i < rewardinfo_data.size(); i++)
     {
         BaseLib::RewardInfo new_rewardinfo;
         auto& data_fields = rewardinfo_data[i];

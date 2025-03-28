@@ -9,7 +9,7 @@ namespace Game
     {
         inline void PlayerChangeCharacter(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -24,12 +24,12 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto selected_character = static_cast<Character::Type>(callback.message->GetOption());
-            acc_cache->acc_info.SelectedCharacter = static_cast<std::uint32_t>(selected_character);
+            acc_cache->acc_info.SelectedCharacter = static_cast<uint32_t>(selected_character);
             auto auth_key = acc_cache->acc_info.AuthKey;
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
             acc_cache.unlock();
-            send_msg(session, 74, 0, CharacterSelectInfo::Result::Ok, static_cast<std::uint8_t>(selected_character));
+            send_msg(session, 74, 0, CharacterSelectInfo::Result::Ok, static_cast<uint8_t>(selected_character));
             acc_cache.lock();
             /*
             if (acc_cache->state < 2)
@@ -37,14 +37,14 @@ namespace Game
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ask cast to send ping assure");
                 struct MainToCastSendPingAssureInfo
                 {
-                    std::uint32_t session_id;
+                    uint32_t session_id;
                 } info;
                 info.session_id = session->GetSessionId();
                 main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
                 PlayerPingUpdateInfo ping_data{};
                 ping_data.ping = 60;
                 auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
-                send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
 
                 //send_msg(session, 72, 0, 0, 0);
             }
@@ -64,7 +64,7 @@ namespace Game
 
             std::vector<BaseLib::Item> my_equipped_items;
             for (const auto& item : acc_cache->inventory_items)
-                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character))
+                if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(selected_character))
                     my_equipped_items.push_back(item);
 
             acc_cache.unlock();
@@ -115,7 +115,7 @@ namespace Game
                 if (auto player_session = server->GetSessionById(room_player_session_id))
                     send_msg(player_session.get(), 414, 0, selected_character, 17, reinterpret_cast<uint8_t*>(&equip_data), sizeof(MainRoomPlayersEquipInfoUpdateRoomAck));
             }
-            BaseLib::Database->UpdateSelectedCharacter(static_cast<std::uint32_t>(selected_character), auth_key);
+            BaseLib::Database->UpdateSelectedCharacter(static_cast<uint32_t>(selected_character), auth_key);
         }
     }
     

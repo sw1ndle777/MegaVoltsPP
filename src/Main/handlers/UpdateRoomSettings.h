@@ -7,7 +7,7 @@ namespace Game
 
     namespace Handlers
     {
-        void SwapAndReorderTeamLists(RoomCacheResource& room, std::uint16_t old_host_id, std::uint16_t new_host_id, CMainServer* server)
+        void SwapAndReorderTeamLists(RoomCacheResource& room, uint16_t old_host_id, uint16_t new_host_id, CMainServer* server)
         {
             // Get both players' caches
             auto old_host_cache = server->GetAccCacheUniqueBySessionId(old_host_id);
@@ -27,7 +27,7 @@ namespace Game
             new_host_cache.unlock();
 
             // Reorder both team lists
-            auto reorder_team_list = [&](std::vector<std::uint16_t>& team_list, std::uint16_t player_id)
+            auto reorder_team_list = [&](std::vector<uint16_t>& team_list, uint16_t player_id)
                 {
                     auto old_index_it = std::find(team_list.begin(), team_list.end(), player_id);
                     if (old_index_it != team_list.end())
@@ -36,7 +36,7 @@ namespace Game
                     }
 
                     auto new_index_it = std::lower_bound(team_list.begin(), team_list.end(), player_id,
-                        [&](const std::uint16_t& a, const std::uint16_t& b)
+                        [&](const uint16_t& a, const uint16_t& b)
                         {
                             auto player_cache_a = server->GetAccCacheSharedBySessionId(a);
                             auto player_cache_b = server->GetAccCacheSharedBySessionId(b);
@@ -50,14 +50,14 @@ namespace Game
                     team_list.insert(new_index_it, player_id);
                 };
 
-            auto& old_team_list = (old_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
-                (old_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
-                    (old_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
+            auto& old_team_list = (old_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
+                (old_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
+                    (old_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
                         room->observers_session_ids)));
 
-            auto& new_team_list = (new_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
-                (new_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
-                    (new_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
+            auto& new_team_list = (new_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
+                (new_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
+                    (new_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
                         room->observers_session_ids)));
 
             // Reorder the team lists
@@ -68,7 +68,7 @@ namespace Game
         }
         inline void ChangeHost(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -83,7 +83,7 @@ namespace Game
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
             auto target_slot_id = callback.message->GetOption();
-            std::uint16_t target_session_id = 0;      
+            uint16_t target_session_id = 0;      
             auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id) || room_cache->is_playing)
             {
@@ -91,7 +91,7 @@ namespace Game
                 return;
             }
             acc_cache.unlock();
-            auto find_target_session = [&](const std::vector<std::uint16_t>& session_ids) -> std::uint16_t
+            auto find_target_session = [&](const std::vector<uint16_t>& session_ids) -> uint16_t
             {
                 for (const auto& id : session_ids)
                 {
@@ -137,7 +137,7 @@ namespace Game
            
             //target_acc_cache->slot_id = acc_cache->slot_id;
 
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "current host have state: ({}) and target host state: ({})", static_cast<std::uint32_t>(acc_cache->state), static_cast<std::uint32_t>(target_acc_cache->state));
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "current host have state: ({}) and target host state: ({})", static_cast<uint32_t>(acc_cache->state), static_cast<uint32_t>(target_acc_cache->state));
             if (target_acc_cache->state == PlayerInfo::State::Waiting)
             {
                 target_acc_cache->state = PlayerInfo::State::HostReady;
@@ -149,8 +149,8 @@ namespace Game
 
             struct RoomAuthData
             {
-                std::uint16_t room_id;
-                std::uint64_t auth_key;
+                uint16_t room_id;
+                uint64_t auth_key;
             };
             RoomAuthData new_host_data{ room_cache->room_id, target_acc_cache->acc_info.AuthKey };
 
@@ -169,7 +169,7 @@ namespace Game
         }
         inline void MaxTimeLimit(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -197,7 +197,7 @@ namespace Game
         }
         inline void MaxPointsLimit(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -225,7 +225,7 @@ namespace Game
         }
         inline void MaxPlayersLimit(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -255,7 +255,7 @@ namespace Game
         }
         inline void MapState(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -282,7 +282,7 @@ namespace Game
         }
         inline void ObserversState(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -335,7 +335,7 @@ namespace Game
         }
         inline void IntrudersState(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -363,7 +363,7 @@ namespace Game
         }
         inline void ObjectsState(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -392,7 +392,7 @@ namespace Game
         inline void TitlePasswordSettings(SCallbackData& callback, CMainServer* main_server)
         {
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "want to change Title or Password");
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -404,7 +404,7 @@ namespace Game
             CSession* session = callback.session;
             CServer* server = callback.server;
            
-            auto broadcastToPlayers = [&](const std::uint32_t target_session_id, const std::uint8_t& order, const std::uint8_t& mission = 0, const std::uint8_t& extra = 0, const std::uint8_t& option = 0)
+            auto broadcastToPlayers = [&](const uint32_t target_session_id, const uint8_t& order, const uint8_t& mission = 0, const uint8_t& extra = 0, const uint8_t& option = 0)
             {
                 if (auto player_session = server->GetSessionById(target_session_id))
                     send_msg(player_session.get(), order, mission, extra, option, callback.message->GetData(), callback.message->GetDataSize());
@@ -464,7 +464,7 @@ namespace Game
                 room_cache->TeamBalance = NetEngine::Room::Balance::State::Disabled;//static_cast<NetEngine::Room::Balance::State>(settings_info->team_balance);
                 settings_info->team_balance = NetEngine::Room::Balance::State::Disabled;
                 room_cache->ModeIndex = mode_id;
-                callback.message->SetData(reinterpret_cast<std::uint8_t*>(settings_info), data_size);
+                callback.message->SetData(reinterpret_cast<uint8_t*>(settings_info), data_size);
                 for (const auto& room_player_session_id : players_ids)
                     broadcastToPlayers(room_player_session_id, order, mission, extra, option);
             }
@@ -556,9 +556,9 @@ namespace Game
                 {
                     room_cache->neutralteam_session_ids.clear();
 
-                    std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+                    std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-                    auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids) 
+                    auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids) 
                     {
                         for (const auto& id : team_session_ids)
                         {
@@ -576,7 +576,7 @@ namespace Game
                     addPlayerToSlotPairs(room_cache->redteam_session_ids);
 
                     std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                        [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                        [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                         return a.second < b.second;
                     });
 
@@ -617,7 +617,7 @@ namespace Game
         }
         inline void VoteKickAgree(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -658,7 +658,7 @@ namespace Game
         }
         inline void VoteKickCheckVotes(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -756,7 +756,7 @@ namespace Game
             for (const auto& room_player_session_id : room_playing_players)
             {
                 if (auto player_session = main_server->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 125, 0, 42, static_cast<std::uint8_t>(total_y_voters));
+                    send_msg(player_session.get(), 125, 0, 42, static_cast<uint8_t>(total_y_voters));
             }
 
             room_cache->voters_session_ids.clear();
@@ -792,8 +792,8 @@ namespace Game
            
             //main_server->RoomPlayersSlotReorder(room_cache);
             /*
-            std::vector<std::uint32_t> players_ids;
-            std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
+            std::vector<uint32_t> players_ids;
+            std::vector<std::pair<uint32_t, uint32_t>> player_slot_pairs;
             auto insert_player_slot_pair = [&](const auto& session_ids)
             {
                 for (const auto& id : session_ids)
@@ -820,7 +820,7 @@ namespace Game
             else
                 insert_player_slot_pair(room_cache->neutralteam_session_ids);
             insert_player_slot_pair(room_cache->observers_session_ids);
-            std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
+            std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) { return a.second < b.second; });
             for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
            
 
@@ -835,7 +835,7 @@ namespace Game
                         room_cache->host_session_id = best_ping_session_id;
                         for (const auto& id : players_ids)
                             if (auto player_session = main_server->GetSessionById(id))
-                                send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
+                                send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
 
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room No. ({}) changed host ({}) -> ({}) due to leaving while playing. ", room_cache->room_id, player_nickname.c_str(), best_ping_acc_cache->acc_info.Nickname.c_str());
                     }
@@ -883,7 +883,7 @@ namespace Game
         }
         inline void VoteKick(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -955,7 +955,7 @@ namespace Game
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
                     "player: ({}) tried to vote kick non playing player session: ({})",
-                    acc_cache_nickname.c_str(), static_cast<std::uint16_t>(target_unique_id.session));
+                    acc_cache_nickname.c_str(), static_cast<uint16_t>(target_unique_id.session));
                 send_msg(session, 125, 0, 13, 0); // KICK_VOTE_ERROR_3
                 return;
             }
@@ -976,7 +976,7 @@ namespace Game
             for (const auto& room_player_session_id : room_playing_players)
             {
                 if (auto player_session = server->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 125, 0, 28, 1, reinterpret_cast<std::uint8_t*>(&voteKickAck), sizeof(MainVoteKickAck));
+                    send_msg(player_session.get(), 125, 0, 28, 1, reinterpret_cast<uint8_t*>(&voteKickAck), sizeof(MainVoteKickAck));
             }
         }
         inline void UpdateRoomSettings(SCallbackData& callback, CMainServer* main_server)

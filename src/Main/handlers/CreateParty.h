@@ -11,28 +11,28 @@ namespace Game
 #pragma pack(push, 1)
             struct PartyInfo
             {
-                std::uint16_t clanRoomId;
-                std::uint16_t clanRoomNumber;
+                uint16_t clanRoomId;
+                uint16_t clanRoomNumber;
 
                 union {
                     struct {
-                        std::uint32_t numPlayers : 4;//0
-                        std::uint32_t maxPlayers : 4;//4
-                        std::uint32_t unknown0 : 1;//8
-                        std::uint32_t hasMatchStarted : 1;//9
-                        std::uint32_t unknown1 : 1;//10
-                        std::uint32_t isQueueing : 1;//11
-                        std::uint32_t leaderLevel : 7;//12
-                        std::uint32_t unknown3 : 12;
+                        uint32_t numPlayers : 4;//0
+                        uint32_t maxPlayers : 4;//4
+                        uint32_t unknown0 : 1;//8
+                        uint32_t hasMatchStarted : 1;//9
+                        uint32_t unknown1 : 1;//10
+                        uint32_t isQueueing : 1;//11
+                        uint32_t leaderLevel : 7;//12
+                        uint32_t unknown3 : 12;
                     };
-                    std::uint32_t data;
+                    uint32_t data;
                 };
 
                 char leaderName[16];
 
-                PartyInfo(const std::uint16_t& roomId = 0, const std::uint16_t& roomNumber = 0,
-                    const std::uint32_t& players = 1, const std::uint32_t& maxP = 8,
-                    const std::uint32_t& matchStarted = 0, const std::uint32_t& leaderLvl = 0,
+                PartyInfo(const uint16_t& roomId = 0, const uint16_t& roomNumber = 0,
+                    const uint32_t& players = 1, const uint32_t& maxP = 8,
+                    const uint32_t& matchStarted = 0, const uint32_t& leaderLvl = 0,
                     const char* leader = "")
                 {
                     std::memset(this, 0, sizeof(PartyInfo));
@@ -49,21 +49,21 @@ namespace Game
 
             union PartyPlayerInfo3 {
                 struct {
-                    std::uint64_t totalClanWins : 23;
-                    std::uint64_t totalClanLosses : 23;
-                    std::uint64_t totalClanDraws : 14;
-                    std::uint64_t padding : 4;
+                    uint64_t totalClanWins : 23;
+                    uint64_t totalClanLosses : 23;
+                    uint64_t totalClanDraws : 14;
+                    uint64_t padding : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
 
             union PartyPlayerInfo2 {
                 struct {
-                    std::uint32_t ClanPadding : 3;
-                    std::uint32_t ClanContribution : 22;
-                    std::uint32_t unk1 : 7;
+                    uint32_t ClanPadding : 3;
+                    uint32_t ClanContribution : 22;
+                    uint32_t unk1 : 7;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
 
             struct PartyPlayerInfo
@@ -99,23 +99,23 @@ namespace Game
                 NetEngine::Packets::Core::UniqueId uid;//28
                 RoomUserPlayerInfo1 info1;//32
 
-                std::uint32_t EquippedHairItemId;
-                std::uint32_t EquippedFaceItemId;
-                std::uint32_t EquippedUpperItemId;
-                std::uint32_t EquippedUnderItemId;
-                std::uint32_t EquippedPantsItemId;
-                std::uint32_t EquippedShirtItemId;
-                std::uint32_t EquippedBootsItemId;
-                std::uint32_t EquippedGlassItemId;
-                std::uint32_t EquippedAccessoryWaistItemId;
-                std::uint32_t EquippedAccessoryBackItemId;
-                std::uint32_t EquippedMeleeItemId;
-                std::uint32_t EquippedRifleItemId;
-                std::uint32_t EquippedShotgunItemId;
-                std::uint32_t EquippedSniperItemId;
-                std::uint32_t EquippedGatlingItemId;
-                std::uint32_t EquippedGrenadeItemId;
-                std::uint32_t EquippedBazookaItemId;
+                uint32_t EquippedHairItemId;
+                uint32_t EquippedFaceItemId;
+                uint32_t EquippedUpperItemId;
+                uint32_t EquippedUnderItemId;
+                uint32_t EquippedPantsItemId;
+                uint32_t EquippedShirtItemId;
+                uint32_t EquippedBootsItemId;
+                uint32_t EquippedGlassItemId;
+                uint32_t EquippedAccessoryWaistItemId;
+                uint32_t EquippedAccessoryBackItemId;
+                uint32_t EquippedMeleeItemId;
+                uint32_t EquippedRifleItemId;
+                uint32_t EquippedShotgunItemId;
+                uint32_t EquippedSniperItemId;
+                uint32_t EquippedGatlingItemId;
+                uint32_t EquippedGrenadeItemId;
+                uint32_t EquippedBazookaItemId;
 
                 PartyPlayerInfoJoin(const NetEngine::Packets::Core::UniqueId& playerUid, const RoomUserPlayerInfo1& info1,
                     const PartyPlayerInfo2& info2,
@@ -133,18 +133,18 @@ namespace Game
 
             struct ClanRoomSettings
             {
-                std::uint32_t mode : 5;
-                std::uint32_t playersPerTeam : 3;
-                std::uint32_t u0 : 1;
-                std::uint32_t map : 7;
-                std::uint32_t u1 : 3;
-                std::uint32_t hasPassword : 1;
-                std::uint32_t rest : 12;
+                uint32_t mode : 5;
+                uint32_t playersPerTeam : 3;
+                uint32_t u0 : 1;
+                uint32_t map : 7;
+                uint32_t u1 : 3;
+                uint32_t hasPassword : 1;
+                uint32_t rest : 12;
                 char password[8];
-                std::uint64_t u2;
+                uint64_t u2;
 
-                ClanRoomSettings(const std::uint32_t& gameMode = 0, const std::uint32_t& teamSize = 0,
-                    const std::uint32_t& gameMap = 18, const std::uint32_t& passFlag = 0,
+                ClanRoomSettings(const uint32_t& gameMode = 0, const uint32_t& teamSize = 0,
+                    const uint32_t& gameMap = 18, const uint32_t& passFlag = 0,
                     const char* pass = "")
                 {
                     std::memset(this, 0, sizeof(ClanRoomSettings));
@@ -159,16 +159,16 @@ namespace Game
             struct JoinPartyInfo2 {
                 char nickname[16];
 
-                std::uint32_t padding1;
+                uint32_t padding1;
 
                 RoomUserPlayerInfo1 info;
                 RoomUserPlayerInfo2 info2;
 
                 NetEngine::Packets::Core::UniqueId uid;
 
-                std::uint32_t extraField;
+                uint32_t extraField;
 
-                std::uint8_t additionalData[4];
+                uint8_t additionalData[4];
 
                 JoinPartyInfo2(const char* name = "", const NetEngine::Packets::Core::UniqueId& playerUid = 0) {
                     std::memset(this, 0, sizeof(JoinPartyInfo2));
@@ -181,18 +181,18 @@ namespace Game
             {
                 char nickname[16];
                 NetEngine::Packets::Core::UniqueId uid;
-                std::uint32_t level : 7;
-                std::uint32_t unknown : 3;
-                std::uint32_t clanContribution : 22;
-                std::uint64_t totalClanWins : 23;
-                std::uint64_t totalClanLosses : 23;
-                std::uint64_t totalClanDraws : 14;
-                std::uint64_t padding : 4;
+                uint32_t level : 7;
+                uint32_t unknown : 3;
+                uint32_t clanContribution : 22;
+                uint64_t totalClanWins : 23;
+                uint64_t totalClanLosses : 23;
+                uint64_t totalClanDraws : 14;
+                uint64_t padding : 4;
 
                 JoinPartyInfo(const char* name = "", const NetEngine::Packets::Core::UniqueId& playerUid = 0,
-                    const std::uint32_t& playerLevel = 0, const std::uint32_t& contribution = 0,
-                    const std::uint64_t& wins = 0, const std::uint64_t& losses = 0,
-                    const std::uint64_t& draws = 0)
+                    const uint32_t& playerLevel = 0, const uint32_t& contribution = 0,
+                    const uint64_t& wins = 0, const uint64_t& losses = 0,
+                    const uint64_t& draws = 0)
                 {
                     std::memset(this, 0, sizeof(JoinPartyInfo));
                     std::strcpy(this->nickname, name);
@@ -207,42 +207,42 @@ namespace Game
 
             struct RegisteredClanInfo
             {
-                std::uint16_t party_id;
-                std::uint16_t clan_id;
+                uint16_t party_id;
+                uint16_t clan_id;
                 union {
                     struct {
-                        std::uint32_t unk : 3;//0
-                        std::uint32_t has_password : 1;//3
-                        std::uint32_t mode_index : 5;//4
-                        std::uint32_t unk2 : 4;//9
-                        std::uint32_t max_players : 4;//13
-                        std::uint32_t map_index : 7;//17
-                        std::uint32_t level : 7;//24
-                        std::uint32_t clanLogoFrontIdLastBit : 1;//31
+                        uint32_t unk : 3;//0
+                        uint32_t has_password : 1;//3
+                        uint32_t mode_index : 5;//4
+                        uint32_t unk2 : 4;//9
+                        uint32_t max_players : 4;//13
+                        uint32_t map_index : 7;//17
+                        uint32_t level : 7;//24
+                        uint32_t clanLogoFrontIdLastBit : 1;//31
                     };
-                    std::uint32_t data;
+                    uint32_t data;
                 };
                 union {
                     struct {
-                        std::uint32_t clanLogoFrontId : 15;
-                        std::uint32_t clanLogoBackId : 16;
-                        std::uint32_t clanPadding : 1;
+                        uint32_t clanLogoFrontId : 15;
+                        uint32_t clanLogoBackId : 16;
+                        uint32_t clanPadding : 1;
                     };
-                    std::uint32_t data;
+                    uint32_t data;
                 };
                 char clanName[16];
                 char leaderName[16];
 
                 RegisteredClanInfo(
-                    std::uint16_t party_id,
-                    std::uint16_t clan_id,
+                    uint16_t party_id,
+                    uint16_t clan_id,
                     bool has_password,
-                    std::uint32_t mode_index,
-                    std::uint32_t max_players,
-                    std::uint32_t map_index,
-                    std::uint32_t level,
-                    std::uint32_t clan_front_icon,
-                    std::uint32_t clan_back_icon,
+                    uint32_t mode_index,
+                    uint32_t max_players,
+                    uint32_t map_index,
+                    uint32_t level,
+                    uint32_t clan_front_icon,
+                    uint32_t clan_back_icon,
                     std::string clan_name,
                     std::string party_leader_name
                 ) {
@@ -267,7 +267,7 @@ namespace Game
         }
         inline void SelectVoiceType(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -290,7 +290,7 @@ namespace Game
         }
         inline void PlayerAutomatchLobby(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -311,18 +311,18 @@ namespace Game
             if (acc_index == -1) return;
 
             struct info {
-                std::uint16_t mod_combo;
+                uint16_t mod_combo;
             };
             auto req_info = reinterpret_cast<info*>(callback.message->GetData());
 
-            const std::unordered_map<std::uint16_t, std::string> mod_map = {
+            const std::unordered_map<uint16_t, std::string> mod_map = {
                 {0x0001, "TDM"}, {0x0002, "FFA"}, {0x0004, "ITM"}, {0x0008, "CTB"},
                 {0x0010, "CLOSEC"}, {0x0020, "SAB"}, {0x0040, "SIM"}, {0x0080, "ZSM"},
                 {0x0100, "GUNRACE"}, {0x0200, "SCRIMMAGE"}, {0x0400, "BOMB"}, {0x0800, "PVE"}
             };
 
             bool match_mod[12] = { false };
-            std::uint16_t c_mod_id = 0;
+            uint16_t c_mod_id = 0;
             for (const auto& [flag, name] : mod_map) {
                 if (req_info->mod_combo & flag) {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player want to match mod: ({}) ({})", name, c_mod_id);
@@ -337,15 +337,15 @@ namespace Game
                 auto room = main_server->GetRoomCacheShared(room_ids[i]);
                 if (room->title.empty()) continue;
                 if (!room->has_password) {
-                    auto room_mod_id = (std::uint16_t)room->ModeIndex;
+                    auto room_mod_id = (uint16_t)room->ModeIndex;
                     if (room_mod_id < 12) {
                         if (match_mod[room_mod_id]) {
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "found match mod: ({})", room_mod_id);
                             struct automatchResponse
                             {
-                                std::uint16_t data1;
-                                std::uint16_t data2;
-                                automatchResponse(const std::uint16_t& data1 = 0, const std::uint16_t& data2 = 0)
+                                uint16_t data1;
+                                uint16_t data2;
+                                automatchResponse(const uint16_t& data1 = 0, const uint16_t& data2 = 0)
                                 {
                                     std::memset(this, 0, sizeof(automatchResponse));
                                     this->data1 = data1;
@@ -366,7 +366,7 @@ namespace Game
         }
         inline void CreateParty(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -387,10 +387,10 @@ namespace Game
             if (acc_index == -1) return;
             auto createPartyReq = reinterpret_cast<MainCreatePartyReq*>(callback.message->GetData());
 
-            std::uint16_t party_id = 0;
+            uint16_t party_id = 0;
             if (server->GetNextAvailableQueuePartyId(party_id)) {
                 Party newParty;
-                newParty.party_id = (std::uint32_t)party_id;
+                newParty.party_id = (uint32_t)party_id;
                 newParty.is_playing = false;
                 newParty.is_queueing = false;
                 newParty.is_clan = false;
@@ -475,13 +475,13 @@ namespace Game
                 MainCompleteMissionReq mission_data;
                 mission_data.collection_id = 56;
                 send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
-                std::vector<std::uint16_t> empty_vec;
+                std::vector<uint16_t> empty_vec;
                 ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
             }
         }
         inline void PartyList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -520,7 +520,7 @@ namespace Game
                         if (member_acc_cache->in_room) {
                             queueState = (member_acc_cache->playing ? 2 : 1);
                         }
-                        structs::PartyInfo current_party((std::uint16_t)party_id, (std::uint16_t)clan_id, (std::uint32_t)party->members.size(), party->max_members, queueState, member_acc_cache->acc_info.Level, member_acc_cache->acc_info.Nickname.c_str());
+                        structs::PartyInfo current_party((uint16_t)party_id, (uint16_t)clan_id, (uint32_t)party->members.size(), party->max_members, queueState, member_acc_cache->acc_info.Level, member_acc_cache->acc_info.Nickname.c_str());
                         selfClanInfoList.push_back(current_party);
                     }
                 }
@@ -529,7 +529,7 @@ namespace Game
         }
         inline void PartyJoin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -549,7 +549,7 @@ namespace Game
             if (acc_index == -1) return;
 
             struct info {
-                std::uint16_t roomId;
+                uint16_t roomId;
             };
             auto req_info = reinterpret_cast<info*>(callback.message->GetData());
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to join party id: ({})", req_info->roomId);
@@ -574,7 +574,7 @@ namespace Game
                 send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 7, callback.message->GetOption());
                 return;
             }
-            std::uint32_t party_room_id = 0;
+            uint32_t party_room_id = 0;
             auto leader_acc_cache = main_server->GetAccCacheSharedBySessionId(party->party_host_session_id);
             party_room_id = leader_acc_cache->in_room ? leader_acc_cache->room_id : 0;
             leader_acc_cache.unlock();
@@ -611,7 +611,7 @@ namespace Game
 
             std::vector<BaseLib::Item> equipped_items;
             for (auto& item : acc_cache->inventory_items)
-                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(acc_cache->acc_info.SelectedCharacter))
+                if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(acc_cache->acc_info.SelectedCharacter))
                     equipped_items.push_back(item);
 
             auto set_item = main_server->GetItemByType(equipped_items, 25).item_info.item_number.item_id;
@@ -656,7 +656,7 @@ namespace Game
 
             std::vector<PlayerRoomClanListInfo> players_clan_info;
 
-            std::uint32_t idx = 0;
+            uint32_t idx = 0;
 
             std::vector<MainRoomPlayersEquipInfoAck> others_equipinfo;
 
@@ -690,7 +690,7 @@ namespace Game
 
                 std::vector<BaseLib::Item> equipped_items;
                 for (const auto& item : member_acc_cache->inventory_items)
-                    if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(member_acc_cache->acc_info.SelectedCharacter))
+                    if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(member_acc_cache->acc_info.SelectedCharacter))
                         equipped_items.push_back(item);
 
                 const auto& set_item = main_server->GetItemByType(equipped_items, 25).item_info.item_number.item_id;
@@ -795,7 +795,7 @@ namespace Game
             /*leave plaza end*/
 
             struct info2 {
-                std::uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
+                uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
             };
             info2 party_info;
             party_info.partyUi = (party->is_clan ? 1 : 2);
@@ -803,7 +803,7 @@ namespace Game
         }
         inline void GetActiveClanList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -838,15 +838,15 @@ namespace Game
                     send_msg(session, 113, 0, 6, 0);
                     return;
                 }
-                std::uint32_t max_batch_size = 31;
-                std::uint32_t party_blocks_count = (party_ids.size() + max_batch_size - 1) / max_batch_size;
+                uint32_t max_batch_size = 31;
+                uint32_t party_blocks_count = (party_ids.size() + max_batch_size - 1) / max_batch_size;
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "batch block count ({})", party_blocks_count);
-                for (std::uint32_t batch_id = 0; batch_id < party_blocks_count; batch_id++)
+                for (uint32_t batch_id = 0; batch_id < party_blocks_count; batch_id++)
                 {
                     std::vector<structs::RegisteredClanInfo> StandbyClanList;
                     auto extra = (batch_id == 0) ? NetEngine::Room::List::SendRoom : NetEngine::Room::List::SendRoom2;
-                    std::uint32_t start_index = batch_id * max_batch_size;
-                    std::uint32_t end_index = std::min(start_index + max_batch_size, static_cast<std::uint32_t>(party_ids.size()));
+                    uint32_t start_index = batch_id * max_batch_size;
+                    uint32_t end_index = std::min(start_index + max_batch_size, static_cast<uint32_t>(party_ids.size()));
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "run from ({}) to ({})", start_index, end_index);
                     for (auto i = start_index; i < end_index; i++)
                     {
@@ -872,7 +872,7 @@ namespace Game
         }
         inline void PartyChangeLeader(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -899,7 +899,7 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party want to change leader");
             if (party_cache->party_host_session_id != session_id) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party change leader request is not the leader!");
-                //send_msg(player_session.get(), 114, 0, 1, static_cast<std::uint8_t>(new_leader_index));
+                //send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
                 send_msg(session, 114, 0, 16, 0);
                 return;
             }
@@ -907,7 +907,7 @@ namespace Game
             for (const auto& party_member_session_id : party_cache->members)
             {
                 if (auto player_session = server->GetSessionById(party_member_session_id))
-                    send_msg(player_session.get(), 114, 0, 1, static_cast<std::uint8_t>(new_leader_index));
+                    send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
             }
             auto new_leader = party_cache->members[new_leader_index];
             party_cache->party_host_session_id = new_leader;
@@ -915,7 +915,7 @@ namespace Game
         }
         inline void PartyKickMember(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -935,14 +935,14 @@ namespace Game
             if (acc_index == -1) return;
 
             struct info {
-                std::uint32_t victimUniqueId;
+                uint32_t victimUniqueId;
             };
             auto req_info = reinterpret_cast<info*>(callback.message->GetData());
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party will kick player: ({})", req_info->victimUniqueId);
 
             auto user_uniqueid = NetEngine::Packets::Core::UniqueId(req_info->victimUniqueId);
-            auto target_acc_cache = main_server->GetAccCacheSharedBySessionId(static_cast<std::uint16_t>(user_uniqueid.session));
+            auto target_acc_cache = main_server->GetAccCacheSharedBySessionId(static_cast<uint16_t>(user_uniqueid.session));
 
             if (!acc_cache->in_party || !target_acc_cache->in_party || acc_cache->party_id != target_acc_cache->party_id) {
 
@@ -983,7 +983,7 @@ namespace Game
 
         inline void ClanRegister(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -1065,7 +1065,7 @@ namespace Game
         }
         inline void PartySettings(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -1085,7 +1085,7 @@ namespace Game
             if (acc_index == -1) return;
 
             struct info {
-                std::uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
+                uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
             };
             auto req_info = reinterpret_cast<info*>(callback.message->GetData());
 
@@ -1125,7 +1125,7 @@ namespace Game
         }
         inline void ClanOtherJoin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -1145,8 +1145,8 @@ namespace Game
             if (acc_index == -1) return;
 
             struct info {
-                std::uint16_t partyId;
-                std::uint16_t channelId;
+                uint16_t partyId;
+                uint16_t channelId;
                 char password[16];
             };
             auto req_info = reinterpret_cast<info*>(callback.message->GetData());
@@ -1207,7 +1207,7 @@ namespace Game
                 target_party_cache->is_queueing = false;
                 target_party_cache.unlock();
                 //now will create a clan room where the host is the target !
-                std::uint32_t score_limit = 5;
+                uint32_t score_limit = 5;
                 RoomSettings clan_room_setting;
                 clan_room_setting.allow_intruders = false;
                 clan_room_setting.allow_items = false;
@@ -1317,8 +1317,8 @@ namespace Game
                 settings_info.hide_password = false;
                 settings_info.is_clan_room = (host_cache->in_party ? (self_is_clan ? 2 : 1) : 0);
                 auto settings_data = MainRoomSettingsInfoAck(room_cache->password.c_str(), settings_info).Serialize();
-                std::uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
-                std::uint8_t low_room_id_part = room_cache->room_id & 0xFF;
+                uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
+                uint8_t low_room_id_part = room_cache->room_id & 0xFF;
                 send_msg(callback.session, 139, room_cache->has_password, low_room_id_part, high_room_id_part, reinterpret_cast<uint8_t*>(settings_data.data()), settings_data.size());
 
                 room_cache.unlock();
@@ -1330,7 +1330,7 @@ namespace Game
         }
         inline void ClanRoomLeave(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -1415,7 +1415,7 @@ namespace Game
         }
         inline void PartyRegister(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -1457,10 +1457,10 @@ namespace Game
             auto c_extra = callback.message->GetExtra();
             if (c_extra == 44) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "want to find a match for ({}) players", my_party_count);
-                std::uint16_t match_party_id = 0;
+                uint16_t match_party_id = 0;
                 std::shared_lock party_ids_lock(main_server->GetPartyIdsMutex());
-                std::uint32_t party_ids_count = party_ids.size();
-                for (std::uint32_t i = 0; i < party_ids_count; i++) {
+                uint32_t party_ids_count = party_ids.size();
+                for (uint32_t i = 0; i < party_ids_count; i++) {
                     auto c_party_id = party_ids[i];
                     auto c_party = main_server->GetPartyCacheShared(c_party_id);
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check party id: ({}) by ({})", c_party_id, c_party->party_host_session_id);
@@ -1477,7 +1477,7 @@ namespace Game
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party register and found a match id: ({})", match_party_id);
                 if (match_party_id) {
                     struct info_req {
-                        std::uint16_t targetPartyId;
+                        uint16_t targetPartyId;
                     };
                     info_req new_req;
                     new_req.targetPartyId = match_party_id;

@@ -43,7 +43,7 @@ namespace NetEngine
     {
         namespace Ipc
         {
-            enum : std::uint32_t
+            enum : uint32_t
             {
                 MainToCastDisconnectPlayer = 1,
                 MainToFrontDisconnectPlayer = 2,
@@ -61,7 +61,7 @@ namespace NetEngine
 
     namespace Cryptography
     {
-        enum class EncryptionType
+        enum EncryptionType : uint32_t
         {
             NO_ENCRYPTION = 0,
             DEFAULT_ENCRYPTION = 1,
@@ -72,7 +72,7 @@ namespace NetEngine
     }
     namespace Character
     {
-        enum Type : std::uint8_t
+        enum Type : uint8_t
         {
             Naomi = 0,
             Kai = 1,
@@ -87,14 +87,14 @@ namespace NetEngine
     }
     namespace Announcement
     {
-        enum Gacha : std::uint8_t
+        enum Gacha : uint8_t
         {
             LuckyNotice = 0x00,
             RareNotice = 0x01
         };
         namespace Chat
         {
-            enum Type : std::uint8_t
+            enum Type : uint8_t
             {
                 Announce = 0x0A,
                 Unknown = 0x0C,
@@ -105,7 +105,7 @@ namespace NetEngine
     }
     namespace Items
     {
-        enum Origin : std::uint32_t
+        enum Origin : uint32_t
         {
             From_Game = 0,
             From_Event = 4,
@@ -116,7 +116,7 @@ namespace NetEngine
 
         namespace WeaponItems
         {
-            enum Type : std::uint32_t
+            enum Type : uint32_t
             {
                 Melee = 10,
                 Rifle = 11,
@@ -130,7 +130,7 @@ namespace NetEngine
 
         namespace CostumeItems
         {
-            enum Type : std::uint32_t
+            enum Type : uint32_t
             {
                 Hair = 0,
                 Face = 1,
@@ -147,7 +147,7 @@ namespace NetEngine
 
         namespace OtherItems
         {
-            enum Type : std::uint32_t
+            enum Type : uint32_t
             {
                 Question = 17,
                 ShieldEnamel = 18,
@@ -163,7 +163,7 @@ namespace NetEngine
 
         namespace DioramaItems
         {
-            enum Type : std::uint32_t
+            enum Type : uint32_t
             {
                 Footing = 22,
                 Object = 23
@@ -172,14 +172,14 @@ namespace NetEngine
 
         namespace Upgrade
         {
-            enum Type : std::uint32_t
+            enum Type : uint32_t
             {
                 NoUpgrade = 0,
                 UpgradeType1 = 1,
                 UpgradeType2 = 2,
                 UpgradeType3 = 3
             };
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 UpgradeSuccess = 0x01,
                 UpgradeFailHigh = 0x02,
@@ -189,7 +189,7 @@ namespace NetEngine
                 NotEnoughPoints = 0x0E,
                 RepairItem = 0x08
             };
-            enum FailType : std::uint8_t
+            enum FailType : uint8_t
             {
                 Destroy = 0x00,
                 NoChange = 0x01
@@ -201,39 +201,39 @@ namespace NetEngine
         {
             namespace Spin
             {
-                enum Result : std::uint8_t
+                enum Result : uint8_t
                 {
                     SpinSuccess = 0x01,
                     InventoryFull = 0x07,
                     MoneyError = 0x0E,
                     Stuck = 0x08
                 };
-                enum Type : std::uint8_t
+                enum Type : uint8_t
                 {
                     LuckySpin = 0x00,
                     NormalSpin = 0x01,
                     NormalSpinSale = 0x02
                 };
             }
-            enum Type : std::uint32_t
+            enum Type : uint32_t
             {
                 Coin = 0,
                 RT = 1,
                 MP = 2
             };
-            enum Error : std::uint8_t
+            enum Error : uint8_t
             {
                 NoRT = 0x01,
                 NoMP = 0x02,
                 NoCoin = 0x03
             };
-            enum Rarity : std::uint32_t
+            enum Rarity : uint32_t
             {
                 Normal = 0,
                 Rare = 1,
                 Etc = 2
             };
-            enum LuckyType : std::uint32_t
+            enum LuckyType : uint32_t
             {
                 NoLucky = 0,
                 GoldLucky = 1,
@@ -244,7 +244,7 @@ namespace NetEngine
 
         namespace Package
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 Package = 0x00,
                 Capsule = 0x1A,
@@ -266,7 +266,7 @@ namespace NetEngine
 
     namespace EquipUpdate
     {
-        enum Type : std::uint8_t
+        enum Type : uint8_t
         {
             Multiple = 0x00,
             Sigle = 0x01
@@ -278,7 +278,7 @@ namespace NetEngine
     {
         namespace User
         {
-            enum Grade : std::uint8_t
+            enum Grade : uint8_t
             {
                 NormalPlayer = 2,
                 Moderator = 3,
@@ -287,37 +287,37 @@ namespace NetEngine
             };
         }
 
-        enum ListResult : std::uint8_t
+        enum ListResult : uint8_t
         {
             NoUsers = 0x06,
             Users = 0x25,
             Users2 = 0x00
         };
-        enum FriendsState : std::uint8_t
+        enum FriendsState : uint8_t
         {
             Login = 0x2E,
             Logout = 0x2F
         };
         namespace Friends
         {
-            enum DetailsType : std::uint8_t
+            enum DetailsType : uint8_t
             {
                 WithoutClan = 0x00,
                 WithClan = 0x01,
                 FriendState = 0x35
             };
-            enum State : std::uint8_t
+            enum State : uint8_t
             {
                 Accepted = 0,
                 Pending = 1,
                 Ignored = 2
             };
-            enum RequestResult : std::uint8_t
+            enum RequestResult : uint8_t
             {
                 RequestSend = 0x1C,
                 RequestRecv = 0x1E
             };
-            enum AddResult : std::uint8_t
+            enum AddResult : uint8_t
             {
                 SendSingle = 0x1C,
                 SendPending = 0x25,
@@ -328,7 +328,7 @@ namespace NetEngine
                 PlayerNotFound = 0x06,
                 ListFull = 0x07,
             };
-            enum ListState : std::uint8_t
+            enum ListState : uint8_t
             {
                 OtherListIsFull = 0x00,
                 YourListIsFull = 0x01
@@ -337,12 +337,12 @@ namespace NetEngine
 
         namespace Blocked
         {
-            enum AddResult : std::uint8_t
+            enum AddResult : uint8_t
             {
                 Success = 0x01,
                 Offline = 0x06
             };
-            enum ListResult : std::uint8_t
+            enum ListResult : uint8_t
             {
                 NotUser = 0x06,
                 UsersBlocked = 0x25
@@ -350,7 +350,7 @@ namespace NetEngine
         }
         namespace Clan
         {
-            enum ListResult : std::uint8_t
+            enum ListResult : uint8_t
             {
                 NotUser = 0x06,
                 UsersClan = 0x25
@@ -359,14 +359,14 @@ namespace NetEngine
     }
     namespace Chat
     {
-        enum WhisperResult : std::uint8_t
+        enum WhisperResult : uint8_t
         {
             NoUser = 0x0D,
             DontMyself = 0x0F,
             WhisperRefuse = 0x23,
             Failed = 0x02
         };
-        enum Type : std::uint8_t
+        enum Type : uint8_t
         {
             User = 0,
             Server = 1,
@@ -380,7 +380,7 @@ namespace NetEngine
     }
     namespace Mailbox
     {
-        enum SendResult : std::uint8_t
+        enum SendResult : uint8_t
         {
             UserNotFound = 4,
             FullGiftReceiver = 7,
@@ -390,7 +390,7 @@ namespace NetEngine
             NewMail = 46,
             Gift = 53
         };
-        enum OpenResult : std::uint8_t
+        enum OpenResult : uint8_t
         {
             SendMails= 0,
             Empty = 6,
@@ -401,7 +401,7 @@ namespace NetEngine
 
     namespace Team
     {
-        enum IdType : std::uint8_t
+        enum IdType : uint8_t
         {
             Neutral = 0,
             Red = 1,
@@ -411,7 +411,7 @@ namespace NetEngine
         };
         namespace Join
         {
-            enum Error : std::uint8_t
+            enum Error : uint8_t
             {
                 AlreadyInTeam = 0,
                 TeamFull = 1,
@@ -420,7 +420,7 @@ namespace NetEngine
         }
         namespace Change
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 Success = 0x01,
                 TeamFull = 0x07,
@@ -436,7 +436,7 @@ namespace NetEngine
     {
         namespace List
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 ChannelFull = 0x07,
                 SendRoom = 0x25,
@@ -446,7 +446,7 @@ namespace NetEngine
         }
         namespace Join
         {
-            enum Error : std::uint8_t
+            enum Error : uint8_t
             {
                 Ok = 0,
                 AlreadyInRoom = 1,
@@ -455,12 +455,12 @@ namespace NetEngine
                 NoIntrusion = 4,
                 Generic = 5
             };
-            enum ReqResult : std::uint8_t
+            enum ReqResult : uint8_t
             {
                 NoPassword = 0x00,
                 Password = 0x2C
             };
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 JoinAsObserver = 0x00,
                 JoinAsPlayer = 0x01,
@@ -480,7 +480,7 @@ namespace NetEngine
         {
             namespace Req
             {
-                enum Result : std::uint8_t
+                enum Result : uint8_t
                 {
                     Leave = 0x00,
                     KickedByHost = 0x1C
@@ -488,7 +488,7 @@ namespace NetEngine
             }
             namespace Ack
             {
-                enum Result : std::uint8_t
+                enum Result : uint8_t
                 {
                     Error = 0,
                     Leave = 1,
@@ -504,13 +504,13 @@ namespace NetEngine
         }
         namespace Create
         {
-            enum Error : std::uint8_t
+            enum Error : uint8_t
             {
                 Ok,
                 InvalidGameRule,
                 InvalidSettings
             };
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 Failed = 0x00,
                 Success = 0x01,
@@ -520,7 +520,7 @@ namespace NetEngine
         }
         namespace Start
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 Start = 0x26,
                 NoReady = 0x2A,
@@ -529,7 +529,7 @@ namespace NetEngine
         }
         namespace Match
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 SingleWave = 0x06,
                 Started = 0x26,
@@ -538,7 +538,7 @@ namespace NetEngine
         }
         namespace ChangeHost
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 Success = 0x01,
                 Error = 0x02,
@@ -548,7 +548,7 @@ namespace NetEngine
         }
         namespace ChangeMap
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 GenericError = 0x02,
                 NotSupportedByServer = 0x06,
@@ -558,7 +558,7 @@ namespace NetEngine
         }
         namespace ChangeTeam
         {
-            enum Result : std::uint8_t
+            enum Result : uint8_t
             {
                 Success = 0x01,
                 TeamFull = 0x07,
@@ -572,7 +572,7 @@ namespace NetEngine
         }
         namespace Option
         {
-            enum Type : std::uint8_t
+            enum Type : uint8_t
             {
                 KillInfo = 0,
                 ModeInfo = 2,
@@ -584,7 +584,7 @@ namespace NetEngine
         namespace Mode
         {
         #if defined(RELEASE_1_0_3)
-            enum Index : std::uint8_t
+            enum Index : uint8_t
             {
                 TeamDeathMatch = 0,
                 FreeForAll = 1,
@@ -626,7 +626,7 @@ namespace NetEngine
                 "Clan Random"
             };
         #else
-            enum Index : std::uint8_t
+            enum Index : uint8_t
             {
                 TeamDeathMatch = 0,
                 FreeForAll = 1,
@@ -672,7 +672,7 @@ namespace NetEngine
         }
         namespace Map
         {
-            enum Index : std::uint8_t
+            enum Index : uint8_t
             {
                 Random = 0,
                 Chess = 1,
@@ -765,7 +765,7 @@ namespace NetEngine
         }
         namespace Restriction
         {
-            enum Type : std::uint8_t
+            enum Type : uint8_t
             {
                 MeleeOnly = 0,
                 RifleOnly = 1,
@@ -779,7 +779,7 @@ namespace NetEngine
         }
         namespace Balance
         {
-            enum State : std::uint8_t
+            enum State : uint8_t
             {
                 Disabled = 0, //Disable balance - Disable balance2
                 Enabled1 = 1, //Enable balance - Disable balance2
@@ -789,7 +789,7 @@ namespace NetEngine
 
         namespace Clan
         {
-            enum IconUpdateMission : std::uint8_t
+            enum IconUpdateMission : uint8_t
             {
                 RoomPlayers = 0,
                 RoomObservers = 1,

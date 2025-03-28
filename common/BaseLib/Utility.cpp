@@ -36,24 +36,24 @@ namespace Utility
         std::random_device rd;
         std::mt19937 rng(rd());
         std::mt19937_64 rng64(rd());
-        std::uniform_int_distribution<std::uint32_t> dist;
-        std::uniform_int_distribution<std::uint64_t> dist64;
-        std::uint32_t Gen()
+        std::uniform_int_distribution<uint32_t> dist;
+        std::uniform_int_distribution<uint64_t> dist64;
+        uint32_t Gen()
         {
             return dist(rng);
         }
-        std::uint64_t Gen64()
+        uint64_t Gen64()
         {
             return dist64(rng64);
         }
-        std::uint32_t CustomGen(const std::uint32_t min, const std::uint32_t max)
+        uint32_t CustomGen(const uint32_t min, const uint32_t max)
         {
-            std::uniform_int_distribution<std::uint32_t> custom_dist(min, max);
+            std::uniform_int_distribution<uint32_t> custom_dist(min, max);
             return custom_dist(rng);
         }
-        std::uint64_t CustomGen64(const std::uint64_t min, const std::uint64_t max)
+        uint64_t CustomGen64(const uint64_t min, const uint64_t max)
         {
-            std::uniform_int_distribution<std::uint64_t> custom_dist64(min, max);
+            std::uniform_int_distribution<uint64_t> custom_dist64(min, max);
             return custom_dist64(rng64);
         }
     }
@@ -64,25 +64,25 @@ namespace Utility
         return out.str();
     }
 
-    std::string readable_size(std::uint64_t bytes)
+    std::string readable_size(uint64_t bytes)
     {
-        const std::uint64_t gb = 1073741824;
-        const std::uint64_t mb = 1048576;
-        const std::uint64_t kb = 1024;
+        const uint64_t gb = 1073741824;
+        const uint64_t mb = 1048576;
+        const uint64_t kb = 1024;
         if (bytes >= gb) return round_float(static_cast<float>(bytes) / gb) + " GB ";
         if (bytes >= mb) return round_float(static_cast<float>(bytes) / mb) + " MB ";
         if (bytes >= kb) return round_float(static_cast<float>(bytes) / kb) + " KB ";
         return std::to_string(bytes) + " B ";
     }
 
-    std::string readable_time(std::uint64_t ns)
+    std::string readable_time(uint64_t ns)
     {
-        const std::uint64_t nanoseconds = 1;
-        const std::uint64_t microseconds = 1000 * nanoseconds;
-        const std::uint64_t milliseconds = 1000 * microseconds;
-        const std::uint64_t seconds = 1000 * milliseconds;
-        const std::uint64_t minutes = 60 * seconds;
-        const std::uint64_t hours = 60 * minutes;
+        const uint64_t nanoseconds = 1;
+        const uint64_t microseconds = 1000 * nanoseconds;
+        const uint64_t milliseconds = 1000 * microseconds;
+        const uint64_t seconds = 1000 * milliseconds;
+        const uint64_t minutes = 60 * seconds;
+        const uint64_t hours = 60 * minutes;
 
         auto format_float = [](float number, int precision = 2) -> std::string {
             std::ostringstream out;
@@ -134,19 +134,19 @@ namespace Utility
         return true;
     }
 
-    std::uint32_t GetUnixEpoch()
+    uint32_t GetUnixEpoch()
     {
         auto now = std::chrono::system_clock::from_time_t(0);
         auto now_c = std::chrono::system_clock::to_time_t(now);
-        return static_cast<std::uint32_t>(now_c);
+        return static_cast<uint32_t>(now_c);
     }
-    std::uint32_t GetUtcTimeNow()
+    uint32_t GetUtcTimeNow()
     {
         auto now = std::chrono::system_clock::now();
         auto now_c = std::chrono::system_clock::to_time_t(now);
-        return static_cast<std::uint32_t>(now_c);
+        return static_cast<uint32_t>(now_c);
     }
-    std::uint32_t GetCurrentMonth()
+    uint32_t GetCurrentMonth()
     {
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -156,9 +156,9 @@ namespace Utility
     #else
         localtime_r(&now_c, &now_tm);
     #endif
-        return static_cast<std::uint32_t>(now_tm.tm_mon + 1);
+        return static_cast<uint32_t>(now_tm.tm_mon + 1);
     }
-    std::uint32_t GetCurrentDay()
+    uint32_t GetCurrentDay()
     {
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -168,16 +168,16 @@ namespace Utility
     #else
         localtime_r(&now_c, &now_tm);
     #endif
-        return static_cast<std::uint32_t>(now_tm.tm_mday);
+        return static_cast<uint32_t>(now_tm.tm_mday);
     }
-    std::uint32_t GetUtcTimeNowPlusSeconds(const std::uint32_t& seconds)
+    uint32_t GetUtcTimeNowPlusSeconds(const uint32_t& seconds)
     {
         auto now = std::chrono::system_clock::now();
         auto future_time = now + std::chrono::seconds(seconds);
         auto future_time_c = std::chrono::system_clock::to_time_t(future_time);
-        return static_cast<std::uint32_t>(future_time_c);
+        return static_cast<uint32_t>(future_time_c);
     }
-    std::tm ConvertUtcTimestampToDate(std::uint64_t timestamp)
+    std::tm ConvertUtcTimestampToDate(uint64_t timestamp)
     {
         std::time_t time = static_cast<std::time_t>(timestamp);
         std::tm date;
@@ -190,13 +190,13 @@ namespace Utility
     #endif
         return date;
     }
-    std::uint64_t GetUtcTimeNow64()
+    uint64_t GetUtcTimeNow64()
     {
         auto now = std::chrono::system_clock::now();
         auto now_c = std::chrono::system_clock::to_time_t(now);
-        return static_cast<std::uint64_t>(now_c);
+        return static_cast<uint64_t>(now_c);
     }
-    std::uint64_t GetLast6AMUtc() {
+    uint64_t GetLast6AMUtc() {
         // Get current UTC time
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -218,16 +218,16 @@ namespace Utility
         }
 
         // Return as uint64_t
-        return static_cast<std::uint64_t>(six_am_today);
+        return static_cast<uint64_t>(six_am_today);
     }
-    std::uint64_t GetUtcTimeNowInMilliseconds() 
+    uint64_t GetUtcTimeNowInMilliseconds() 
     {
         auto now = std::chrono::system_clock::now();
         auto durationSinceEpoch = now.time_since_epoch();
         auto millis = duration_cast<std::chrono::milliseconds>(durationSinceEpoch).count();
-        return static_cast<std::uint64_t>(millis);
+        return static_cast<uint64_t>(millis);
     }
-    std::string FormatMilliseconds(std::uint64_t milliseconds) {
+    std::string FormatMilliseconds(uint64_t milliseconds) {
         constexpr uint64_t ms_in_a_second = 1000;
         constexpr uint64_t ms_in_a_minute = ms_in_a_second * 60;
         constexpr uint64_t ms_in_an_hour = ms_in_a_minute * 60;
@@ -243,14 +243,14 @@ namespace Utility
 
         return fmt::format("{} Day(s) {} Hour(s) {} Minute(s)", days, hours, minutes);
     }
-    std::uint64_t GetUtcTimeNowInSeconds()
+    uint64_t GetUtcTimeNowInSeconds()
     {
         auto now = std::chrono::system_clock::now();
         auto durationSinceEpoch = now.time_since_epoch();
         auto millis = duration_cast<std::chrono::seconds>(durationSinceEpoch).count();
-        return static_cast<std::uint64_t>(millis);
+        return static_cast<uint64_t>(millis);
     }
-    std::string GetReadableTime(std::uint32_t time, std::string time_zone)
+    std::string GetReadableTime(uint32_t time, std::string time_zone)
     {
         auto& time_offset = time_zones[time_zone];
         auto offset = std::stoi(time_offset.substr(4));
@@ -264,7 +264,7 @@ namespace Utility
             tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
             tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
     }
-    std::uint64_t DateTimeToUInt64(const std::string& formatted_datetime)
+    uint64_t DateTimeToUInt64(const std::string& formatted_datetime)
     {
         std::tm tm_time{};
         std::istringstream ss(formatted_datetime);
@@ -277,7 +277,7 @@ namespace Utility
         std::time_t time_t_time = std::mktime(&tm_time);
         return static_cast<uint64_t>(time_t_time);
     }
-    std::string UInt64ToDateTimeString(std::uint64_t unix_timestamp)
+    std::string UInt64ToDateTimeString(uint64_t unix_timestamp)
     {
         // If unix_timestamp is 0, use the current time
         if (unix_timestamp == 0)
@@ -299,11 +299,11 @@ namespace Utility
         ss << std::put_time(tm_time, "%Y-%m-%d %H:%M:%S");
         return ss.str();
     }
-    std::string GetBytesArray(std::uint8_t* data, std::uint16_t size)
+    std::string GetBytesArray(uint8_t* data, uint16_t size)
     {
         std::stringstream ss;
         ss << std::hex;
-        for (std::size_t i = 0; i < size; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             ss << std::setw(2) << std::setfill('0') << (int)data[i] << ' ';
         }
         return ss.str();
@@ -320,9 +320,9 @@ namespace Utility
         std::transform(str.begin(), str.end(), str.begin(),
             [](unsigned char c) { return std::tolower(c); });
     }
-    std::uint64_t GenerateAuthKey(const std::string& username, const std::string& password)
+    uint64_t GenerateAuthKey(const std::string& username, const std::string& password)
     {
-        std::uint64_t auth_key = 0;
+        uint64_t auth_key = 0;
         unsigned char hash[EVP_MAX_MD_SIZE];
         unsigned int hash_len = 0;
         std::string data = username + password;
@@ -359,7 +359,7 @@ namespace Utility
        
         return password._Equal(hash.c_str());
     }
-    std::string ReadMicrovoltsString(const char* data, std::uint32_t size)
+    std::string ReadMicrovoltsString(const char* data, uint32_t size)
     {
         if (data == nullptr || size <= 0)
             return "";
@@ -381,7 +381,7 @@ namespace Utility
         RAND_bytes(salt.data(), kSaltLength);
 
         std::vector<unsigned char> hash(kHashLength);
-        PKCS5_PBKDF2_HMAC(password.c_str(), static_cast<std::int32_t>(password.length()),
+        PKCS5_PBKDF2_HMAC(password.c_str(), static_cast<int32_t>(password.length()),
             salt.data(), kSaltLength,
             kIterations, EVP_sha256(),
             kHashLength, hash.data());
@@ -394,10 +394,10 @@ namespace Utility
     {
         BIO* b64 = BIO_new(BIO_f_base64());
         BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-        BIO* bio = BIO_new_mem_buf(str.data(), static_cast<std::int32_t>(str.length()));
+        BIO* bio = BIO_new_mem_buf(str.data(), static_cast<int32_t>(str.length()));
         bio = BIO_push(b64, bio);
         std::vector<unsigned char> output(str.length());
-        int len = BIO_read(bio, output.data(), static_cast<std::int32_t>(output.size()));
+        int len = BIO_read(bio, output.data(), static_cast<int32_t>(output.size()));
         output.resize(len);
         BIO_free_all(bio);
         return output;
@@ -409,7 +409,7 @@ namespace Utility
         BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
         BIO* bio = BIO_new(BIO_s_mem());
         bio = BIO_push(b64, bio);
-        BIO_write(bio, data.data(), static_cast<std::int32_t>(data.size()));
+        BIO_write(bio, data.data(), static_cast<int32_t>(data.size()));
         BIO_flush(bio);
         char* ptr;
         long len = BIO_get_mem_data(bio, &ptr);
@@ -445,32 +445,32 @@ namespace Utility
         return true;
     }
 
-    std::uint32_t ExtractNumber(const std::string& input)
+    uint32_t ExtractNumber(const std::string& input)
     {
-        return static_cast<std::uint32_t>(std::stoul(input));
+        return static_cast<uint32_t>(std::stoul(input));
     }
     std::int64_t cpu_last_time = 0;
     std::int64_t cpu_last_system_time = 0;
 
-    std::uint32_t num_processors = [] {
+    uint32_t num_processors = [] {
         SYSTEM_INFO info;
         GetSystemInfo(&info);
         return info.dwNumberOfProcessors;
     }();
-    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, std::uint16_t m_sessionId)
+    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, uint16_t m_sessionId)
     {
         if (packetMessage.GetOrder() != 71 || packetMessage.GetOrder() != 72)
         {
             std::string data_buffer;
-            data_buffer.reserve(static_cast<std::size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
+            data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
 
-            for (std::uint32_t i = 0; i < 4; i++)
+            for (uint32_t i = 0; i < 4; i++)
                 fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
 
-            for (std::uint32_t i = 0; i < 4; i++)
+            for (uint32_t i = 0; i < 4; i++)
                 fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
 
-            for (std::uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
+            for (uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
             {
                 fmt::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
                 if (i != packetMessage.GetDataSize() - 1)
@@ -484,7 +484,7 @@ namespace Utility
             BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
         }
     }
-    std::vector<std::uint8_t> load_file(std::source_location source_location, const std::string& filepath)
+    std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath)
     {
         try
         {
@@ -493,7 +493,7 @@ namespace Utility
             auto end = ifs.tellg();
             ifs.seekg(0, std::ios::beg);
 
-            auto size = static_cast<std::size_t>(end - ifs.tellg());
+            auto size = static_cast<size_t>(end - ifs.tellg());
 
             if (size == 0)
                 return {};

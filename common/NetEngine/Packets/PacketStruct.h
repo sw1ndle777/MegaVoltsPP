@@ -16,21 +16,21 @@ namespace NetEngine
 
             struct FrontLoginAuthorizeReq
             {
-                std::uint32_t  cryptoKey;
+                uint32_t  cryptoKey;
                 char      password[40];
-                std::uint32_t  serverTime;
+                uint32_t  serverTime;
                 char      username[68];
                 FrontLoginAuthorizeReq() : cryptoKey(0), serverTime(0)
                 {
                     std::memset(password, 0, sizeof(password));
                     std::memset(username, 0, sizeof(username));
                 }
-                FrontLoginAuthorizeReq(std::uint32_t cryptoKey, char password[], std::uint32_t serverTime, char username[]) : cryptoKey(cryptoKey), serverTime(serverTime)
+                FrontLoginAuthorizeReq(uint32_t cryptoKey, char password[], uint32_t serverTime, char username[]) : cryptoKey(cryptoKey), serverTime(serverTime)
                 {
                     std::memcpy(this->password, password, sizeof(this->password));
                     std::memcpy(this->username, username, sizeof(this->username));
                 }
-                FrontLoginAuthorizeReq(uint32_t cryptoKey, const char* password, std::uint32_t serverTime, const char* username) : cryptoKey(cryptoKey), serverTime(serverTime)
+                FrontLoginAuthorizeReq(uint32_t cryptoKey, const char* password, uint32_t serverTime, const char* username) : cryptoKey(cryptoKey), serverTime(serverTime)
                 {
                     std::memcpy(this->password, password, sizeof(this->password));
                     std::memcpy(this->username, username, sizeof(this->username));
@@ -39,9 +39,9 @@ namespace NetEngine
 
             struct FrontLoginReconnectReq
             {
-                std::uint64_t authKey;
+                uint64_t authKey;
 
-                FrontLoginReconnectReq(std::uint64_t authKey) : authKey(authKey) {}
+                FrontLoginReconnectReq(uint64_t authKey) : authKey(authKey) {}
             };
 
             struct FrontServerInfoReq
@@ -52,29 +52,29 @@ namespace NetEngine
 
             struct FrontEngineServerConnectionAck
             {
-                std::int32_t cryptoKey;
-                std::uint32_t serverTime;
+                int32_t cryptoKey;
+                uint32_t serverTime;
 
-                FrontEngineServerConnectionAck(std::int32_t cryptoKey, std::uint32_t serverTime) : cryptoKey(cryptoKey), serverTime(serverTime)
+                FrontEngineServerConnectionAck(int32_t cryptoKey, uint32_t serverTime) : cryptoKey(cryptoKey), serverTime(serverTime)
                 {
                 }
             };
 
             struct FrontLoginAuthorizeAck
             {
-                std::uint64_t              authKey;
+                uint64_t              authKey;
                 FrontUserAccountInfo  accountInfo;
 
-                FrontLoginAuthorizeAck(std::uint64_t authKey, FrontUserAccountInfo accountInfo) : authKey(authKey), accountInfo(accountInfo)
+                FrontLoginAuthorizeAck(uint64_t authKey, FrontUserAccountInfo accountInfo) : authKey(authKey), accountInfo(accountInfo)
                 {
                 }
             };
 
             struct FrontLoginReconnectAck
             {
-                std::uint64_t authKey;
+                uint64_t authKey;
 
-                FrontLoginReconnectAck(std::uint64_t authKey) : authKey(authKey)
+                FrontLoginReconnectAck(uint64_t authKey) : authKey(authKey)
                 {
                 }
             };
@@ -89,12 +89,12 @@ namespace NetEngine
                     std::copy(serverInfos.begin(), serverInfos.end(), this->serverInfos);
                 }
 
-                FrontServerInfoAck(std::uint8_t* data, std::size_t size)
+                FrontServerInfoAck(uint8_t* data, size_t size)
                 {
                     std::memset(this, 0, sizeof(FrontServerInfoAck));
-                    std::size_t structSize = sizeof(FrontServerInfo);
-                    std::size_t elementCount = size / sizeof(FrontServerInfo);
-                    for (std::size_t i = 0; i < elementCount; i++) this->serverInfos[i] = *(FrontServerInfo*)(data + i * structSize);
+                    size_t structSize = sizeof(FrontServerInfo);
+                    size_t elementCount = size / sizeof(FrontServerInfo);
+                    for (size_t i = 0; i < elementCount; i++) this->serverInfos[i] = *(FrontServerInfo*)(data + i * structSize);
                     
                 }
             };
@@ -110,12 +110,12 @@ namespace NetEngine
 
             struct MainVersionCheckReq
             {
-                std::uint64_t  authKey;
-                std::uint32_t  versionCheck;
-                std::uint8_t   NetVersion1;
-                std::uint8_t   NetVersion2;
-                std::uint8_t   NetVersion3;
-                std::uint8_t   NetVersion4;
+                uint64_t  authKey;
+                uint32_t  versionCheck;
+                uint8_t   NetVersion1;
+                uint8_t   NetVersion2;
+                uint8_t   NetVersion3;
+                uint8_t   NetVersion4;
             };
             struct MainNicknameCreationReq
             {
@@ -123,17 +123,17 @@ namespace NetEngine
             };
             struct MailboxUpdateInfo
             {
-                std::uint32_t mail_id;
-                std::uint32_t mail_time;
+                uint32_t mail_id;
+                uint32_t mail_time;
             };
             struct MailBoxUpdateReq
             {
-                std::uint32_t mail_count;
+                uint32_t mail_count;
                 MailboxUpdateInfo mail_info[100];
             };
             struct MainBuyItemIdReq
             {
-                std::uint32_t items[86];
+                uint32_t items[86];
             };
             struct MainBuyItemSerialInfoReq
             {
@@ -142,11 +142,11 @@ namespace NetEngine
             struct MainSellItemSerialInfoReq
             {
                 ItemSerialInfo item;
-                std::uint32_t sell_price;
+                uint32_t sell_price;
             };
             struct MainDeleteItemSerialInfoReq
             {
-                std::uint32_t item_count;
+                uint32_t item_count;
                 ItemSerialInfo items[86];
             };
             struct MainRepairItemSerialInfoReq
@@ -157,7 +157,7 @@ namespace NetEngine
             struct MainUpgradeEnergyInjectReq
             {
                 ItemSerialInfo item;
-                std::uint32_t energy;
+                uint32_t energy;
             };
             struct MainUpgradeResetReq
             {
@@ -175,18 +175,18 @@ namespace NetEngine
                 {
                     struct
                     {
-                        std::uint32_t gachapon_id : 6;
-                        std::uint32_t gachapon_price : 15;
-                        std::uint32_t reserved : 11;
+                        uint32_t gachapon_id : 6;
+                        uint32_t gachapon_price : 15;
+                        uint32_t reserved : 11;
                     };
-                    std::uint32_t gachaponData;//0x4C
+                    uint32_t gachaponData;//0x4C
                 };
             };
         #else
             struct MainGachaponSpinReq
             {
-                std::uint32_t gachapon_id;
-                std::uint32_t gachapon_price;
+                uint32_t gachapon_id;
+                uint32_t gachapon_price;
             };
         #endif
             struct MainUsePackageItemHammerReq
@@ -201,18 +201,18 @@ namespace NetEngine
             };
             struct MainGetEnergyInGameReq
             {
-                std::uint32_t uniqueId;
+                uint32_t uniqueId;
             };
             struct MainPickupItemreq
             {
-                std::uint16_t picked_up_drop;
-                std::uint16_t total_drop_count;
-                std::uint32_t drop_item_id;
+                uint16_t picked_up_drop;
+                uint16_t total_drop_count;
+                uint32_t drop_item_id;
             };
             struct MainUsePackageItemReq
             {
                 ItemSerialInfo item;
-                std::uint32_t unknown;
+                uint32_t unknown;
             };
             struct MainCharacterEquipUpdateReq
             {
@@ -220,8 +220,8 @@ namespace NetEngine
             };
             struct EquipSwitchItem
             {
-                std::uint16_t character_id;
-                std::uint32_t item_id;
+                uint16_t character_id;
+                uint32_t item_id;
             };
             struct MainCharacterEquipSwitchReq
             {
@@ -233,13 +233,13 @@ namespace NetEngine
             };
             struct MainPlayerFriendAddRecvReq
             {
-                std::uint32_t unique_id;
-                std::uint32_t player_id;
+                uint32_t unique_id;
+                uint32_t player_id;
                 char nickname[16];
             };
             struct MainPlayerFriendRemoveReq
             {
-                std::uint32_t player_id;
+                uint32_t player_id;
             };
             struct MainPlayerBlockedAddReq
             {
@@ -247,11 +247,11 @@ namespace NetEngine
             };
             struct MainPlayerBlockedRemoveReq
             {
-                std::uint32_t player_id;
+                uint32_t player_id;
             };
             struct MainPlayerDetailsInfoReq
             {
-                std::uint32_t unique_id;
+                uint32_t unique_id;
             };
             struct MainMailboxSendReq
             {
@@ -274,66 +274,66 @@ namespace NetEngine
             };
             struct MainCreateRoomReq
             {
-                std::uint32_t settings_data;
+                uint32_t settings_data;
                 char title[32];
                 char password[16];
             };
             struct MainLeaveRoomReq
             {
-                std::uint32_t uniqueId;
+                uint32_t uniqueId;
             };
             struct MainJoinRoomReq
             {
-                std::uint16_t room_id;
-                std::uint16_t channel_id;
+                uint16_t room_id;
+                uint16_t channel_id;
                 char password[16];
             };
 
             struct MainJoinPlazaReq
             {
-                std::uint16_t plaza_id;
-                std::uint16_t channel_id;
+                uint16_t plaza_id;
+                uint16_t channel_id;
             };
 
             struct MainCreatePartyReq
             {
-                std::uint32_t unknown;
+                uint32_t unknown;
             };
             struct MainLeavePartyReq
             {
-                std::uint32_t unknown;
+                uint32_t unknown;
             };
             struct SingleWaveEndReq
             {
-                std::uint32_t type;
-                std::uint32_t score;
-                std::uint32_t stage;
+                uint32_t type;
+                uint32_t score;
+                uint32_t stage;
             };
             struct MainCompleteMissionReq
             {
-                std::uint32_t collection_id;
-                std::uint32_t set_index;
-                std::uint32_t idk1;
-                std::uint32_t mission_type;//1 for guide mission and 4 for daily mission
+                uint32_t collection_id;
+                uint32_t set_index;
+                uint32_t idk1;
+                uint32_t mission_type;//1 for guide mission and 4 for daily mission
             };
             struct MainVoteKickReq
             {
-                std::uint32_t target_unique_id;
-                std::uint32_t reason_id;
+                uint32_t target_unique_id;
+                uint32_t reason_id;
             };
             struct MainVoteKickAck
             {
-                std::uint32_t target_unique_id;
-                std::uint32_t voter_unique_id;
-                std::uint32_t reason_id;
-                std::uint32_t vote_time_tick;
+                uint32_t target_unique_id;
+                uint32_t voter_unique_id;
+                uint32_t reason_id;
+                uint32_t vote_time_tick;
             };
             struct MainEngineServerConnectionAck
             {
-                std::int32_t cryptoKey;
+                int32_t cryptoKey;
                 Core::UniqueId unique_id;
 
-                MainEngineServerConnectionAck(std::int32_t crypto_key, std::uint16_t session_id, std::uint16_t server_id)
+                MainEngineServerConnectionAck(int32_t crypto_key, uint16_t session_id, uint16_t server_id)
                 {
                     cryptoKey = crypto_key;
                     unique_id.session = session_id;
@@ -347,141 +347,141 @@ namespace NetEngine
 
             struct MainAccountInfoAck 
             {
-                std::uint64_t Diorama;//0x00
-                std::uint32_t Kills;//0x08
-                std::uint32_t Deaths;//0x0C
-                std::uint32_t Assists;//0x10
-                std::uint32_t Wins;//0x14
-                std::uint32_t Loses;//0x18
-                std::uint32_t Draws;//0x1C
-                std::uint32_t Melee;//0x20
-                std::uint32_t Rifle;//0x24
-                std::uint32_t Shotgun;//0x28
-                std::uint32_t Sniper;//0x2C
-                std::uint32_t Gatling;//0x30
-                std::uint32_t Bazooka;//0x34
-                std::uint32_t Grenade;//0x38
+                uint64_t Diorama;//0x00
+                uint32_t Kills;//0x08
+                uint32_t Deaths;//0x0C
+                uint32_t Assists;//0x10
+                uint32_t Wins;//0x14
+                uint32_t Loses;//0x18
+                uint32_t Draws;//0x1C
+                uint32_t Melee;//0x20
+                uint32_t Rifle;//0x24
+                uint32_t Shotgun;//0x28
+                uint32_t Sniper;//0x2C
+                uint32_t Gatling;//0x30
+                uint32_t Bazooka;//0x34
+                uint32_t Grenade;//0x38
                 union {
                     struct {
-                        std::uint64_t unused : 27;
-                        std::uint64_t Headshots : 29;
-                        std::uint64_t HighestKillStreak : 8;
+                        uint64_t unused : 27;
+                        uint64_t Headshots : 29;
+                        uint64_t HighestKillStreak : 8;
                     };
-                    std::uint64_t HeadshotsAndHighestKillStreak;//0x3C
+                    uint64_t HeadshotsAndHighestKillStreak;//0x3C
                 };
-                std::uint32_t Unknown2;//0x44
-                std::uint32_t PlayTime;//0x48
+                uint32_t Unknown2;//0x44
+                uint32_t PlayTime;//0x48
                 union {
                     struct {
-                        std::uint32_t ClanPadding : 3;
-                        std::uint32_t ClanId : 29;
+                        uint32_t ClanPadding : 3;
+                        uint32_t ClanId : 29;
                     };
-                    std::uint32_t ClanInfo;//0x4C
+                    uint32_t ClanInfo;//0x4C
                 };
-                std::array<std::uint64_t, 4> Achievements;//0x50
-                std::uint32_t ZombieKillPoints;//0x70
-                std::uint32_t Infections;//0x74
-                std::uint32_t Unknown3;//0x78
+                std::array<uint64_t, 4> Achievements;//0x50
+                uint32_t ZombieKillPoints;//0x70
+                uint32_t Infections;//0x74
+                uint32_t Unknown3;//0x78
                 char Nickname[16];//0x7C
-                std::uint64_t ServerTime;//0x8C
-                std::uint32_t UniqueId;//0x94
+                uint64_t ServerTime;//0x8C
+                uint32_t UniqueId;//0x94
             #if defined(RELEASE_1_0_3)
                 union {
                     struct {
-                        std::uint64_t Grade : 5; // >> 0
-                        std::uint64_t SelectedCharacter : 4; // >> 5
-                        std::uint64_t OwnedCharacters : 8; // >> 9
-                        std::uint64_t Level : 7; // >> 17
-                        std::uint64_t Energy : 14; // >> 24
-                        std::uint64_t Energy2 : 14; // >> 38
-                        std::uint64_t LuckyPoints : 12; // >> 52
+                        uint64_t Grade : 5; // >> 0
+                        uint64_t SelectedCharacter : 4; // >> 5
+                        uint64_t OwnedCharacters : 8; // >> 9
+                        uint64_t Level : 7; // >> 17
+                        uint64_t Energy : 14; // >> 24
+                        uint64_t Energy2 : 14; // >> 38
+                        uint64_t LuckyPoints : 12; // >> 52
                     };
-                    std::uint64_t GradeCharacterInfoCurrencyInfo;//0x98
+                    uint64_t GradeCharacterInfoCurrencyInfo;//0x98
                 };
             #else
                 union
                 {
                     struct
                     {
-                        std::uint32_t Grade : 5; // >> 0
-                        std::uint32_t SelectedCharacter : 4; // >> 5
+                        uint32_t Grade : 5; // >> 0
+                        uint32_t SelectedCharacter : 4; // >> 5
 
-                        std::uint32_t OwnedCharacters : 16; // >> 9
-                        std::uint32_t Level : 7; // >> 25
+                        uint32_t OwnedCharacters : 16; // >> 9
+                        uint32_t Level : 7; // >> 25
                     };
-                    std::uint32_t GradeCharacterInfo;//0x98
+                    uint32_t GradeCharacterInfo;//0x98
                 };
                 union
                 {
                     struct
                     {
-                        std::uint32_t Coins : 7; // >> 32
-                        std::uint32_t Energy : 14; // >> 39
-                        std::uint32_t LuckyPoints : 11; // >> 53
+                        uint32_t Coins : 7; // >> 32
+                        uint32_t Energy : 14; // >> 39
+                        uint32_t LuckyPoints : 11; // >> 53
                     };
-                    std::uint32_t CurrencyInfo;//0x9C
+                    uint32_t CurrencyInfo;//0x9C
             };
             #endif
 
       
-                std::uint32_t Experience;//0xA0
+                uint32_t Experience;//0xA0
                 union {
                     struct {
-                        std::uint64_t MicroPoints : 31;
-                        std::uint64_t RockTokens : 30;
-                        std::uint64_t GoldenMode : 3;
+                        uint64_t MicroPoints : 31;
+                        uint64_t RockTokens : 30;
+                        uint64_t GoldenMode : 3;
                     };
-                    std::uint64_t MicroPointsAndRockTokens;//0xA4
+                    uint64_t MicroPointsAndRockTokens;//0xA4
                 };
 
                 union {
                     struct {
-                        std::uint32_t Tutorial : 22;
-                        std::uint32_t MaximumItems : 10;
+                        uint32_t Tutorial : 22;
+                        uint32_t MaximumItems : 10;
                     };
-                    std::uint32_t TutorialAndItems;//0xAC
+                    uint32_t TutorialAndItems;//0xAC
                 };
 
                 union {
                     struct {
-                        std::uint32_t MaximumEnergy : 13;
-                        std::uint32_t DailyAttempts : 9;
-                        std::uint32_t HighestWave : 10;
+                        uint32_t MaximumEnergy : 13;
+                        uint32_t DailyAttempts : 9;
+                        uint32_t HighestWave : 10;
                     };
-                    std::uint32_t EnergyAndWaveInfo;//0xB0
+                    uint32_t EnergyAndWaveInfo;//0xB0
                 };
-                std::uint32_t SinglewaveHighscore;//0xB4
-                std::uint32_t Unknown4;//0xB8
-                std::uint32_t Story;//0xBC
+                uint32_t SinglewaveHighscore;//0xB4
+                uint32_t Unknown4;//0xB8
+                uint32_t Story;//0xBC
             #if defined(RELEASE_1_1_1)
-                std::uint32_t VIPLevel;//0xC0
+                uint32_t VIPLevel;//0xC0
             #endif
-                //std::uint32_t AccountId;//0xC4
-                std::uint64_t AccountAuthkey;//0xC8
+                //uint32_t AccountId;//0xC4
+                uint64_t AccountAuthkey;//0xC8
                 char Unused[8];//0xCC
                 char ClanName[16];//0xD4
 
                 union {
                     struct {
-                        std::uint64_t ClanLogoFront : 16;
-                        std::uint64_t ClanLogoBack : 14;
-                        std::uint64_t ClanContribution : 34;
+                        uint64_t ClanLogoFront : 16;
+                        uint64_t ClanLogoBack : 14;
+                        uint64_t ClanContribution : 34;
                     };
-                    std::uint64_t ClanLogoAndContribution;
+                    uint64_t ClanLogoAndContribution;
                 };
 
                 union {
                     struct {
-                        std::uint64_t ClanWins : 23;
-                        std::uint64_t ClanLoses : 23;
-                        std::uint64_t ClanDraws : 18;
+                        uint64_t ClanWins : 23;
+                        uint64_t ClanLoses : 23;
+                        uint64_t ClanDraws : 18;
                     };
-                    std::uint64_t ClanMatchResults;
+                    uint64_t ClanMatchResults;
                 };
 
-                std::uint32_t ClanKills;
-                std::uint32_t ClanDeaths;
-                std::uint32_t ClanAssists;
+                uint32_t ClanKills;
+                uint32_t ClanDeaths;
+                uint32_t ClanAssists;
                 MainAccountInfoAck()
                 {
                     std::memset(this, 0, sizeof(MainAccountInfoAck));
@@ -498,8 +498,8 @@ namespace NetEngine
             struct MainSellItemAck
             {
                 ItemSerialInfo serial_info;
-                std::uint32_t sell_price;
-                MainSellItemAck(ItemSerialInfo serialInfo, std::uint32_t sellPrice)
+                uint32_t sell_price;
+                MainSellItemAck(ItemSerialInfo serialInfo, uint32_t sellPrice)
                 {
                     std::memset(this, 0, sizeof(MainSellItemAck));
                     serial_info.data = serialInfo.data;
@@ -509,10 +509,10 @@ namespace NetEngine
             
             struct MainCurrencyUpdateAck
             {
-                std::uint32_t RockTokens;
-                std::uint32_t MicroPoints;
-                std::uint32_t Coins;
-                MainCurrencyUpdateAck(std::uint32_t RockTokens, std::uint32_t MicroPoints, std::uint32_t Coins) : RockTokens(RockTokens), MicroPoints(MicroPoints), Coins(Coins) {}
+                uint32_t RockTokens;
+                uint32_t MicroPoints;
+                uint32_t Coins;
+                MainCurrencyUpdateAck(uint32_t RockTokens, uint32_t MicroPoints, uint32_t Coins) : RockTokens(RockTokens), MicroPoints(MicroPoints), Coins(Coins) {}
             };
 
            
@@ -526,12 +526,12 @@ namespace NetEngine
                     std::copy(shopItems.begin(), shopItems.end(), this->shop_items);
                 }
 
-                MainShopBuyItemSerialInfoResultAck(std::uint8_t* data, std::size_t size)
+                MainShopBuyItemSerialInfoResultAck(uint8_t* data, size_t size)
                 {
                     std::memset(this, 0, sizeof(MainShopBuyItemSerialInfoResultAck));
-                    std::size_t structSize = sizeof(ShopSerialInfo);
-                    std::size_t elementCount = size / sizeof(ShopSerialInfo);
-                    for (std::size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopSerialInfo*)(data + i * structSize);
+                    size_t structSize = sizeof(ShopSerialInfo);
+                    size_t elementCount = size / sizeof(ShopSerialInfo);
+                    for (size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopSerialInfo*)(data + i * structSize);
                 }
             };
 
@@ -545,12 +545,12 @@ namespace NetEngine
                     std::copy(shopItems.begin(), shopItems.end(), this->shop_items);
                 }
 
-                MainShopBuyItemIdResultAck(std::uint8_t* data, std::size_t size)
+                MainShopBuyItemIdResultAck(uint8_t* data, size_t size)
                 {
                     std::memset(this, 0, sizeof(MainShopBuyItemIdResultAck));
-                    std::size_t structSize = sizeof(ShopItem);
-                    std::size_t elementCount = size / sizeof(ShopItem);
-                    for (std::size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopItem*)(data + i * structSize);
+                    size_t structSize = sizeof(ShopItem);
+                    size_t elementCount = size / sizeof(ShopItem);
+                    for (size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopItem*)(data + i * structSize);
                 }
             };
 
@@ -562,9 +562,9 @@ namespace NetEngine
 
                 MainGachaponSalesInfoAck(const std::vector<MainGachaponSaleInfo>& sales) : gachapon_sales_info(sales) {}
 
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
                     for (const auto& sale_info : gachapon_sales_info)
                     {
                         const auto* sales_bytes = reinterpret_cast<const uint8_t*>(&sale_info);
@@ -582,10 +582,10 @@ namespace NetEngine
 
                 MainDeleteItemAck(const std::vector<ItemSerialInfo>& deletedItems) : deleted_items(deletedItems) {}
                     
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::uint32_t items_count = static_cast<std::uint32_t>(deleted_items.size());
-                    std::vector<std::uint8_t> data;
+                    uint32_t items_count = static_cast<uint32_t>(deleted_items.size());
+                    std::vector<uint8_t> data;
                     auto count_bytes = reinterpret_cast<const uint8_t*>(&items_count);
                     data.insert(data.end(), count_bytes, count_bytes + sizeof(items_count));
 
@@ -601,17 +601,17 @@ namespace NetEngine
             class MainRepairItemAck
             {
             public:
-                std::uint32_t rt;
-                std::uint32_t mp;
+                uint32_t rt;
+                uint32_t mp;
                
                 std::vector<ItemSerialInfo> repair_items;
 
-                MainRepairItemAck(const std::uint32_t& micropoints, const std::uint32_t& rocktokens, const std::vector<ItemSerialInfo>& repairItems)
+                MainRepairItemAck(const uint32_t& micropoints, const uint32_t& rocktokens, const std::vector<ItemSerialInfo>& repairItems)
                     : mp(micropoints), rt(rocktokens), repair_items(repairItems) {}
 
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
                     auto mp_bytes = reinterpret_cast<const uint8_t*>(&mp);
                     auto rt_bytes = reinterpret_cast<const uint8_t*>(&rt);
                     data.insert(data.end(), rt_bytes, rt_bytes + sizeof(rt));
@@ -630,8 +630,8 @@ namespace NetEngine
             struct MainInjectEnergyAck
             {
                 ItemSerialInfo item;
-                std::uint32_t energy;
-                MainInjectEnergyAck(const ItemSerialInfo& desireditem, const std::uint32_t& desiredenergy)
+                uint32_t energy;
+                MainInjectEnergyAck(const ItemSerialInfo& desireditem, const uint32_t& desiredenergy)
                 {
                     item.data = desireditem.data;
                     energy = desiredenergy;
@@ -670,9 +670,9 @@ namespace NetEngine
                     zero.data = ItemSerialInfo().data;
                 }
 
-                std::vector<std::uint8_t> Serialize(const std::uint8_t& option, const std::uint8_t& extra) const
+                std::vector<uint8_t> Serialize(const uint8_t& option, const uint8_t& extra) const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
                     
                     if (extra == 1 || extra == 2)
                     {
@@ -753,9 +753,9 @@ namespace NetEngine
                     package_items = new_items;
                 }
 
-                std::vector<std::uint8_t> Serialize(std::uint8_t extra) const
+                std::vector<uint8_t> Serialize(uint8_t extra) const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
                     
                     if (extra == 0 || extra == 0x1A)
                     {
@@ -785,7 +785,7 @@ namespace NetEngine
 
             struct MainPlayerDetailsInfoUpdateAck
             {
-                std::uint32_t account_id;
+                uint32_t account_id;
                 MainPlayerDetailsInfoUpdateAck()
                 {
                     std::memset(this, 0, sizeof(MainPlayerDetailsInfoUpdateAck));
@@ -795,101 +795,101 @@ namespace NetEngine
             {
                 union {
                     struct {
-                        std::uint64_t diorama1 : 23;
-                        std::uint64_t diorama2 : 41;
+                        uint64_t diorama1 : 23;
+                        uint64_t diorama2 : 41;
                     };
-                    std::uint64_t Diorama;//0
+                    uint64_t Diorama;//0
                 };
-                std::uint32_t Kills;//8
-                std::uint32_t Deaths;//c
-                std::uint32_t Assists;//10
-                std::uint32_t Wins;//14
-                std::uint32_t Loses;//18
-                std::uint32_t Draws;//1c
-                std::uint32_t Melee;//20
-                std::uint32_t Rifle;//24
-                std::uint32_t Shotgun;//28
-                std::uint32_t Sniper;//2c
-                std::uint32_t Gatling;//30
-                std::uint32_t Bazooka;//34
-                std::uint32_t Grenade;//38
+                uint32_t Kills;//8
+                uint32_t Deaths;//c
+                uint32_t Assists;//10
+                uint32_t Wins;//14
+                uint32_t Loses;//18
+                uint32_t Draws;//1c
+                uint32_t Melee;//20
+                uint32_t Rifle;//24
+                uint32_t Shotgun;//28
+                uint32_t Sniper;//2c
+                uint32_t Gatling;//30
+                uint32_t Bazooka;//34
+                uint32_t Grenade;//38
                 union {
                     struct {
-                        std::uint64_t unused : 27;
-                        std::uint64_t Headshots : 29;
-                        std::uint64_t HighestKillStreak : 8;
+                        uint64_t unused : 27;
+                        uint64_t Headshots : 29;
+                        uint64_t HighestKillStreak : 8;
                     };
-                    std::uint64_t HeadshotsAndHighestKillStreak;//3c
+                    uint64_t HeadshotsAndHighestKillStreak;//3c
                 };
-                std::uint32_t Unknown1;//44
-                std::uint32_t PlayTime;//48
-                std::uint32_t ClanId;//4c
+                uint32_t Unknown1;//44
+                uint32_t PlayTime;//48
+                uint32_t ClanId;//4c
             #if defined(RELEASE_1_1_1)
-                std::array<std::uint64_t, 4> Achievements;//50
+                std::array<uint64_t, 4> Achievements;//50
             #else
-                std::array<std::uint64_t, 4> Achievements;//50
+                std::array<uint64_t, 4> Achievements;//50
                 //char achivements[28]{};
             #endif
                
-                std::uint32_t ZombieKillPoints;//70
-                std::uint32_t Infections;//74
-                std::uint32_t Unknown2;//78
+                uint32_t ZombieKillPoints;//70
+                uint32_t Infections;//74
+                uint32_t Unknown2;//78
 
-                std::uint32_t EquippedHairItemId;//7c
-                std::uint32_t EquippedFaceItemId;//80
-                std::uint32_t EquippedUpperItemId;//84
-                std::uint32_t EquippedUnderItemId;//88
-                std::uint32_t EquippedPantsItemId;//8c
-                std::uint32_t EquippedShirtItemId;//90
-                std::uint32_t EquippedBootsItemId;//94
-                std::uint32_t EquippedGlassItemId;//98
-                std::uint32_t EquippedAccessoryWaistItemId;//9c
-                std::uint32_t EquippedAccessoryBackItemId;//A0
-                std::uint32_t EquippedMeleeItemId;//a4
-                std::uint32_t EquippedRifleItemId;//a8
-                std::uint32_t EquippedShotgunItemId;//ac
-                std::uint32_t EquippedSniperItemId;//b0
-                std::uint32_t EquippedGatlingItemId;//b4
-                std::uint32_t EquippedGrenadeItemId;//b8
-                std::uint32_t EquippedBazookaItemId;//bc
+                uint32_t EquippedHairItemId;//7c
+                uint32_t EquippedFaceItemId;//80
+                uint32_t EquippedUpperItemId;//84
+                uint32_t EquippedUnderItemId;//88
+                uint32_t EquippedPantsItemId;//8c
+                uint32_t EquippedShirtItemId;//90
+                uint32_t EquippedBootsItemId;//94
+                uint32_t EquippedGlassItemId;//98
+                uint32_t EquippedAccessoryWaistItemId;//9c
+                uint32_t EquippedAccessoryBackItemId;//A0
+                uint32_t EquippedMeleeItemId;//a4
+                uint32_t EquippedRifleItemId;//a8
+                uint32_t EquippedShotgunItemId;//ac
+                uint32_t EquippedSniperItemId;//b0
+                uint32_t EquippedGatlingItemId;//b4
+                uint32_t EquippedGrenadeItemId;//b8
+                uint32_t EquippedBazookaItemId;//bc
 
                 union {
                     struct {
-                        std::uint32_t SelectedCharacter : 4; // >> 0
-                        std::uint32_t Channel : 4; // >> 4
-                        std::uint32_t Grade : 5; // >> 8
-                        std::uint32_t Level : 7; // >> 13
+                        uint32_t SelectedCharacter : 4; // >> 0
+                        uint32_t Channel : 4; // >> 4
+                        uint32_t Grade : 5; // >> 8
+                        uint32_t Level : 7; // >> 13
                     };
-                    std::uint32_t SelectedCharacterChannelLevel;//c0
+                    uint32_t SelectedCharacterChannelLevel;//c0
                 };
             #if defined(RELEASE_1_1_1)
-                std::uint32_t VIPLevel;//c4
-                std::uint32_t Unknown3;
-                std::array<std::uint64_t, 8> Unknown4;
+                uint32_t VIPLevel;//c4
+                uint32_t Unknown3;
+                std::array<uint64_t, 8> Unknown4;
             #endif
                 char ClanName[16];//196
 
                 union {
                     struct {
-                        std::uint64_t ClanLogoFront : 16;
-                        std::uint64_t ClanLogoBack : 14;
-                        std::uint64_t ClanContribution : 34;
+                        uint64_t ClanLogoFront : 16;
+                        uint64_t ClanLogoBack : 14;
+                        uint64_t ClanContribution : 34;
                     };
-                    std::uint64_t ClanLogoAndContribution;//212
+                    uint64_t ClanLogoAndContribution;//212
                 };
 
                 union {
                     struct {
-                        std::uint64_t ClanWins : 23;
-                        std::uint64_t ClanLoses : 23;
-                        std::uint64_t ClanDraws : 18;
+                        uint64_t ClanWins : 23;
+                        uint64_t ClanLoses : 23;
+                        uint64_t ClanDraws : 18;
                     };
-                    std::uint64_t ClanMatchResults;
+                    uint64_t ClanMatchResults;
                 };
 
-                std::uint32_t ClanKills;
-                std::uint32_t ClanDeaths;
-                std::uint32_t ClanAssists;
+                uint32_t ClanKills;
+                uint32_t ClanDeaths;
+                uint32_t ClanAssists;
                 MainPlayerDetailsInfoAck()
                 {
                     std::memset(this, 0, sizeof(MainPlayerDetailsInfoAck));
@@ -903,9 +903,9 @@ namespace NetEngine
             class MainPlayerBlockedAddAck
             {
             public:
-                std::uint32_t account_id;
+                uint32_t account_id;
                 char nickname[16];
-                MainPlayerBlockedAddAck(const std::uint32_t& account_id, const std::string& new_nickname = "")
+                MainPlayerBlockedAddAck(const uint32_t& account_id, const std::string& new_nickname = "")
                 {
                     std::memset(this, 0, sizeof(MainPlayerBlockedAddAck));
                     std::memset(this->nickname, 0, sizeof(this->nickname));
@@ -919,21 +919,21 @@ namespace NetEngine
             public:
                 char nickname[16];
                 char msg[256];
-                MainChatAck(const std::string& new_nickname, const char* new_msg, const std::uint32_t& new_msg_size)
+                MainChatAck(const std::string& new_nickname, const char* new_msg, const uint32_t& new_msg_size)
                 {
                     std::memset(this, 0, sizeof(MainChatAck));
                     std::memset(nickname, 0, sizeof(nickname));
                     std::memset(msg, 0, sizeof(msg));
                     std::strncpy(nickname, new_nickname.c_str(), sizeof(nickname));
-                    std::uint32_t size_to_copy = std::min(new_msg_size, static_cast<std::uint32_t>(sizeof(msg)));
+                    uint32_t size_to_copy = std::min(new_msg_size, static_cast<uint32_t>(sizeof(msg)));
                     std::strncpy(msg, new_msg, size_to_copy);
                     msg[size_to_copy] = '\0';
                 }
 
 
-                std::vector<std::uint8_t> Serialize(const std::uint8_t& extra, const std::uint32_t& msg_size, const std::uint32_t& whisperTargetUID = 0) const
+                std::vector<uint8_t> Serialize(const uint8_t& extra, const uint32_t& msg_size, const uint32_t& whisperTargetUID = 0) const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     if (extra == 2) // whisper
                     {
@@ -954,22 +954,22 @@ namespace NetEngine
             class MainChatMatchAck
             {
             public:
-                std::uint32_t unique_id;
+                uint32_t unique_id;
                 char msg[256];
-                MainChatMatchAck(const std::uint32_t unique_id, const char* new_msg, const std::uint32_t& new_msg_size)
+                MainChatMatchAck(const uint32_t unique_id, const char* new_msg, const uint32_t& new_msg_size)
                 {
                     std::memset(this, 0, sizeof(MainChatMatchAck));
                     this->unique_id = unique_id;
                     std::memset(msg, 0, sizeof(msg));
-                    std::uint32_t size_to_copy = std::min(new_msg_size, static_cast<std::uint32_t>(sizeof(msg)));
+                    uint32_t size_to_copy = std::min(new_msg_size, static_cast<uint32_t>(sizeof(msg)));
                     std::strncpy(msg, new_msg, size_to_copy);
                     msg[size_to_copy] = '\0';
                 }
 
 
-                std::vector<std::uint8_t> Serialize(const std::uint32_t& msg_size) const
+                std::vector<uint8_t> Serialize(const uint32_t& msg_size) const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     const auto* unknown_bytes = reinterpret_cast<const uint8_t*>(&unique_id);
                     data.insert(data.end(), unknown_bytes, unknown_bytes + sizeof(unique_id));
@@ -983,9 +983,9 @@ namespace NetEngine
 
             struct MainRoomCreateAck
             {
-                std::uint16_t room_id;
-                std::uint16_t channel_id;
-                MainRoomCreateAck(std::uint16_t new_room_id = 0, std::uint16_t new_channel_id = 0)
+                uint16_t room_id;
+                uint16_t channel_id;
+                MainRoomCreateAck(uint16_t new_room_id = 0, uint16_t new_channel_id = 0)
                 {
                     std::memset(this, 0, sizeof(MainRoomCreateAck));
                     this->room_id = new_room_id;
@@ -995,10 +995,10 @@ namespace NetEngine
             class MainRoomListInfoAck
             {
             public:
-                std::uint16_t room_count;
-                std::uint16_t max_room_count;
+                uint16_t room_count;
+                uint16_t max_room_count;
                 std::vector<RoomListInfo> rooms;
-                MainRoomListInfoAck(const std::uint16_t& room_count, const std::uint16_t& max_room_count, const std::vector<RoomListInfo>& new_rooms)
+                MainRoomListInfoAck(const uint16_t& room_count, const uint16_t& max_room_count, const std::vector<RoomListInfo>& new_rooms)
                 {
                     std::memset(this, 0, sizeof(MainRoomListInfoAck));
                     this->room_count = room_count;
@@ -1006,9 +1006,9 @@ namespace NetEngine
                     this->rooms = new_rooms;
                 }
 
-                std::vector<std::uint8_t> Serialize(const std::uint8_t& extra) const
+                std::vector<uint8_t> Serialize(const uint8_t& extra) const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     if (extra == 0 || extra == 0x25)
                     {
@@ -1033,7 +1033,7 @@ namespace NetEngine
             public:
                 RoomSettingsInfo2 info;
                 char password[14]{};
-                std::uint8_t unknow4{};
+                uint8_t unknow4{};
                 MainRoomSettingsInfoAck(const std::string& password, const RoomSettingsInfo2& settings_info)
                 {
                     std::memset(this, 0, sizeof(MainRoomSettingsInfoAck));
@@ -1045,9 +1045,9 @@ namespace NetEngine
                     this->info.data = settings_info.data;
 
                 }
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     auto info_bytes = reinterpret_cast<const uint8_t*>(&info.data);
                     data.insert(data.end(), info_bytes, info_bytes + sizeof(info.data));
@@ -1064,30 +1064,30 @@ namespace NetEngine
             {
             public:
                 Core::UniqueId unique_id;
-                std::uint32_t EquippedHairItemId;
-                std::uint32_t EquippedFaceItemId;
-                std::uint32_t EquippedUpperItemId;
-                std::uint32_t EquippedUnderItemId;
-                std::uint32_t EquippedPantsItemId;
-                std::uint32_t EquippedShirtItemId;
-                std::uint32_t EquippedBootsItemId;
-                std::uint32_t EquippedGlassItemId;
-                std::uint32_t EquippedAccessoryWaistItemId;
-                std::uint32_t EquippedAccessoryBackItemId;
-                std::uint32_t EquippedMeleeItemId;
-                std::uint32_t EquippedRifleItemId;
-                std::uint32_t EquippedShotgunItemId;
-                std::uint32_t EquippedSniperItemId;
-                std::uint32_t EquippedGatlingItemId;
-                std::uint32_t EquippedGrenadeItemId;
-                std::uint32_t EquippedBazookaItemId;
+                uint32_t EquippedHairItemId;
+                uint32_t EquippedFaceItemId;
+                uint32_t EquippedUpperItemId;
+                uint32_t EquippedUnderItemId;
+                uint32_t EquippedPantsItemId;
+                uint32_t EquippedShirtItemId;
+                uint32_t EquippedBootsItemId;
+                uint32_t EquippedGlassItemId;
+                uint32_t EquippedAccessoryWaistItemId;
+                uint32_t EquippedAccessoryBackItemId;
+                uint32_t EquippedMeleeItemId;
+                uint32_t EquippedRifleItemId;
+                uint32_t EquippedShotgunItemId;
+                uint32_t EquippedSniperItemId;
+                uint32_t EquippedGatlingItemId;
+                uint32_t EquippedGrenadeItemId;
+                uint32_t EquippedBazookaItemId;
                 MainRoomPlayersEquipInfoUpdateRoomAck(const Core::UniqueId& uniqueId,
-                    const std::uint32_t& hair, const std::uint32_t& face, const std::uint32_t& upper,
-                    const std::uint32_t& under, const std::uint32_t& pants, const std::uint32_t& shirt,
-                    const std::uint32_t& boots, const std::uint32_t& glass, const std::uint32_t& acc_waist,
-                    const std::uint32_t& acc_back, const std::uint32_t& melee, const std::uint32_t& rifle,
-                    const std::uint32_t& shotgun, const std::uint32_t& sniper, const std::uint32_t& gatling,
-                    const std::uint32_t& grenade, const std::uint32_t& bazooka)
+                    const uint32_t& hair, const uint32_t& face, const uint32_t& upper,
+                    const uint32_t& under, const uint32_t& pants, const uint32_t& shirt,
+                    const uint32_t& boots, const uint32_t& glass, const uint32_t& acc_waist,
+                    const uint32_t& acc_back, const uint32_t& melee, const uint32_t& rifle,
+                    const uint32_t& shotgun, const uint32_t& sniper, const uint32_t& gatling,
+                    const uint32_t& grenade, const uint32_t& bazooka)
                 {
                     std::memset(this, 0, sizeof(MainRoomPlayersEquipInfoUpdateRoomAck));
                     this->unique_id.data = uniqueId.data;
@@ -1115,52 +1115,52 @@ namespace NetEngine
             {
             public:
                 
-                std::uint32_t EquippedHairItemId;
-                std::uint32_t EquippedFaceItemId;
-                std::uint32_t EquippedUpperItemId;
-                std::uint32_t EquippedUnderItemId;
-                std::uint32_t EquippedPantsItemId;
-                std::uint32_t EquippedShirtItemId;
-                std::uint32_t EquippedBootsItemId;
-                std::uint32_t EquippedGlassItemId;
-                std::uint32_t EquippedAccessoryWaistItemId;
-                std::uint32_t EquippedAccessoryBackItemId;
-                std::uint32_t EquippedMeleeItemId;
-                std::uint32_t EquippedRifleItemId;
-                std::uint32_t EquippedShotgunItemId;
-                std::uint32_t EquippedSniperItemId;
-                std::uint32_t EquippedGatlingItemId;
-                std::uint32_t EquippedGrenadeItemId;
-                std::uint32_t EquippedBazookaItemId;
+                uint32_t EquippedHairItemId;
+                uint32_t EquippedFaceItemId;
+                uint32_t EquippedUpperItemId;
+                uint32_t EquippedUnderItemId;
+                uint32_t EquippedPantsItemId;
+                uint32_t EquippedShirtItemId;
+                uint32_t EquippedBootsItemId;
+                uint32_t EquippedGlassItemId;
+                uint32_t EquippedAccessoryWaistItemId;
+                uint32_t EquippedAccessoryBackItemId;
+                uint32_t EquippedMeleeItemId;
+                uint32_t EquippedRifleItemId;
+                uint32_t EquippedShotgunItemId;
+                uint32_t EquippedSniperItemId;
+                uint32_t EquippedGatlingItemId;
+                uint32_t EquippedGrenadeItemId;
+                uint32_t EquippedBazookaItemId;
             #if defined(RELEASE_1_1_1)
-                std::uint32_t EquippedHairItemId2 = 0;
-                std::uint32_t EquippedFaceItemId2 = 0;
-                std::uint32_t EquippedUpperItemId2 = 0;
-                std::uint32_t EquippedUnderItemId2 = 0;
-                std::uint32_t EquippedPantsItemId2 = 0;
-                std::uint32_t EquippedShirtItemId2 = 0;
-                std::uint32_t EquippedBootsItemId2 = 0;
-                std::uint32_t EquippedGlassItemId2 = 0;
-                std::uint32_t EquippedAccessoryWaistItemId2 = 0;
-                std::uint32_t EquippedAccessoryBackItemId2 = 0;
-                std::uint32_t EquippedMeleeItemId2 = 0;
-                std::uint32_t EquippedRifleItemId2 = 0;
-                std::uint32_t EquippedShotgunItemId2 = 0;
-                std::uint32_t EquippedSniperItemId2 = 0;
-                std::uint32_t EquippedGatlingItemId2 = 0;
-                std::uint32_t EquippedGrenadeItemId2 = 0;
-                std::uint32_t EquippedBazookaItemId2 = 0;
+                uint32_t EquippedHairItemId2 = 0;
+                uint32_t EquippedFaceItemId2 = 0;
+                uint32_t EquippedUpperItemId2 = 0;
+                uint32_t EquippedUnderItemId2 = 0;
+                uint32_t EquippedPantsItemId2 = 0;
+                uint32_t EquippedShirtItemId2 = 0;
+                uint32_t EquippedBootsItemId2 = 0;
+                uint32_t EquippedGlassItemId2 = 0;
+                uint32_t EquippedAccessoryWaistItemId2 = 0;
+                uint32_t EquippedAccessoryBackItemId2 = 0;
+                uint32_t EquippedMeleeItemId2 = 0;
+                uint32_t EquippedRifleItemId2 = 0;
+                uint32_t EquippedShotgunItemId2 = 0;
+                uint32_t EquippedSniperItemId2 = 0;
+                uint32_t EquippedGatlingItemId2 = 0;
+                uint32_t EquippedGrenadeItemId2 = 0;
+                uint32_t EquippedBazookaItemId2 = 0;
             #endif
 
                 Core::UniqueId unique_id;
 
                 MainRoomPlayersEquipInfoAck(const Core::UniqueId& uniqueId, 
-                    const std::uint32_t& hair, const std::uint32_t& face, const std::uint32_t& upper, 
-                    const std::uint32_t& under, const std::uint32_t& pants, const std::uint32_t& shirt,
-                    const std::uint32_t& boots, const std::uint32_t& glass, const std::uint32_t& acc_waist,
-                    const std::uint32_t& acc_back, const std::uint32_t& melee, const std::uint32_t& rifle, 
-                    const std::uint32_t& shotgun, const std::uint32_t& sniper, const std::uint32_t& gatling,
-                    const std::uint32_t& grenade, const std::uint32_t& bazooka)
+                    const uint32_t& hair, const uint32_t& face, const uint32_t& upper, 
+                    const uint32_t& under, const uint32_t& pants, const uint32_t& shirt,
+                    const uint32_t& boots, const uint32_t& glass, const uint32_t& acc_waist,
+                    const uint32_t& acc_back, const uint32_t& melee, const uint32_t& rifle, 
+                    const uint32_t& shotgun, const uint32_t& sniper, const uint32_t& gatling,
+                    const uint32_t& grenade, const uint32_t& bazooka)
                 {
                     std::memset(this, 0, sizeof(MainRoomPlayersEquipInfoAck));
                     this->unique_id.data = uniqueId.data;
@@ -1197,9 +1197,9 @@ namespace NetEngine
   
 
                 }
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     auto info1_bytes = reinterpret_cast<const uint8_t*>(&ping_info.data);
                     data.insert(data.end(), info1_bytes, info1_bytes + sizeof(ping_info.data));
@@ -1219,7 +1219,7 @@ namespace NetEngine
                 char nickname[16];
                 RoomUserPlayerInfo2 info2;
             #if defined(RELEASE_1_1_1)
-                std::uint32_t unknown2;
+                uint32_t unknown2;
             #endif
                 MainRoomPlayersInfoAck(const std::string& nickname, const Core::UniqueId& uniqueId, const RoomUserPlayerInfo1& info1, const RoomUserPlayerInfo2& info2)
                 {
@@ -1234,9 +1234,9 @@ namespace NetEngine
                 #endif
 
                 }
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     auto uniqueid_bytes = reinterpret_cast<const uint8_t*>(&unique_id.data);
                     data.insert(data.end(), uniqueid_bytes, uniqueid_bytes + sizeof(unique_id.data));
@@ -1264,54 +1264,54 @@ namespace NetEngine
             public:
                 Core::UniqueId unique_id;//0
                 RoomUserPlayerInfo1 info;//4
-                std::uint32_t EquippedHairItemId;//8
-                std::uint32_t EquippedFaceItemId;//c
-                std::uint32_t EquippedUpperItemId;//10
-                std::uint32_t EquippedUnderItemId;//14
-                std::uint32_t EquippedPantsItemId;//18
-                std::uint32_t EquippedShirtItemId;//1c
-                std::uint32_t EquippedBootsItemId;//20
-                std::uint32_t EquippedGlassItemId;//24
-                std::uint32_t EquippedAccessoryWaistItemId;//28
-                std::uint32_t EquippedAccessoryBackItemId;//2c
-                std::uint32_t EquippedMeleeItemId;//30
-                std::uint32_t EquippedRifleItemId;//34
-                std::uint32_t EquippedShotgunItemId;//38
-                std::uint32_t EquippedSniperItemId;//3c
-                std::uint32_t EquippedGatlingItemId;//40
-                std::uint32_t EquippedGrenadeItemId;//44
-                std::uint32_t EquippedBazookaItemId;//48
+                uint32_t EquippedHairItemId;//8
+                uint32_t EquippedFaceItemId;//c
+                uint32_t EquippedUpperItemId;//10
+                uint32_t EquippedUnderItemId;//14
+                uint32_t EquippedPantsItemId;//18
+                uint32_t EquippedShirtItemId;//1c
+                uint32_t EquippedBootsItemId;//20
+                uint32_t EquippedGlassItemId;//24
+                uint32_t EquippedAccessoryWaistItemId;//28
+                uint32_t EquippedAccessoryBackItemId;//2c
+                uint32_t EquippedMeleeItemId;//30
+                uint32_t EquippedRifleItemId;//34
+                uint32_t EquippedShotgunItemId;//38
+                uint32_t EquippedSniperItemId;//3c
+                uint32_t EquippedGatlingItemId;//40
+                uint32_t EquippedGrenadeItemId;//44
+                uint32_t EquippedBazookaItemId;//48
             #if defined(RELEASE_1_1_1)
-                std::uint32_t EquippedHairItemId2 = 0;
-                std::uint32_t EquippedFaceItemId2 = 0;
-                std::uint32_t EquippedUpperItemId2 = 0;
-                std::uint32_t EquippedUnderItemId2 = 0;
-                std::uint32_t EquippedPantsItemId2 = 0;
-                std::uint32_t EquippedShirtItemId2 = 0;
-                std::uint32_t EquippedBootsItemId2 = 0;
-                std::uint32_t EquippedGlassItemId2 = 0;
-                std::uint32_t EquippedAccessoryWaistItemId2 = 0;
-                std::uint32_t EquippedAccessoryBackItemId2 = 0;
-                std::uint32_t EquippedMeleeItemId2 = 0;
-                std::uint32_t EquippedRifleItemId2 = 0;
-                std::uint32_t EquippedShotgunItemId2 = 0;
-                std::uint32_t EquippedSniperItemId2 = 0;
-                std::uint32_t EquippedGatlingItemId2 = 0;
-                std::uint32_t EquippedGrenadeItemId2 = 0;
-                std::uint32_t EquippedBazookaItemId2 = 0;
+                uint32_t EquippedHairItemId2 = 0;
+                uint32_t EquippedFaceItemId2 = 0;
+                uint32_t EquippedUpperItemId2 = 0;
+                uint32_t EquippedUnderItemId2 = 0;
+                uint32_t EquippedPantsItemId2 = 0;
+                uint32_t EquippedShirtItemId2 = 0;
+                uint32_t EquippedBootsItemId2 = 0;
+                uint32_t EquippedGlassItemId2 = 0;
+                uint32_t EquippedAccessoryWaistItemId2 = 0;
+                uint32_t EquippedAccessoryBackItemId2 = 0;
+                uint32_t EquippedMeleeItemId2 = 0;
+                uint32_t EquippedRifleItemId2 = 0;
+                uint32_t EquippedShotgunItemId2 = 0;
+                uint32_t EquippedSniperItemId2 = 0;
+                uint32_t EquippedGatlingItemId2 = 0;
+                uint32_t EquippedGrenadeItemId2 = 0;
+                uint32_t EquippedBazookaItemId2 = 0;
             #endif
                 char nickname[16];//4c
                 RoomUserPlayerInfo2 info2;//5c
             #if defined(RELEASE_1_1_1)
-                std::uint32_t unknown2;//60
+                uint32_t unknown2;//60
             #endif
                 MainRoomPlayerEnterInfoAck(const std::string& nickname, const Core::UniqueId& uniqueId, const RoomUserPlayerInfo1& info1, const RoomUserPlayerInfo2& info2,
-                    const std::uint32_t& hair, const std::uint32_t& face, const std::uint32_t& upper,
-                    const std::uint32_t& under, const std::uint32_t& pants, const std::uint32_t& shirt,
-                    const std::uint32_t& boots, const std::uint32_t& glass, const std::uint32_t& acc_waist,
-                    const std::uint32_t& acc_back, const std::uint32_t& melee, const std::uint32_t& rifle,
-                    const std::uint32_t& shotgun, const std::uint32_t& sniper, const std::uint32_t& gatling,
-                    const std::uint32_t& grenade, const std::uint32_t& bazooka)
+                    const uint32_t& hair, const uint32_t& face, const uint32_t& upper,
+                    const uint32_t& under, const uint32_t& pants, const uint32_t& shirt,
+                    const uint32_t& boots, const uint32_t& glass, const uint32_t& acc_waist,
+                    const uint32_t& acc_back, const uint32_t& melee, const uint32_t& rifle,
+                    const uint32_t& shotgun, const uint32_t& sniper, const uint32_t& gatling,
+                    const uint32_t& grenade, const uint32_t& bazooka)
                 {
                     std::memset(this, 0, sizeof(MainRoomPlayerEnterInfoAck));
                     std::memset(this->nickname, 0, sizeof(this->nickname));
@@ -1340,9 +1340,9 @@ namespace NetEngine
                     this->EquippedGrenadeItemId = grenade;
                     this->EquippedBazookaItemId = bazooka;
                 }
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     auto uniqueid_bytes = reinterpret_cast<const uint8_t*>(&unique_id.data);
                     data.insert(data.end(), uniqueid_bytes, uniqueid_bytes + sizeof(unique_id.data));
@@ -1474,10 +1474,10 @@ namespace NetEngine
 
                 MainBossBattleEndMatchResultAck(const std::vector<BossItem>& boss_items) : boss_items(boss_items) {}
 
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::uint32_t items_count = static_cast<std::uint32_t>(boss_items.size());
-                    std::vector<std::uint8_t> data;
+                    uint32_t items_count = static_cast<uint32_t>(boss_items.size());
+                    std::vector<uint8_t> data;
                     auto count_bytes = reinterpret_cast<const uint8_t*>(&items_count);
                     data.insert(data.end(), count_bytes, count_bytes + sizeof(items_count));
 
@@ -1502,9 +1502,9 @@ namespace NetEngine
                   
                 }
 
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     for (const auto& mail_info : mails)
                     {
@@ -1527,9 +1527,9 @@ namespace NetEngine
 
                 }
 
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     for (const auto& mail_info : mails)
                     {
@@ -1544,16 +1544,16 @@ namespace NetEngine
             class MainMonthlyRewardAck
             {
             public:
-                std::uint16_t month;
-                std::uint16_t received;
-                std::uint64_t unknown;
-                std::array<std::uint32_t, 31> monthly_items;
+                uint16_t month;
+                uint16_t received;
+                uint64_t unknown;
+                std::array<uint32_t, 31> monthly_items;
 
-                MainMonthlyRewardAck(const std::uint16_t& month, const std::uint16_t& received, const std::array<std::uint32_t, 31>& monthly_items) : month(month), received(received), unknown(0), monthly_items(monthly_items) {}
+                MainMonthlyRewardAck(const uint16_t& month, const uint16_t& received, const std::array<uint32_t, 31>& monthly_items) : month(month), received(received), unknown(0), monthly_items(monthly_items) {}
 
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
                     auto month_bytes = reinterpret_cast<const uint8_t*>(&month);
                     data.insert(data.end(), month_bytes, month_bytes + sizeof(month));
 
@@ -1567,7 +1567,7 @@ namespace NetEngine
                     for (const auto& item : monthly_items)
                     {
                         const auto* item_bytes = reinterpret_cast<const uint8_t*>(&item);
-                        data.insert(data.end(), item_bytes, item_bytes + sizeof(std::uint32_t));
+                        data.insert(data.end(), item_bytes, item_bytes + sizeof(uint32_t));
                     }
 
                     return data;
@@ -1577,10 +1577,10 @@ namespace NetEngine
             class MainUserJoinConfirmAck
             {
             public:
-                std::uint16_t server_id{};
-                std::uint16_t room_id{};
-                std::uint16_t channel_id{};
-                MainUserJoinConfirmAck(std::uint16_t serverId, std::uint16_t roomId, std::uint16_t channelId)
+                uint16_t server_id{};
+                uint16_t room_id{};
+                uint16_t channel_id{};
+                MainUserJoinConfirmAck(uint16_t serverId, uint16_t roomId, uint16_t channelId)
                 {
                     std::memset(this, 0, sizeof(MainUserJoinConfirmAck));
                     server_id = serverId;
@@ -1588,9 +1588,9 @@ namespace NetEngine
                     channel_id = channelId;
 
                 }
-                std::vector<std::uint8_t> Serialize() const
+                std::vector<uint8_t> Serialize() const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     auto server_id_bytes = reinterpret_cast<const uint8_t*>(&server_id);
                     data.insert(data.end(), server_id_bytes, server_id_bytes + sizeof(server_id));
@@ -1608,13 +1608,13 @@ namespace NetEngine
             class MainUserInviteAck
             {
             public:
-                std::uint32_t server_id{};
+                uint32_t server_id{};
                 char nickname[16]{};
-                std::uint16_t room_id{};
-                std::uint16_t channel_id{};
+                uint16_t room_id{};
+                uint16_t channel_id{};
                 char title[32];
                 char password[14];
-                MainUserInviteAck(std::uint32_t serverId, std::uint16_t roomId, std::uint16_t channelId, const std::string& nickname, const std::string& title = "", const std::string& pw = "")
+                MainUserInviteAck(uint32_t serverId, uint16_t roomId, uint16_t channelId, const std::string& nickname, const std::string& title = "", const std::string& pw = "")
                 {
                     std::memset(this, 0, sizeof(MainUserInviteAck));
                     server_id = serverId;
@@ -1628,9 +1628,9 @@ namespace NetEngine
                     std::strcpy(this->password, pw.c_str());
 
                 }
-                std::vector<std::uint8_t> Serialize(bool bSendTitlePassword = false) const
+                std::vector<uint8_t> Serialize(bool bSendTitlePassword = false) const
                 {
-                    std::vector<std::uint8_t> data;
+                    std::vector<uint8_t> data;
 
                     auto server_id_bytes = reinterpret_cast<const uint8_t*>(&server_id);
                     data.insert(data.end(), server_id_bytes, server_id_bytes + sizeof(server_id));
@@ -1658,10 +1658,10 @@ namespace NetEngine
             class MainUserInvitePartyAck
             {
             public:
-                std::uint32_t unk1;
-                std::uint32_t unk2;
+                uint32_t unk1;
+                uint32_t unk2;
                 char nickname[16];
-                MainUserInvitePartyAck(const std::uint32_t& data1 = 0, const char* newNickname = "", const std::uint32_t& roomId = 0)
+                MainUserInvitePartyAck(const uint32_t& data1 = 0, const char* newNickname = "", const uint32_t& roomId = 0)
                 {
                     std::memset(this, 0, sizeof(MainUserInvitePartyAck));
                     this->unk1 = roomId;
@@ -1684,7 +1684,7 @@ namespace NetEngine
             struct CastConnectionReq
             {
                 Core::UniqueId UniqueId;
-                std::uint64_t Authkey;
+                uint64_t Authkey;
             };
 
             struct CastPlayerSpawnReq
@@ -1694,113 +1694,113 @@ namespace NetEngine
             };
             struct CastJoinPlazaReq
             {
-                std::uint32_t plaza_id;
+                uint32_t plaza_id;
             };
 
             union PlayerInfoCastActionReq
             {
                 struct
                 {
-                    std::uint32_t health : 20;
-                    std::uint32_t mode_index : 5;
-                    std::uint32_t player_status : 4;
+                    uint32_t health : 20;
+                    uint32_t mode_index : 5;
+                    uint32_t player_status : 4;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             struct PlayerVictimDataReq
             {
                 Core::UniqueId victim_unique_id;
                 PlayerInfoCastActionReq player_info;
-                std::uint32_t idk2;
+                uint32_t idk2;
             };
             struct PlayerVictimWeapon2Req
             {
-                std::uint32_t idk; // 0x00
-                std::uint16_t pos_x;//0x4
-                std::uint16_t pos_y;//0x6
-                std::uint16_t pos_z; // 0x8
-                std::uint16_t dir_x;//0xA
-                std::uint16_t dir_y;//0xC
-                std::uint16_t dir_z;//0xE
+                uint32_t idk; // 0x00
+                uint16_t pos_x;//0x4
+                uint16_t pos_y;//0x6
+                uint16_t pos_z; // 0x8
+                uint16_t dir_x;//0xA
+                uint16_t dir_y;//0xC
+                uint16_t dir_z;//0xE
                 Core::UniqueId attacker_unique_id;//0x10 a1+0x14
                 PlayerVictimDataReq player_victims_data[26]; // array size is extra
             };
             struct PlayerVictimWeaponReq
             {
-                std::uint32_t idk;
-                std::uint16_t pos_x;//0x4
-                std::uint16_t pos_y;//0x6
-                std::uint16_t pos_z; // 0x8
-                std::uint16_t dir_x;//0xA
-                std::uint16_t dir_y;//0xC
-                std::uint16_t dir_z;//0xE
+                uint32_t idk;
+                uint16_t pos_x;//0x4
+                uint16_t pos_y;//0x6
+                uint16_t pos_z; // 0x8
+                uint16_t dir_x;//0xA
+                uint16_t dir_y;//0xC
+                uint16_t dir_z;//0xE
                 Core::UniqueId attacker_unique_id;
                 Core::UniqueId victim_unique_id;
                 PlayerInfoCastActionReq player_info;
-                std::uint32_t idk2;
+                uint32_t idk2;
             };
             struct AddProjectileReq
             {
-                std::uint32_t projectile_id;
-                std::uint16_t coord_x;
-                std::uint16_t coord_y;
-                std::uint16_t coord_z;
-                std::uint16_t idk;
+                uint32_t projectile_id;
+                uint16_t coord_x;
+                uint16_t coord_y;
+                uint16_t coord_z;
+                uint16_t idk;
                 //PlayerVictimDataReq player_victims_data[26];
             };
             struct ImpactProjectileReq
             {
-                std::uint32_t idk;
-                std::uint16_t pos_x;//0x4
-                std::uint16_t pos_y;//0x6
-                std::uint16_t pos_z; // 0x8
-                std::uint16_t dir_x;//0xA
-                std::uint16_t dir_y;//0xC
-                std::uint16_t dir_z;//0xE
+                uint32_t idk;
+                uint16_t pos_x;//0x4
+                uint16_t pos_y;//0x6
+                uint16_t pos_z; // 0x8
+                uint16_t dir_x;//0xA
+                uint16_t dir_y;//0xC
+                uint16_t dir_z;//0xE
                 Core::UniqueId attacker_unique_id;
-                std::uint32_t projectile_id;
+                uint32_t projectile_id;
             };
             struct PveProjectileImpactReq
             {
-                std::uint32_t idk;
-                std::uint16_t pos_x;
-                std::uint16_t pos_y;
-                std::uint16_t pos_z;
-                std::uint16_t dir_x;
-                std::uint16_t dir_y;
-                std::uint16_t dir_z;
+                uint32_t idk;
+                uint16_t pos_x;
+                uint16_t pos_y;
+                uint16_t pos_z;
+                uint16_t dir_x;
+                uint16_t dir_y;
+                uint16_t dir_z;
                 Core::UniqueId unique_id;
-                std::uint32_t projectile_id;
+                uint32_t projectile_id;
             };
             struct RespawnRequest
             {
-                std::uint16_t x;
-                std::uint16_t y;
-                std::uint16_t z;
-                std::uint16_t rotation;
+                uint16_t x;
+                uint16_t y;
+                uint16_t z;
+                uint16_t rotation;
                 Core::UniqueId target_unique_id;
             };
             struct SniperRequestHit
             {
-                std::uint32_t idk;
-                std::uint16_t pos_x;
-                std::uint16_t pos_y;
-                std::uint16_t pos_z;
-                std::uint16_t dir_x;
-                std::uint16_t dir_y;
-                std::uint16_t dir_z;
-                std::uint32_t attacker_unique_id;
-                std::uint32_t victim_unique_id;
+                uint32_t idk;
+                uint16_t pos_x;
+                uint16_t pos_y;
+                uint16_t pos_z;
+                uint16_t dir_x;
+                uint16_t dir_y;
+                uint16_t dir_z;
+                uint32_t attacker_unique_id;
+                uint32_t victim_unique_id;
                 PlayerInfoCastActionReq dmg_info;
-                std::uint32_t idk2;
+                uint32_t idk2;
             };
             // S2C
 
             struct CastEngineServerConnectionAck
             {
-                std::int32_t random;
+                int32_t random;
 
-                CastEngineServerConnectionAck(std::int32_t random) : random(random)
+                CastEngineServerConnectionAck(int32_t random) : random(random)
                 {
                 }
             };

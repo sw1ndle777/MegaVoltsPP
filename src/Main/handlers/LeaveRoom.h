@@ -9,7 +9,7 @@ namespace Game
     {
         inline void LeaveRoom(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -56,8 +56,8 @@ namespace Game
                 main_server->RemoveRoomPlayerCache(room, target_unique_id.session, target_team_id);
                 //main_server->RoomPlayersSlotReorder(room);
 
-                std::vector<std::uint32_t> players_ids;
-                std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
+                std::vector<uint32_t> players_ids;
+                std::vector<std::pair<uint32_t, uint32_t>> player_slot_pairs;
                 auto insert_player_slot_pair = [&](const auto& session_ids)
                 {
                     for (const auto& id : session_ids)
@@ -87,7 +87,7 @@ namespace Game
 
                 room.unlock();
 
-                std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
+                std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) { return a.second < b.second; });
                 for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
 
 
@@ -129,8 +129,8 @@ namespace Game
                 auto room_playing_players = main_server->GetRoomSortedPlayerPlayingWithoutObserverSessionIds(room);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, " player leave room and playing count is now: ({})", room_playing_players.size());
 
-                std::vector<std::uint32_t> players_ids;
-                std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
+                std::vector<uint32_t> players_ids;
+                std::vector<std::pair<uint32_t, uint32_t>> player_slot_pairs;
                 auto insert_player_slot_pair = [&](const auto& session_ids)
                 {
                     for (const auto& id : session_ids)
@@ -157,7 +157,7 @@ namespace Game
                 else
                     insert_player_slot_pair(room->neutralteam_session_ids);
                 insert_player_slot_pair(room->observers_session_ids);
-                std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
+                std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) { return a.second < b.second; });
                 for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
                 
                 if (!room->neutralteam_session_ids.empty() || !room->redteam_session_ids.empty() || !room->blueteam_session_ids.empty())
@@ -171,13 +171,13 @@ namespace Game
                             room->host_session_id = best_ping_session_id;
                             for (const auto& id : players_ids)
                                 if (auto player_session = server->GetSessionById(id))
-                                    send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
+                                    send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
 
 
                             struct RoomAuthData
                             {
-                                std::uint16_t room_id;
-                                std::uint64_t auth_key;
+                                uint16_t room_id;
+                                uint64_t auth_key;
                             };
                             RoomAuthData new_host_data{ room_id, best_ping_acc_cache->acc_info.AuthKey };
 

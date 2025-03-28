@@ -9,7 +9,7 @@ namespace Game
     {
         inline void PlayerEnergy(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -35,17 +35,17 @@ namespace Game
             auto player_ids = main_server->GetRoomSortedPlayerSessionIds(room);
             room.unlock();
             if (!main_server->IsSessionIdAlready(unique_id.session, player_ids)) return;
-            //std::uint32_t battery_chance = Utility::Random::CustomGen(0, 100);
+            //uint32_t battery_chance = Utility::Random::CustomGen(0, 100);
             //if (battery_chance < 45) return;
             
-            std::array<std::uint32_t, 3> batteries = { 30, 50, 100 };
-            std::uint32_t index = Utility::Random::CustomGen(0, static_cast<std::uint32_t>(batteries.size() - 1));
+            std::array<uint32_t, 3> batteries = { 30, 50, 100 };
+            uint32_t index = Utility::Random::CustomGen(0, static_cast<uint32_t>(batteries.size() - 1));
             auto battery_earnt = batteries[index];
             if (acc_cache->earnt_battery + battery_earnt > 1000) return;
             if(acc_cache->earnt_battery + acc_cache->acc_info.Energy > acc_cache->acc_info.MaximumEnergy) return;
             acc_cache->earnt_battery += battery_earnt;
             if (auto player_session = server->GetSessionById(unique_id.session))
-                send_msg(player_session.get(), 86, 0, 1, battery_earnt, reinterpret_cast<std::uint8_t*>(&battery_earnt), sizeof(battery_earnt));
+                send_msg(player_session.get(), 86, 0, 1, battery_earnt, reinterpret_cast<uint8_t*>(&battery_earnt), sizeof(battery_earnt));
         }
     }
 }

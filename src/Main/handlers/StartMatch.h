@@ -9,7 +9,7 @@ namespace Game
     {
         inline void StartMatch(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -69,7 +69,7 @@ namespace Game
                     if (is_host)
                     {
                         
-                        std::uint64_t sv_uptime_tick = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
+                        uint64_t sv_uptime_tick = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
                         for (const auto& room_player_session_id : players_ids)
                         {
                             if (auto player_session = server->GetSessionById(room_player_session_id))

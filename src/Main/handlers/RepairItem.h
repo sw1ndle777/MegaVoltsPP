@@ -9,7 +9,7 @@ namespace Game
     {
         inline void RepairItem(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -22,14 +22,14 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto items_count = static_cast<std::uint32_t>(callback.message->GetOption());
+            auto items_count = static_cast<uint32_t>(callback.message->GetOption());
             const auto& repairItemReq = reinterpret_cast<MainRepairItemSerialInfoReq*>(callback.message->GetData());
             if (acc_index == -1) return;
             std::vector<ItemSerialInfo> items_updated;
-            std::vector<std::uint32_t> items_durabilities;
-            std::uint32_t total_repair_price = 0;
+            std::vector<uint32_t> items_durabilities;
+            uint32_t total_repair_price = 0;
             
-            for (std::uint32_t i = 0; i < items_count; i++)
+            for (uint32_t i = 0; i < items_count; i++)
             {
                 const auto& item_repair = main_server->GetPlayerItemInventory(acc_cache, repairItemReq->items[i]);
                 if (!item_repair.has_value()) continue;

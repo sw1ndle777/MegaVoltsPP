@@ -18,7 +18,7 @@ namespace Game
             self_player.unlock();
 
             auto respawnReq = reinterpret_cast<RespawnRequest*>(callback.message->GetData());
-            auto target_session_id = (std::uint32_t)respawnReq->target_unique_id.session;
+            auto target_session_id = (uint32_t)respawnReq->target_unique_id.session;
             auto target_player_cache = cast_server->GetPlayerCacheUnique(target_session_id);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player id: ({}) reset max hp", target_session_id);
             target_player_cache->health = 0xF4240;

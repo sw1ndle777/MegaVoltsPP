@@ -29,9 +29,9 @@ namespace Game
                     for (int i = 0; i < cnt; i++)
                     {
                         auto current_dmg = attackReq->player_victims_data[i];
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player ({}) attacked and now have hp: ({})", (std::uint32_t)current_dmg.victim_unique_id.session, (std::uint32_t)current_dmg.player_info.health);
-                        auto target_player_cache = cast_server->GetPlayerCacheUnique((std::uint32_t)current_dmg.victim_unique_id.session);
-                        target_player_cache->health = (std::uint32_t)current_dmg.player_info.health;
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player ({}) attacked and now have hp: ({})", (uint32_t)current_dmg.victim_unique_id.session, (uint32_t)current_dmg.player_info.health);
+                        auto target_player_cache = cast_server->GetPlayerCacheUnique((uint32_t)current_dmg.victim_unique_id.session);
+                        target_player_cache->health = (uint32_t)current_dmg.player_info.health;
                         target_player_cache.unlock();
                     }
                     break;
@@ -41,8 +41,8 @@ namespace Game
                 case 270:
                 {//PlayerVictimWeaponReq
                     auto attackReq = reinterpret_cast<PlayerVictimWeaponReq*>(callback.message->GetData());
-                    auto victim_session_id = (std::uint32_t)attackReq->victim_unique_id.session;
-                    auto victim_new_health = (std::uint32_t)attackReq->player_info.health;
+                    auto victim_session_id = (uint32_t)attackReq->victim_unique_id.session;
+                    auto victim_new_health = (uint32_t)attackReq->player_info.health;
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player ({}) attacked and now have hp: ({})", victim_session_id, victim_new_health);
                     auto victim_cache = cast_server->GetPlayerCacheUnique(victim_session_id);
                     victim_cache->health = victim_new_health;

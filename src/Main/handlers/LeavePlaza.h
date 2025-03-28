@@ -9,7 +9,7 @@ namespace Game
     {
         inline void LeavePlaza(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -66,7 +66,7 @@ namespace Game
                 MainCompleteMissionReq mission_data;
                 mission_data.collection_id = 55;
                 send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
-                std::vector<std::uint16_t> empty_vec;
+                std::vector<uint16_t> empty_vec;
                 ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
             }
         }

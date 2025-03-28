@@ -10,7 +10,7 @@ namespace Game
 
         inline void PlayerChat(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -46,7 +46,7 @@ namespace Game
                 auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                 acc_cache.unlock();
 
-                std::uint8_t chat_color = 0;
+                uint8_t chat_color = 0;
                 if (current_player_grade == Userlist::User::Grade::Moderator)
                     chat_color = 13;
                 else if (current_player_grade == Userlist::User::Grade::Tester)

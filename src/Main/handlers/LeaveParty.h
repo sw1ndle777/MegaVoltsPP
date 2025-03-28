@@ -9,7 +9,7 @@ namespace Game
     {
         inline void LeaveParty(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -44,8 +44,8 @@ namespace Game
                             send_msg(player_session.get(), 120, 0, 45, 0);
                     }
                 }
-                std::uint16_t new_leader_index = 0;
-                std::uint16_t new_leader = 0;
+                uint16_t new_leader_index = 0;
+                uint16_t new_leader = 0;
                 for (const auto& member : party_cache->members)
                 {
                     if (member != party_cache->party_host_session_id) {
@@ -58,7 +58,7 @@ namespace Game
                 {
                     if (party_member_session_id == party_cache->party_host_session_id) continue;
                     if (auto player_session = server->GetSessionById(party_member_session_id))
-                        send_msg(player_session.get(), 114, 0, 1, static_cast<std::uint8_t>(new_leader_index));
+                        send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
                 }
                 party_cache->party_host_session_id = new_leader;
             }

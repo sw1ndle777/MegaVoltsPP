@@ -9,7 +9,7 @@ namespace Game
     {
         inline void LobbyUserList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -37,7 +37,7 @@ namespace Game
                 if (user.first != session_id)
                 {
                     if (acc_cache->in_plaza && user.second.in_plaza && !acc_cache->in_room && !user.second.in_room && !acc_cache->in_party && !user.second.in_party) {
-                        std::uint32_t clan_front_icon = 0, clan_back_icon = 0;
+                        uint32_t clan_front_icon = 0, clan_back_icon = 0;
                         if (user.second.acc_info.ClanId) {
                             auto clan_info = main_server->GetClanCacheShared(user.second.acc_info.ClanId);
                             clan_front_icon = clan_info->logo_front;
@@ -47,7 +47,7 @@ namespace Game
                         user_list.push_back({ user.second.acc_info.Nickname, NetEngine::Packets::Core::UniqueId(user.first, 1).data , user.second.acc_info.Level + 1, clan_front_icon, clan_back_icon });
                     }
                     else if (!acc_cache->in_plaza && !user.second.in_plaza && !user.second.in_room && !user.second.in_party) {
-                        std::uint32_t clan_front_icon = 0, clan_back_icon = 0;
+                        uint32_t clan_front_icon = 0, clan_back_icon = 0;
                         if (user.second.acc_info.ClanId) {
                             auto clan_info = main_server->GetClanCacheShared(user.second.acc_info.ClanId);
                             clan_front_icon = clan_info->logo_front;
@@ -66,13 +66,13 @@ namespace Game
                 send_msg(session, 84, 0, Userlist::ListResult::NoUsers, 0);
                 return;
             }
-            std::uint32_t total_users_fragments = (user_list.size() == 0) ? 0 : (user_list.size() / 51) + 1;
-            for (std::uint32_t i = 0; i < total_users_fragments; i++)
+            uint32_t total_users_fragments = (user_list.size() == 0) ? 0 : (user_list.size() / 51) + 1;
+            for (uint32_t i = 0; i < total_users_fragments; i++)
             {
                 std::vector<PlayerAgoraInfo> users_batch;
-                std::uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
-                std::uint32_t start_index = i * 51;
-                std::uint32_t end_index = std::min(start_index + 51, static_cast<std::uint32_t>(user_list.size()));
+                uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
+                uint32_t start_index = i * 51;
+                uint32_t end_index = std::min(start_index + 51, static_cast<uint32_t>(user_list.size()));
                 for (auto j = start_index; j < end_index; j++)
                     users_batch.push_back(user_list[j]);
 

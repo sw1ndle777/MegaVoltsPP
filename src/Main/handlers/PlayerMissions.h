@@ -7,20 +7,20 @@ namespace Game
 
     namespace Handlers
     {
-        bool checkAchievement(std::uint64_t& tier, int achievementId) 
+        bool checkAchievement(uint64_t& tier, int achievementId) 
         {
             assert(achievementId >= 0 && achievementId < 64 && "Achievement ID must be between 0 and 63.");
             return (tier & (1ULL << achievementId)) != 0;
         }
 
-        void doAchievement(std::uint64_t& tier, int achievementId) 
+        void doAchievement(uint64_t& tier, int achievementId) 
         {
             assert(achievementId >= 0 && achievementId < 64 && "Achievement ID must be between 0 and 63.");
             tier |= (1ULL << achievementId);
         }
         inline void PlayerCompleteAchievement(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -57,7 +57,7 @@ namespace Game
         }
         inline void PlayerCompleteGuideMission(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -77,15 +77,15 @@ namespace Game
             if (callback.message->GetExtra() == 2) // Do a goal of Daily mission
             {
                 struct daily_mission_req {
-                    std::uint32_t id;
-                    std::uint32_t idk1;
-                    std::uint32_t idk2;
-                    std::uint32_t idk3;
+                    uint32_t id;
+                    uint32_t idk1;
+                    uint32_t idk2;
+                    uint32_t idk3;
                 };
                 auto mission_data = reinterpret_cast<daily_mission_req*>(callback.message->GetData());
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "daily mission request: ({}) ({}) ({}) ({})", mission_data->id, mission_data->idk1, mission_data->idk2, mission_data->idk3);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player did goal of daily mission: ({})", mission_data->id);
-                std::uint32_t* current_goal = nullptr;
+                uint32_t* current_goal = nullptr;
                 if (acc_cache->daily_mission_info.mission1 == mission_data->id)
                 {
                     current_goal = &(acc_cache->daily_mission_info.goal_mission1);
@@ -135,12 +135,12 @@ namespace Game
             if (callback.message->GetExtra() == 3) // Reset a Daily mission
             {
                 struct daily_mission_reset_req {
-                    std::uint32_t id;
+                    uint32_t id;
                 };
                 auto mission_data = reinterpret_cast<daily_mission_reset_req*>(callback.message->GetData());
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to reset daily mission: ({})", mission_data->id);
-                std::uint32_t* current_goal = nullptr;
-                std::uint32_t* current_mission = nullptr;
+                uint32_t* current_goal = nullptr;
+                uint32_t* current_mission = nullptr;
                 if (acc_cache->daily_mission_info.mission1 == mission_data->id)
                 {
                     current_mission = &(acc_cache->daily_mission_info.mission1);
@@ -201,7 +201,7 @@ namespace Game
                         acc_cache->acc_info.MicroPoints += current_coll->rewardPoint;
                     }
                     send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->collection_id), sizeof(mission_data->collection_id));
-                    std::vector<std::uint16_t> playing_players;
+                    std::vector<uint16_t> playing_players;
                     if (acc_cache->in_room)
                     {
                         auto room_cache = main_server->GetRoomCacheShared(acc_cache->room_id);

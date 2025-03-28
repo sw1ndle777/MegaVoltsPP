@@ -17,7 +17,7 @@ namespace NetEngine
         public:
             bool using_new_encryption = true;
 
-            std::uint32_t encrypt_tcp_header(std::uint32_t header)
+            uint32_t encrypt_tcp_header(uint32_t header)
             {
                 if (!using_new_encryption) return header;
                 header = ~header;  // Bitwise NOT
@@ -32,7 +32,7 @@ namespace NetEngine
             }
 
 
-            std::uint32_t decrypt_tcp_header(std::uint32_t encrypted_header)
+            uint32_t decrypt_tcp_header(uint32_t encrypted_header)
             {
                 if (!using_new_encryption) return encrypted_header;
                 encrypted_header = ((encrypted_header & 0xAAAAAAAA) >> 1) | ((encrypted_header & 0x55555555) << 1);  // Reverse alternating bit swap

@@ -18,7 +18,7 @@ namespace Game
     using namespace NetEngine::Packets::Cast;
     struct PlayerInfo
     {
-        enum State : std::uint8_t
+        enum State : uint8_t
         {
             Disconnected = 0,
             Connected = 1,
@@ -34,27 +34,27 @@ namespace Game
     struct Player
     {
         std::shared_mutex mutex;
-        std::uint16_t session_id;
-        std::uint16_t host_session_id;
-        std::uint16_t room_id;
-        std::uint16_t plaza_id;
-        std::uint16_t server_id;
-        std::uint16_t state_id;
-        std::uint32_t health;
+        uint16_t session_id;
+        uint16_t host_session_id;
+        uint16_t room_id;
+        uint16_t plaza_id;
+        uint16_t server_id;
+        uint16_t state_id;
+        uint32_t health;
         bool in_room;
         bool in_plaza;
         bool is_dead;
-        std::uint64_t auth_key;
+        uint64_t auth_key;
 
-        Player(const std::uint16_t& sessionId = 0,
-            const std::uint16_t& hostSessionId = 0,
-            const std::uint16_t& roomId = 0,
-            const std::uint16_t& plazaId = 0,
-            const std::uint16_t& severId = 0,
-            const std::uint16_t& stateId = 0,
+        Player(const uint16_t& sessionId = 0,
+            const uint16_t& hostSessionId = 0,
+            const uint16_t& roomId = 0,
+            const uint16_t& plazaId = 0,
+            const uint16_t& severId = 0,
+            const uint16_t& stateId = 0,
             const bool& inRoom = false,
             const bool& inPlaza = false,
-            const std::uint64_t& authKey = 0)
+            const uint64_t& authKey = 0)
             : session_id(sessionId), host_session_id(hostSessionId), room_id(roomId), plaza_id(plazaId), server_id(severId), state_id(stateId), in_room(inRoom), in_plaza(inPlaza), auth_key(authKey) {
                 is_dead = false;
                 health = 0;
@@ -95,11 +95,11 @@ namespace Game
     struct Room
     {
         std::shared_mutex mutex;
-        std::uint16_t room_id;
-        std::uint16_t host_session_id;
-        std::vector<std::uint16_t> players_session_id;
-        Room(const std::uint16_t& roomId = 0,
-            const std::uint16_t& hostSessionId = 0)
+        uint16_t room_id;
+        uint16_t host_session_id;
+        std::vector<uint16_t> players_session_id;
+        Room(const uint16_t& roomId = 0,
+            const uint16_t& hostSessionId = 0)
             : room_id(roomId), host_session_id(hostSessionId)
         {
             players_session_id.clear();
@@ -123,9 +123,9 @@ namespace Game
     struct Plaza
     {
         std::shared_mutex mutex;
-        std::uint16_t plaza_id;
-        std::vector<std::uint16_t> players_session_id;
-        Plaza(const std::uint16_t& plazaId = 0) : plaza_id(plazaId)
+        uint16_t plaza_id;
+        std::vector<uint16_t> players_session_id;
+        Plaza(const uint16_t& plazaId = 0) : plaza_id(plazaId)
         {
             players_session_id.clear();
         }
@@ -154,15 +154,15 @@ namespace Game
     extern std::shared_mutex room_ids_mutex;
     extern std::shared_mutex plaza_ids_mutex;
     /*
-    extern std::unordered_map<std::uint16_t, Player> players_cache;
-    extern std::unordered_map<std::uint16_t, Room> rooms_cache;
-    extern std::unordered_map<std::uint16_t, Plaza> plaza_cache;
+    extern std::unordered_map<uint16_t, Player> players_cache;
+    extern std::unordered_map<uint16_t, Room> rooms_cache;
+    extern std::unordered_map<uint16_t, Plaza> plaza_cache;
     */
-    extern boost::unordered_flat_map<std::uint16_t, Player> players_cache;
-    extern boost::unordered_flat_map<std::uint16_t, Room> rooms_cache;
-    extern boost::unordered_flat_map<std::uint16_t, Plaza> plaza_cache;
-    extern std::vector<std::uint32_t> room_ids;
-    extern std::vector<std::uint32_t> plaza_ids;
+    extern boost::unordered_flat_map<uint16_t, Player> players_cache;
+    extern boost::unordered_flat_map<uint16_t, Room> rooms_cache;
+    extern boost::unordered_flat_map<uint16_t, Plaza> plaza_cache;
+    extern std::vector<uint32_t> room_ids;
+    extern std::vector<uint32_t> plaza_ids;
     using RoomCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Room>;
     using PlazaCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Plaza>;
     class CCastServer : public NetEngine::CServer
@@ -170,13 +170,13 @@ namespace Game
     public:
         CCastServer();
         ~CCastServer();
-        auto IsSessionIdAlready(const std::uint16_t& session_id, const std::vector<std::uint16_t>& session_ids)
+        auto IsSessionIdAlready(const uint16_t& session_id, const std::vector<uint16_t>& session_ids)
         {
             auto findit = std::find(session_ids.begin(), session_ids.end(), session_id);
             return findit != session_ids.end();
         }
         
-        auto IsPlayerAlready(const std::uint16_t& session_id)
+        auto IsPlayerAlready(const uint16_t& session_id)
         {
             std::shared_lock lock(players_cache_mutex);
             if (auto findit = players_cache.find(session_id); findit != players_cache.end())
@@ -185,7 +185,7 @@ namespace Game
                 return false;
         }
        
-        auto GetPlayerCacheShared(const std::uint16_t& session_id)
+        auto GetPlayerCacheShared(const uint16_t& session_id)
         {
             std::shared_lock lock(players_cache_mutex);
             auto it = players_cache.find(session_id);
@@ -199,7 +199,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_player_mutex), null_player };
             }
         }
-        auto GetPlayerCacheUnique(const std::uint16_t& session_id)
+        auto GetPlayerCacheUnique(const uint16_t& session_id)
         {
             std::shared_lock lock(players_cache_mutex);
             auto it = players_cache.find(session_id);
@@ -214,7 +214,7 @@ namespace Game
             }
         }
 
-        auto GetPlayerCacheSharedByAuthKey(const std::uint64_t& auth_key)
+        auto GetPlayerCacheSharedByAuthKey(const uint64_t& auth_key)
         {
             std::shared_lock lock(players_cache_mutex);
 
@@ -232,7 +232,7 @@ namespace Game
             }
         }
 
-        auto GetPlayerCacheUniqueByAuthKey(const std::uint64_t& auth_key)
+        auto GetPlayerCacheUniqueByAuthKey(const uint64_t& auth_key)
         {
             std::shared_lock lock(players_cache_mutex);
 
@@ -250,7 +250,7 @@ namespace Game
             }
         }
 
-        void AddPlayerCache(const std::uint32_t& session_id, const Player& new_player)
+        void AddPlayerCache(const uint32_t& session_id, const Player& new_player)
         {
             if (!IsPlayerAlready(session_id))
             {
@@ -262,7 +262,7 @@ namespace Game
         }
         
 
-        void RemovePlayerCache(const std::uint32_t& session_id)
+        void RemovePlayerCache(const uint32_t& session_id)
         {
             if (IsPlayerAlready(session_id))
             {
@@ -271,7 +271,7 @@ namespace Game
             }
         }
         
-        auto IsRoomAlready(const std::uint16_t& room_id)
+        auto IsRoomAlready(const uint16_t& room_id)
         {
             std::shared_lock lock(rooms_cache_mutex);
             if (auto findit = rooms_cache.find(room_id); findit != rooms_cache.end())
@@ -279,7 +279,7 @@ namespace Game
             else
                 return false;
         }
-        auto GetRoomCacheShared(const std::uint16_t& room_id)
+        auto GetRoomCacheShared(const uint16_t& room_id)
         {
             std::shared_lock lock(rooms_cache_mutex);
             auto it = rooms_cache.find(room_id);
@@ -293,7 +293,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_room_mutex), null_room };
             }
         }
-        auto GetRoomCacheUnique(const std::uint16_t& room_id)
+        auto GetRoomCacheUnique(const uint16_t& room_id)
         {
             std::shared_lock lock(rooms_cache_mutex);
             auto it = rooms_cache.find(room_id);
@@ -307,7 +307,7 @@ namespace Game
                 return LockedResource{ std::unique_lock(null_room_mutex), null_room };
             }
         }
-        void AddRoomCache(const std::uint32_t& room_id, const Room& new_room)
+        void AddRoomCache(const uint32_t& room_id, const Room& new_room)
         {
             if (!IsRoomAlready(room_id))
             {
@@ -322,7 +322,7 @@ namespace Game
 
             }
         }
-        void RemoveRoomCache(const std::uint32_t& room_id)
+        void RemoveRoomCache(const uint32_t& room_id)
         {
             if (IsRoomAlready(room_id))
             {
@@ -334,7 +334,7 @@ namespace Game
             }
         }
 
-        auto IsPlazaAlready(const std::uint16_t& plaza_id)
+        auto IsPlazaAlready(const uint16_t& plaza_id)
         {
             std::shared_lock lock(plaza_cache_mutex);
             if (auto findit = plaza_cache.find(plaza_id); findit != plaza_cache.end())
@@ -342,7 +342,7 @@ namespace Game
             else
                 return false;
         }
-        auto GetPlazaCacheShared(const std::uint16_t& plaza_id)
+        auto GetPlazaCacheShared(const uint16_t& plaza_id)
         {
             std::shared_lock lock(plaza_cache_mutex);
             auto it = plaza_cache.find(plaza_id);
@@ -355,7 +355,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_plaza_mutex), null_plaza };
             }
         }
-        auto GetPlazaCacheUnique(const std::uint16_t& plaza_id)
+        auto GetPlazaCacheUnique(const uint16_t& plaza_id)
         {
             std::shared_lock lock(plaza_cache_mutex);
             auto it = plaza_cache.find(plaza_id);
@@ -368,7 +368,7 @@ namespace Game
                 return LockedResource{ std::unique_lock(null_plaza_mutex), null_plaza };
             }
         }
-        void AddPlazaCache(const std::uint16_t& plaza_id, const Plaza& new_plaza)
+        void AddPlazaCache(const uint16_t& plaza_id, const Plaza& new_plaza)
         {
             if (!IsPlazaAlready(plaza_id))
             {
@@ -378,7 +378,7 @@ namespace Game
                 plaza_ids_locked->push_back(plaza_id);
             }
         }
-        void RemovePlazaCache(const std::uint16_t& plaza_id)
+        void RemovePlazaCache(const uint16_t& plaza_id)
         {
             if (IsPlazaAlready(plaza_id))
             {

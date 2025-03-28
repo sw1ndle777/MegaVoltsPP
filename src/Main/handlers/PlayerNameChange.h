@@ -10,7 +10,7 @@ namespace Game
         inline void PlayerNameChange(SCallbackData& callback, CMainServer* main_server)
         {
             /*
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -82,7 +82,7 @@ namespace Game
                 }
 
                 auto itemsFound = BaseLib::Database->GetInventoryItems(frontAccount.Index, acc_items);
-                std::unordered_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
+                std::unordered_map<uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
                 std::vector<Item> player_inventory_items;
                 const auto& server_time = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
                 const auto& newPlayer = Player({ session->GetSessionId(), Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime(), frontAccount, acc_items });
@@ -165,7 +165,7 @@ namespace Game
                     send_msg(session, 77, 0, 6, 0); // empty inventory
                 if (newPlayer.acc_info.Coupons > 0)
                 {
-                    const std::uint32_t& coupons = (newPlayer.acc_info.Coupons << 23) + 0xF4240;
+                    const uint32_t& coupons = (newPlayer.acc_info.Coupons << 23) + 0xF4240;
                     Item coupons_item;
                     coupons_item.is_equipped = 0;
                     coupons_item.stock = 0;
@@ -176,15 +176,15 @@ namespace Game
                     coupons_item.item_info.serial_info = ItemSerialInfo(0, 0, 0, 0, Utility::GetUnixEpoch());
                     player_inventory_items.insert(player_inventory_items.begin(), coupons_item);
                 }
-                const std::uint32_t& total_inventory_fragments = (player_inventory_items.size() + 1) <= 35 ? 1 : ((player_inventory_items.size() + 1) / 35) + 1;
-                for (std::uint32_t i = 0; i < total_inventory_fragments; i++)
+                const uint32_t& total_inventory_fragments = (player_inventory_items.size() + 1) <= 35 ? 1 : ((player_inventory_items.size() + 1) / 35) + 1;
+                for (uint32_t i = 0; i < total_inventory_fragments; i++)
                 {
                     auto items_batch = main_server->GetTransformStockItems(player_inventory_items, i, 35);
                     send_msg(session, 77, 0, (i == 0) ? 37 : 0, items_batch.size(), reinterpret_cast<uint8_t*>(items_batch.data()), items_batch.size() * sizeof(InventoryItemInfo));
                 }
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) received ({}) inventory items", session->GetSessionId(), player_inventory_items.size() - 1);
 
-                for (std::uint8_t i = 0; i < 5; i++)
+                for (uint8_t i = 0; i < 5; i++)
                 {
                     std::vector<EquipItemInfo> equipped_items;
                     const auto& current_char_items = main_server->GetTransformEquippedItems(player_equipped_items[i]);
@@ -205,7 +205,7 @@ namespace Game
                 send_msg(session, 75, 0, 16, 0); // final equip info
                 send_msg(session, 413, 0, 59, 0); // final account info
 
-                std::unordered_map<std::uint32_t, std::uint32_t> accountToSessionMap;
+                std::unordered_map<uint32_t, uint32_t> accountToSessionMap;
                 std::shared_lock lock(main_server->GetAccountsCacheMutex());
                 for (const auto& session : accounts_cache)  accountToSessionMap[session.second.acc_info.Index] = session.first;
                 std::vector<PlayerFriendInfo> friends_pending;
@@ -242,7 +242,7 @@ namespace Game
                     blockeds_cache[session->GetSessionId()] = acc_blockeds;
                 }
                 send_msg(session, 61, 0, Userlist::Friends::AddResult::SendPending, friends_pending.size(), reinterpret_cast<uint8_t*>(friends_pending.data()), friends_pending.size() * sizeof(PlayerFriendInfo));
-                std::uint32_t my_acc_index = frontAccount.Index;
+                uint32_t my_acc_index = frontAccount.Index;
                 for (const auto& friend_info : friends_accepted)
                 {
                     if (!friend_info.friend_session_id) continue;

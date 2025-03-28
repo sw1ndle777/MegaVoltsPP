@@ -52,7 +52,7 @@ namespace Game
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "host not single in room fall off map and need to die");
             }
             */
-            //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) dir: ({}) ({}) ({}) rot1: ({}) rot2: ({}) rot3: ({})", data_size, self_session_id, direction_x, direction_y, direction_z, extra, option, static_cast<std::uint32_t>(player_info->rotation));
+            //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) dir: ({}) ({}) ({}) rot1: ({}) rot2: ({}) rot3: ({})", data_size, self_session_id, direction_x, direction_y, direction_z, extra, option, static_cast<uint32_t>(player_info->rotation));
 
             if (data_size == 28)
             {
@@ -69,7 +69,7 @@ namespace Game
                 player_info_bullets.rotation1 = extra;
                 player_info_bullets.rotation2 = option;
                 player_info_bullets.rotation3 = player_info->rotation;
-                player_info_bullets.specificInfo.sessionId = static_cast<std::uint32_t>(self_session_id);
+                player_info_bullets.specificInfo.sessionId = static_cast<uint32_t>(self_session_id);
                 player_info_bullets.bullets = bullets_info->bulletStruct;
                 player_info_bullets.currentWeapon = bullets_info->bulletStruct.bullet4;
                 movementMsg.SetData(reinterpret_cast<uint8_t*>(&player_info_bullets), sizeof(player_info_bullets));
@@ -90,7 +90,7 @@ namespace Game
                 player_info_bullets.rotation1 = extra;
                 player_info_bullets.rotation2 = option;
                 player_info_bullets.rotation3 = player_info->rotation;
-                player_info_bullets.specificInfo.sessionId = static_cast<std::uint32_t>(self_session_id);
+                player_info_bullets.specificInfo.sessionId = static_cast<uint32_t>(self_session_id);
                 player_info_bullets.bullets = bullets_info->bulletStruct;
                 player_info_bullets.currentWeapon = bullets_info->bulletStruct.bullet4;
 
@@ -111,7 +111,7 @@ namespace Game
                 player_info_basic.rotation1 = extra;
                 player_info_basic.rotation2 = option;
                 player_info_basic.rotation3 = player_info->rotation;
-                player_info_basic.specificInfo.sessionId = static_cast<std::uint32_t>(self_session_id);
+                player_info_basic.specificInfo.sessionId = static_cast<uint32_t>(self_session_id);
 
                 if (data_size == 20)
                     movementMsg.SetData(reinterpret_cast<uint8_t*>(&player_info_basic), sizeof(player_info_basic));

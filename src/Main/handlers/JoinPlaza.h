@@ -7,7 +7,7 @@ namespace Game
 
     namespace Handlers
     {
-        inline std::vector<std::uint8_t> get_equipped_data(CMainServer* main_server, const std::uint16_t& sess_id)
+        inline std::vector<uint8_t> get_equipped_data(CMainServer* main_server, const uint16_t& sess_id)
         {
             auto cache_acc = main_server->GetAccCacheSharedBySessionId(sess_id);
             RoomUserPlayerInfo1 my_info1{}; RoomUserPlayerInfo2 my_info2{};
@@ -28,7 +28,7 @@ namespace Game
 
             std::vector<BaseLib::Item> my_equipped_items;
             for (const auto& item : cache_acc->inventory_items)
-                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(cache_acc->acc_info.SelectedCharacter))
+                if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(cache_acc->acc_info.SelectedCharacter))
                     my_equipped_items.push_back(item);
 
            
@@ -77,7 +77,7 @@ namespace Game
 
         inline void JoinPlaza(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -97,7 +97,7 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join plaza attempt -> plaza id: ({}), plaza server/channel id: ({}), mission: ({}),  extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), plaza_id, channel_id, callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
             auto old_plaza_id = acc_cache->plaza_id;
 
-            auto removeOldPlazaPlayer = [&](std::uint32_t plaza_id)
+            auto removeOldPlazaPlayer = [&](uint32_t plaza_id)
             {
                 auto old_plaza = main_server->GetPlazaCacheUnique(plaza_id);
                 auto& session_ids = old_plaza->session_ids;
@@ -196,7 +196,7 @@ namespace Game
                 }
                 else
                 {
-                    std::uint16_t current_plaza_id = 0;
+                    uint16_t current_plaza_id = 0;
                     server->GetNextAvailablePlazaId(current_plaza_id);
                     //server->SetPlazaIdAvailable(current_plaza_id);
                     auto new_plaza = Plaza(current_plaza_id, 32);
@@ -257,7 +257,7 @@ namespace Game
                 }
                 else
                 {
-                    std::uint16_t current_plaza_id = plaza_id;
+                    uint16_t current_plaza_id = plaza_id;
                     //server->SetPlazaIdAvailable(current_plaza_id);
                     auto new_plaza = Plaza(current_plaza_id, 32);
                     if (current_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);

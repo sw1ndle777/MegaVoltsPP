@@ -32,7 +32,7 @@ int main()
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(hOut, dwMode);//enable colors
     
-    std::srand(static_cast<std::uint32_t>(std::time(NULL)));
+    std::srand(static_cast<uint32_t>(std::time(NULL)));
 
     BaseLib::EventLog->Initialize("../logs/MegaVoltsPP_front.log", false);
     BaseLib::DefaultSettings->LoadOptions();

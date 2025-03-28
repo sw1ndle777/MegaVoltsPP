@@ -32,7 +32,7 @@ namespace Game
 
     struct Disconnect
     {
-        enum Reason : std::uint8_t
+        enum Reason : uint8_t
         {
             Generic = 0x00,
             Block = 0x2A, //Multiple user login
@@ -45,7 +45,7 @@ namespace Game
     };
     struct ItemExpire
     {
-        enum Type : std::uint32_t
+        enum Type : uint32_t
         {
             Unlimited = 0,
             Unused = 1,
@@ -55,7 +55,7 @@ namespace Game
     };
     struct PlazaJoin
     {
-        enum Result : std::uint8_t
+        enum Result : uint8_t
         {
             Success = 0x01,
             Full = 0x07,
@@ -64,7 +64,7 @@ namespace Game
     };
     struct FrontAuthorize
     {
-        enum Type : std::uint8_t
+        enum Type : uint8_t
         {
             Wrong = 0x00,
             Success = 0x01,
@@ -78,7 +78,7 @@ namespace Game
     };
     struct ChannelInfo
     {
-        enum Status : std::uint8_t
+        enum Status : uint8_t
         {
             Normal = 0x00,
             Busy = 0x01,
@@ -88,7 +88,7 @@ namespace Game
     };
     struct VersionCheckInfo
     {
-        enum Result : std::uint8_t
+        enum Result : uint8_t
         {
             NicknameDialog = 0x00,
             Full = 0x01,
@@ -100,7 +100,7 @@ namespace Game
     };
     struct NicknameCreationInfo
     {
-        enum Result : std::uint8_t
+        enum Result : uint8_t
         {
             Continue = 0x00,
             CreationFailed = 0x01,//no result
@@ -113,7 +113,7 @@ namespace Game
     };
     struct CharacterSelectInfo
     {
-        enum Result : std::uint8_t
+        enum Result : uint8_t
         {
             Ok = 0x01,
             NotExist = 0x0D,
@@ -125,7 +125,7 @@ namespace Game
     struct PlayerInfo
     {
 
-        enum State : std::uint8_t
+        enum State : uint8_t
         {
             Standby = 0,
             CharacterSelection = 1,
@@ -144,32 +144,32 @@ namespace Game
     };
     struct ProbabilityStruct
     {
-        std::uint32_t id;
-        std::uint32_t prob;
-        ProbabilityStruct(const std::uint32_t& id, const std::uint32_t& prob) : id(id), prob(prob) {}
+        uint32_t id;
+        uint32_t prob;
+        ProbabilityStruct(const uint32_t& id, const uint32_t& prob) : id(id), prob(prob) {}
     };
     struct Player
     {
         std::shared_mutex mutex;
-        std::uint16_t session_id;
-        std::uint32_t ping;
-        std::uint8_t fps_limit;
-        std::uint32_t room_id;
-        std::uint32_t plaza_id;
-        std::uint32_t party_id;
+        uint16_t session_id;
+        uint32_t ping;
+        uint8_t fps_limit;
+        uint32_t room_id;
+        uint32_t plaza_id;
+        uint32_t party_id;
         bool playing;
-        std::uint32_t slot_id;
-        std::uint8_t team_id;
-        std::uint8_t state;
-        std::uint64_t server_time;
+        uint32_t slot_id;
+        uint8_t team_id;
+        uint8_t state;
+        uint64_t server_time;
         bool in_room;
         bool in_plaza;
         bool in_party;
         bool sent_ping_once;
-        std::uint8_t voice_id;
-        std::uint64_t match_loaded_time;
-        std::uint32_t earnt_battery;
-        std::uint32_t zombie_team;
+        uint8_t voice_id;
+        uint64_t match_loaded_time;
+        uint32_t earnt_battery;
+        uint32_t zombie_team;
         PlayerDailyMission daily_mission_info;
         BaseLib::FrontAccount acc_info;
         std::vector<Item> inventory_items;
@@ -181,7 +181,7 @@ namespace Game
         std::vector<BaseLib::FriendInfo> friends_pendings;
         std::vector<BaseLib::BlockedInfo> blockeds_deleted;
         std::vector<BaseLib::BlockedInfo> blockeds_added;
-        Player(const std::uint16_t& sessionId, const std::uint64_t& serverTime, const BaseLib::FrontAccount& accountInfo, const std::vector<Item>& inventoryItems)
+        Player(const uint16_t& sessionId, const uint64_t& serverTime, const BaseLib::FrontAccount& accountInfo, const std::vector<Item>& inventoryItems)
             : session_id(sessionId), server_time(serverTime), acc_info(accountInfo), inventory_items(inventoryItems)
         {
             plaza_id = 0;
@@ -314,8 +314,8 @@ namespace Game
     struct Room
     {
         std::shared_mutex mutex;
-        std::uint16_t room_id;
-        std::uint16_t channel_id;
+        uint16_t room_id;
+        uint16_t channel_id;
         std::string title;
         std::string password;
         NetEngine::Room::Map::Index MapIndex;
@@ -323,34 +323,34 @@ namespace Game
         NetEngine::Room::Mode::Index ModeIndex;
         NetEngine::Room::Restriction::Type Restriction;
         NetEngine::Room::Balance::State TeamBalance;
-        std::uint32_t max_players;
-        std::uint32_t score_rule;
-        std::uint32_t time_rule;
+        uint32_t max_players;
+        uint32_t score_rule;
+        uint32_t time_rule;
         bool allow_intruders;
         bool allow_drops;
         bool allow_observers;
         bool is_playing;
         bool has_password;
-        std::uint16_t host_session_id;
-        std::vector<std::uint16_t> neutralteam_session_ids;
-        std::vector<std::uint16_t> blueteam_session_ids;
-        std::vector<std::uint16_t> redteam_session_ids;
-        std::vector<std::uint16_t> observers_session_ids;
-        std::vector<std::uint16_t> kicked_session_ids;
-        std::vector<std::uint16_t> kicked_index_ids;
-        std::vector<std::uint16_t> kick_voters_session_ids;
-        std::vector<std::uint16_t> voters_session_ids;
-        std::uint16_t vote_kick_target_session_id;
+        uint16_t host_session_id;
+        std::vector<uint16_t> neutralteam_session_ids;
+        std::vector<uint16_t> blueteam_session_ids;
+        std::vector<uint16_t> redteam_session_ids;
+        std::vector<uint16_t> observers_session_ids;
+        std::vector<uint16_t> kicked_session_ids;
+        std::vector<uint16_t> kicked_index_ids;
+        std::vector<uint16_t> kick_voters_session_ids;
+        std::vector<uint16_t> voters_session_ids;
+        uint16_t vote_kick_target_session_id;
         bool is_kick_vote_running = false;
         bool is_clan_room;
-        std::uint32_t clan_id_1;
-        std::uint32_t clan_id_2;
-        Room(const std::uint16_t& roomId = 0, const std::uint16_t& channelId = 0, const std::string& title = "", const std::string& password = "",
+        uint32_t clan_id_1;
+        uint32_t clan_id_2;
+        Room(const uint16_t& roomId = 0, const uint16_t& channelId = 0, const std::string& title = "", const std::string& password = "",
             const NetEngine::Room::Map::Index& mapIndex = NetEngine::Room::Map::Index::Chess, const NetEngine::Room::Mode::Index& modeIndex = NetEngine::Room::Mode::Index::TeamDeathMatch,
             const NetEngine::Room::Restriction::Type& restriction = NetEngine::Room::Restriction::AllWeapons, const NetEngine::Room::Balance::State& teamBalance = NetEngine::Room::Balance::State::Disabled,
-            const std::uint32_t& maxPlayers = 0, const std::uint32_t& scoreRule = 0, const std::uint32_t& timeRule = 0,
+            const uint32_t& maxPlayers = 0, const uint32_t& scoreRule = 0, const uint32_t& timeRule = 0,
             const bool& allowIntruders = true, const bool& allowDrops = true, const bool& allowObservers = true, const bool& isPlaying = false, const bool& hasPassword = false,
-            const std::uint16_t& hostSessionId = 0)
+            const uint16_t& hostSessionId = 0)
             : room_id(roomId), channel_id(channelId), title(title), password(password), MapIndex(mapIndex), ModeIndex(modeIndex), Restriction(restriction), TeamBalance(teamBalance), 
             max_players(maxPlayers), score_rule(scoreRule), time_rule(timeRule), allow_intruders(allowIntruders), allow_drops(allowDrops), allow_observers(allowObservers),
             is_playing(isPlaying), has_password(hasPassword), host_session_id(hostSessionId), is_kick_vote_running(false), vote_kick_target_session_id(0)
@@ -438,10 +438,10 @@ namespace Game
     struct Plaza
     {
         std::shared_mutex mutex;
-        std::uint16_t plaza_id;
-        std::vector<std::uint16_t> session_ids;
-        std::uint16_t max_players;
-        Plaza(const std::uint16_t& plazaId = 0, const std::uint16_t& maxSize = 2) : plaza_id(plazaId), max_players(maxSize) { session_ids.clear(); }
+        uint16_t plaza_id;
+        std::vector<uint16_t> session_ids;
+        uint16_t max_players;
+        Plaza(const uint16_t& plazaId = 0, const uint16_t& maxSize = 2) : plaza_id(plazaId), max_players(maxSize) { session_ids.clear(); }
         Plaza(const Plaza& other)
         {
             plaza_id = other.plaza_id;
@@ -462,10 +462,10 @@ namespace Game
     {
         std::shared_mutex mutex;
         bool is_playing;
-        std::uint32_t room_id;
-        std::uint16_t host_session_id;
-        std::vector<std::uint16_t> team_sessions;
-        ClanMatch(const bool& is_playing = false, const std::uint32_t& room_id = 0, const std::uint16_t& host_session_id = 0) : is_playing(is_playing), room_id(room_id), host_session_id(host_session_id) { team_sessions.clear(); }
+        uint32_t room_id;
+        uint16_t host_session_id;
+        std::vector<uint16_t> team_sessions;
+        ClanMatch(const bool& is_playing = false, const uint32_t& room_id = 0, const uint16_t& host_session_id = 0) : is_playing(is_playing), room_id(room_id), host_session_id(host_session_id) { team_sessions.clear(); }
         ClanMatch(const ClanMatch& other)
         {
             is_playing = other.is_playing;
@@ -487,13 +487,13 @@ namespace Game
     struct Clan
     {
         std::shared_mutex mutex;
-        std::uint32_t clan_id;
+        uint32_t clan_id;
         std::string clan_name;
-        std::uint32_t logo_front;
-        std::uint32_t logo_back;
-        std::vector<std::uint16_t> online_members;
+        uint32_t logo_front;
+        uint32_t logo_back;
+        std::vector<uint16_t> online_members;
         std::vector<ClanMatch> clan_matches;
-        Clan(const std::uint32_t& clan_id = 0, const std::string& clan_name = "", const std::uint32_t& logo_front = 0, const std::uint32_t& logo_back = 0) : clan_id(clan_id), logo_front(logo_front), logo_back(logo_back) { online_members.clear(); clan_matches.clear(); }
+        Clan(const uint32_t& clan_id = 0, const std::string& clan_name = "", const uint32_t& logo_front = 0, const uint32_t& logo_back = 0) : clan_id(clan_id), logo_front(logo_front), logo_back(logo_back) { online_members.clear(); clan_matches.clear(); }
         Clan(const Clan& other)
         {
             clan_id = other.clan_id;
@@ -519,21 +519,21 @@ namespace Game
     struct Party
     {
         std::shared_mutex mutex;
-        std::uint32_t party_id;
+        uint32_t party_id;
         bool is_playing;
         bool is_queueing;
         bool is_registered;
         bool is_clan;
         bool has_password;
         std::string password;
-        std::uint8_t max_members;
-        std::uint16_t clan_id;
-        std::uint16_t party_host_session_id;
-        std::vector<std::uint16_t> members;
-        std::vector<std::uint16_t> kicked_members;
-        std::uint16_t mod_id;
-        std::uint16_t map_id;
-        Party(const bool& is_playing = false, const bool& is_queueing = false, const bool& is_clan = false, const std::uint8_t& max_members = 4, const std::uint16_t& party_host_session_id = 0, const std::uint16_t& clan_id = 0, const std::uint16_t& mod_id = 0, const std::uint16_t& map_id = 0) : is_playing(is_playing), is_queueing(is_queueing), is_clan(is_clan), max_members(max_members), party_host_session_id(party_host_session_id), clan_id(clan_id), mod_id(mod_id), map_id(map_id), is_registered(is_registered) {
+        uint8_t max_members;
+        uint16_t clan_id;
+        uint16_t party_host_session_id;
+        std::vector<uint16_t> members;
+        std::vector<uint16_t> kicked_members;
+        uint16_t mod_id;
+        uint16_t map_id;
+        Party(const bool& is_playing = false, const bool& is_queueing = false, const bool& is_clan = false, const uint8_t& max_members = 4, const uint16_t& party_host_session_id = 0, const uint16_t& clan_id = 0, const uint16_t& mod_id = 0, const uint16_t& map_id = 0) : is_playing(is_playing), is_queueing(is_queueing), is_clan(is_clan), max_members(max_members), party_host_session_id(party_host_session_id), clan_id(clan_id), mod_id(mod_id), map_id(map_id), is_registered(is_registered) {
             members.clear(); kicked_members.clear();
         }
         Party(const Party& other)
@@ -567,19 +567,19 @@ namespace Game
     struct MailboxData
     {
         std::shared_mutex mutex;
-        std::uint32_t mail_id{};
-        std::int32_t sender_account_id{};
+        uint32_t mail_id{};
+        int32_t sender_account_id{};
         std::string sender_nickname{};
-        std::int32_t receiver_account_id{};
+        int32_t receiver_account_id{};
         std::string receiver_nickname{};
-        std::uint32_t time{};
-        std::uint32_t gift_itemid{};
+        uint32_t time{};
+        uint32_t gift_itemid{};
         std::string message{};
         bool is_new{};
         bool deleted_from_sender{};
         bool deleted_from_receiver{};
-        MailboxData(const std::uint32_t& mailId = 0, const std::int32_t& senderAccountId = 0, const std::string& senderNickname = "", const std::int32_t& receiverAccountId = 0, const std::string& receiverNickname = "",
-            const std::uint32_t& time = 0, const std::uint32_t& giftItemid = 0, const std::string& message = "", const bool& isNew = false, const bool& deletedFromSender = false, const bool& deletedFromReceiver = false)
+        MailboxData(const uint32_t& mailId = 0, const int32_t& senderAccountId = 0, const std::string& senderNickname = "", const int32_t& receiverAccountId = 0, const std::string& receiverNickname = "",
+            const uint32_t& time = 0, const uint32_t& giftItemid = 0, const std::string& message = "", const bool& isNew = false, const bool& deletedFromSender = false, const bool& deletedFromReceiver = false)
             : mail_id(mailId), sender_account_id(senderAccountId), sender_nickname(senderNickname), receiver_account_id(receiverAccountId), receiver_nickname(receiverNickname),
             time(time), gift_itemid(giftItemid), message(message), is_new(isNew), deleted_from_sender(deletedFromSender), deleted_from_receiver(deletedFromReceiver) {
         }
@@ -662,35 +662,35 @@ namespace Game
     
 
 
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::CollectionInfo> collection_info;
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::DailyMissionInfo> dailymission_info;
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
+    extern boost::unordered_flat_map<uint32_t, BaseLib::ItemInfo> items_info; //read only
+    extern boost::unordered_flat_map<uint32_t, BaseLib::EffectInfo> effect_info; //read only
+    extern boost::unordered_flat_map<uint32_t, BaseLib::CollectionInfo> collection_info;
+    extern boost::unordered_flat_map<uint32_t, BaseLib::DailyMissionInfo> dailymission_info;
+    extern boost::unordered_flat_map<uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     extern std::vector<BaseLib::VendorInfo> vendors_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
-    extern std::vector<std::uint32_t> vendor_item_ids; //read only
-    extern std::vector<std::uint32_t> dailymission_ids; //read only
-    extern boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::GradeInfo> grades_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::RewardInfo> rewards_info; //read only
-    extern boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
-    extern boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
-    extern boost::unordered_flat_map<std::uint32_t, Player> accounts_cache; //read & write
-    extern boost::unordered_flat_map<std::uint32_t, Room> rooms_cache; //read & write
-    extern boost::unordered_flat_map<std::uint32_t, Plaza> plaza_cache; //read & write
-    extern std::vector<std::uint32_t> room_ids; //read & write
-    extern std::vector<std::uint32_t> party_ids; //read & write
-    extern boost::unordered_flat_map<std::uint32_t, Clan> clan_cache; //read & write
-    extern boost::unordered_flat_map<std::uint16_t, Party> party_cache; //read & write
-    extern boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
-    extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
-    extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
-    extern boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
-    extern boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponSaleInfo> gachapon_sales_info; //read & write access by gachapon id
-    extern std::vector<std::uint32_t> gachapon_ids_sale; //read & write
+    extern boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
+    extern boost::unordered_flat_map<uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
+    extern boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
+    extern std::vector<uint32_t> vendor_item_ids; //read only
+    extern std::vector<uint32_t> dailymission_ids; //read only
+    extern boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
+    extern boost::unordered_flat_map<uint32_t, BaseLib::GradeInfo> grades_info; //read only
+    extern boost::unordered_flat_map<uint32_t, BaseLib::RewardInfo> rewards_info; //read only
+    extern boost::unordered_flat_map<uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
+    extern boost::unordered_flat_map<uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
+    extern boost::unordered_flat_map<uint32_t, Player> accounts_cache; //read & write
+    extern boost::unordered_flat_map<uint32_t, Room> rooms_cache; //read & write
+    extern boost::unordered_flat_map<uint32_t, Plaza> plaza_cache; //read & write
+    extern std::vector<uint32_t> room_ids; //read & write
+    extern std::vector<uint32_t> party_ids; //read & write
+    extern boost::unordered_flat_map<uint32_t, Clan> clan_cache; //read & write
+    extern boost::unordered_flat_map<uint16_t, Party> party_cache; //read & write
+    extern boost::unordered_flat_map<uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
+    extern boost::unordered_flat_map<uint32_t, std::vector<uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
+    extern boost::unordered_flat_map<uint32_t, std::vector<uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    extern boost::unordered_flat_map<uint32_t, std::vector<uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    extern boost::unordered_flat_map<uint32_t, BaseLib::GachaponSaleInfo> gachapon_sales_info; //read & write access by gachapon id
+    extern std::vector<uint32_t> gachapon_ids_sale; //read & write
 
     using AccCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Player>;
     using AccCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Player>;
@@ -700,30 +700,30 @@ namespace Game
     using PlazaCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Plaza>;
     using ClanCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Clan>;
     using ClanCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Clan>;
-    using RoomOptionsCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>>;
+    using RoomOptionsCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>>;
     using GachaponCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, BaseLib::GachaponInfo>;
-    using PackageCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>>;
+    using PackageCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::PackageInfo>>>;
     using UpgradeCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::vector<BaseLib::UpgradeInfo>>;
     using BlockedCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::vector<BaseLib::BlockedInfo>>;
     using FriendCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::vector<BaseLib::FriendInfo>>;
 
     /*
-    extern std::unordered_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
-    extern std::unordered_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
+    extern std::unordered_map<uint32_t, BaseLib::ItemInfo> items_info; //read only
+    extern std::unordered_map<uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     extern std::vector<BaseLib::VendorInfo> vendors_info; //read only
-    extern std::unordered_map<std::uint32_t, std::unordered_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
-    extern std::unordered_map<std::uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
-    extern std::unordered_map<std::uint32_t, std::unordered_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
-    extern std::vector<std::uint32_t> vendor_item_ids; //read only
-    extern std::unordered_map<std::uint32_t, std::unordered_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
-    extern std::unordered_map<std::uint32_t, BaseLib::GradeInfo> grades_info; //read only
-    extern std::unordered_map<std::uint32_t, BaseLib::RewardInfo> rewards_info; //read only
-    extern std::unordered_map<std::uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
-    extern std::unordered_map<std::uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
-    extern std::unordered_map<std::uint32_t, Player> accounts_cache; //read & write
-    extern std::unordered_map<std::uint32_t, Room> rooms_cache; //read & write
-    extern std::unordered_map<std::uint32_t, Plaza> plaza_cache; //read & write
-    extern std::vector<std::uint32_t> room_ids; //read & write 
+    extern std::unordered_map<uint32_t, std::unordered_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
+    extern std::unordered_map<uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
+    extern std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
+    extern std::vector<uint32_t> vendor_item_ids; //read only
+    extern std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
+    extern std::unordered_map<uint32_t, BaseLib::GradeInfo> grades_info; //read only
+    extern std::unordered_map<uint32_t, BaseLib::RewardInfo> rewards_info; //read only
+    extern std::unordered_map<uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
+    extern std::unordered_map<uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
+    extern std::unordered_map<uint32_t, Player> accounts_cache; //read & write
+    extern std::unordered_map<uint32_t, Room> rooms_cache; //read & write
+    extern std::unordered_map<uint32_t, Plaza> plaza_cache; //read & write
+    extern std::vector<uint32_t> room_ids; //read & write 
 
     using AccCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Player>;
     using AccCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Player>;
@@ -731,9 +731,9 @@ namespace Game
     using RoomCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Room>;
     using PlazaCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Plaza>;
     using PlazaCacheSharedResource = LockedResource<std::shared_lock<std::shared_mutex>, Plaza>;
-    using RoomOptionsCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::unordered_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>>;
+    using RoomOptionsCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::unordered_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>>;
     using GachaponCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, BaseLib::GachaponInfo>;
-    using PackageCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::unordered_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>>;
+    using PackageCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::unordered_map<uint32_t, std::vector<BaseLib::PackageInfo>>>;
     using UpgradeCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::vector<BaseLib::UpgradeInfo>>;
     using BlockedCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::vector<BaseLib::BlockedInfo>>;
     using FriendCacheResource = LockedResource<std::shared_lock<std::shared_mutex>, std::vector<BaseLib::FriendInfo>>;
@@ -747,17 +747,17 @@ namespace Game
 
         auto GetOwnedCharacters(const std::vector<Character::Type>& ownedCharacters)
         {
-            std::uint32_t owned = 0;
-            for (const auto& character : ownedCharacters) owned |= 1 << static_cast<std::uint32_t>(character);
+            uint32_t owned = 0;
+            for (const auto& character : ownedCharacters) owned |= 1 << static_cast<uint32_t>(character);
             return owned;
         }
-        auto IsSessionIdAlready(const std::uint16_t& session_id, const std::vector<std::uint16_t>& session_ids)
+        auto IsSessionIdAlready(const uint16_t& session_id, const std::vector<uint16_t>& session_ids)
         {
             auto findit = std::find(session_ids.begin(), session_ids.end(), session_id);
             return findit != session_ids.end();
         }
 
-        void AddAccCache(const std::uint16_t& id, Player front_acc)
+        void AddAccCache(const uint16_t& id, Player front_acc)
         {
             auto accounts_locked = LockedResource{ std::unique_lock(accounts_cache_mutex), accounts_cache };
             front_acc.session_id = id;
@@ -766,12 +766,12 @@ namespace Game
             if (!inserted)
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a player with session id: ({}), but it already exists ", id);
         }
-        void RemoveAccCache(const std::uint16_t& id)
+        void RemoveAccCache(const uint16_t& id)
         {
             auto accounts_locked = LockedResource{ std::unique_lock(accounts_cache_mutex), accounts_cache };
             accounts_locked->erase(id);
         }
-        auto GetAccCacheSharedBySessionId(const std::uint16_t& session_id)
+        auto GetAccCacheSharedBySessionId(const uint16_t& session_id)
         {
             std::shared_lock lock(accounts_cache_mutex);
             auto it = accounts_cache.find(session_id);
@@ -784,7 +784,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_player_mutex), null_player };
             }
         }
-        auto GetAccCacheUniqueBySessionId(const std::uint16_t& session_id)
+        auto GetAccCacheUniqueBySessionId(const uint16_t& session_id)
         {
             std::shared_lock lock(accounts_cache_mutex);
             auto it = accounts_cache.find(session_id);
@@ -797,7 +797,7 @@ namespace Game
                 return LockedResource{ std::unique_lock(null_player_mutex), null_player };
             }
         }
-        auto GetAccCacheSharedByAccountId(const std::uint32_t& account_id)
+        auto GetAccCacheSharedByAccountId(const uint32_t& account_id)
         {
             std::shared_lock lock(accounts_cache_mutex);
 
@@ -814,7 +814,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_player_mutex), null_player };
             }
         }
-        auto GetAccCacheSharedByAuthKey(const std::uint64_t& auth_key)
+        auto GetAccCacheSharedByAuthKey(const uint64_t& auth_key)
         {
             std::shared_lock lock(accounts_cache_mutex);
 
@@ -851,7 +851,7 @@ namespace Game
             }
         }
        
-        auto GetAccCacheUniqueByAccountId(const std::uint32_t& account_id)
+        auto GetAccCacheUniqueByAccountId(const uint32_t& account_id)
         {
             std::shared_lock lock(accounts_cache_mutex);
 
@@ -868,7 +868,7 @@ namespace Game
                 return LockedResource{ std::unique_lock(null_player_mutex), null_player };
             }
         }
-        auto GetAccCacheUniqueByAuthKey(const std::uint64_t& auth_key)
+        auto GetAccCacheUniqueByAuthKey(const uint64_t& auth_key)
         {
             std::shared_lock lock(accounts_cache_mutex);
 
@@ -936,7 +936,7 @@ namespace Game
 
             return item_removed;
         }
-        auto GetRoomCacheShared(const std::uint32_t& room_id)
+        auto GetRoomCacheShared(const uint32_t& room_id)
         {
             std::shared_lock lock(rooms_cache_mutex);
             auto it = rooms_cache.find(room_id);
@@ -951,7 +951,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_room_mutex), null_room };
             }
         }
-        auto GetRoomCacheUnique(const std::uint32_t& room_id)
+        auto GetRoomCacheUnique(const uint32_t& room_id)
         {
             std::shared_lock lock(rooms_cache_mutex);
             auto it = rooms_cache.find(room_id);
@@ -966,7 +966,7 @@ namespace Game
                 return LockedResource{ std::unique_lock(null_room_mutex), null_room };
             }
         }
-        auto GetPlazaCacheShared(const std::uint32_t& plaza_id)
+        auto GetPlazaCacheShared(const uint32_t& plaza_id)
         {
             std::shared_lock lock(plaza_cache_mutex);
             auto it = plaza_cache.find(plaza_id);
@@ -979,7 +979,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_plaza_mutex), null_plaza };
             }
         }
-        auto GetPlazaCacheUnique(const std::uint32_t& plaza_id)
+        auto GetPlazaCacheUnique(const uint32_t& plaza_id)
         {
             std::shared_lock lock(plaza_cache_mutex);
             auto it = plaza_cache.find(plaza_id);
@@ -993,7 +993,7 @@ namespace Game
             }
         }
 
-        auto GetClanCacheShared(const std::uint32_t& clan_id)
+        auto GetClanCacheShared(const uint32_t& clan_id)
         {
             std::shared_lock lock(clan_cache_mutex);
             auto it = clan_cache.find(clan_id);
@@ -1007,7 +1007,7 @@ namespace Game
             }
         }
 
-        auto GetClanCacheUnique(const std::uint32_t& clan_id)
+        auto GetClanCacheUnique(const uint32_t& clan_id)
         {
             std::shared_lock lock(clan_cache_mutex);
             auto it = clan_cache.find(clan_id);
@@ -1021,7 +1021,7 @@ namespace Game
             }
         }
 
-        auto IsClanAlready(const std::uint32_t& clan_id)
+        auto IsClanAlready(const uint32_t& clan_id)
         {
             std::shared_lock lock(clan_cache_mutex);
             if (auto findit = clan_cache.find(clan_id); findit != clan_cache.end())
@@ -1029,7 +1029,7 @@ namespace Game
             else
                 return false;
         }
-        void AddClanCache(const std::uint32_t& clan_id, const Clan& new_clan)
+        void AddClanCache(const uint32_t& clan_id, const Clan& new_clan)
         {
             if (!IsClanAlready(clan_id))
             {
@@ -1037,7 +1037,7 @@ namespace Game
                 locked_clan_cache->emplace(clan_id, new_clan);
             }
         }
-        void RemoveClanCache(const std::uint32_t& clan_id)
+        void RemoveClanCache(const uint32_t& clan_id)
         {
             if (IsClanAlready(clan_id))
             {
@@ -1046,7 +1046,7 @@ namespace Game
             }
         }
 
-        auto GetPartyCacheShared(const std::uint32_t& party_id)
+        auto GetPartyCacheShared(const uint32_t& party_id)
         {
             std::shared_lock lock(party_cache_mutex);
             auto it = party_cache.find(party_id);
@@ -1060,7 +1060,7 @@ namespace Game
             }
         }
 
-        auto GetPartyCacheUnique(const std::uint32_t& party_id)
+        auto GetPartyCacheUnique(const uint32_t& party_id)
         {
             std::shared_lock lock(party_cache_mutex);
             auto it = party_cache.find(party_id);
@@ -1074,7 +1074,7 @@ namespace Game
             }
         }
 
-        auto IsPartyAlready(const std::uint32_t& party_id)
+        auto IsPartyAlready(const uint32_t& party_id)
         {
             std::shared_lock lock(party_cache_mutex);
             if (auto findit = party_cache.find(party_id); findit != party_cache.end())
@@ -1083,7 +1083,7 @@ namespace Game
                 return false;
         }
 
-        void AddPartyCache(const std::uint32_t& party_id, const Party& new_party)
+        void AddPartyCache(const uint32_t& party_id, const Party& new_party)
         {
             if (!IsPartyAlready(party_id))
             {
@@ -1092,7 +1092,7 @@ namespace Game
             }
         }
 
-        void RemovePartyCache(const std::uint32_t& party_id)
+        void RemovePartyCache(const uint32_t& party_id)
         {
             if (IsPartyAlready(party_id))
             {
@@ -1105,7 +1105,7 @@ namespace Game
             }
         }
 
-        auto IsGachaponSaleInfoAlready(const std::uint32_t& gachapon_id)
+        auto IsGachaponSaleInfoAlready(const uint32_t& gachapon_id)
         {
             std::shared_lock lock(gachapon_sale_cache_mutex);
             if (auto findit = gachapon_sales_info.find(gachapon_id); findit != gachapon_sales_info.end())
@@ -1114,7 +1114,7 @@ namespace Game
                 return false;
         }
 
-        auto GetGachaponSaleCacheShared(const std::uint32_t& gachapon_id)
+        auto GetGachaponSaleCacheShared(const uint32_t& gachapon_id)
         {
             std::shared_lock lock(gachapon_sale_cache_mutex);
             auto it = gachapon_sales_info.find(gachapon_id);
@@ -1128,7 +1128,7 @@ namespace Game
             }
         }
 
-        auto GetGachaponSaleCacheUnique(const std::uint32_t& gachapon_id)
+        auto GetGachaponSaleCacheUnique(const uint32_t& gachapon_id)
         {
             std::shared_lock lock(gachapon_sale_cache_mutex);
             auto it = gachapon_sales_info.find(gachapon_id);
@@ -1165,7 +1165,7 @@ namespace Game
                     
             }
         }
-        void AddGachaponSaleCache(const std::uint32_t& gachapon_id, const GachaponSaleInfo& new_gachapon_sale)
+        void AddGachaponSaleCache(const uint32_t& gachapon_id, const GachaponSaleInfo& new_gachapon_sale)
         {
             if (!IsGachaponSaleInfoAlready(gachapon_id))
             {
@@ -1180,7 +1180,7 @@ namespace Game
             locked_gachapon_sale_cache->clear();
             gacha_ids_locked->clear();
         }
-        void RemoveGachaponSaleCache(const std::uint32_t& gachapon_id)
+        void RemoveGachaponSaleCache(const uint32_t& gachapon_id)
         {
             if (IsGachaponSaleInfoAlready(gachapon_id))
             {
@@ -1193,7 +1193,7 @@ namespace Game
         }
 
 
-        auto GetMailboxDataCacheShared(const std::uint32_t& mail_id)
+        auto GetMailboxDataCacheShared(const uint32_t& mail_id)
         {
             std::shared_lock lock(mailbox_data_cache_mutex);
             auto it = mailbox_data_cache.find(mail_id);
@@ -1207,7 +1207,7 @@ namespace Game
             }
         }
 
-        auto GetMailboxDataCacheUnique(const std::uint32_t& mail_id)
+        auto GetMailboxDataCacheUnique(const uint32_t& mail_id)
         {
             std::shared_lock lock(mailbox_data_cache_mutex);
             auto it = mailbox_data_cache.find(mail_id);
@@ -1221,7 +1221,7 @@ namespace Game
             }
         }
 
-        auto IsMailboxDataAlready(const std::uint32_t& mail_id)
+        auto IsMailboxDataAlready(const uint32_t& mail_id)
         {
             std::shared_lock lock(mailbox_data_cache_mutex);
             if (auto findit = mailbox_data_cache.find(mail_id); findit != mailbox_data_cache.end())
@@ -1230,7 +1230,7 @@ namespace Game
                 return false;
         }
 
-        void AddMailboxDataCache(const std::uint32_t& mail_id, const MailboxData& new_mailbox)
+        void AddMailboxDataCache(const uint32_t& mail_id, const MailboxData& new_mailbox)
         {
             if (!IsMailboxDataAlready(mail_id))
             {
@@ -1238,7 +1238,7 @@ namespace Game
                 locked_mailbox_data_cache->emplace(mail_id, new_mailbox);
             }
         }
-        void RemoveMailboxDataCache(const std::uint32_t& mail_id)
+        void RemoveMailboxDataCache(const uint32_t& mail_id)
         {
             if (IsMailboxDataAlready(mail_id))
             {
@@ -1247,7 +1247,7 @@ namespace Game
             }
         }
 
-        auto GetMailboxSentCacheShared(const std::uint32_t& acc_id)
+        auto GetMailboxSentCacheShared(const uint32_t& acc_id)
         {
             std::shared_lock lock(mailbox_sent_cache_mutex);
             auto it = mailbox_sent_cache.find(acc_id);
@@ -1256,45 +1256,45 @@ namespace Game
             else
             {
                 static thread_local std::shared_mutex null_mailbox_sent_mutex;
-                static thread_local std::vector<std::uint32_t> null_mail_ids;
+                static thread_local std::vector<uint32_t> null_mail_ids;
                 return LockedResource{ std::shared_lock(null_mailbox_sent_mutex), null_mail_ids };
             }
         }
 
-        auto IsMailboxSentAlready(const std::vector<std::uint32_t>& mail_ids, std::uint32_t mail_id)
+        auto IsMailboxSentAlready(const std::vector<uint32_t>& mail_ids, uint32_t mail_id)
         {
             auto it = std::find_if(mail_ids.begin(), mail_ids.end(),
-                [&mail_id](const std::uint32_t& current_mail_id) {
+                [&mail_id](const uint32_t& current_mail_id) {
                 return current_mail_id == mail_id;
             });
             return it != mail_ids.end();
         }
-        auto AddMailboxSentIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        auto AddMailboxSentIdCache(const uint32_t& id, const uint32_t& mail_id)
         {
             auto mailbox_sent_cache_locked = LockedResource{ std::unique_lock(mailbox_sent_cache_mutex), mailbox_sent_cache };
             auto& mails_list = (*mailbox_sent_cache_locked)[id];
             mails_list.insert(mails_list.end(), mail_id);
         }
-        auto AddMailboxSentIdsCache(const std::uint32_t& id, const std::vector<std::uint32_t>& mail_ids)
+        auto AddMailboxSentIdsCache(const uint32_t& id, const std::vector<uint32_t>& mail_ids)
         {
             auto mailbox_sent_cache_locked = LockedResource{ std::unique_lock(mailbox_sent_cache_mutex), mailbox_sent_cache };
             auto& mails_list = (*mailbox_sent_cache_locked)[id];
             mails_list.insert(mails_list.end(), mail_ids.begin(), mail_ids.end());
         }
-        auto RemoveMailboxSentIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        auto RemoveMailboxSentIdCache(const uint32_t& id, const uint32_t& mail_id)
         {
             auto mailbox_sent_cache_locked = LockedResource{ std::unique_lock(mailbox_sent_cache_mutex), mailbox_sent_cache };
             auto& mails_list = (*mailbox_sent_cache_locked)[id];
             mails_list.erase(std::remove(mails_list.begin(), mails_list.end(), mail_id), mails_list.end());
         }
-        auto RemoveMailboxSentCache(const std::uint32_t& id)
+        auto RemoveMailboxSentCache(const uint32_t& id)
         {
             auto mailbox_sent_cache_locked = LockedResource{ std::unique_lock(mailbox_sent_cache_mutex), mailbox_sent_cache };
             mailbox_sent_cache_locked->erase(id);
         }
 
 
-        auto GetMailboxRecvCacheShared(const std::uint32_t& acc_id)
+        auto GetMailboxRecvCacheShared(const uint32_t& acc_id)
         {
             std::shared_lock lock(mailbox_recv_cache_mutex);
             auto it = mailbox_recv_cache.find(acc_id);
@@ -1303,11 +1303,11 @@ namespace Game
             else
             {
                 static thread_local std::shared_mutex null_mailbox_recv_mutex;
-                static thread_local std::vector<std::uint32_t> null_mail_ids;
+                static thread_local std::vector<uint32_t> null_mail_ids;
                 return LockedResource{ std::shared_lock(null_mailbox_recv_mutex), null_mail_ids };
             }
         }
-        auto GetGiftboxRecvCacheShared(const std::uint32_t& acc_id)
+        auto GetGiftboxRecvCacheShared(const uint32_t& acc_id)
         {
             std::shared_lock lock(giftbox_recv_cache_mutex);
             auto it = giftbox_recv_cache.find(acc_id);
@@ -1316,12 +1316,12 @@ namespace Game
             else
             {
                 static thread_local std::shared_mutex null_giftbox_recv_mutex;
-                static thread_local std::vector<std::uint32_t> null_gifts_ids;
+                static thread_local std::vector<uint32_t> null_gifts_ids;
                 return LockedResource{ std::shared_lock(null_giftbox_recv_mutex), null_gifts_ids };
             }
         }
 
-        std::size_t GetMailboxRecvCount(const std::uint32_t& acc_id)
+        size_t GetMailboxRecvCount(const uint32_t& acc_id)
         {
             std::shared_lock lock(mailbox_recv_cache_mutex);
             auto it = mailbox_recv_cache.find(acc_id);
@@ -1331,7 +1331,7 @@ namespace Game
             return 0;
         }
 
-        std::size_t GetGiftboxRecvCount(const std::uint32_t& acc_id)
+        size_t GetGiftboxRecvCount(const uint32_t& acc_id)
         {
             std::shared_lock lock(giftbox_recv_cache_mutex);
             auto it = giftbox_recv_cache.find(acc_id);
@@ -1342,7 +1342,7 @@ namespace Game
         }
 
 
-        std::size_t GetMailboxSentCount(const std::uint32_t& acc_id)
+        size_t GetMailboxSentCount(const uint32_t& acc_id)
         {
             std::shared_lock lock(mailbox_sent_cache_mutex);
             auto it = mailbox_sent_cache.find(acc_id);
@@ -1353,50 +1353,50 @@ namespace Game
         }
 
 
-        auto IsMailboxRecvAlready(const std::vector<std::uint32_t>& mail_ids, std::uint32_t mail_id)
+        auto IsMailboxRecvAlready(const std::vector<uint32_t>& mail_ids, uint32_t mail_id)
         {
             auto it = std::find_if(mail_ids.begin(), mail_ids.end(),
-                [&mail_id](const std::uint32_t& current_mail_id) {
+                [&mail_id](const uint32_t& current_mail_id) {
                 return current_mail_id == mail_id;
             });
             return it != mail_ids.end();
         }
-        auto AddGiftboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        auto AddGiftboxRecvIdCache(const uint32_t& id, const uint32_t& mail_id)
         {
             auto giftbox_recv_cache_locked = LockedResource{ std::unique_lock(giftbox_recv_cache_mutex), giftbox_recv_cache };
             auto& gifts_list = (*giftbox_recv_cache_locked)[id];
             gifts_list.insert(gifts_list.end(), mail_id);
         }
-        auto AddMailboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        auto AddMailboxRecvIdCache(const uint32_t& id, const uint32_t& mail_id)
         {
             auto mailbox_recv_cache_locked = LockedResource{ std::unique_lock(mailbox_recv_cache_mutex), mailbox_recv_cache };
             auto& mails_list = (*mailbox_recv_cache_locked)[id];
             mails_list.insert(mails_list.end(), mail_id);
         }
-        auto AddMailboxRecvIdsCache(const std::uint32_t& id, const std::vector<std::uint32_t>& mail_ids)
+        auto AddMailboxRecvIdsCache(const uint32_t& id, const std::vector<uint32_t>& mail_ids)
         {
             auto mailbox_recv_cache_locked = LockedResource{ std::unique_lock(mailbox_recv_cache_mutex), mailbox_recv_cache };
             auto& mails_list = (*mailbox_recv_cache_locked)[id];
             mails_list.insert(mails_list.end(), mail_ids.begin(), mail_ids.end());
         }
-        auto RemoveMailboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        auto RemoveMailboxRecvIdCache(const uint32_t& id, const uint32_t& mail_id)
         {
             auto mailbox_recv_cache_locked = LockedResource{ std::unique_lock(mailbox_recv_cache_mutex), mailbox_recv_cache };
             auto& mails_list = (*mailbox_recv_cache_locked)[id];
             mails_list.erase(std::remove(mails_list.begin(), mails_list.end(), mail_id), mails_list.end());
         }
-        auto RemoveGiftboxRecvIdCache(const std::uint32_t& id, const std::uint32_t& mail_id)
+        auto RemoveGiftboxRecvIdCache(const uint32_t& id, const uint32_t& mail_id)
         {
             auto giftbox_recv_cache_locked = LockedResource{ std::unique_lock(giftbox_recv_cache_mutex), giftbox_recv_cache };
             auto& gifts_list = (*giftbox_recv_cache_locked)[id];
             gifts_list.erase(std::remove(gifts_list.begin(), gifts_list.end(), mail_id), gifts_list.end());
         }
-        auto RemoveMailboxRecvCache(const std::uint32_t& id)
+        auto RemoveMailboxRecvCache(const uint32_t& id)
         {
             auto mailbox_recv_cache_locked = LockedResource{ std::unique_lock(mailbox_recv_cache_mutex), mailbox_recv_cache };
             mailbox_recv_cache_locked->erase(id);
         }
-        auto RemoveGiftboxRecvCache(const std::uint32_t& id)
+        auto RemoveGiftboxRecvCache(const uint32_t& id)
         {
             auto giftbox_recv_cache_locked = LockedResource{ std::unique_lock(giftbox_recv_cache_mutex), giftbox_recv_cache };
             giftbox_recv_cache_locked->erase(id);
@@ -1413,7 +1413,7 @@ namespace Game
                 if (plaza.session_ids.size() < plaza.max_players)
                     return plaza_id;
             }
-            return std::numeric_limits<std::uint32_t>::max();
+            return std::numeric_limits<uint32_t>::max();
         }
         auto IsPlazaFull(PlazaCacheSharedResource& plaza_cache)
         {
@@ -1431,7 +1431,7 @@ namespace Game
         {
             return plaza_cache->session_ids.size() >= 2;
         }
-        auto IsPlazaAlready(const std::uint32_t& plaza_id)
+        auto IsPlazaAlready(const uint32_t& plaza_id)
         {
             std::shared_lock lock(plaza_cache_mutex);
             if (auto findit = plaza_cache.find(plaza_id); findit != plaza_cache.end())
@@ -1439,7 +1439,7 @@ namespace Game
             else
                 return false;
         }
-        void AddPlazaCache(const std::uint32_t& plaza_id, const Plaza& new_plaza)
+        void AddPlazaCache(const uint32_t& plaza_id, const Plaza& new_plaza)
         {
             if (!IsPlazaAlready(plaza_id))
             {
@@ -1447,7 +1447,7 @@ namespace Game
                 locked_plaza_cache->emplace(plaza_id, new_plaza);
             }
         }
-        void RemovePlazaCache(const std::uint32_t& plaza_id)
+        void RemovePlazaCache(const uint32_t& plaza_id)
         {
             if (IsPlazaAlready(plaza_id))
             {
@@ -1456,7 +1456,7 @@ namespace Game
             }
         }
 
-        auto IsRoomAlready(const std::uint32_t& room_id)
+        auto IsRoomAlready(const uint32_t& room_id)
         {
             std::shared_lock lock(rooms_cache_mutex);
             if (auto findit = rooms_cache.find(room_id); findit != rooms_cache.end())
@@ -1466,15 +1466,15 @@ namespace Game
         }
        
         
-        std::uint32_t FindLowestAvailableItemSerialInfoId(const std::vector<Item>& inventory_items)
+        uint32_t FindLowestAvailableItemSerialInfoId(const std::vector<Item>& inventory_items)
         {
-            std::unordered_set<std::uint32_t> used_ids;
+            std::unordered_set<uint32_t> used_ids;
 
             for (const auto& item : inventory_items)
                 if (item.item_info.serial_info.id >= 0 && item.item_info.serial_info.id <= 0x100000)
                     used_ids.insert(item.item_info.serial_info.id);
 
-            for (std::uint32_t id = 0; id <= 0x100000; id++)
+            for (uint32_t id = 0; id <= 0x100000; id++)
                 if (used_ids.find(id) == used_ids.end())
                     return id;
 
@@ -1493,9 +1493,9 @@ namespace Game
         }
         auto GetRoomSortedPlayerSessionIds(RoomCacheSharedResource& room_cache)
         {
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids)
+            auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids)
             {
                 for (const auto& id : team_session_ids)
                 {
@@ -1517,11 +1517,11 @@ namespace Game
             addPlayerToSlotPairs(room_cache->observers_session_ids);
 
             std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second < b.second;
             });
 
-            std::vector<std::uint16_t> players_ids;
+            std::vector<uint16_t> players_ids;
             for (const auto& pair : player_slot_pairs)
                 players_ids.push_back(pair.first);
 
@@ -1529,9 +1529,9 @@ namespace Game
         }
         auto GetRoomSortedPlayerSessionIds(RoomCacheResource& room_cache)
         {
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids) 
+            auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids) 
             {
                 for (const auto& id : team_session_ids)
                 {
@@ -1553,11 +1553,11 @@ namespace Game
             addPlayerToSlotPairs(room_cache->observers_session_ids);
 
             std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second < b.second;
             });
 
-            std::vector<std::uint16_t> players_ids;
+            std::vector<uint16_t> players_ids;
             for (const auto& pair : player_slot_pairs)
                 players_ids.push_back(pair.first);
 
@@ -1565,9 +1565,9 @@ namespace Game
         }
         auto GetRoomSortedPlayerWithoutObserverSessionIds(RoomCacheResource& room_cache)
         {
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids)
+            auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids)
             {
                 for (const auto& id : team_session_ids)
                 {
@@ -1589,11 +1589,11 @@ namespace Game
            
 
             std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second < b.second;
             });
 
-            std::vector<std::uint16_t> players_ids;
+            std::vector<uint16_t> players_ids;
             for (const auto& pair : player_slot_pairs)
                 players_ids.push_back(pair.first);
 
@@ -1601,9 +1601,9 @@ namespace Game
         }
         auto GetRoomSortedPlayerPlayingAndObserverSessionIds(RoomCacheResource& room_cache)
         {
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids)
+            auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids)
                 {
                     for (const auto& id : team_session_ids)
                     {
@@ -1625,11 +1625,11 @@ namespace Game
             addPlayerToSlotPairs(room_cache->observers_session_ids);
 
             std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                     return a.second < b.second;
                 });
 
-            std::vector<std::uint16_t> players_ids;
+            std::vector<uint16_t> players_ids;
             for (const auto& pair : player_slot_pairs)
                 players_ids.push_back(pair.first);
 
@@ -1637,9 +1637,9 @@ namespace Game
         }
         auto GetRoomSortedPlayerPlayingWithoutObserverSessionIds(RoomCacheResource& room_cache)
         {
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-            auto addPlayerToSlotPairs = [&](const std::vector<std::uint16_t>& team_session_ids)
+            auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids)
             {
                 for (const auto& id : team_session_ids)
                 {
@@ -1661,11 +1661,11 @@ namespace Game
 
 
             std::stable_sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second < b.second;
             });
 
-            std::vector<std::uint16_t> players_ids;
+            std::vector<uint16_t> players_ids;
             for (const auto& pair : player_slot_pairs)
                 players_ids.push_back(pair.first);
 
@@ -1673,7 +1673,7 @@ namespace Game
         }
         auto GetRoomSortedPlayerPingSessionIds(RoomCacheResource& room_cache)
         {
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_ping_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_ping_pairs;
 
             const auto& session_ids = GetRoomSortedPlayerWithoutObserverSessionIds(room_cache);// by slot
 
@@ -1689,20 +1689,20 @@ namespace Game
             }
 
             std::stable_sort(player_ping_pairs.begin(), player_ping_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second >= b.second;
             });
 
-            std::vector<std::uint16_t> players_ids;
+            std::vector<uint16_t> players_ids;
             for (const auto& pair : player_ping_pairs)
                 players_ids.push_back(pair.first);
 
             return players_ids;
         }
-        std::uint16_t GetBestPlayerPingSessionIdInMatch(RoomCacheResource& room_cache)
+        uint16_t GetBestPlayerPingSessionIdInMatch(RoomCacheResource& room_cache)
         {
             const auto& session_ids = GetRoomSortedPlayerWithoutObserverSessionIds(room_cache);// by slot
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_ping_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_ping_pairs;
             for (const auto& id : session_ids)
             {
                 auto player_cache = GetAccCacheSharedBySessionId(id);
@@ -1712,16 +1712,16 @@ namespace Game
                 player_cache.unlock();
             }
             std::stable_sort(player_ping_pairs.begin(), player_ping_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second >= b.second;
             });
 
             return player_ping_pairs.size() > 0 ? player_ping_pairs[0].first : 0;
         }
-        std::uint16_t GetBestPlayerPingSessionIdInRoom(RoomCacheResource& room_cache)
+        uint16_t GetBestPlayerPingSessionIdInRoom(RoomCacheResource& room_cache)
         {
             const auto& session_ids = GetRoomSortedPlayerWithoutObserverSessionIds(room_cache);// by slot
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_ping_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_ping_pairs;
             for (const auto& id : session_ids)
             {
                 auto player_cache = GetAccCacheSharedBySessionId(id);
@@ -1731,16 +1731,16 @@ namespace Game
                 player_cache.unlock();
             }
             std::stable_sort(player_ping_pairs.begin(), player_ping_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                 return a.second >= b.second;
             });
 
             return player_ping_pairs.size() > 0 ? player_ping_pairs[0].first : 0;
         }
-        std::uint16_t GetBestPlayerPingSessionIdInRoomNoHost(RoomCacheResource& room_cache, const std::uint8_t& team_id, bool include_enemy)
+        uint16_t GetBestPlayerPingSessionIdInRoomNoHost(RoomCacheResource& room_cache, const uint8_t& team_id, bool include_enemy)
         {
             const auto& session_ids = GetRoomSortedPlayerWithoutObserverSessionIds(room_cache);// by slot
-            std::vector<std::pair<std::uint16_t, std::uint32_t>> player_ping_pairs;
+            std::vector<std::pair<uint16_t, uint32_t>> player_ping_pairs;
             for (const auto& id : session_ids)
             {
                 auto player_cache = GetAccCacheSharedBySessionId(id);
@@ -1750,13 +1750,13 @@ namespace Game
                 player_cache.unlock();
             }
             std::stable_sort(player_ping_pairs.begin(), player_ping_pairs.end(),
-                [](const std::pair<std::uint16_t, std::uint32_t>& a, const std::pair<std::uint16_t, std::uint32_t>& b) {
+                [](const std::pair<uint16_t, uint32_t>& a, const std::pair<uint16_t, uint32_t>& b) {
                     return a.second >= b.second;
                 });
 
             return player_ping_pairs.size() > 0 ? player_ping_pairs[0].first : 0;
         }
-       void AddRoomCache(const std::uint32_t& room_id, Room& new_room)
+       void AddRoomCache(const uint32_t& room_id, Room& new_room)
         {
             if (!IsRoomAlready(room_id))
             {
@@ -1772,7 +1772,7 @@ namespace Game
             }
 
         }
-        void RemoveRoomCache(const std::uint32_t& room_id)
+        void RemoveRoomCache(const uint32_t& room_id)
         {
             if (IsRoomAlready(room_id))
             {
@@ -1784,28 +1784,28 @@ namespace Game
             }
 
         }
-        void RemoveRoomPlayerCache(const std::uint32_t& room_id, const std::uint16_t& session_id, const std::uint8_t& team_id)
+        void RemoveRoomPlayerCache(const uint32_t& room_id, const uint16_t& session_id, const uint8_t& team_id)
         {
             if (IsRoomAlready(room_id))
             {
                 auto rooms_cache_locked = GetRoomCacheUnique(room_id);
 
-                //if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral))
+                //if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Neutral))
                 {
                     auto remove_myself = std::remove(rooms_cache_locked->neutralteam_session_ids.begin(), rooms_cache_locked->neutralteam_session_ids.end(), session_id);
                     rooms_cache_locked->neutralteam_session_ids.erase(remove_myself, rooms_cache_locked->neutralteam_session_ids.end());
                 }
-                //else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red))
+                //else if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Red))
                 {
                     auto remove_myself2 = std::remove(rooms_cache_locked->redteam_session_ids.begin(), rooms_cache_locked->redteam_session_ids.end(), session_id);
                     rooms_cache_locked->redteam_session_ids.erase(remove_myself2, rooms_cache_locked->redteam_session_ids.end());
                 }
-                //else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue))
+                //else if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Blue))
                 {
                     auto remove_myself3 = std::remove(rooms_cache_locked->blueteam_session_ids.begin(), rooms_cache_locked->blueteam_session_ids.end(), session_id);
                     rooms_cache_locked->blueteam_session_ids.erase(remove_myself3, rooms_cache_locked->blueteam_session_ids.end());
                 }
-                //else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Observer))
+                //else if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Observer))
                 {
                     auto remove_myself4 = std::remove(rooms_cache_locked->observers_session_ids.begin(), rooms_cache_locked->observers_session_ids.end(), session_id);
                     rooms_cache_locked->observers_session_ids.erase(remove_myself4, rooms_cache_locked->observers_session_ids.end());
@@ -1813,33 +1813,33 @@ namespace Game
             }
         }
 
-        void RemoveSessionId(std::vector<std::uint16_t>& session_ids, std::uint16_t session_id) {
+        void RemoveSessionId(std::vector<uint16_t>& session_ids, uint16_t session_id) {
             if (auto it = std::find(session_ids.begin(), session_ids.end(), session_id); it != session_ids.end()) {
                 std::swap(*it, session_ids.back());
                 session_ids.pop_back();
             }
         }
 
-        void RemoveRoomPlayerCache(RoomCacheResource& room_cache, const std::uint16_t& session_id, const std::uint8_t& team_id)
+        void RemoveRoomPlayerCache(RoomCacheResource& room_cache, const uint16_t& session_id, const uint8_t& team_id)
         {
             if (IsRoomAlready(room_cache->room_id))
             {
-                if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral))
+                if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Neutral))
                 {
                     auto remove_myself1 = std::remove(room_cache->neutralteam_session_ids.begin(), room_cache->neutralteam_session_ids.end(), session_id);
                     room_cache->neutralteam_session_ids.erase(remove_myself1, room_cache->neutralteam_session_ids.end());
                 }
-                else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red))
+                else if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Red))
                 {
                     auto remove_myself2 = std::remove(room_cache->redteam_session_ids.begin(), room_cache->redteam_session_ids.end(), session_id);
                     room_cache->redteam_session_ids.erase(remove_myself2, room_cache->redteam_session_ids.end());
                 }
-                else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue))
+                else if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Blue))
                 {
                     auto remove_myself3 = std::remove(room_cache->blueteam_session_ids.begin(), room_cache->blueteam_session_ids.end(), session_id);
                     room_cache->blueteam_session_ids.erase(remove_myself3, room_cache->blueteam_session_ids.end());
                 }
-                else if (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Observer))
+                else if (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Observer))
                 {
                     auto remove_myself4 = std::remove(room_cache->observers_session_ids.begin(), room_cache->observers_session_ids.end(), session_id);
                     room_cache->observers_session_ids.erase(remove_myself4, room_cache->observers_session_ids.end());
@@ -1847,9 +1847,9 @@ namespace Game
             }
         }
 
-        void NewRemoveRoomPlayer(RoomCacheResource& room, const std::uint16_t& session_id, const std::uint8_t& team_id, NetEngine::Room::Leave::Ack::Result leave_type, bool return_state)
+        void NewRemoveRoomPlayer(RoomCacheResource& room, const uint16_t& session_id, const uint8_t& team_id, NetEngine::Room::Leave::Ack::Result leave_type, bool return_state)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -1872,7 +1872,7 @@ namespace Game
 
             auto session = this->GetSessionById(session_id);
 
-            auto& team_list = (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids : (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids : (team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids : room->observers_session_ids)));
+            auto& team_list = (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids : (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids : (team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids : room->observers_session_ids)));
 
             //new code start
             auto players_ids = this->GetRoomSortedPlayerWithoutObserverSessionIds(room);
@@ -1902,9 +1902,9 @@ namespace Game
                 }
 
                 // Reorder the last player's team list to keep correct slot_id order
-                auto& reordered_team_list = (reordered_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
-                    (reordered_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
-                        (reordered_team_id == static_cast<std::uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
+                auto& reordered_team_list = (reordered_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Neutral) ? room->neutralteam_session_ids :
+                    (reordered_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Red) ? room->redteam_session_ids :
+                        (reordered_team_id == static_cast<uint8_t>(NetEngine::Team::IdType::Blue) ? room->blueteam_session_ids :
                             room->observers_session_ids)));
 
                 // Remove last player from the current position in the list
@@ -1913,7 +1913,7 @@ namespace Game
 
                 // Find the new position in the list sorted by slot_id
                 auto new_index_it = std::lower_bound(reordered_team_list.begin(), reordered_team_list.end(), last_player_id,
-                    [&](const std::uint16_t& a, const std::uint16_t& b)
+                    [&](const uint16_t& a, const uint16_t& b)
                     {
                         auto player_cache_a = this->GetAccCacheSharedBySessionId(a);
                         auto player_cache_b = this->GetAccCacheSharedBySessionId(b);
@@ -2015,8 +2015,8 @@ namespace Game
                             if (auto player_session = this->GetSessionById(id))
                             {
                                 std::string c_nick;
-                                std::uint32_t c_sid;
-                                std::uint32_t c_slot;
+                                uint32_t c_sid;
+                                uint32_t c_slot;
                                 if (id == best_ping_session_id)
                                 {
                                     c_nick = best_ping_acc_cache->acc_info.Nickname;
@@ -2033,14 +2033,14 @@ namespace Game
                                 }
                                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) ({}) at slot id ({})", c_nick.c_str(), c_sid, c_slot);
                                 if (id == session_id && !return_state) continue;
-                                send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
+                                send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
                             }
 
 
                         struct RoomAuthData
                         {
-                            std::uint16_t room_id;
-                            std::uint64_t auth_key;
+                            uint16_t room_id;
+                            uint64_t auth_key;
                         };
                         RoomAuthData new_host_data{ room_id, best_ping_acc_cache->acc_info.AuthKey };
 
@@ -2058,8 +2058,8 @@ namespace Game
 
                         if (!using_other_team)
                         {
-                            std::int32_t my_team_idx = -1;
-                            std::int32_t new_host_team_idx = -1;
+                            int32_t my_team_idx = -1;
+                            int32_t new_host_team_idx = -1;
                             for (int i = 0, j = team_list.size(); i < j; i++)
                             {
                                 if (team_list[i] == session_id)
@@ -2087,8 +2087,8 @@ namespace Game
                 if (auto player_session = this->GetSessionById(id))
                 {
                     std::string c_nick;
-                    std::uint32_t c_sid;
-                    std::uint32_t c_slot;
+                    uint32_t c_sid;
+                    uint32_t c_slot;
                     auto c_cache = this->GetAccCacheSharedBySessionId(id);
                     c_nick = c_cache->acc_info.Nickname;
                     c_sid = c_cache->session_id;
@@ -2097,7 +2097,7 @@ namespace Game
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) ({}) at slot id ({})", c_nick.c_str(), c_sid, c_slot);
                 }
 
-            std::uint32_t my_slot = 0;
+            uint32_t my_slot = 0;
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             for (int i = 0, j = team_list.size(); i < j; i++)
             {
@@ -2133,8 +2133,8 @@ namespace Game
                 if (auto player_session = this->GetSessionById(id))
                 {
                     std::string c_nick;
-                    std::uint32_t c_sid;
-                    std::uint32_t c_slot;
+                    uint32_t c_sid;
+                    uint32_t c_slot;
                     auto c_cache = this->GetAccCacheSharedBySessionId(id);
                     c_nick = c_cache->acc_info.Nickname;
                     c_sid = c_cache->session_id;
@@ -2219,7 +2219,7 @@ namespace Game
             else
                 return {};
         }
-        std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const std::uint32_t& item_id)
+        std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const uint32_t& item_id)
         {
 
             auto it = std::find_if(acc_cache->inventory_items.begin(), acc_cache->inventory_items.end(),
@@ -2291,9 +2291,9 @@ namespace Game
             return item_removed;
         }
 
-        void DisconnectPlayer(CServer* server, const std::uint16_t& session_id, const std::uint8_t& reason)
+        void DisconnectPlayer(CServer* server, const uint16_t& session_id, const uint8_t& reason)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -2317,9 +2317,9 @@ namespace Game
 
         }
 
-        void DisconnectPlayer(CServer* server, const std::uint16_t& session_id, const std::uint64_t& auth_key, const std::uint8_t& reason)
+        void DisconnectPlayer(CServer* server, const uint16_t& session_id, const uint64_t& auth_key, const uint8_t& reason)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -2359,7 +2359,7 @@ namespace Game
             acc_cache->friends_pendings.push_back(new_friend);
             return true;
         }
-        auto RemovePlayerFriendsDeleted(AccCacheResource& acc_cache, const std::uint32_t& acc_id)
+        auto RemovePlayerFriendsDeleted(AccCacheResource& acc_cache, const uint32_t& acc_id)
         {
             auto new_end = std::remove_if(acc_cache->friends_deleted.begin(), acc_cache->friends_deleted.end(),
                 [&acc_id](BaseLib::FriendInfo& friend_info) {
@@ -2371,7 +2371,7 @@ namespace Game
 
             return friends_removed;
         }
-        auto RemovePlayerFriendsAccepted(AccCacheResource& acc_cache, const std::uint32_t& acc_id)
+        auto RemovePlayerFriendsAccepted(AccCacheResource& acc_cache, const uint32_t& acc_id)
         {
             auto new_end = std::remove_if(acc_cache->friends_accepted.begin(), acc_cache->friends_accepted.end(),
                 [&acc_id](BaseLib::FriendInfo& friend_info) {
@@ -2383,7 +2383,7 @@ namespace Game
 
             return friends_removed;
         }
-        auto RemovePlayerFriendsPendings(AccCacheResource& acc_cache, const std::uint32_t& acc_id)
+        auto RemovePlayerFriendsPendings(AccCacheResource& acc_cache, const uint32_t& acc_id)
         {
             auto new_end = std::remove_if(acc_cache->friends_pendings.begin(), acc_cache->friends_pendings.end(),
                 [&acc_id](BaseLib::FriendInfo& friend_info) {
@@ -2405,7 +2405,7 @@ namespace Game
             acc_cache->blockeds_added.push_back(new_blocked);
             return true;
         }
-        auto RemovePlayerBlockedsDeleted(AccCacheResource& acc_cache, const std::uint32_t& acc_id)
+        auto RemovePlayerBlockedsDeleted(AccCacheResource& acc_cache, const uint32_t& acc_id)
         {
             auto new_end = std::remove_if(acc_cache->blockeds_deleted.begin(), acc_cache->blockeds_deleted.end(),
                 [&acc_id](BaseLib::BlockedInfo& blocked_info) {
@@ -2417,7 +2417,7 @@ namespace Game
 
             return blocked_removed;
         }
-        auto RemovePlayerBlockedsAdded(AccCacheResource& acc_cache, const std::uint32_t& acc_id)
+        auto RemovePlayerBlockedsAdded(AccCacheResource& acc_cache, const uint32_t& acc_id)
         {
             auto new_end = std::remove_if(acc_cache->blockeds_added.begin(), acc_cache->blockeds_added.end(),
                 [&acc_id](BaseLib::BlockedInfo& blocked_info) {
@@ -2429,7 +2429,7 @@ namespace Game
 
             return blocked_removed;
         }
-        auto GetFriendsList(const std::uint32_t& session_id)
+        auto GetFriendsList(const uint32_t& session_id)
         {
             std::shared_lock lock(friends_cache_mutex);
             auto it = friends_cache.find(session_id);
@@ -2443,7 +2443,7 @@ namespace Game
             }
         }
 
-        auto IsFriendsAlready(const std::vector<PlayerFriendInfo>& friends, std::uint32_t acc_id)
+        auto IsFriendsAlready(const std::vector<PlayerFriendInfo>& friends, uint32_t acc_id)
         {
             auto it = std::find_if(friends.begin(), friends.end(),
                 [&acc_id](const PlayerFriendInfo& friend_info) {
@@ -2451,24 +2451,24 @@ namespace Game
             });
             return it != friends.end();
         }
-        auto AddPlayerFriends(const std::uint16_t& id, const BaseLib::FriendInfo& friend_info)
+        auto AddPlayerFriends(const uint16_t& id, const BaseLib::FriendInfo& friend_info)
         {
             auto friends_cache_locked = LockedResource{ std::unique_lock(friends_cache_mutex), friends_cache };
             auto& friends_list = (*friends_cache_locked)[id];
             friends_list.insert(friends_list.end(), friend_info);
         }
-        auto AddPlayerFriends(const std::uint16_t& id, const std::vector<BaseLib::FriendInfo>& friend_list)
+        auto AddPlayerFriends(const uint16_t& id, const std::vector<BaseLib::FriendInfo>& friend_list)
         {
             auto friends_cache_locked = LockedResource{ std::unique_lock(friends_cache_mutex), friends_cache };
             auto& friends = (*friends_cache_locked)[id];
             friends.insert(friends.end(), friend_list.begin(), friend_list.end());
         }
-        auto RemoveFriendsCache(const std::uint16_t& id)
+        auto RemoveFriendsCache(const uint16_t& id)
         {
             auto friends_cache_locked = LockedResource{ std::unique_lock(friends_cache_mutex), friends_cache };
             friends_cache_locked->erase(id);
         }
-        auto RemovePlayerFriends(const std::uint16_t& id, const std::uint32_t& acc_id)
+        auto RemovePlayerFriends(const uint16_t& id, const uint32_t& acc_id)
         {
             //deadlock
             auto friends_cache_locked = LockedResource{ std::unique_lock(friends_cache_mutex), friends_cache };
@@ -2487,7 +2487,7 @@ namespace Game
             return friend_removed;
         }
 
-        auto GetBlockedsList(const std::uint32_t& session_id)
+        auto GetBlockedsList(const uint32_t& session_id)
         {
             std::shared_lock lock(blockeds_cache_mutex);
             auto it = blockeds_cache.find(session_id);
@@ -2500,7 +2500,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_blockeds_mutex), null_blockeds_info };
             }
         }
-        auto IsBlockedAlready(BlockedCacheResource& blockeds, std::uint32_t acc_id)
+        auto IsBlockedAlready(BlockedCacheResource& blockeds, uint32_t acc_id)
         {
             auto it = std::find_if(blockeds->begin(), blockeds->end(),
                 [&acc_id](const BlockedInfo& blocked_info) {
@@ -2508,7 +2508,7 @@ namespace Game
             });
             return it != blockeds->end();
         }
-        auto IsBlockedAlready(const std::vector<BaseLib::BlockedInfo>& blockeds, std::uint32_t acc_id)
+        auto IsBlockedAlready(const std::vector<BaseLib::BlockedInfo>& blockeds, uint32_t acc_id)
         {
             auto it = std::find_if(blockeds.begin(), blockeds.end(),
                 [&acc_id](const BlockedInfo& blocked_info) {
@@ -2516,25 +2516,25 @@ namespace Game
             });
             return it != blockeds.end();
         }
-        auto AddPlayerBlockeds(const std::uint16_t& id, const BaseLib::BlockedInfo& blocked_info)
+        auto AddPlayerBlockeds(const uint16_t& id, const BaseLib::BlockedInfo& blocked_info)
         {
             auto blockeds_cache_locked = LockedResource{ std::unique_lock(blockeds_cache_mutex), blockeds_cache };
             auto& blockeds_list = (*blockeds_cache_locked)[id];
             blockeds_list.insert(blockeds_list.end(), blocked_info);
            
         }
-        auto AddPlayerBlockeds(const std::uint16_t& id, const std::vector<BaseLib::BlockedInfo>& blocked_list)
+        auto AddPlayerBlockeds(const uint16_t& id, const std::vector<BaseLib::BlockedInfo>& blocked_list)
         {
             auto blockeds_cache_locked = LockedResource{ std::unique_lock(blockeds_cache_mutex), blockeds_cache };
             auto& blockeds = (*blockeds_cache_locked)[id];
             blockeds.insert(blockeds.end(), blocked_list.begin(), blocked_list.end());
         }
-        auto RemoveBlockedsCache(const std::uint16_t& id)
+        auto RemoveBlockedsCache(const uint16_t& id)
         {
             auto blockeds_cache_locked = LockedResource{ std::unique_lock(blockeds_cache_mutex), blockeds_cache };
             blockeds_cache_locked->erase(id);
         }
-        auto RemovePlayerBlockeds(const std::uint16_t& id, const std::uint32_t& acc_id)
+        auto RemovePlayerBlockeds(const uint16_t& id, const uint32_t& acc_id)
         {
             auto blockeds_cache_locked = LockedResource{ std::unique_lock(blockeds_cache_mutex), blockeds_cache };
             auto& blockeds_list = (*blockeds_cache_locked)[id];
@@ -2549,7 +2549,7 @@ namespace Game
 
             return blocked_removed;
         }
-        auto IsItemInShop(const std::uint32_t& item_id)
+        auto IsItemInShop(const uint32_t& item_id)
         {
             std::shared_lock lock(vendor_item_ids_mutex);
             return std::find(vendor_item_ids.begin(), vendor_item_ids.end(), item_id) != vendor_item_ids.end();
@@ -2561,7 +2561,7 @@ namespace Game
             items_info_locked->max_load_factor(0.7f);
             items_info_locked->rehash(0);
         }
-        void AddItemInfoCache(const std::uint32_t& id, BaseLib::ItemInfo item_info)
+        void AddItemInfoCache(const uint32_t& id, BaseLib::ItemInfo item_info)
         {
             auto items_info_locked = LockedResource{ std::unique_lock(items_info_mutex), items_info };
 
@@ -2570,12 +2570,12 @@ namespace Game
             //if (!inserted)
             //    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a item info with item id: ({}), but it already exists ", item_info.Id);
         }
-        void RemoveItemInfoCache(const std::uint32_t& id)
+        void RemoveItemInfoCache(const uint32_t& id)
         {
             auto items_info_locked = LockedResource{ std::unique_lock(items_info_mutex), items_info };
             items_info_locked->erase(id);
         }
-        auto GetItemInfoCache(const std::uint32_t& id)
+        auto GetItemInfoCache(const uint32_t& id)
         {
 
             std::shared_lock lock(items_info_mutex);
@@ -2590,7 +2590,7 @@ namespace Game
             }
         }
 
-        std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const std::uint32_t& item_type, const std::uint8_t& char_id)
+        std::optional<Item> GetPlayerItemInventory(AccCacheResource& acc_cache, const uint32_t& item_type, const uint8_t& char_id)
         {
 
             auto it = std::find_if(acc_cache->inventory_items.begin(), acc_cache->inventory_items.end(),
@@ -2618,18 +2618,18 @@ namespace Game
             return items_info.size();
         }
 
-        void AddEffectInfoCache(const std::uint32_t& id, BaseLib::EffectInfo new_effect_info)
+        void AddEffectInfoCache(const uint32_t& id, BaseLib::EffectInfo new_effect_info)
         {
             auto effect_info_locked = LockedResource{ std::unique_lock(effect_info_mutex), effect_info };
 
             auto [it, inserted] = effect_info_locked->emplace(id, std::move(new_effect_info));
         }
-        void RemoveEffectInfoCache(const std::uint32_t& id)
+        void RemoveEffectInfoCache(const uint32_t& id)
         {
             auto effect_info_locked = LockedResource{ std::unique_lock(effect_info_mutex), effect_info };
             effect_info_locked->erase(id);
         }
-        auto GetEffectInfoCache(const std::uint32_t& id)
+        auto GetEffectInfoCache(const uint32_t& id)
         {
 
             std::shared_lock lock(effect_info_mutex);
@@ -2649,18 +2649,18 @@ namespace Game
             return effect_info.size();
         }
 
-        void AddCollectionInfoCache(const std::uint32_t& id, BaseLib::CollectionInfo new_collection_info)
+        void AddCollectionInfoCache(const uint32_t& id, BaseLib::CollectionInfo new_collection_info)
         {
             auto collection_info_locked = LockedResource{ std::unique_lock(collection_info_mutex), collection_info };
 
             auto [it, inserted] = collection_info_locked->emplace(id, std::move(new_collection_info));
         }
-        void RemoveCollectionInfoCache(const std::uint32_t& id)
+        void RemoveCollectionInfoCache(const uint32_t& id)
         {
             auto collection_info_locked = LockedResource{ std::unique_lock(collection_info_mutex), collection_info };
             collection_info_locked->erase(id);
         }
-        auto GetCollectionInfoCache(const std::uint32_t& id)
+        auto GetCollectionInfoCache(const uint32_t& id)
         {
 
             std::shared_lock lock(collection_info_mutex);
@@ -2680,8 +2680,8 @@ namespace Game
             return collection_info.size();
         }
 
-        auto GetRandomDailyMissionIds(std::uint32_t count, std::uint32_t id1, std::uint32_t id2, std::uint32_t id3) {
-            std::vector<std::uint32_t> result;
+        auto GetRandomDailyMissionIds(uint32_t count, uint32_t id1, uint32_t id2, uint32_t id3) {
+            std::vector<uint32_t> result;
             result.reserve(count);
 
             std::random_device rd;
@@ -2696,7 +2696,7 @@ namespace Game
 
                 while (result.size() < count) {
                     auto random_it = std::next(dailymission_ids.begin(), gen() % dailymission_ids.size());
-                    std::uint32_t random_id = *random_it;
+                    uint32_t random_id = *random_it;
 
                     // Exclude already used IDs and avoid duplicates
                     if (random_id != id1 && random_id != id2 && random_id != id3 &&
@@ -2709,7 +2709,7 @@ namespace Game
             return result;
         }
 
-        void AddDailyMissionInfoCache(const std::uint32_t& id, BaseLib::DailyMissionInfo new_dailymission_info)
+        void AddDailyMissionInfoCache(const uint32_t& id, BaseLib::DailyMissionInfo new_dailymission_info)
         {
             auto dailymission_info_locked = LockedResource{ std::unique_lock(dailymission_info_mutex), dailymission_info };
             auto dailymission_ids_locked = LockedResource{ std::unique_lock(dailymission_ids_mutex), dailymission_ids };
@@ -2718,7 +2718,7 @@ namespace Game
 
             auto [it, inserted] = dailymission_info_locked->emplace(id, std::move(new_dailymission_info));
         }
-        void RemoveDailyMissionInfoCache(const std::uint32_t& id)
+        void RemoveDailyMissionInfoCache(const uint32_t& id)
         {
             auto dailymission_info_locked = LockedResource{ std::unique_lock(dailymission_info_mutex), dailymission_info };
             auto dailymission_ids_locked = LockedResource{ std::unique_lock(dailymission_ids_mutex), dailymission_ids };
@@ -2727,7 +2727,7 @@ namespace Game
 
             dailymission_info_locked->erase(id);
         }
-        auto GetDailyMissionInfoCache(const std::uint32_t& id)
+        auto GetDailyMissionInfoCache(const uint32_t& id)
         {
 
             std::shared_lock lock(dailymission_info_mutex);
@@ -2747,7 +2747,7 @@ namespace Game
             return dailymission_info.size();
         }
 
-        void AddSetItemInfoCache(const std::uint32_t& id, BaseLib::SetItemInfo& item_info)
+        void AddSetItemInfoCache(const uint32_t& id, BaseLib::SetItemInfo& item_info)
         {
             auto setitems_info_locked = LockedResource{ std::unique_lock(setitems_info_mutex), setitems_info };
 
@@ -2756,12 +2756,12 @@ namespace Game
             if (!inserted)
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a set item info with item id: ({}), but it already exists ", item_info.Id);
         }
-        void RemoveSetItemInfoCache(const std::uint32_t& id)
+        void RemoveSetItemInfoCache(const uint32_t& id)
         {
             auto setitems_info_locked = LockedResource{ std::unique_lock(setitems_info_mutex), setitems_info };
             setitems_info_locked->erase(id);
         }
-        auto GetSetItemInfoCache(const std::uint32_t& id)
+        auto GetSetItemInfoCache(const uint32_t& id)
         {
 
             std::shared_lock lock(setitems_info_mutex);
@@ -2782,7 +2782,7 @@ namespace Game
         }
 
 
-        void AddRoomOptionInfoCache(const std::uint32_t& game_mode, const BaseLib::RoomOptionInfo& room_option_info)
+        void AddRoomOptionInfoCache(const uint32_t& game_mode, const BaseLib::RoomOptionInfo& room_option_info)
         {
             auto roomoptionsinfo_cache_locked = LockedResource{ std::unique_lock(roomoptionsinfo_cache_mutex), roomoptionsinfo_cache };
             auto& inner_map = (*roomoptionsinfo_cache_locked)[game_mode];
@@ -2790,7 +2790,7 @@ namespace Game
             //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a room option info with game mode: ({}), but it already exists ", game_mode);
 
         }
-        auto GetRoomOptionInfosGameModeCache(const std::uint32_t& game_mode)
+        auto GetRoomOptionInfosGameModeCache(const uint32_t& game_mode)
         {
             std::shared_lock lock(roomoptionsinfo_cache_mutex);
 
@@ -2800,12 +2800,12 @@ namespace Game
             else
             {
                 static thread_local std::shared_mutex null_roomoptionsinfo_mutex;
-                //static thread_local std::unordered_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>> empty;
-                static thread_local boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>> empty;
+                //static thread_local std::unordered_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>> empty;
+                static thread_local boost::unordered_flat_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>> empty;
                 return LockedResource{ std::shared_lock(null_roomoptionsinfo_mutex), empty };
             }
         }
-        auto GetRoomOptionInfoByTypeCache(RoomOptionsCacheResource& infos, const std::uint32_t& type, const std::uint32_t& data)
+        auto GetRoomOptionInfoByTypeCache(RoomOptionsCacheResource& infos, const uint32_t& type, const uint32_t& data)
         {
             if (auto typeIt = infos->find(type); typeIt != infos->end())
             {
@@ -2825,7 +2825,7 @@ namespace Game
             return roomoptionsinfo_cache.size();
         }
 
-        auto UpdatePlayerItemEquip(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const std::uint8_t& character_type, const bool& is_equipped)
+        auto UpdatePlayerItemEquip(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const uint8_t& character_type, const bool& is_equipped)
         {
             auto& inventory = acc_cache->inventory_items;
             bool updated = false;
@@ -2843,7 +2843,7 @@ namespace Game
             return updated;
         }
         
-        auto UpdatePlayerItemEquip(AccCacheResource& acc_cache, const std::uint32_t& item_type, const std::uint8_t& character_type, const bool& is_equipped)
+        auto UpdatePlayerItemEquip(AccCacheResource& acc_cache, const uint32_t& item_type, const uint8_t& character_type, const bool& is_equipped)
         {
             auto& inventory = acc_cache->inventory_items;
             std::vector<BaseLib::Item> items_updated;
@@ -2861,7 +2861,7 @@ namespace Game
             }
             return items_updated;
         }
-        auto UpdatePlayerItemExpireDate(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const std::uint32_t expire_date)
+        auto UpdatePlayerItemExpireDate(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const uint32_t expire_date)
         {
             auto& inventory = acc_cache->inventory_items;
             bool updated = false;
@@ -2877,7 +2877,7 @@ namespace Game
             }
             return updated;
         }
-        auto UpdatePlayerItemsRepair(AccCacheResource& acc_cache, const std::vector<ItemSerialInfo>& serial_infos, const std::vector<std::uint32_t>& durabilities)
+        auto UpdatePlayerItemsRepair(AccCacheResource& acc_cache, const std::vector<ItemSerialInfo>& serial_infos, const std::vector<uint32_t>& durabilities)
         {
             auto& inventory = acc_cache->inventory_items;
             bool updated = false;
@@ -2897,7 +2897,7 @@ namespace Game
             }
             return updated;
         }
-        auto UpdatePlayerItemEnergy(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const std::uint32_t& energy)
+        auto UpdatePlayerItemEnergy(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const uint32_t& energy)
         {
             auto& inventory = acc_cache->inventory_items;
             bool updated = false;
@@ -2913,7 +2913,7 @@ namespace Game
             }
             return updated;
         }
-        auto UpdatePlayerItemUpgrade(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const std::uint32_t& new_item_id, const std::uint32_t& repair, const std::uint32_t& energy)
+        auto UpdatePlayerItemUpgrade(AccCacheResource& acc_cache, const ItemSerialInfo& serial_info, const uint32_t& new_item_id, const uint32_t& repair, const uint32_t& energy)
         {
             auto& inventory = acc_cache->inventory_items;
             bool updated = false;
@@ -2949,7 +2949,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_gachapons_info), empty };
             }
         }
-        auto GetGachaponInfo(const std::uint32_t& gachapon_id)
+        auto GetGachaponInfo(const uint32_t& gachapon_id)
         {
             std::shared_lock lock(gachapons_info_mutex);
 
@@ -2963,19 +2963,19 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_gachapons_info), empty };
             }
         }
-        std::uint32_t ExtractIndex(std::vector<std::uint32_t> probabilities)
+        uint32_t ExtractIndex(std::vector<uint32_t> probabilities)
         {
-            std::uint32_t sum_of_probabilities = 0;
+            uint32_t sum_of_probabilities = 0;
             std::vector<ProbabilityStruct> probability_list;
 
-            for (std::uint32_t i = 0; i < probabilities.size(); i++)
+            for (uint32_t i = 0; i < probabilities.size(); i++)
             {
                 probability_list.push_back(ProbabilityStruct(i, sum_of_probabilities + (probabilities[i] - 1)));
                 sum_of_probabilities += probabilities[i];
             }
-            std::uint32_t prev_probability = 0;
-            std::uint32_t extracted = Utility::Random::CustomGen(0, sum_of_probabilities - 1);
-            for (std::uint32_t i = 0; i < probability_list.size(); i++)
+            uint32_t prev_probability = 0;
+            uint32_t extracted = Utility::Random::CustomGen(0, sum_of_probabilities - 1);
+            for (uint32_t i = 0; i < probability_list.size(); i++)
             {
                 if (extracted >= prev_probability && extracted <= probability_list[i].prob)
                     return probability_list[i].id;
@@ -2984,7 +2984,7 @@ namespace Game
             }
             return -1;
         }
-        void AddPackageItemCache(const std::uint32_t& package_id, const std::uint32_t& package_group_id, const BaseLib::PackageInfo& package_package_item)
+        void AddPackageItemCache(const uint32_t& package_id, const uint32_t& package_group_id, const BaseLib::PackageInfo& package_package_item)
         {
             auto packages_info_locked = LockedResource{ std::unique_lock(packages_info_mutex), packages_info };
             auto& inner_map = (*packages_info_locked)[package_id];
@@ -2995,14 +2995,14 @@ namespace Game
         {
             std::shared_lock lock(packages_info_mutex);
 
-            std::size_t count = 0;
+            size_t count = 0;
             for (const auto& groupPair : packages_info)
                 for (const auto& packagesGroups : groupPair.second)
                     count += packagesGroups.second.size();
 
             return count;
         }
-        auto GetPackageInfo(const std::uint32_t& package_id)
+        auto GetPackageInfo(const uint32_t& package_id)
         {
             std::shared_lock lock(packages_info_mutex);
             auto it = packages_info.find(package_id);
@@ -3011,8 +3011,8 @@ namespace Game
             else
             {
                 static thread_local std::shared_mutex null_packages_info;
-                //static thread_local std::unordered_map<std::uint32_t, std::vector<BaseLib::PackageInfo>> empty;
-                static thread_local boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::PackageInfo>> empty;
+                //static thread_local std::unordered_map<uint32_t, std::vector<BaseLib::PackageInfo>> empty;
+                static thread_local boost::unordered_flat_map<uint32_t, std::vector<BaseLib::PackageInfo>> empty;
                 return LockedResource{ std::shared_lock(null_packages_info), empty };
             }
         }
@@ -3021,7 +3021,7 @@ namespace Game
             std::vector<BaseLib::PackageInfo> return_items;
             for (const auto& group : *package_info)
             {
-                std::vector<std::uint32_t> probability_list;
+                std::vector<uint32_t> probability_list;
                 for (const auto& item : group.second)
                     probability_list.push_back(item.Probability);
 
@@ -3031,11 +3031,11 @@ namespace Game
             }
             return return_items;
         }
-        auto ExtractGachaponItemsWon(GachaponCacheResource& gachapon_info, std::vector<GachaponPackageItem>& return_items, std::uint32_t coupon_chance)
+        auto ExtractGachaponItemsWon(GachaponCacheResource& gachapon_info, std::vector<GachaponPackageItem>& return_items, uint32_t coupon_chance)
         {
             for (const auto& group : gachapon_info->Gachapons)
             {
-                std::vector<std::uint32_t> probability_list;
+                std::vector<uint32_t> probability_list;
                 for (const auto& item : group.second)
                     probability_list.push_back(item.Probability);
 
@@ -3045,14 +3045,14 @@ namespace Game
             }
             return Utility::Random::CustomGen(0, 100) < coupon_chance;
         }
-        auto AddGachaponInfoCache(const std::uint32_t& gachapon_id, BaseLib::GachaponInfo& gachapon_info)
+        auto AddGachaponInfoCache(const uint32_t& gachapon_id, BaseLib::GachaponInfo& gachapon_info)
         {
             auto gachapons_info_cache_locked = LockedResource{ std::unique_lock(gachapons_info_mutex), gachapons_info };
             auto [it, inserted] = gachapons_info_cache_locked->emplace(gachapon_id,  std::move(gachapon_info));
             if (!inserted)
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a gachapon info with id: ({}), but it already exists ", gachapon_id);
         }
-        auto AddGachaponPackageItemCache(const std::uint32_t& gachapon_id, const std::uint32_t& gachapon_group_id, const BaseLib::GachaponPackageItem& gachapon_package_item)
+        auto AddGachaponPackageItemCache(const uint32_t& gachapon_id, const uint32_t& gachapon_group_id, const BaseLib::GachaponPackageItem& gachapon_package_item)
         {
             auto gachapons_info_cache_locked = LockedResource{ std::unique_lock(gachapons_info_mutex), gachapons_info };
             auto& inner_map = (*gachapons_info_cache_locked)[gachapon_id];
@@ -3065,14 +3065,14 @@ namespace Game
         {
             std::shared_lock lock(gachapons_info_mutex);
 
-            std::size_t count = 0;
+            size_t count = 0;
             for (const auto& groupPair : gachapons_info)
                 for (const auto& gachaponsGroups : groupPair.second.Gachapons)
                     count += gachaponsGroups.second.size();
 
             return count;
         }
-        void AddUpgradeInfoCache(const std::uint32_t& group_id, const Items::Upgrade::Type& upgrade_type, const BaseLib::UpgradeInfo& upgrade_info)
+        void AddUpgradeInfoCache(const uint32_t& group_id, const Items::Upgrade::Type& upgrade_type, const BaseLib::UpgradeInfo& upgrade_info)
         {
             auto upgrades_info_cache_locked = LockedResource{ std::unique_lock(upgrades_info_mutex), upgrades_info };
 
@@ -3111,7 +3111,7 @@ namespace Game
             */
         }
 
-        auto GetUpgradeCollectionInfoCache(const Items::Upgrade::Type& upgrade_type, const std::uint32_t& item_id)
+        auto GetUpgradeCollectionInfoCache(const Items::Upgrade::Type& upgrade_type, const uint32_t& item_id)
         {
             std::shared_lock lock(upgrades_info_mutex);
 
@@ -3144,31 +3144,31 @@ namespace Game
             static thread_local std::vector<BaseLib::UpgradeInfo> empty;
             return LockedResource{ std::shared_lock(null_upgrades_info), empty };
         }
-        std::uint32_t GetUpgradeLevel(UpgradeCacheResource& upgrade_collection, const std::uint32_t& id)
+        uint32_t GetUpgradeLevel(UpgradeCacheResource& upgrade_collection, const uint32_t& id)
         {
-            for (std::uint32_t i = 0; i < upgrade_collection->size(); ++i)
+            for (uint32_t i = 0; i < upgrade_collection->size(); ++i)
                 if (upgrade_collection->at(i).ItemId == id)
                     return i;
 
             return 0;
         }
-        auto GetUpgradeInfoNext(UpgradeCacheResource& upgrade_collection, const std::uint32_t& id)
+        auto GetUpgradeInfoNext(UpgradeCacheResource& upgrade_collection, const uint32_t& id)
         {
-            for (std::uint32_t i = 0; i < upgrade_collection->size(); ++i)
+            for (uint32_t i = 0; i < upgrade_collection->size(); ++i)
                 if (upgrade_collection->at(i).ItemId == id && i + 1 < upgrade_collection->size())
                     return upgrade_collection->at(i + 1);
 
             return BaseLib::UpgradeInfo();
         }
-        auto GetUpgradeInfoPrev(UpgradeCacheResource& upgrade_collection, const std::uint32_t& id)
+        auto GetUpgradeInfoPrev(UpgradeCacheResource& upgrade_collection, const uint32_t& id)
         {
-            for (std::uint32_t i = 0; i < upgrade_collection->size(); ++i)
+            for (uint32_t i = 0; i < upgrade_collection->size(); ++i)
                 if (upgrade_collection->at(i).ItemId == id && i > 0)
                     return upgrade_collection->at(i - 1);
 
             return BaseLib::UpgradeInfo();
         }
-        auto GetUpgradeInfoCache(const std::uint32_t& item_id)
+        auto GetUpgradeInfoCache(const uint32_t& item_id)
         {
             std::shared_lock lock(upgrades_info_mutex);
 
@@ -3191,11 +3191,11 @@ namespace Game
             static thread_local BaseLib::UpgradeInfo empty;
             return LockedResource{ std::shared_lock(null_upgrades_info), empty };
         }
-        std::size_t GetUpgradeInfoCacheSize()
+        size_t GetUpgradeInfoCacheSize()
         {
             std::shared_lock lock(upgrades_info_mutex);
 
-            std::size_t count = 0;
+            size_t count = 0;
             for (const auto& groupPair : upgrades_info)
                 count += groupPair.second.size();
 
@@ -3203,8 +3203,8 @@ namespace Game
         }
 
         
-        //void TransformEquippedItems(const std::vector<Item>& items, std::unordered_map<std::uint8_t, std::vector<InventoryItemInfo>>& equipped_items)
-        void TransformEquippedItems(const std::vector<Item>& items, boost::unordered_flat_map<std::uint8_t, std::vector<InventoryItemInfo>>& equipped_items)
+        //void TransformEquippedItems(const std::vector<Item>& items, std::unordered_map<uint8_t, std::vector<InventoryItemInfo>>& equipped_items)
+        void TransformEquippedItems(const std::vector<Item>& items, boost::unordered_flat_map<uint8_t, std::vector<InventoryItemInfo>>& equipped_items)
         {
             for (const auto& item : items)
             {
@@ -3236,11 +3236,11 @@ namespace Game
                 }
             }
         }
-        auto GetTransformStockItems(const std::vector<Item>& items, const std::uint32_t& fragment_index = 0, const std::uint32_t& fragment_max_size = 35)
+        auto GetTransformStockItems(const std::vector<Item>& items, const uint32_t& fragment_index = 0, const uint32_t& fragment_max_size = 35)
         {
             std::vector<InventoryItemInfo> new_items;
-            const std::uint32_t start_index = fragment_index * 35;
-            const std::uint32_t end_index = std::min(start_index + 35, static_cast<std::uint32_t>(items.size()));
+            const uint32_t start_index = fragment_index * 35;
+            const uint32_t end_index = std::min(start_index + 35, static_cast<uint32_t>(items.size()));
             for (auto i = start_index; i < end_index; i++)
             {
                 auto new_item = items[i].item_info;
@@ -3253,7 +3253,7 @@ namespace Game
         auto GetTransformEquippedItems(const std::vector<InventoryItemInfo>& items)
         {
             std::vector<EquipItemInfo> new_items;
-            for (std::uint32_t i = 0; i < items.size(); i++)
+            for (uint32_t i = 0; i < items.size(); i++)
             {
                 EquipItemInfo new_item = EquipItemInfo(items[i]);
                 auto item_info = GetItemInfoCache(new_item.item_number.item_id);
@@ -3262,7 +3262,7 @@ namespace Game
             }
             return new_items;
         }
-        auto GetItemByType(const std::vector<BaseLib::Item>& equipped_items, const std::uint32_t& item_type)
+        auto GetItemByType(const std::vector<BaseLib::Item>& equipped_items, const uint32_t& item_type)
         {
             auto it = std::find_if(equipped_items.begin(), equipped_items.end(), [this, item_type](const Item& item)
             {
@@ -3275,7 +3275,7 @@ namespace Game
             else
                 return BaseLib::Item();
         }
-        auto IsItemWeapon(const std::uint32_t& item_id)
+        auto IsItemWeapon(const uint32_t& item_id)
         {
             auto item_info = GetItemInfoCache(item_id);
 
@@ -3287,7 +3287,7 @@ namespace Game
                 item_info->Type == Items::WeaponItems::Type::Bazooka ||
                 item_info->Type == Items::WeaponItems::Type::Grenade;
         }
-        auto IsItemCostume(const std::uint32_t& item_id)
+        auto IsItemCostume(const uint32_t& item_id)
         {
             auto item_info = GetItemInfoCache(item_id);
 
@@ -3302,43 +3302,43 @@ namespace Game
                 item_info->Type == Items::CostumeItems::Type::AccBack1 ||
                 item_info->Type == Items::CostumeItems::Type::AccBack2;
         }
-        auto IsItemDiorama(const std::uint32_t& item_id)
+        auto IsItemDiorama(const uint32_t& item_id)
         {
             auto item_info = GetItemInfoCache(item_id);
 
             return item_info->Type == 22 || item_info->Type == 23;
         }
-        auto IsItemSet(const std::uint32_t& item_id)
+        auto IsItemSet(const uint32_t& item_id)
         {
             auto setitem_info = GetSetItemInfoCache(item_id);
             return setitem_info->Id != 0;
         }
-        std::uint32_t AdjustItemType(const std::uint32_t& item_type)
+        uint32_t AdjustItemType(const uint32_t& item_type)
         {
-            if (item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::Question) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::ShieldEnamel) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::FlagBlue) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::BombDrop) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::GatchaItem) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::Question1) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::MonsterFace) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::Undefined1) ||
-                item_type == static_cast<std::uint32_t>(Items::OtherItems::Type::Undefined2))
+            if (item_type == static_cast<uint32_t>(Items::OtherItems::Type::Question) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::ShieldEnamel) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::FlagBlue) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::BombDrop) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::GatchaItem) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::Question1) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::MonsterFace) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::Undefined1) ||
+                item_type == static_cast<uint32_t>(Items::OtherItems::Type::Undefined2))
             {
                 return 17;
             }
 
-            if (item_type == static_cast<std::uint32_t>(Items::DioramaItems::Type::Footing)) return 19;
-            if (item_type == static_cast<std::uint32_t>(Items::DioramaItems::Type::Object)) return 20;
+            if (item_type == static_cast<uint32_t>(Items::DioramaItems::Type::Footing)) return 19;
+            if (item_type == static_cast<uint32_t>(Items::DioramaItems::Type::Object)) return 20;
 
             return item_type;
         }
-        std::uint32_t GetSetPiecesCount(const std::uint32_t& item_id)
+        uint32_t GetSetPiecesCount(const uint32_t& item_id)
         {
             auto setitem_info = GetSetItemInfoCache(item_id);
             if (setitem_info->Id)
             {
-                std::uint32_t total_pieces = 0;
+                uint32_t total_pieces = 0;
                 if (setitem_info->Hair) total_pieces++;
                 if (setitem_info->Face) total_pieces++;
                 if (setitem_info->Upper) total_pieces++;
@@ -3353,10 +3353,10 @@ namespace Game
             }
             else return 0;
         }
-        auto GetSetItemTypes(const std::uint32_t& item_id)
+        auto GetSetItemTypes(const uint32_t& item_id)
         {
             auto setitem_info = GetSetItemInfoCache(item_id);
-            std::vector<std::uint32_t> types;
+            std::vector<uint32_t> types;
             if (setitem_info->Id)
             {
                 if (setitem_info->Hair < UINT32_MAX) types.push_back(0);
@@ -3373,7 +3373,7 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "(uint32 max is {}) for the set ({}) was found hair {}, face {}, top {}, legs {}, arms {}, pants {}, boots {}, acca {}, accb {}, accc {}", UINT32_MAX, item_id, setitem_info->Hair, setitem_info->Face, setitem_info->Upper, setitem_info->Under, setitem_info->Arms, setitem_info->Pants, setitem_info->Boots, setitem_info->AccessoryA, setitem_info->AccessoryB, setitem_info->AccessoryC);
             return types;
         }
-        std::string GetCharacterStr(const std::uint8_t& char_id)
+        std::string GetCharacterStr(const uint8_t& char_id)
         {
             switch (static_cast<Character::Type>(char_id))
             {
@@ -3401,7 +3401,7 @@ namespace Game
         }
 
 
-        void AddVendorItemId(const std::uint32_t& item_id)
+        void AddVendorItemId(const uint32_t& item_id)
         {
 
             auto vendor_item_ids_locked = LockedResource{ std::unique_lock(vendor_item_ids_mutex), vendor_item_ids };
@@ -3444,7 +3444,7 @@ namespace Game
             AddVendorItemId(vendor_info.List04_c);
             AddVendorItemId(vendor_info.List04_d);
         }
-        void AddGradeInfoCache(const std::uint32_t& grade, BaseLib::GradeInfo grade_info)
+        void AddGradeInfoCache(const uint32_t& grade, BaseLib::GradeInfo grade_info)
         {
             auto grades_info_locked = LockedResource{ std::unique_lock(grades_info_mutex), grades_info };
 
@@ -3453,18 +3453,18 @@ namespace Game
             if (!inserted)
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a grade info with grade: ({}), but it already exists ", grade);
         }
-        void RemoveGradeInfoCache(const std::uint32_t& grade)
+        void RemoveGradeInfoCache(const uint32_t& grade)
         {
             auto grades_info_locked = LockedResource{ std::unique_lock(grades_info_mutex), grades_info };
             grades_info_locked->erase(grade);
         }
-        auto GetGradeInfoLevelForExp(std::uint32_t current_level, std::uint32_t total_exp)
+        auto GetGradeInfoLevelForExp(uint32_t current_level, uint32_t total_exp)
         {
             std::shared_lock lock(grades_info_mutex);
 
             BaseLib::GradeInfo* result = nullptr;
 
-            for (std::uint32_t level = current_level; ; ++level)
+            for (uint32_t level = current_level; ; ++level)
             {
                 auto it = grades_info.find(level);
                 if (it == grades_info.end())
@@ -3483,7 +3483,7 @@ namespace Game
             static thread_local BaseLib::GradeInfo null_grade_info;
             return LockedResource{ std::shared_lock(null_grade_mutex), null_grade_info };
         }
-        auto GetGradeInfoCache(const std::uint32_t& grade)
+        auto GetGradeInfoCache(const uint32_t& grade)
         {
 
             std::shared_lock lock(grades_info_mutex);
@@ -3503,7 +3503,7 @@ namespace Game
             return grades_info.size();
         }
 
-        void AddRewardInfoCache(const std::uint32_t& gamemode, BaseLib::RewardInfo reward_info)
+        void AddRewardInfoCache(const uint32_t& gamemode, BaseLib::RewardInfo reward_info)
         {
             auto rewards_info_locked = LockedResource{ std::unique_lock(rewards_info_mutex), rewards_info };
 
@@ -3512,12 +3512,12 @@ namespace Game
             if (!inserted)
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a reward info with gamemode: ({}), but it already exists ", gamemode);
         }
-        void RemoveRewardInfoCache(const std::uint32_t& gamemode)
+        void RemoveRewardInfoCache(const uint32_t& gamemode)
         {
             auto rewards_info_locked = LockedResource{ std::unique_lock(rewards_info_mutex), rewards_info };
             rewards_info_locked->erase(gamemode);
         }
-        auto GetRewardInfoCache(const std::uint32_t& gamemode)
+        auto GetRewardInfoCache(const uint32_t& gamemode)
         {
 
             std::shared_lock lock(rewards_info_mutex);
@@ -3584,11 +3584,11 @@ namespace Game
             }
             return updated_items;
         }
-        auto GetTransformRoomListInfo(const std::uint32_t& fragment_index, const std::uint32_t& max_batch_size)
+        auto GetTransformRoomListInfo(const uint32_t& fragment_index, const uint32_t& max_batch_size)
         {
             std::vector<RoomListInfo> new_rooms;
-            const std::uint32_t start_index = fragment_index * max_batch_size;
-            const std::uint32_t end_index = std::min(start_index + max_batch_size, static_cast<std::uint32_t>(rooms_cache.size()));
+            const uint32_t start_index = fragment_index * max_batch_size;
+            const uint32_t end_index = std::min(start_index + max_batch_size, static_cast<uint32_t>(rooms_cache.size()));
             for (auto i = start_index; i < end_index; i++)
             {
                 auto room = GetRoomCacheShared(i);
@@ -3597,11 +3597,11 @@ namespace Game
                     auto host_cache = GetAccCacheSharedBySessionId(room->host_session_id);
                     if (host_cache->acc_info.Index != -1)
                     {
-                        std::uint32_t room_size = 0;
+                        uint32_t room_size = 0;
                         if (IsModeTeamBased(room->ModeIndex))
-                            room_size = static_cast<std::uint32_t>(room->redteam_session_ids.size() + room->blueteam_session_ids.size());
+                            room_size = static_cast<uint32_t>(room->redteam_session_ids.size() + room->blueteam_session_ids.size());
                         else
-                            room_size = static_cast<std::uint32_t>(room->neutralteam_session_ids.size());
+                            room_size = static_cast<uint32_t>(room->neutralteam_session_ids.size());
 
                         const auto& new_roomListInfo = RoomListInfo(room->title.c_str(), room->room_id, room->channel_id, room->MapIndex, room->ModeIndex, room->max_players, room_size, room->is_playing, room->has_password, room->allow_observers, room->Restriction, 1, host_cache->ping);
                         new_rooms.push_back(new_roomListInfo);
@@ -3617,8 +3617,8 @@ namespace Game
             //auto room_cache = GetRoomCacheShared(room_id);
             if (!room_cache->title.empty())
             {
-                std::vector<std::uint32_t> players_ids;
-                std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+                std::vector<uint32_t> players_ids;
+                std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
 
                 if (IsModeTeamBased(room_cache->ModeIndex))
@@ -3661,14 +3661,14 @@ namespace Game
                 }
 
                 std::sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                    [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) {
+                    [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) {
                     return a.second < b.second;
                 });
 
                 for (const auto& pair : player_slot_pairs)
                     players_ids.push_back(pair.first);
 
-                for (std::uint32_t i = 0; i < player_slot_pairs.size(); i++)
+                for (uint32_t i = 0; i < player_slot_pairs.size(); i++)
                 {
                     auto room_player_cache = GetAccCacheUniqueBySessionId(player_slot_pairs[i].first);
                     if (room_player_cache->acc_info.Index != -1 && room_player_cache->in_room && room_player_cache->room_id == room_cache->room_id)
@@ -3679,9 +3679,9 @@ namespace Game
             }
         }
 
-        bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<std::uint32_t> item_ids, Items::Origin origin = Items::Origin::From_GM_Spawn)
+        bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<uint32_t> item_ids, Items::Origin origin = Items::Origin::From_GM_Spawn)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -3716,12 +3716,12 @@ namespace Game
                     return false;
                     
             }
-            send_msg(session, 99, 0, 37, static_cast<std::uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), static_cast<std::uint16_t>(items.size() * sizeof(ShopItem)));
+            send_msg(session, 99, 0, 37, static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), static_cast<uint16_t>(items.size() * sizeof(ShopItem)));
             return true;
         }
-        bool SendGiftItem(CSession* session, AccCacheResource& target_acc_cache, std::uint32_t item_id, std::string msg)
+        bool SendGiftItem(CSession* session, AccCacheResource& target_acc_cache, uint32_t item_id, std::string msg)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -3734,7 +3734,7 @@ namespace Game
                 return false;
             else
             {
-                target_mailbox_received_count = static_cast<std::uint32_t>(GetGiftboxRecvCount(target_acc_cache->acc_info.Index));
+                target_mailbox_received_count = static_cast<uint32_t>(GetGiftboxRecvCount(target_acc_cache->acc_info.Index));
             }
             if (target_mailbox_received_count >= 100)
             {
@@ -3743,8 +3743,8 @@ namespace Game
             }
                 
 
-            std::uint32_t new_mailbox_id = 0;
-            MailboxInfo mailbox_info = { 0, static_cast<std::uint32_t>(target_acc_cache->acc_info.Index), "MegaVolts", static_cast<std::uint32_t>(target_acc_cache->acc_info.Index), target_acc_cache->acc_info.Nickname.c_str(), Utility::GetUtcTimeNow(), item_id, msg, true, true, false};
+            uint32_t new_mailbox_id = 0;
+            MailboxInfo mailbox_info = { 0, static_cast<uint32_t>(target_acc_cache->acc_info.Index), "MegaVolts", static_cast<uint32_t>(target_acc_cache->acc_info.Index), target_acc_cache->acc_info.Nickname.c_str(), Utility::GetUtcTimeNow(), item_id, msg, true, true, false};
             if (BaseLib::Database->InsertPlayerMailbox(mailbox_info, new_mailbox_id))
             {
                 mailbox_info.mail_id = new_mailbox_id;
@@ -3752,9 +3752,9 @@ namespace Game
                 AddGiftboxRecvIdCache(target_acc_cache->acc_info.Index, new_mailbox_id);
 
                 
-                std::uint32_t unopened_gifts = 0;
+                uint32_t unopened_gifts = 0;
                 auto mail_recv_ids = GetGiftboxRecvCacheShared(target_acc_cache->acc_info.Index);
-                for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+                for (uint32_t i = 0; i < mail_recv_ids->size(); i++)
                 {
                     auto mail_id = mail_recv_ids->at(i);
                     auto mailbox_data = GetMailboxDataCacheShared(mail_id);
@@ -3771,20 +3771,20 @@ namespace Game
         {
             CMessage chatMsgAck = CMessage(session->GetEncryptionKey());
             chatMsgAck.SetSession(session->GetSessionId());
-            chatMsgAck.SetCommand(0x13C, 0, Chat::Type::Server, static_cast<std::uint8_t>(message.size()));
-            auto msgData = MainChatAck("", message.data(), static_cast<std::uint32_t>(message.size())).Serialize(Chat::Type::Server, message.size());
-            chatMsgAck.SetData(reinterpret_cast<uint8_t*>(msgData.data()), static_cast<std::uint16_t>(msgData.size()));
+            chatMsgAck.SetCommand(0x13C, 0, Chat::Type::Server, static_cast<uint8_t>(message.size()));
+            auto msgData = MainChatAck("", message.data(), static_cast<uint32_t>(message.size())).Serialize(Chat::Type::Server, message.size());
+            chatMsgAck.SetData(reinterpret_cast<uint8_t*>(msgData.data()), static_cast<uint16_t>(msgData.size()));
             session->Send(chatMsgAck);
         }
        
-        constexpr std::string_view GetModeName(const std::uint32_t& index)
+        constexpr std::string_view GetModeName(const uint32_t& index)
         {
             if (!NetEngine::Room::Mode::modeNames[index].empty())
                 return NetEngine::Room::Mode::modeNames[index];
 
             return "Unknown Mode";
         }
-        constexpr std::string_view GetMapName(const std::uint32_t& index)
+        constexpr std::string_view GetMapName(const uint32_t& index)
         {
             if (!NetEngine::Room::Map::mapNames[index].empty())
                 return NetEngine::Room::Map::mapNames[index];
@@ -3878,11 +3878,11 @@ namespace Game
         struct Command
         {
             CommandFunc func;
-            std::uint8_t required_grade;
+            uint8_t required_grade;
         };
         //static std::unordered_map<std::string, Command> cmds;
         static boost::unordered_flat_map<std::string, Command> cmds;
-        inline void Register(const std::string& name, CommandFunc func, const std::uint8_t& required_grade)
+        inline void Register(const std::string& name, CommandFunc func, const uint8_t& required_grade)
         {
             cmds[name] = { func, required_grade };
         }
@@ -3900,7 +3900,7 @@ namespace Game
             }
             return false;
         }
-        inline std::vector<std::string> ListCommands(const std::uint8_t& grade)
+        inline std::vector<std::string> ListCommands(const uint8_t& grade)
         {
             std::vector<std::string> commands;
             std::string command_list = "[MegaVolts Online] Available commands:\n";

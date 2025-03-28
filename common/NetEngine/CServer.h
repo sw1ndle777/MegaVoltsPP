@@ -22,25 +22,25 @@ namespace NetEngine
 
     struct ExecutionInfo
     {
-        std::uint16_t session_id;
-        std::uint16_t order;
+        uint16_t session_id;
+        uint16_t order;
         std::chrono::time_point<std::chrono::steady_clock> start_time;
     };
     /*
     struct IdGenerator
     {
-        std::uint16_t m_min;
-        std::uint16_t m_max;
-        std::uint16_t m_counter;
-        std::vector<std::uint16_t> m_freeList;
+        uint16_t m_min;
+        uint16_t m_max;
+        uint16_t m_counter;
+        std::vector<uint16_t> m_freeList;
 
-        IdGenerator(std::uint16_t minId = 1, std::uint16_t maxId = 65535)
+        IdGenerator(uint16_t minId = 1, uint16_t maxId = 65535)
             : m_min(minId), m_max(maxId), m_counter(minId)
         {
             if (minId > maxId) throw std::invalid_argument("minId must be less than or equal to maxId");
-            m_freeList.reserve(static_cast<std::size_t>(maxId - minId + 1));
+            m_freeList.reserve(static_cast<size_t>(maxId - minId + 1));
         }
-        bool getNext(std::uint16_t& out)
+        bool getNext(uint16_t& out)
         {
             if (!m_freeList.empty())
             {
@@ -56,7 +56,7 @@ namespace NetEngine
             }
             return false;
         }
-        void free(std::uint16_t id)
+        void free(uint16_t id)
         {
             if (id >= m_min && id <= m_max)
                 m_freeList.emplace_back(id);
@@ -64,17 +64,17 @@ namespace NetEngine
     };*/
     struct IdGenerator
     {
-        std::uint16_t m_min;
-        std::uint16_t m_max;
-        std::uint16_t m_counter;
-        boost::unordered_flat_set<std::uint16_t> m_freeList;
+        uint16_t m_min;
+        uint16_t m_max;
+        uint16_t m_counter;
+        boost::unordered_flat_set<uint16_t> m_freeList;
 
-        IdGenerator(std::uint16_t minId = 1, std::uint16_t maxId = 65535)
+        IdGenerator(uint16_t minId = 1, uint16_t maxId = 65535)
             : m_min(minId), m_max(maxId), m_counter(minId)
         {
             if (minId > maxId) throw std::invalid_argument("minId must be less than or equal to maxId");
         }
-        bool getNext(std::uint16_t& out)
+        bool getNext(uint16_t& out)
         {
             if (!m_freeList.empty())
             {
@@ -91,7 +91,7 @@ namespace NetEngine
             }
             return false;
         }
-        void free(std::uint16_t id)
+        void free(uint16_t id)
         {
             if (id >= m_min && id <= m_max && m_freeList.find(id) == m_freeList.end())
                 m_freeList.insert(id);
@@ -109,11 +109,11 @@ namespace NetEngine
             bool logPackets;
             bool useEncryption;
             bool useMultithreaded;
-            std::uint32_t concurrent_threads;
-            std::uint32_t playtime_min_seconds;
+            uint32_t concurrent_threads;
+            uint32_t playtime_min_seconds;
             bool useWatchguard;
-            //std::uint32_t pool_threads;
-            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, std::uint32_t concurrent_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads), playtime_min_seconds(playtime_min_seconds) {}
+            //uint32_t pool_threads;
+            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, uint32_t concurrent_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads), playtime_min_seconds(playtime_min_seconds) {}
         };
 
     public:
@@ -126,36 +126,36 @@ namespace NetEngine
         void AcceptSessions(); 
         void AcceptIpcSessions(const std::set<std::string>& ipc_addresses);
         bool AddSession(const std::shared_ptr<CSession>& session);
-        void RemoveSession(std::uint16_t id);
-        bool GetNextAvailableSessionId(std::uint16_t& outId);
-        bool GetNextAvailableRoomId(std::uint16_t& outId);
-        bool SetRoomIdAvailable(const std::uint16_t& plaza_id);
-        bool GetNextAvailablePlazaId(std::uint16_t& outId);
-        bool SetPlazaIdAvailable(const std::uint16_t& plaza_id);
-        bool GetNextAvailableQueuePartyId(std::uint16_t& outId);
-        bool SetQueuePartyIdAvailable(const std::uint16_t& queue_party_id);
+        void RemoveSession(uint16_t id);
+        bool GetNextAvailableSessionId(uint16_t& outId);
+        bool GetNextAvailableRoomId(uint16_t& outId);
+        bool SetRoomIdAvailable(const uint16_t& plaza_id);
+        bool GetNextAvailablePlazaId(uint16_t& outId);
+        bool SetPlazaIdAvailable(const uint16_t& plaza_id);
+        bool GetNextAvailableQueuePartyId(uint16_t& outId);
+        bool SetQueuePartyIdAvailable(const uint16_t& queue_party_id);
         std::shared_ptr<CServer> GetShared() { return shared_from_this(); }
-        void On(std::uint16_t id, std::function<void(SCallbackData&)> callback);
+        void On(uint16_t id, std::function<void(SCallbackData&)> callback);
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnSessionDisconnected(std::function<void(std::shared_ptr<CSession>)> callback);
-        void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);
+        void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);
         bool IsMultiThreaded();
-        std::uint64_t GetStartTime() const { return this->start_time; }
-        std::uint32_t GetPlaytimeMinSeconds() const { return this->m_playtimeMinSeconds; }
-        void SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, std::vector<std::uint8_t> payload);
-        void SendFrontIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
-        void SendMainIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
-        void SendCastIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload);
+        uint64_t GetStartTime() const { return this->start_time; }
+        uint32_t GetPlaytimeMinSeconds() const { return this->m_playtimeMinSeconds; }
+        void SendIpcMessage(const std::string& ip, const std::string& port, const uint32_t ipc_id, std::vector<uint8_t> payload);
+        void SendFrontIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
+        void SendMainIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
+        void SendCastIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
         void WebsitePost(const std::string& path, const std::string& data);
       
-        std::shared_ptr<CSession> GetSessionById(std::uint16_t id)
+        std::shared_ptr<CSession> GetSessionById(uint16_t id)
         {
             std::shared_lock lock(m_sessions_mutex);
             auto it = m_sessions.find(id);
             if (it != m_sessions.end()) return it->second;
             return nullptr;
         }
-        std::shared_ptr<CSession> GetSessionByIdNoLock(std::uint16_t id)
+        std::shared_ptr<CSession> GetSessionByIdNoLock(uint16_t id)
         {
             std::shared_lock lock(m_sessions_mutex);
             auto it = m_sessions.find(id);
@@ -171,8 +171,8 @@ namespace NetEngine
             return m_ioContext;
         }
         auto IsVerbose() const { return m_verbose; }
-        void logExecution(std::uint16_t session_id, std::uint16_t order);
-        void clearExecution(std::uint16_t session_id, std::uint16_t order);
+        void logExecution(uint16_t session_id, uint16_t order);
+        void clearExecution(uint16_t session_id, uint16_t order);
     private:
 
        
@@ -184,10 +184,10 @@ namespace NetEngine
         std::shared_mutex m_queue_party_mutex;
         std::shared_mutex m_server_settings_mutex;
         BaseLib::CSettings::ServerSettings server_settings;
-        //std::map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
-        boost::unordered_flat_map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
-        //std::unordered_map<std::uint16_t, std::shared_ptr<CSession>> m_sessions;
-        boost::unordered_flat_map<std::uint16_t, std::shared_ptr<CSession>> m_sessions;
+        //std::map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
+        boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
+        //std::unordered_map<uint16_t, std::shared_ptr<CSession>> m_sessions;
+        boost::unordered_flat_map<uint16_t, std::shared_ptr<CSession>> m_sessions;
         IdGenerator m_sessionIdGenerator;
         IdGenerator m_roomIdGenerator;
         IdGenerator m_plazaIdGenerator;
@@ -210,15 +210,15 @@ namespace NetEngine
         bool m_useEncryption = false;
         bool m_useMultithreaded = false;
         bool m_watchguard = false;
-        std::uint32_t m_concurrentThreads = 1;
-        std::uint32_t m_playtimeMinSeconds = 90;
-        //std::uint32_t m_poolThreads = 1;
-        std::uint32_t m_availableConcurrentThreads = std::jthread::hardware_concurrency();
+        uint32_t m_concurrentThreads = 1;
+        uint32_t m_playtimeMinSeconds = 90;
+        //uint32_t m_poolThreads = 1;
+        uint32_t m_availableConcurrentThreads = std::jthread::hardware_concurrency();
         std::function<void(std::shared_ptr<CSession>)> m_OnDisconnect;
         std::function<void(std::shared_ptr<CSession>)> m_OnConnect;
-        std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)>  m_OnIpcMessage;
-        std::uint64_t start_time = 0;
-        boost::unordered_flat_map<std::size_t, std::vector<ExecutionInfo>> m_execution_info;
+        std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  m_OnIpcMessage;
+        uint64_t start_time = 0;
+        boost::unordered_flat_map<size_t, std::vector<ExecutionInfo>> m_execution_info;
         std::shared_mutex m_execution_guard_mutex;
         asio::steady_timer m_watchdog_timer;
         void watchdog(std::chrono::nanoseconds timeout);

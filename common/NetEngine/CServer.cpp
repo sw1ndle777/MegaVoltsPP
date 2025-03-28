@@ -12,7 +12,7 @@ namespace NetEngine
 
         //m_available_session_ids[0] = false; 
         //m_available_room_ids[0] = false;
-        //for (std::uint16_t i = 0; i < 2048; i++)
+        //for (uint16_t i = 0; i < 2048; i++)
         //    m_available_room_ids[i] = false;
     }
     CServer::~CServer() {}
@@ -87,7 +87,7 @@ namespace NetEngine
         if (m_useMultithreaded)
         {
             auto work = asio::make_work_guard(m_ioContext);
-            for (std::uint32_t i = 0; i < m_concurrentThreads; i++)
+            for (uint32_t i = 0; i < m_concurrentThreads; i++)
                 threads.emplace_back(std::jthread([&] {
                 while (true)
                 {
@@ -133,7 +133,7 @@ namespace NetEngine
                 settings.verbose = m_verbose;
                 settings.useEncryption = m_useEncryption;
                 settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
-                std::uint16_t session_id = 0;
+                uint16_t session_id = 0;
 
                 if (GetNextAvailableSessionId(session_id))
                 {
@@ -173,7 +173,7 @@ namespace NetEngine
                 if (endpoint_error)
                 {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to retrieve remote endpoint: ({})", endpoint_error.message());
-                    m_socket.close();
+                    AcceptIpcSessions(ipc_addresses);
                 }
 
                 auto remote_ip = remote_endpoint.address().to_string();
@@ -187,7 +187,7 @@ namespace NetEngine
                     settings.useEncryption = m_useEncryption;
                     settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
 
-                    std::uint16_t session_id = 0;
+                    uint16_t session_id = 0;
 
                     //auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
                     auto session = CSession::Create(std::move(m_socket), m_ioContext, this, settings, session_id);
@@ -204,7 +204,6 @@ namespace NetEngine
             else
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to accept session: ({})", ec.message().c_str());
-                m_socket.close();
             }
                 
 
@@ -227,7 +226,7 @@ namespace NetEngine
         //m_available_session_ids[id] = false; 
         return true;
     }
-    void CServer::RemoveSession(std::uint16_t id)
+    void CServer::RemoveSession(uint16_t id)
     {
         std::unique_lock lock(m_sessions_mutex);
 
@@ -244,7 +243,7 @@ namespace NetEngine
         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got removed and now available", id);
     }
     
-    bool CServer::GetNextAvailableSessionId(std::uint16_t& outId)
+    bool CServer::GetNextAvailableSessionId(uint16_t& outId)
     {
         std::unique_lock lock(m_sessions_mutex);
         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player request a session id, right now exist: ({}) session ids", m_sessions.size());
@@ -252,7 +251,7 @@ namespace NetEngine
         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player request a session id, will give him: ({}) session id", outId);
         return ret_status;
         /*
-        for (std::uint16_t id = 1; id < m_available_session_ids.size(); id++) 
+        for (uint16_t id = 1; id < m_available_session_ids.size(); id++) 
         {
             if (m_available_session_ids[id]) 
             {
@@ -267,12 +266,12 @@ namespace NetEngine
         */
     }
     
-    bool CServer::GetNextAvailableRoomId(std::uint16_t& outId)
+    bool CServer::GetNextAvailableRoomId(uint16_t& outId)
     {
         std::unique_lock lock(m_rooms_mutex);
         return m_roomIdGenerator.getNext(outId);
         /*
-        for (std::uint16_t id = 0; id < m_available_room_ids.size(); id++)
+        for (uint16_t id = 0; id < m_available_room_ids.size(); id++)
         {
             if (m_available_room_ids[id])
             {
@@ -283,19 +282,19 @@ namespace NetEngine
         return false;
         */
     }
-    bool CServer::SetRoomIdAvailable(const std::uint16_t& room_id)
+    bool CServer::SetRoomIdAvailable(const uint16_t& room_id)
     {
         std::unique_lock lock(m_rooms_mutex);
         m_roomIdGenerator.free(room_id);
         //m_available_room_ids[room_id] = available;
         return true;
     }
-    bool CServer::GetNextAvailablePlazaId(std::uint16_t& outId)
+    bool CServer::GetNextAvailablePlazaId(uint16_t& outId)
     {
         std::unique_lock lock(m_plazas_mutex);
         return m_plazaIdGenerator.getNext(outId);
         /*
-        for (std::uint16_t id = 0; id < m_available_plaza_ids.size(); id++)
+        for (uint16_t id = 0; id < m_available_plaza_ids.size(); id++)
         {
             if (m_available_plaza_ids[id])
             {
@@ -306,7 +305,7 @@ namespace NetEngine
         return false;
         */
     }
-    bool CServer::SetPlazaIdAvailable(const std::uint16_t& plaza_id)
+    bool CServer::SetPlazaIdAvailable(const uint16_t& plaza_id)
     {
         std::unique_lock lock(m_plazas_mutex);
         m_plazaIdGenerator.free(plaza_id);
@@ -314,13 +313,13 @@ namespace NetEngine
         return true;
     }
 
-    bool CServer::GetNextAvailableQueuePartyId(std::uint16_t& outId)
+    bool CServer::GetNextAvailableQueuePartyId(uint16_t& outId)
     {
         std::unique_lock lock(m_queue_party_mutex);
         return m_queuePartyIdGenerator.getNext(outId);
     }
 
-    bool CServer::SetQueuePartyIdAvailable(const std::uint16_t& queue_party_id)
+    bool CServer::SetQueuePartyIdAvailable(const uint16_t& queue_party_id)
     {
         std::unique_lock lock(m_queue_party_mutex);
         m_queuePartyIdGenerator.free(queue_party_id);
@@ -346,7 +345,7 @@ namespace NetEngine
     {
         this->m_OnDisconnect = callback;
     }
-    void CServer::OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)>  callback)
+    void CServer::OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  callback)
     {
         this->m_OnIpcMessage = callback;
     }
@@ -354,7 +353,7 @@ namespace NetEngine
     {
         return this->m_useMultithreaded;
     }
-    void CServer::SendIpcMessage(const std::string& ip, const std::string& port, const std::uint32_t ipc_id, std::vector<std::uint8_t> payload)
+    void CServer::SendIpcMessage(const std::string& ip, const std::string& port, const uint32_t ipc_id, std::vector<uint8_t> payload)
     {
         try
         {
@@ -370,13 +369,13 @@ namespace NetEngine
                     return;
                 }
                 
-                std::uint32_t data_size = static_cast<std::uint32_t>(payload.size());
-                std::vector<std::uint8_t>* message = new std::vector<std::uint8_t>(8 + payload.size());
+                uint32_t data_size = static_cast<uint32_t>(payload.size());
+                std::vector<uint8_t>* message = new std::vector<uint8_t>(8 + payload.size());
                 std::memcpy(&(*message)[0], &ipc_id, sizeof(ipc_id));
                 std::memcpy(&(*message)[4], &data_size, sizeof(data_size));
                 std::copy(payload.begin(), payload.end(), message->begin() + 8);
 
-                asio::async_write(*socket, asio::buffer(*message), [socket, message](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+                asio::async_write(*socket, asio::buffer(*message), [socket, message](const asio::error_code& ec, size_t /*bytes_transferred*/)
                 {
                     delete message;
                     if (ec)
@@ -393,19 +392,19 @@ namespace NetEngine
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Exception in SendIpcMessage: {}", e.what());
         }
     }
-    void CServer::SendFrontIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload)
+    void CServer::SendFrontIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
     {
         std::shared_lock lock(m_server_settings_mutex);
         std::string host = (this->server_settings.front.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.front.host;
         SendIpcMessage(host, std::to_string(this->server_settings.front.ipc_port), ipc_id, payload);
     }
-    void CServer::SendMainIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload)
+    void CServer::SendMainIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
     {
         std::shared_lock lock(m_server_settings_mutex);
         std::string host = (this->server_settings.main.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.main.host;
         SendIpcMessage(host, std::to_string(this->server_settings.main.ipc_port), ipc_id, payload);
     }
-    void CServer::SendCastIpc(const std::uint32_t ipc_id, const std::vector<std::uint8_t>& payload)
+    void CServer::SendCastIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
     {
         std::shared_lock lock(m_server_settings_mutex);
         std::string host = (this->server_settings.cast.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.cast.host;
@@ -452,7 +451,7 @@ namespace NetEngine
                     timer->cancel();
                     return;
                 }
-                asio::async_write(*socket, asio::buffer(*request), [socket, request, timer](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+                asio::async_write(*socket, asio::buffer(*request), [socket, request, timer](const asio::error_code& ec, size_t /*bytes_transferred*/)
                 {
                     if (ec)
                     {
@@ -469,7 +468,7 @@ namespace NetEngine
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Exception in WebsitePost: {}", e.what());
         }
     }
-    void CServer::logExecution(std::uint16_t session_id, std::uint16_t order)
+    void CServer::logExecution(uint16_t session_id, uint16_t order)
     {
         if (m_watchguard)
         {
@@ -485,7 +484,7 @@ namespace NetEngine
         }
         
     }
-    void CServer::clearExecution(std::uint16_t session_id, std::uint16_t order)
+    void CServer::clearExecution(uint16_t session_id, uint16_t order)
     {
         if (m_watchguard)
         {
@@ -549,24 +548,6 @@ namespace NetEngine
                 std::this_thread::sleep_for(interval); // Sleep for the specified interval
             }
         }).detach();
-
-        /*
-        m_watchdog_timer.expires_after(interval);
-        m_watchdog_timer.async_wait([this, interval, timeout](const asio::error_code& ec) 
-        {
-            if (!ec)
-            {
-                //asio::post(m_ioContext, [this, timeout]() {  });
-                watchdog(timeout);
-                startWatchdog(interval, timeout);
-            }
-            else
-            {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
-                    "[Watchdog] Timer error: {}", ec.message());
-            }
-        });
-        */
     }
 }
 

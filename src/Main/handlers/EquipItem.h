@@ -9,7 +9,7 @@ namespace Game
     {
         inline void EquipItem(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -30,7 +30,7 @@ namespace Game
             if (acc_index == -1) return;
             const auto& charEquipUpdateReq = reinterpret_cast<MainCharacterEquipUpdateReq*>(callback.message->GetData());
 
-            auto current_character = static_cast<std::uint8_t>(acc_cache->acc_info.SelectedCharacter);
+            auto current_character = static_cast<uint8_t>(acc_cache->acc_info.SelectedCharacter);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) equip update type: ({}), remove type: ({}), items count: ({}) on character ({})", acc_cache->acc_info.Nickname.c_str(), equip_update_type, equip_remove_type, equip_items_count, current_character);
 
             //al meu
@@ -38,7 +38,7 @@ namespace Game
             if (equip_remove_type == 19) equip_remove_type = 22;
             if (equip_remove_type == 20) equip_remove_type = 23;
            
-            for (std::uint32_t i = 0; i < equip_items_count; i++)
+            for (uint32_t i = 0; i < equip_items_count; i++)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent item data: ({})", acc_cache->acc_info.Nickname.c_str(), charEquipUpdateReq->item[i].data);
             }
@@ -47,7 +47,7 @@ namespace Game
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) unsafe equip change type 51 for {} items", acc_cache->acc_info.Nickname.c_str(), equip_items_count);
                 const auto& charEquipSwitchReq = reinterpret_cast<MainCharacterEquipSwitchReq*>(callback.message->GetData());
-                for (std::uint32_t i = 0; i < equip_items_count; i++)
+                for (uint32_t i = 0; i < equip_items_count; i++)
                 {
                     auto character_id = charEquipSwitchReq->item[i].character_id;
                     auto item_id = charEquipSwitchReq->item[i].item_id;
@@ -85,7 +85,7 @@ namespace Game
             }
 
             if (equip_update_type == 0) {
-                for (std::uint32_t i = 0; i < equip_items_count; i++)
+                for (uint32_t i = 0; i < equip_items_count; i++)
                 {
                     if (charEquipUpdateReq->item[i].data <= 25) // UNEQUIP ITEM TYPE !
                     {
@@ -155,7 +155,7 @@ namespace Game
             if (equip_remove_type == 51)
             {
                 const auto& charEquipSwitchReq = reinterpret_cast<MainCharacterEquipSwitchReq*>(callback.message->GetData());
-                for (std::uint32_t i = 0; i < equip_items_count; i++)
+                for (uint32_t i = 0; i < equip_items_count; i++)
                 {
                     auto character_id = charEquipSwitchReq->item[i].character_id;
                     auto item_id = charEquipSwitchReq->item[i].item_id;
@@ -246,11 +246,11 @@ namespace Game
             }
             else if (equip_update_type == EquipUpdate::Type::Multiple) // needs rework
             {
-                for (std::uint32_t i = 0; i < equip_items_count; i++)
+                for (uint32_t i = 0; i < equip_items_count; i++)
                 {
                     if (charEquipUpdateReq->item[i].data <= 25) // unequip item type
                     {
-                        auto item_type = static_cast<std::uint32_t>(charEquipUpdateReq->item[i].data);
+                        auto item_type = static_cast<uint32_t>(charEquipUpdateReq->item[i].data);
                         const auto& uneqipped_items = main_server->UpdatePlayerItemEquip(acc_cache, item_type, current_character, false);
                         for (const auto& uneqipped_item : uneqipped_items)
                         {

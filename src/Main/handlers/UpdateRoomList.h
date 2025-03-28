@@ -9,7 +9,7 @@ namespace Game
     {
         inline void UpdateRoomList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -34,14 +34,14 @@ namespace Game
                 send_msg(session, 142, 0x0, NetEngine::Room::List::Result::NoRooms, 0);
                 return;
             }
-            std::uint32_t max_batch_size = 31;
-            std::uint32_t room_blocks_count = (room_ids.size() + max_batch_size - 1) / max_batch_size;
-            for (std::uint32_t batch_id = 0; batch_id < room_blocks_count; batch_id++)
+            uint32_t max_batch_size = 31;
+            uint32_t room_blocks_count = (room_ids.size() + max_batch_size - 1) / max_batch_size;
+            for (uint32_t batch_id = 0; batch_id < room_blocks_count; batch_id++)
             {
                 auto extra = (batch_id == 0) ? NetEngine::Room::List::SendRoom : NetEngine::Room::List::SendRoom2;
                 std::vector<RoomListInfo> new_rooms;
-                std::uint32_t start_index = batch_id * max_batch_size;
-                std::uint32_t end_index = std::min(start_index + max_batch_size, static_cast<std::uint32_t>(room_ids.size()));
+                uint32_t start_index = batch_id * max_batch_size;
+                uint32_t end_index = std::min(start_index + max_batch_size, static_cast<uint32_t>(room_ids.size()));
                 for (auto i = start_index; i < end_index; i++)
                 {
                     auto room = main_server->GetRoomCacheShared(room_ids[i]);
@@ -53,7 +53,7 @@ namespace Game
                     auto new_roomListInfo = RoomListInfo(room->title.c_str(), room->room_id, room->channel_id, room->MapIndex, room->ModeIndex, room->max_players, room_size, room->is_playing, room->has_password, room->allow_observers, room->Restriction, 1, host_cache->ping);
                     new_rooms.push_back(new_roomListInfo);
                 }
-                auto rooms_data = MainRoomListInfoAck(static_cast<std::uint16_t>(new_rooms.size()), static_cast<std::uint16_t>(room_ids.size()), new_rooms).Serialize(extra);
+                auto rooms_data = MainRoomListInfoAck(static_cast<uint16_t>(new_rooms.size()), static_cast<uint16_t>(room_ids.size()), new_rooms).Serialize(extra);
                 send_msg(session, 142, 0, extra, 0, reinterpret_cast<uint8_t*>(rooms_data.data()), rooms_data.size());
             }
         }

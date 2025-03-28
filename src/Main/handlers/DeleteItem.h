@@ -9,7 +9,7 @@ namespace Game
     {
         inline void DeleteItem(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -25,7 +25,7 @@ namespace Game
             const auto& deleteItemReq = reinterpret_cast<MainDeleteItemSerialInfoReq*>(callback.message->GetData());
             if (acc_index == -1) return;
             std::vector<ItemSerialInfo> items_deleted;
-            for (std::uint32_t i = 0; i < deleteItemReq->item_count; i++)
+            for (uint32_t i = 0; i < deleteItemReq->item_count; i++)
             {
                 const auto& item_deleted = main_server->GetPlayerItemInventory(acc_cache, deleteItemReq->items[i]);
                 if (!item_deleted.has_value()) continue;

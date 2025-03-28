@@ -1,11 +1,11 @@
 #include "CDBM.h"
-template <typename T> void serialize(std::vector<std::uint8_t>& v, const T& obj)
+template <typename T> void serialize(std::vector<uint8_t>& v, const T& obj)
 {
     auto size = v.size();
     v.resize(size + sizeof(T));
     std::memcpy(&v[size], &obj, sizeof(T));
 }
-void serialize_string(std::vector<std::uint8_t>& v, std::string obj, std::size_t objSize)
+void serialize_string(std::vector<uint8_t>& v, std::string obj, size_t objSize)
 {
     auto size = v.size();
     std::vector<uint8_t> vec(obj.begin(), obj.end());
@@ -18,31 +18,31 @@ void serialize_string(std::vector<std::uint8_t>& v, std::string obj, std::size_t
 }
 
 template <typename T>
-void deserialize(const std::vector<std::uint8_t>& v, std::size_t offset, T& obj)
+void deserialize(const std::vector<uint8_t>& v, size_t offset, T& obj)
 {
     std::memcpy(&obj, &v[offset], sizeof(T));
 }
 
 template <typename T>
-T deserialize(const std::vector<std::uint8_t>& v, std::size_t offset)
+T deserialize(const std::vector<uint8_t>& v, size_t offset)
 {
     T obj{};
     deserialize(v, offset, obj);
     return obj;
 }
 
-std::int32_t GetSizeFromFieldType(FIELD_TYPE fieldType)
+int32_t GetSizeFromFieldType(FIELD_TYPE fieldType)
 {
     switch (fieldType)
     {
     case FIELD_TYPE::FIELD_UINT8_T:
-        return sizeof(std::uint8_t);
+        return sizeof(uint8_t);
     case FIELD_TYPE::FIELD_BOOL:
         return sizeof(bool);
     case FIELD_TYPE::FIELD_UINT16_T:
-        return sizeof(std::uint16_t);
+        return sizeof(uint16_t);
     case FIELD_TYPE::FIELD_UINT32_T:
-        return sizeof(std::uint32_t);
+        return sizeof(uint32_t);
     default:
         return 0;
     }
@@ -63,19 +63,19 @@ const char* CDBField::GetFieldTypeStr()
         return "FIELD_STRING";
     }
 }
-std::uint8_t CDBField::GetChar()
+uint8_t CDBField::GetChar()
 {
-    return *reinterpret_cast<std::uint8_t*>(&field_data.data()[0]);
+    return *reinterpret_cast<uint8_t*>(&field_data.data()[0]);
 }
 bool CDBField::GetBool()
 {
     return *reinterpret_cast<bool*>(&field_data.data()[0]);
 }
-std::uint16_t CDBField::GetShort()
+uint16_t CDBField::GetShort()
 {
     return *reinterpret_cast<uint16_t*>(&field_data.data()[0]);
 }
-std::uint32_t CDBField::GetInt()
+uint32_t CDBField::GetInt()
 {
     return *reinterpret_cast<uint32_t*>(&field_data.data()[0]);
 }
@@ -106,7 +106,7 @@ CDBField::CDBField()
     memset(this->m_szName, 0, sizeof(this->m_szName));
     this->m_eType = FIELD_TYPE::FIELD_BOOL;
 }
-CDBField::CDBField(FIELD_TYPE eType, std::uint32_t iSize, std::uint32_t iOffset)
+CDBField::CDBField(FIELD_TYPE eType, uint32_t iSize, uint32_t iOffset)
 {
     this->m_eType = eType;
     this->m_iSize = iSize;
@@ -156,7 +156,7 @@ void CDBM::Clear()
     m_kBoxIterator = 0;
     m_fileSize = 0;
 }
-std::span<std::uint8_t> CDBM::GetData(std::uint32_t iRow, std::uint32_t iOffset, std::uint32_t iSize)
+std::span<uint8_t> CDBM::GetData(uint32_t iRow, uint32_t iOffset, uint32_t iSize)
 {
     return { &this->m_Data.data()[0] + this->m_kHeader.m_iRowSize * iRow + iOffset , &this->m_Data.data()[0] + this->m_kHeader.m_iRowSize * iRow + iOffset + iSize };
 }
@@ -175,7 +175,7 @@ CDBField& CDBM::GetField(const char* szName)
     return emptyField;
 }
 
-CDBField& CDBM::GetField(std::uint32_t uiIndex)
+CDBField& CDBM::GetField(uint32_t uiIndex)
 {
     static CDBField emptyField;
     if (this->m_kBox.empty() || uiIndex < 0 || uiIndex == this->m_kBox.size()) return emptyField;
@@ -186,7 +186,7 @@ std::vector<boost::unordered_flat_map<std::string, CDBField>>& CDBM::GetDataRows
     return this->m_DataRows;
 }
 
-void write_file(const std::string& filepath, std::vector<std::uint8_t> from)
+void write_file(const std::string& filepath, std::vector<uint8_t> from)
 {
     std::ofstream output(filepath.c_str(), std::ios::out | std::ios::binary);
     output.write((char*)from.data(), from.size());
@@ -194,14 +194,14 @@ void write_file(const std::string& filepath, std::vector<std::uint8_t> from)
     output.close();
 }
 
-bool CDBM::LoadCDB(std::span<std::uint8_t> contents)
+bool CDBM::LoadCDB(std::span<uint8_t> contents)
 {
-    std::uint32_t lastPos = 0;
-    this->m_fileSize = static_cast<std::uint32_t>(contents.size());
-    this->m_kHeader.m_iFieldCount = *reinterpret_cast<std::int32_t*>(&contents.data()[0]);
-    lastPos += sizeof(std::int32_t);
+    uint32_t lastPos = 0;
+    this->m_fileSize = static_cast<uint32_t>(contents.size());
+    this->m_kHeader.m_iFieldCount = *reinterpret_cast<int32_t*>(&contents.data()[0]);
+    lastPos += sizeof(int32_t);
     std::vector<std::string> fieldNames;
-    std::vector<std::uint32_t> fieldTypes;
+    std::vector<uint32_t> fieldTypes;
 	fieldNames.reserve(this->m_kHeader.m_iFieldCount);
     for (this->m_kBoxIterator = 0; this->m_kBoxIterator < this->m_kHeader.m_iFieldCount; this->m_kBoxIterator++)
     {
@@ -211,8 +211,8 @@ bool CDBM::LoadCDB(std::span<std::uint8_t> contents)
 	fieldTypes.reserve(this->m_kHeader.m_iFieldCount);
     for (this->m_kBoxIterator = 0; this->m_kBoxIterator < this->m_kHeader.m_iFieldCount; this->m_kBoxIterator++)
     {
-        fieldTypes.push_back(*reinterpret_cast<std::uint32_t*>(&contents.data()[0] + lastPos));
-        lastPos += sizeof(std::uint32_t);
+        fieldTypes.push_back(*reinterpret_cast<uint32_t*>(&contents.data()[0] + lastPos));
+        lastPos += sizeof(uint32_t);
     }
 	this->m_kBox.reserve(this->m_kHeader.m_iFieldCount);
     for (this->m_kBoxIterator = 0; this->m_kBoxIterator < this->m_kHeader.m_iFieldCount; this->m_kBoxIterator++)
@@ -220,7 +220,7 @@ bool CDBM::LoadCDB(std::span<std::uint8_t> contents)
         auto fieldType = static_cast<FIELD_TYPE>(fieldTypes[this->m_kBoxIterator] > 4 ? FIELD_TYPE::FIELD_STRING : fieldTypes[this->m_kBoxIterator]);
         auto offset = 0;
         if (this->m_kBoxIterator > 0)
-            for (std::uint32_t i = 0; i < this->m_kBoxIterator; i++)
+            for (uint32_t i = 0; i < this->m_kBoxIterator; i++)
                 offset += fieldTypes[i];
         auto size = fieldTypes[m_kBoxIterator] > 4 ? fieldTypes[m_kBoxIterator] : GetSizeFromFieldType(static_cast<FIELD_TYPE>(fieldTypes[this->m_kBoxIterator]));
         auto NewField = CDBField(fieldType, size, offset);
@@ -231,10 +231,10 @@ bool CDBM::LoadCDB(std::span<std::uint8_t> contents)
     this->m_Data = { &contents.data()[0] + lastPos , &contents.data()[0] + contents.size() };
 
     if (this->m_kBoxIterator > 0)
-        for (std::uint32_t i = 0; i < this->m_kBoxIterator; i++)
+        for (uint32_t i = 0; i < this->m_kBoxIterator; i++)
             this->m_kHeader.m_iRowSize += this->m_kBox[i].GetSize();
 
-    this->m_kHeader.m_iRowCount = static_cast<std::uint32_t>(contents.size() - lastPos) / this->m_kHeader.m_iRowSize;
+    this->m_kHeader.m_iRowCount = static_cast<uint32_t>(contents.size() - lastPos) / this->m_kHeader.m_iRowSize;
 
 	m_DataRows.reserve(this->m_kHeader.m_iRowCount);
 
@@ -261,7 +261,7 @@ bool CDBM::LoadCDB(std::span<std::uint8_t> contents)
 bool CDBM::SaveCDB(const char* szPath)
 {
 
-    std::vector<std::uint8_t> outData;
+    std::vector<uint8_t> outData;
     serialize(outData, this->m_kHeader.m_iFieldCount);
     for (this->m_kBoxIterator = 0; this->m_kBoxIterator < this->m_kHeader.m_iFieldCount; this->m_kBoxIterator++)
         serialize_string(outData, this->m_kBox[this->m_kBoxIterator].m_szName, iDB_FIELD_NAME_LEN);

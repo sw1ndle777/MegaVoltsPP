@@ -12,7 +12,7 @@ namespace Game
     {
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -106,10 +106,10 @@ namespace Game
 
 
                 auto isFreeForAllOrSimilarMode = !main_server->IsModeTeamBased(room->ModeIndex);
-                std::vector<std::pair<std::uint16_t, std::uint32_t>> player_slot_pairs;
+                std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
 
-                auto process_team = [&](const std::vector<std::uint16_t>& session_ids)
+                auto process_team = [&](const std::vector<uint16_t>& session_ids)
                 {
                     for (const auto& id : session_ids)
                     {
@@ -131,12 +131,12 @@ namespace Game
                 process_team(room->observers_session_ids);
 
                 std::sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                    [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) {
+                    [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) {
                     return a.second < b.second;
                 });
 
 
-                auto notify_player_leave = [&](std::uint32_t room_player_session_id)
+                auto notify_player_leave = [&](uint32_t room_player_session_id)
                 {
                     if (room_player_session_id == session_id) return;;
                     if (auto player_session = server->GetSessionById(room_player_session_id))
@@ -175,14 +175,14 @@ namespace Game
                                 room->host_session_id = best_ping_session_id;
                                 for (const auto& [room_player_session_id, _] : player_slot_pairs)
                                     if (auto player_session = server->GetSessionById(room_player_session_id))
-                                        send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_slot_id)); // host change
+                                        send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_slot_id)); // host change
 
                                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room No. ({}) changed host ({}) -> ({}) due to leaving while playing. ", room->room_id, acc_cache->acc_info.Nickname.c_str(), best_ping_acc_cache->acc_info.Nickname.c_str());
 
                                 struct RoomAuthData
                                 {
-                                    std::uint16_t room_id;
-                                    std::uint64_t auth_key;
+                                    uint16_t room_id;
+                                    uint64_t auth_key;
                                 };
                                 RoomAuthData new_host_data{ room->room_id, best_ping_acc_cache->acc_info.AuthKey };
 
@@ -223,8 +223,8 @@ namespace Game
                                 send_msg(player_session.get(), 120, 0, 45, 0);
                         }
                     }
-                    std::uint16_t new_leader_index = 0;
-                    std::uint16_t new_leader = 0;
+                    uint16_t new_leader_index = 0;
+                    uint16_t new_leader = 0;
                     for (const auto& member : party_cache->members)
                     {
                         if (member != party_cache->party_host_session_id) {
@@ -237,7 +237,7 @@ namespace Game
                     {
                         if (party_member_session_id == party_cache->party_host_session_id) continue;
                         if (auto player_session = server->GetSessionById(party_member_session_id))
-                            send_msg(player_session.get(), 114, 0, 1, static_cast<std::uint8_t>(new_leader_index));
+                            send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
                     }
                     party_cache->party_host_session_id = new_leader;
                 }

@@ -65,7 +65,7 @@ namespace Game
             }
             else
             {
-                Game::Plaza new_plaza = { static_cast<std::uint16_t>(plaza_id) };
+                Game::Plaza new_plaza = { static_cast<uint16_t>(plaza_id) };
                 new_plaza.players_session_id.push_back(self_session_id);
                 cast_server->AddPlazaCache(plaza_id, new_plaza);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "plaza id: ({}) doesn't exist, auto create", plaza_id);

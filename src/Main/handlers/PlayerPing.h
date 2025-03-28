@@ -46,7 +46,7 @@ namespace Game
                     CMessage updatePingAck(player_session->GetEncryptionKey());
                     updatePingAck.SetSession(id);
                     updatePingAck.SetCommand(callback.message->GetOrder() + 1, callback.message->GetMission() + 1, 0, callback.message->GetOption());
-                    updatePingAck.SetData(reinterpret_cast<uint8_t*>(update_data.data()), static_cast<std::uint16_t>(update_data.size()));
+                    updatePingAck.SetData(reinterpret_cast<uint8_t*>(update_data.data()), static_cast<uint16_t>(update_data.size()));
                     player_session->Send(updatePingAck);
                 }
             };

@@ -10,13 +10,13 @@ namespace Game
         class Test264Data
         {
         public:
-            std::uint32_t projectile_id;
-            std::uint16_t coord_x;
-            std::uint16_t coord_y;
-            std::uint16_t coord_z;
-            std::uint16_t idk;
+            uint32_t projectile_id;
+            uint16_t coord_x;
+            uint16_t coord_y;
+            uint16_t coord_z;
+            uint16_t idk;
             std::vector<PlayerVictimDataReq> player_victims_data;
-            Test264Data(std::uint16_t projectile_id, std::uint16_t coord_x, std::uint16_t coord_y, std::uint16_t coord_z, std::uint16_t idk, std::vector<PlayerVictimDataReq>& data)
+            Test264Data(uint16_t projectile_id, uint16_t coord_x, uint16_t coord_y, uint16_t coord_z, uint16_t idk, std::vector<PlayerVictimDataReq>& data)
             {
                 std::memset(this, 0, sizeof(PlayerVictimDataReq));
                 this->projectile_id = projectile_id;
@@ -28,9 +28,9 @@ namespace Game
 
             }
 
-            std::vector<std::uint8_t> Serialize() const
+            std::vector<uint8_t> Serialize() const
             {
-                std::vector<std::uint8_t> data;
+                std::vector<uint8_t> data;
                 const auto* projectile_id_bytes = reinterpret_cast<const uint8_t*>(&projectile_id);
                 data.insert(data.end(), projectile_id_bytes, projectile_id_bytes + sizeof(projectile_id));
                 const auto* coord_x_bytes = reinterpret_cast<const uint8_t*>(&coord_x);
@@ -56,7 +56,7 @@ namespace Game
         };
         inline void HostExplosivesDamage(SCallbackData& callback, CCastServer* cast_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
                 {
                     CMessage message(session->GetEncryptionKey());
                     message.SetSession(session->GetSessionId());
@@ -90,9 +90,9 @@ namespace Game
                 auto data = reinterpret_cast<PlayerVictimDataReq*>(callback.message->GetData() + sizeof(AddProjectileReq) + i * sizeof(PlayerVictimDataReq));
                 player_victims_data.push_back(*data);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "idk2: ({})", data->idk2);
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player uid: ({}) ({}) attacked and now have hp: ({})", (std::uint32_t)data->victim_unique_id.data, (std::uint16_t)data->victim_unique_id.session, (std::uint32_t)data->player_info.health);
-                auto target_player_cache = cast_server->GetPlayerCacheUnique((std::uint16_t)data->victim_unique_id.session);
-                target_player_cache->health = (std::uint32_t)data->player_info.health;
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player uid: ({}) ({}) attacked and now have hp: ({})", (uint32_t)data->victim_unique_id.data, (uint16_t)data->victim_unique_id.session, (uint32_t)data->player_info.health);
+                auto target_player_cache = cast_server->GetPlayerCacheUnique((uint16_t)data->victim_unique_id.session);
+                target_player_cache->health = (uint32_t)data->player_info.health;
                 target_player_cache.unlock();
             }
 

@@ -19,18 +19,18 @@ namespace BaseLib
         struct HostSettings
         {
             std::string host;
-            std::uint32_t port;
-            std::uint32_t ipc_port;
-            std::uint32_t asio_threads;
-            std::uint32_t playtime_min_seconds;
-            //std::uint32_t pool_threads;
+            uint32_t port;
+            uint32_t ipc_port;
+            uint32_t asio_threads;
+            uint32_t playtime_min_seconds;
+            //uint32_t pool_threads;
             bool debug;
             bool watchguard;
         };
         struct DatabaseSettings
         {
             std::string host;
-            std::uint32_t port;
+            uint32_t port;
             std::string db_name;
             std::string user;
             std::string password;
@@ -38,8 +38,8 @@ namespace BaseLib
         struct WebsiteSettings
         {
             std::string host;
-            std::uint32_t port;
-            std::uint32_t timeout;
+            uint32_t port;
+            uint32_t timeout;
         };
         struct ServerSettings
         {

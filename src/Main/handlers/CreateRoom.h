@@ -10,7 +10,7 @@ namespace Game
         inline void CreateRoom(SCallbackData& callback, CMainServer* main_server)
         {
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "want to create room");
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -38,7 +38,7 @@ namespace Game
             const auto& createRoomReq = reinterpret_cast<MainCreateRoomReq*>(callback.message->GetData());
             auto room_settings = RoomSettingsInfo(createRoomReq->settings_data, createRoomReq->title, callback.message->GetDataSize() == sizeof(MainCreateRoomReq) ? createRoomReq->password : "");
 
-            std::uint16_t current_room_id = 0;
+            uint16_t current_room_id = 0;
             auto room_options = main_server->GetRoomOptionInfosGameModeCache(room_settings.settings.mode_index);
             if (!server->GetNextAvailableRoomId(current_room_id))
             {
@@ -66,7 +66,7 @@ namespace Game
             Game::Room new_room =
             {
                 current_room_id,
-                static_cast<std::uint16_t>(1),
+                static_cast<uint16_t>(1),
                 room_settings.title,
                 room_settings.password,
                 new_map_index,
@@ -74,7 +74,7 @@ namespace Game
                 static_cast<NetEngine::Room::Restriction::Type>(room_settings.settings.restriction),
                 //static_cast<NetEngine::Room::Balance::State>(room_settings.settings.team_balance),
                 NetEngine::Room::Balance::State::Disabled,
-                static_cast<std::uint32_t>(room_settings.settings.max_players * 2),
+                static_cast<uint32_t>(room_settings.settings.max_players * 2),
                 score_limit,
                 room_settings.settings.time,
                 static_cast<bool>(room_settings.settings.allow_intruders),

@@ -22,7 +22,7 @@ namespace Game
             std::shared_lock lock(callback.session->GetMutex());
             CSession* session = callback.session;
             BaseLib::FrontAccount frontAccount;
-            auto authorize = [&](const FrontAuthorize::Type& authorize_type, const std::uint8_t& grade, FrontLoginAuthorizeAck* optionalData = nullptr)
+            auto authorize = [&](const FrontAuthorize::Type& authorize_type, const uint8_t& grade, FrontLoginAuthorizeAck* optionalData = nullptr)
             {
                 CMessage authorizeAck = CMessage(session->GetEncryptionKey());
                 authorizeAck.SetSession(session->GetSessionId());

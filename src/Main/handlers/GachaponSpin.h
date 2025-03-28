@@ -9,7 +9,7 @@ namespace Game
     {
         inline void GachaponSpin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -23,7 +23,7 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto spin_count = static_cast<std::uint32_t>(callback.message->GetOption());
+            auto spin_count = static_cast<uint32_t>(callback.message->GetOption());
             auto gachaponSpinReq = reinterpret_cast<MainGachaponSpinReq*>(callback.message->GetData());
             if (acc_index == -1) return;
             auto gachapon_info = main_server->GetGachaponInfo(gachaponSpinReq->gachapon_id);
@@ -33,9 +33,9 @@ namespace Game
                 return;
             }
             std::vector<GachaponPackageItem> items_extracted;
-            std::uint32_t fake_lucky_points = acc_cache->acc_info.LuckyPoints;
-            std::uint32_t coupon_chance = (gachapon_info->Type == Items::Gachapon::Type::RT) ? 30 : (gachapon_info->Type == Items::Gachapon::Type::MP) ? 15 : 0;
-            std::uint32_t money_spent = 0;
+            uint32_t fake_lucky_points = acc_cache->acc_info.LuckyPoints;
+            uint32_t coupon_chance = (gachapon_info->Type == Items::Gachapon::Type::RT) ? 30 : (gachapon_info->Type == Items::Gachapon::Type::MP) ? 15 : 0;
+            uint32_t money_spent = 0;
             
             gachapon_info.unlock();
             std::vector<GachaponPackageItem> lucky_items;
@@ -46,7 +46,7 @@ namespace Game
 
             auto is_gachapon_sale = main_server->IsGachaponSaleInfoAlready(gachapon_info->Id);
             auto gachapon_sale_info = main_server->GetGachaponSaleCacheShared(gachapon_info->Id);
-            std::uint32_t gachapon_price = 0;
+            uint32_t gachapon_price = 0;
             if (is_gachapon_sale)
             {
                 if (gachapon_sale_info->start_date <= Utility::GetUtcTimeNow() && gachapon_sale_info->end_date >= Utility::GetUtcTimeNow())
@@ -68,7 +68,7 @@ namespace Game
             }
 
             std::vector<std::vector<GachaponPackageItem>> extracted_items;
-            for (std::uint32_t i = 0; i < spin_count; i++)
+            for (uint32_t i = 0; i < spin_count; i++)
             {
                
                 if (fake_lucky_points >= 1000 && spin_count == 1)
@@ -198,12 +198,12 @@ namespace Game
                 if (lucky_type > Items::Gachapon::LuckyType::NoLucky)
                 {
                     acc_cache->acc_info.LuckyPoints = 0;
-                    send_msg(session, 92, Items::Gachapon::Spin::Type::LuckySpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<std::uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
+                    send_msg(session, 92, Items::Gachapon::Spin::Type::LuckySpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
                 }
                 else
                 {
                     acc_cache->acc_info.LuckyPoints += gachapon_info->LuckyPoint;
-                    send_msg(session, 92, Items::Gachapon::Spin::Type::NormalSpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<std::uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
+                    send_msg(session, 92, Items::Gachapon::Spin::Type::NormalSpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
                 }
             }
             acc_cache.unlock();

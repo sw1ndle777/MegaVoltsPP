@@ -13,7 +13,7 @@
 namespace Game
 {    
     std::shared_mutex players_cache_mutex;
-    boost::unordered_flat_map<std::uint64_t, Player> players_cache;
+    boost::unordered_flat_map<uint64_t, Player> players_cache;
     CFrontServer::CFrontServer()
     {
         this->OnNewSession(std::bind(&Game::Handlers::ServerConnect, std::placeholders::_1, this));

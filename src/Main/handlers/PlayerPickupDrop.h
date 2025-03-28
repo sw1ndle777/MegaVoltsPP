@@ -8,15 +8,15 @@ namespace Game
     namespace Handlers
     {
 
-        //std::unordered_map<std::uint32_t, std::uint32_t> coupon_map =
-        boost::unordered_flat_set<std::uint32_t> drop_item_ids =
+        //std::unordered_map<uint32_t, uint32_t> coupon_map =
+        boost::unordered_flat_set<uint32_t> drop_item_ids =
         {
             4510015, // mistery capsule
             4510019 // golden mistery capsule
         };
         inline void PlayerPickupDrop(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -48,9 +48,9 @@ namespace Game
                 /*
                 struct MainToCastSendPacketInfo
                 {
-                    std::uint32_t session_id;
-                    std::uint32_t data_size;
-                    std::uint32_t item_id;
+                    uint32_t session_id;
+                    uint32_t data_size;
+                    uint32_t item_id;
                 } info;
                 info.session_id = session_id;
                 info.data_size = callback.message->GetDataSize();

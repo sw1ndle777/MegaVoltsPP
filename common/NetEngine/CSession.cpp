@@ -1,7 +1,7 @@
 #include "CSession.h"
 namespace NetEngine
 {
-    CSession::CSession(asio::ip::tcp::socket&& socket, asio::io_context& ioc, CServer* server, SSessionSettings settings, std::uint16_t session_id = 0)
+    CSession::CSession(asio::ip::tcp::socket&& socket, asio::io_context& ioc, CServer* server, SSessionSettings settings, uint16_t session_id = 0)
         : m_socket(std::move(socket)), m_server(server), m_strand(asio::make_strand(ioc))
     {
         m_ipc_identifier_skipped = false;
@@ -27,7 +27,7 @@ namespace NetEngine
     CSession::~CSession() {}
     void CSession::Disconnect()
     {
-        asio::post(m_strand, [this]() {
+        asio::dispatch(m_strand, [this]() {
             if (!m_socket.is_open()) return;
 
             asio::error_code errorCode;
@@ -44,7 +44,7 @@ namespace NetEngine
     {
         m_on_disconnect_callback = callback;
     }
-    void CSession::SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)> callback)
+    void CSession::SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> callback)
     {
         m_on_ipc_callback = callback;
     }
@@ -53,20 +53,18 @@ namespace NetEngine
         auto order = message.GetOrder();
         if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), message, m_sessionId);
         auto data = message.GenerateMessage();
-        auto data_vec = std::make_shared<std::vector<std::uint8_t>>(
-            &data[0], &data[message.GetFullSize()]);
+        auto data_vec = std::make_shared<std::vector<uint8_t>>(&data[0], &data[message.GetFullSize()]);
 
-        asio::post(m_strand, [this, self = std::move(m_self), data_vec]() {
+        asio::dispatch(m_strand, [this, self = shared_from_this(), data_vec]() {
             if (!m_socket.is_open())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
                 return;
             }
-
             asio::async_write(m_socket,
                 asio::buffer(data_vec->data(), data_vec->size()),
                 asio::bind_executor(m_strand,
-                    [self, data_vec](const std::error_code& ec, std::size_t bytes_transferred)
+                    [self, data_vec](const std::error_code& ec, size_t bytes_transferred)
                     {
                         if (ec)
                         {
@@ -74,31 +72,21 @@ namespace NetEngine
                             self->Disconnect();
                         }
                     }));
-
-            /*
-            std::error_code ec;
-            asio::write(m_socket, asio::buffer(data_vec->data(), data_vec->size()), ec);
-            if (ec)
-            {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to send data: ({})", ec.message().c_str());
-                self->Disconnect();
-            }
-            */
             });
     }
-    void CSession::SetEncryptionKey(std::int32_t key)
+    void CSession::SetEncryptionKey(int32_t key)
     {
         m_encryptionKey = key;
     }
-    void CSession::SetSessionId(std::uint16_t id)
+    void CSession::SetSessionId(uint16_t id)
     {
         m_sessionId = id;
     }
-    std::int32_t CSession::GetEncryptionKey()
+    int32_t CSession::GetEncryptionKey()
     {
         return m_encryptionKey;
     }
-    std::uint16_t CSession::GetSessionId()
+    uint16_t CSession::GetSessionId()
     {
         return m_sessionId;
     }
@@ -106,11 +94,11 @@ namespace NetEngine
     {
         return m_server;
     }
-    void CSession::onPacket(Protocols::STcpPacketHeader& header, std::vector<std::uint8_t>& data)
+    void CSession::onPacket(Protocols::STcpPacketHeader& header, std::vector<uint8_t>& data)
     {
 
-        std::int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
-        CMessage packetMessage = CMessage(reinterpret_cast<std::uint8_t*>(data.data()), static_cast<std::uint16_t>(data.size()), encryptionKey);
+        int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
+        CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data.data()), static_cast<uint16_t>(data.size()), encryptionKey);
 
         auto order = packetMessage.GetOrder();
         if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), packetMessage, m_sessionId);
@@ -172,7 +160,7 @@ namespace NetEngine
     }
     void CSession::DoRead()
     {
-        asio::post(m_strand, [this, self = std::move(m_self)]() {
+        asio::dispatch(m_strand, [this, self = shared_from_this()]() {
             if (!m_socket.is_open())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
@@ -202,7 +190,7 @@ namespace NetEngine
                     {
                         if (m_useEncryption)
                         {
-                            cryptography.RC5Decrypt32(reinterpret_cast<std::uint32_t*>(m_reader.data()), &header, headerSize);
+                            cryptography.RC5Decrypt32(reinterpret_cast<uint32_t*>(m_reader.data()), &header, headerSize);
                         }
                         else
                         {
@@ -211,14 +199,14 @@ namespace NetEngine
 
                         if (header.size >= 2047) // Manage unencrypted packet with wrong size
                         {
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "invalid packet size: ({})", static_cast<std::uint32_t>(header.size));
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "invalid packet size: ({})", static_cast<uint32_t>(header.size));
                             Disconnect();
                             return;
                         }
 
-                        if (m_reader.size() >= std::size_t(header.size))
+                        if (m_reader.size() >= size_t(header.size))
                         {
-                            std::vector<std::uint8_t> data(m_reader.begin(), m_reader.begin() + header.size);
+                            std::vector<uint8_t> data(m_reader.begin(), m_reader.begin() + header.size);
                             onPacket(header, data);
 
                             auto newSize = m_reader.size() - header.size;
@@ -237,7 +225,7 @@ namespace NetEngine
     }
     void CSession::DoReadIpc()
     {
-        asio::post(m_strand, [this, self = std::move(m_self)]() {
+        asio::dispatch(m_strand, [this, self = shared_from_this()]() {
             if (!m_socket.is_open())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
@@ -264,12 +252,12 @@ namespace NetEngine
                     while (m_reader.size() > headerSize)
                     {
 
-                        auto ipc_id = *reinterpret_cast<std::uint32_t*>(m_reader.data());
-                        auto data_size = *reinterpret_cast<std::uint32_t*>(m_reader.data() + sizeof(std::uint32_t));
+                        auto ipc_id = *reinterpret_cast<uint32_t*>(m_reader.data());
+                        auto data_size = *reinterpret_cast<uint32_t*>(m_reader.data() + sizeof(uint32_t));
 
                         if (m_reader.size() < headerSize + static_cast<unsigned long long>(data_size)) break;
 
-                        std::vector<std::uint8_t> payload(m_reader.begin() + headerSize, m_reader.begin() + headerSize + data_size);
+                        std::vector<uint8_t> payload(m_reader.begin() + headerSize, m_reader.begin() + headerSize + data_size);
 
                         if (m_on_ipc_callback)
                             m_on_ipc_callback(self, ipc_id, data_size, payload);

@@ -19,7 +19,7 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connected with auth key ({})", session_id, auth_key);
             CServer* server = callback.server;
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -32,11 +32,11 @@ namespace Game
             PlayerPingUpdateInfo ping_data{};
             ping_data.ping = 2;
             auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
-            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 71, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 71, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
             */
 
             BaseLib::FrontAccount frontAccount;
@@ -60,8 +60,8 @@ namespace Game
                 return;
             }
             auto itemsFound = BaseLib::Database->GetInventoryItems(frontAccount.Index, acc_items);
-            //std::unordered_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
-            boost::unordered_flat_map<std::uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
+            //std::unordered_map<uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
+            boost::unordered_flat_map<uint8_t, std::vector<InventoryItemInfo>> player_equipped_items;
             std::vector<Item> player_inventory_items;
             auto server_time = Utility::GetUtcTimeNowInMilliseconds() - server->GetStartTime();
             auto newPlayer = Player({ session->GetSessionId(), server_time, frontAccount, acc_items });
@@ -145,7 +145,7 @@ namespace Game
             accInfoMsg.Headshots = frontAccount.Headshots;
             accInfoMsg.HighestKillStreak = frontAccount.HighestKillStreak;
             accInfoMsg.Unknown2 = 0;
-            accInfoMsg.PlayTime = static_cast<std::uint32_t>(frontAccount.PlayTime);
+            accInfoMsg.PlayTime = static_cast<uint32_t>(frontAccount.PlayTime);
             accInfoMsg.ClanId = frontAccount.ClanId;
             accInfoMsg.ClanPadding = 0;
             accInfoMsg.ZombieKillPoints = frontAccount.ZombieKills * 3;
@@ -199,7 +199,7 @@ namespace Game
                 send_msg(session, 77, 0, 6, 0); // empty inventory
             if (newPlayer.acc_info.Coupons > 0)
             {
-                std::uint32_t coupons = (newPlayer.acc_info.Coupons << 23) + 0xF4240;
+                uint32_t coupons = (newPlayer.acc_info.Coupons << 23) + 0xF4240;
                 Item coupons_item;
                 coupons_item.is_equipped = 0;
                 coupons_item.stock = newPlayer.acc_info.Coupons;
@@ -210,8 +210,8 @@ namespace Game
                 coupons_item.item_info.serial_info = ItemSerialInfo(0, 0, 0, 0, Utility::GetUnixEpoch());
                 player_inventory_items.insert(player_inventory_items.begin(), coupons_item);
             }
-            std::uint32_t total_inventory_fragments = (player_inventory_items.size() + 1) <= 35 ? 1 : ((player_inventory_items.size() + 1) / 35) + 1;
-            for (std::uint32_t i = 0; i < total_inventory_fragments; i++)
+            uint32_t total_inventory_fragments = (player_inventory_items.size() + 1) <= 35 ? 1 : ((player_inventory_items.size() + 1) / 35) + 1;
+            for (uint32_t i = 0; i < total_inventory_fragments; i++)
             {
                 if (!player_inventory_items.empty())
                 {
@@ -223,7 +223,7 @@ namespace Game
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) received ({}) inventory items", session->GetSessionId(), player_inventory_items.size() - 1);
 
-            for (std::uint8_t i = 0; i < 5; i++)
+            for (uint8_t i = 0; i < 5; i++)
             {
                 std::vector<EquipItemInfo> equipped_items;
                 const auto& current_char_items = main_server->GetTransformEquippedItems(player_equipped_items[i]);
@@ -265,18 +265,18 @@ namespace Game
             send_msg(session, 75, 0, 16, 0); // final equip info
         #endif
 
-            //std::uint64_t unlocked_voice_types = 0xFFFFFFFFFFFFFFFF;
+            //uint64_t unlocked_voice_types = 0xFFFFFFFFFFFFFFFF;
             send_msg(session, 413, 0, 59, 0, reinterpret_cast<uint8_t*>(&frontAccount.VoiceType), sizeof(frontAccount.VoiceType)); // final account info
 
-            //send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            //send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
             /*
             PlayerPingUpdateInfo ping_data{};
             ping_data.ping = 2;
             auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
-            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-            send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+            send_msg(session, 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
             */
             //send_msg(session, 71, 1, 0, 3);
             //send_msg(session, 72, 1, 0, 3);
@@ -303,17 +303,17 @@ namespace Game
                                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ask cast to send ping assure");
                                 struct MainToCastSendPingAssureInfo
                                 {
-                                    std::uint32_t session_id;
+                                    uint32_t session_id;
                                 } info;
                                 info.session_id = session_id;
                                 main_server->SendCastIpc(PacketIds::Ipc::MainToCastSendPingAssure, Utility::ToVector(info));
                                 PlayerPingUpdateInfo ping_data{};
                                 ping_data.ping = 60;
                                 auto ping_response = MainRoomPlayersUpdatePingInfoAck(ping_data, { session_id, 1 }).Serialize();
-                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-                                //send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-                                //send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
-                                //send_msg(player_session.get(), 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<std::uint16_t>(ping_response.size()));
+                                send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+                                //send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+                                //send_msg(player_session.get(), 72, 1, 0, 0, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
+                                //send_msg(player_session.get(), 72, 1, 0, 3, reinterpret_cast<uint8_t*>(ping_response.data()), static_cast<uint16_t>(ping_response.size()));
                             }
                         }
                     }
@@ -327,8 +327,8 @@ namespace Game
             main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
            // main_server->SendServerMessage(session, fmt::format("[MAIN] session id: ({}), server time: ({})", session->GetSessionId(), server_time).c_str());
 
-            //std::unordered_map<std::uint32_t, std::uint32_t> accountToSessionMap;
-            boost::unordered_flat_map<std::uint32_t, std::uint32_t> accountToSessionMap;
+            //std::unordered_map<uint32_t, uint32_t> accountToSessionMap;
+            boost::unordered_flat_map<uint32_t, uint32_t> accountToSessionMap;
             std::shared_lock acc_lock(main_server->GetAccountsCacheMutex());
             for (const auto& session : accounts_cache)  accountToSessionMap[session.second.acc_info.Index] = session.first;
             std::vector<PlayerFriendInfo> friends_pending;
@@ -392,16 +392,16 @@ namespace Game
                     main_server->AddGiftboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
                 
             }
-            std::uint32_t unopened_gifts = 0, unopened_mails = 0;
+            uint32_t unopened_gifts = 0, unopened_mails = 0;
             auto mail_recv_ids = main_server->GetMailboxRecvCacheShared(frontAccount.Index);
-            for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+            for (uint32_t i = 0; i < mail_recv_ids->size(); i++)
             {
                 auto mail_id = mail_recv_ids->at(i);
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
                 if (mailbox_data->is_new && mailbox_data->gift_itemid == 0) unopened_mails++;
             }
             auto gift_recv_ids = main_server->GetGiftboxRecvCacheShared(frontAccount.Index);
-            for (std::uint32_t i = 0; i < gift_recv_ids->size(); i++)
+            for (uint32_t i = 0; i < gift_recv_ids->size(); i++)
             {
                 auto mail_id = gift_recv_ids->at(i);
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
@@ -414,17 +414,17 @@ namespace Game
             /*
             struct daily_reward_ack
             {
-                std::uint16_t unknown1 = 0;
-                std::uint16_t received_day = 1;
-                std::uint16_t unknown3 = 999;
-                std::uint16_t unknown4 = 999;
-                std::uint32_t day1 = 3200250;
-                std::uint32_t day2 = 3026050;
-                std::uint32_t day3 = 3034050;
-                std::uint32_t day4 = 3044000;
-                std::uint32_t day5 = 3052700;
-                std::uint32_t day6 = 3063900;
-                std::uint32_t day7 = 3074100;
+                uint16_t unknown1 = 0;
+                uint16_t received_day = 1;
+                uint16_t unknown3 = 999;
+                uint16_t unknown4 = 999;
+                uint32_t day1 = 3200250;
+                uint32_t day2 = 3026050;
+                uint32_t day3 = 3034050;
+                uint32_t day4 = 3044000;
+                uint32_t day5 = 3052700;
+                uint32_t day6 = 3063900;
+                uint32_t day7 = 3074100;
             }dailyRewardData;
 
             send_msg(session, 182, 0, 0, 0, reinterpret_cast<uint8_t*>(&dailyRewardData), sizeof(daily_reward_ack));// init daily reward
@@ -463,7 +463,7 @@ namespace Game
                                 {
                                     if (playerMonthlyRewardData.day_count >= 1)
                                     {
-                                        auto current_signin = static_cast<std::uint32_t>(playerMonthlyRewardData.day_count - 1);// - 1 cuz rewards starts at 0
+                                        auto current_signin = static_cast<uint32_t>(playerMonthlyRewardData.day_count - 1);// - 1 cuz rewards starts at 0
                                         auto current_day_reward = monthlyRewardsData.rewards[current_signin];
                                         auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
                                         if (!is_inventory_full)
@@ -511,12 +511,12 @@ namespace Game
 
             struct guide_daily_mission
             {
-                std::uint32_t mission_id = 46;
-                std::uint32_t unk = 0;
-                std::uint32_t goal = 0;
-                std::uint32_t type = 1;//1 guide mission, 4 daily mission
+                uint32_t mission_id = 46;
+                uint32_t unk = 0;
+                uint32_t goal = 0;
+                uint32_t type = 1;//1 guide mission, 4 daily mission
 
-                guide_daily_mission(std::uint32_t id, std::uint32_t goal, std::uint32_t type)
+                guide_daily_mission(uint32_t id, uint32_t goal, uint32_t type)
                 {
                     this->mission_id = id;
                     this->goal = goal;
@@ -545,8 +545,8 @@ namespace Game
             PlayerDailyMission playerDailyMissionData;
             playerDailyMissionData.update_time = 0;
             bool daily_mission_existed = BaseLib::Database->GetPlayerDailyMission(frontAccount.Index, &playerDailyMissionData);
-            std::uint64_t now_time = Utility::GetUtcTimeNow64();
-            std::uint64_t last_6am = Utility::GetLast6AMUtc();
+            uint64_t now_time = Utility::GetUtcTimeNow64();
+            uint64_t last_6am = Utility::GetLast6AMUtc();
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player last update daily mission: ({}) and last 6am was: ({}) and now is time: ({})", playerDailyMissionData.update_time, last_6am, now_time);
             if (playerDailyMissionData.update_time < last_6am)
             {
@@ -578,11 +578,11 @@ namespace Game
             /*
             struct daily_mission
             {
-                std::uint32_t id;
-                std::uint32_t goal;
-                std::uint32_t reward;
+                uint32_t id;
+                uint32_t goal;
+                uint32_t reward;
 
-                daily_mission(std::uint32_t id, std::uint32_t goal, std::uint32_t reward)
+                daily_mission(uint32_t id, uint32_t goal, uint32_t reward)
                 {
                     this->id = id;
                     this->goal = goal;

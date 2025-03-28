@@ -2,7 +2,7 @@
 #include <fmt/color.h>
 namespace BaseLib
 {
-    void CDatabase::Initialize(const std::string& database, const std::string& host, const std::uint16_t& port, const std::string& user, const std::string& password)
+    void CDatabase::Initialize(const std::string& database, const std::string& host, const uint16_t& port, const std::string& user, const std::string& password)
     {
         try
         {
@@ -525,7 +525,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::RegisterAccount(const std::string& username, const std::string& password, const std::uint8_t& grade, const std::uint32_t& mp, const std::uint32_t& rt, const std::uint32_t& coupons, const std::uint32_t& coins, const std::uint32_t& energy, const std::uint32_t& max_items, const std::uint32_t& max_battery, const std::string& nickname)
+    bool CDatabase::RegisterAccount(const std::string& username, const std::string& password, const uint8_t& grade, const uint32_t& mp, const uint32_t& rt, const uint32_t& coupons, const uint32_t& coins, const uint32_t& energy, const uint32_t& max_items, const uint32_t& max_battery, const std::string& nickname)
     {
 
         auto hash = Utility::Hash(password);
@@ -714,7 +714,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::GetInventoryItems(const std::uint32_t& acc_id, std::vector<Item>& inv_items)
+    bool CDatabase::GetInventoryItems(const uint32_t& acc_id, std::vector<Item>& inv_items)
     {
         try
         {
@@ -775,7 +775,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::UpdateInventoryItems(const std::uint32_t& acc_id, const std::vector<Item>& inv_items)
+    bool CDatabase::UpdateInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items)
     {
         if (inv_items.empty()) return false;
 
@@ -869,7 +869,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::InsertInventoryItems(const std::uint32_t& acc_id, const std::vector<Item>& inv_items)
+    bool CDatabase::InsertInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items)
     {
         if (inv_items.empty()) return false;
 
@@ -938,7 +938,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::DeleteInventoryItems(const std::uint32_t& acc_id, const std::vector<Item>& inv_items)
+    bool CDatabase::DeleteInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items)
     {
         if (inv_items.empty()) return false;
 
@@ -973,7 +973,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::GetPlayerFriends(const std::int32_t& acc_id, std::vector<FriendInfo>& friends)
+    bool CDatabase::GetPlayerFriends(const int32_t& acc_id, std::vector<FriendInfo>& friends)
     {
         try
         {
@@ -990,7 +990,7 @@ namespace BaseLib
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
 
             while (result->next())
-                friends.push_back({ acc_id, result->getInt("FriendPlayerId"), static_cast<std::uint8_t>(result->getByte("State")), 0, result->getString("FriendNickname").c_str() });
+                friends.push_back({ acc_id, result->getInt("FriendPlayerId"), static_cast<uint8_t>(result->getByte("State")), 0, result->getString("FriendNickname").c_str() });
 
             return !friends.empty();
         }
@@ -1000,7 +1000,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::GetPlayerBlockeds(const std::int32_t& acc_id, std::vector<BlockedInfo>& blockeds)
+    bool CDatabase::GetPlayerBlockeds(const int32_t& acc_id, std::vector<BlockedInfo>& blockeds)
     {
         try
         {
@@ -1108,7 +1108,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::UpdatePlayerFriends(const std::int32_t& acc_id, const std::uint32_t& friend_acc_id, const std::uint8_t& state)
+    bool CDatabase::UpdatePlayerFriends(const int32_t& acc_id, const uint32_t& friend_acc_id, const uint8_t& state)
     {
         try
         {
@@ -1124,7 +1124,7 @@ namespace BaseLib
             pstmt->setByte(1, state);
             pstmt->setInt(2, acc_id);
             pstmt->setInt(3, friend_acc_id);
-            std::int32_t affectedRows = pstmt->executeUpdate();
+            int32_t affectedRows = pstmt->executeUpdate();
             return affectedRows > 0;
         }
         catch (sql::SQLException& e)
@@ -1216,7 +1216,7 @@ namespace BaseLib
 
     
 
-    bool CDatabase::GetFrontAccount(const std::uint64_t& authKey, FrontAccount* outFrontAccount)
+    bool CDatabase::GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount)
     {
         try
         {
@@ -1495,7 +1495,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::UpdateNickname(const std::string_view& nickname, const std::uint64_t& authKey)
+    bool CDatabase::UpdateNickname(const std::string_view& nickname, const uint64_t& authKey)
     {
         try
         {
@@ -1510,7 +1510,7 @@ namespace BaseLib
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("UPDATE accounts SET Nickname = ? WHERE AuthKey = ? LIMIT 1"));
             pstmt->setString(1, std::string(nickname).c_str()); 
             pstmt->setUInt64(2, authKey);
-            std::int32_t affectedRows = pstmt->executeUpdate();
+            int32_t affectedRows = pstmt->executeUpdate();
             return affectedRows > 0;
         }
         catch (sql::SQLException& e)
@@ -1519,7 +1519,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::UpdateSelectedCharacter(const std::uint32_t& character, const std::uint64_t& authKey)
+    bool CDatabase::UpdateSelectedCharacter(const uint32_t& character, const uint64_t& authKey)
     {
         try
         {
@@ -1534,7 +1534,7 @@ namespace BaseLib
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("UPDATE accounts SET SelectedCharacter = ? WHERE AuthKey = ? LIMIT 1"));
             pstmt->setInt(1, character);
             pstmt->setUInt64(2, authKey);
-            std::int32_t affectedRows = pstmt->executeUpdate();
+            int32_t affectedRows = pstmt->executeUpdate();
             return affectedRows > 0;
         }
         catch (sql::SQLException& e)
@@ -1568,7 +1568,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::NicknameExists(const std::string_view& nickname, std::uint32_t& account_id)
+    bool CDatabase::NicknameExists(const std::string_view& nickname, uint32_t& account_id)
     {
         try
         {
@@ -1603,7 +1603,7 @@ namespace BaseLib
         return this->database_name;
     }
 
-    bool CDatabase::RegisterClan(const std::string& name, const std::uint32_t& owner_id, const std::uint32_t& logo_front, const std::uint32_t& logo_back)
+    bool CDatabase::RegisterClan(const std::string& name, const uint32_t& owner_id, const uint32_t& logo_front, const uint32_t& logo_back)
     {
        
         try
@@ -1633,7 +1633,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::GetClanInfo(const std::uint32_t& clanId, ClanInfo* outClanInfo)
+    bool CDatabase::GetClanInfo(const uint32_t& clanId, ClanInfo* outClanInfo)
     {
         try
         {
@@ -1692,7 +1692,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::UpdateClanInfo(const std::uint32_t& clan_id, const std::string& name, const std::uint32_t& owner_id, const std::uint32_t& logo_front, const std::uint32_t& logo_back)
+    bool CDatabase::UpdateClanInfo(const uint32_t& clan_id, const std::string& name, const uint32_t& owner_id, const uint32_t& logo_front, const uint32_t& logo_back)
     {
         try
         {
@@ -1728,7 +1728,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::InsertPlayerMailbox(const MailboxInfo& mailbox_info, std::uint32_t& out_mail_id)
+    bool CDatabase::InsertPlayerMailbox(const MailboxInfo& mailbox_info, uint32_t& out_mail_id)
     {
         try
         {
@@ -1825,7 +1825,7 @@ namespace BaseLib
         }
     }
 
-    std::vector<MailboxInfo> CDatabase::GetPlayerMailbox(const std::int32_t& acc_id)
+    std::vector<MailboxInfo> CDatabase::GetPlayerMailbox(const int32_t& acc_id)
     {
         std::vector<MailboxInfo> mailbox_list;
         try
@@ -1864,7 +1864,7 @@ namespace BaseLib
         return mailbox_list;
     }
 
-    std::uint32_t CDatabase::GetPlayerReceiverMailboxCount(const std::int32_t& acc_id)
+    uint32_t CDatabase::GetPlayerReceiverMailboxCount(const int32_t& acc_id)
     {
         try
         {
@@ -1895,7 +1895,7 @@ namespace BaseLib
 
         return 0;
     }
-    std::uint32_t CDatabase::GetPlayerReceiverGiftboxCount(const std::int32_t& acc_id)
+    uint32_t CDatabase::GetPlayerReceiverGiftboxCount(const int32_t& acc_id)
     {
         try
         {
@@ -1926,7 +1926,7 @@ namespace BaseLib
 
         return 0;
     }
-    bool CDatabase::UpdateMailboxIsNew(const std::vector<std::uint32_t>& mail_ids, bool is_new)
+    bool CDatabase::UpdateMailboxIsNew(const std::vector<uint32_t>& mail_ids, bool is_new)
     {
         try
         {
@@ -1991,7 +1991,7 @@ namespace BaseLib
         return false;
     }
 
-    bool CDatabase::UpdateOrDeleteMailboxForSender(const std::vector<std::uint32_t>& mail_ids)
+    bool CDatabase::UpdateOrDeleteMailboxForSender(const std::vector<uint32_t>& mail_ids)
     {
         try
         {
@@ -2076,7 +2076,7 @@ namespace BaseLib
         return false;
     }
 
-    bool CDatabase::UpdateOrDeleteMailboxForReceiver(const std::vector<std::uint32_t>& mail_ids)
+    bool CDatabase::UpdateOrDeleteMailboxForReceiver(const std::vector<uint32_t>& mail_ids)
     {
         try
         {
@@ -2161,7 +2161,7 @@ namespace BaseLib
         return false;
     }
 
-    bool CDatabase::GetSystemMonthlyRewards(const std::uint32_t& month, SystemMonthlyRewards* outMonthlyRewards)
+    bool CDatabase::GetSystemMonthlyRewards(const uint32_t& month, SystemMonthlyRewards* outMonthlyRewards)
     {
         try
         {
@@ -2202,7 +2202,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::GetPlayerMonthlyDayCount(const std::uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards)
+    bool CDatabase::GetPlayerMonthlyDayCount(const uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards)
     {
         try
         {
@@ -2233,7 +2233,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::InsertPlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update)
+    bool CDatabase::InsertPlayerMonthlyDayCount(const uint32_t& acc_id, const uint8_t& reward_count, const uint64_t& last_update)
     {
         try
         {
@@ -2261,7 +2261,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::UpdatePlayerMonthlyDayCount(const std::uint32_t& acc_id, const std::uint8_t& reward_count, const std::uint64_t& last_update)
+    bool CDatabase::UpdatePlayerMonthlyDayCount(const uint32_t& acc_id, const uint8_t& reward_count, const uint64_t& last_update)
     {
         try
         {
@@ -2289,7 +2289,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::GetPlayerDailyMission(const std::uint32_t& acc_id, PlayerDailyMission* outDailyMission) {
+    bool CDatabase::GetPlayerDailyMission(const uint32_t& acc_id, PlayerDailyMission* outDailyMission) {
         try {
             if (!conn || !conn->isValid()) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
@@ -2323,7 +2323,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::InsertPlayerDailyMission(const std::uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
+    bool CDatabase::InsertPlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
         try {
             if (!conn || !conn->isValid()) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
@@ -2352,7 +2352,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::UpdatePlayerDailyMission(const std::uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
+    bool CDatabase::UpdatePlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
         try {
             if (!conn || !conn->isValid()) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
@@ -2419,7 +2419,7 @@ namespace BaseLib
         return sales;
     }
 
-    bool CDatabase::DeleteGachaponSaleInfo(const std::uint32_t& gachapon_id)
+    bool CDatabase::DeleteGachaponSaleInfo(const uint32_t& gachapon_id)
     {
         try
         {

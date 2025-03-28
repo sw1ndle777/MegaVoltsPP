@@ -68,16 +68,16 @@ namespace Game
     std::shared_mutex plaza_cache_mutex;
     std::shared_mutex room_ids_mutex;
     std::shared_mutex plaza_ids_mutex;
-    boost::unordered_flat_map<std::uint16_t, Player> players_cache;
-    boost::unordered_flat_map<std::uint16_t, Room> rooms_cache;
-    boost::unordered_flat_map<std::uint16_t, Plaza> plaza_cache;
+    boost::unordered_flat_map<uint16_t, Player> players_cache;
+    boost::unordered_flat_map<uint16_t, Room> rooms_cache;
+    boost::unordered_flat_map<uint16_t, Plaza> plaza_cache;
     /*
-    std::unordered_map<std::uint16_t, Player> players_cache;
-    std::unordered_map<std::uint16_t, Room> rooms_cache;
-    std::unordered_map<std::uint16_t, Plaza> plaza_cache;
+    std::unordered_map<uint16_t, Player> players_cache;
+    std::unordered_map<uint16_t, Room> rooms_cache;
+    std::unordered_map<uint16_t, Plaza> plaza_cache;
     */
-    std::vector<std::uint32_t> room_ids;  
-    std::vector<std::uint32_t> plaza_ids;
+    std::vector<uint32_t> room_ids;  
+    std::vector<uint32_t> plaza_ids;
     RECT rc = { 0 };
     CCastServer::CCastServer()
     {

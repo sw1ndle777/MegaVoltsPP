@@ -36,7 +36,7 @@ namespace NetEngine
         {
             struct
             {
-                uint32_t bugus : 4;// >> 0
+                uint32_t bogus : 4;// >> 0
                 uint32_t mission : 2; // >> 4
                 uint32_t order : 10; // >> 6
                 uint32_t extra : 8; // >> 16

@@ -7,7 +7,7 @@ namespace Game
 
     namespace Handlers
     {
-        MainAccountInfoAck GetNewAccInfoMsg(BaseLib::FrontAccount frontAccount, CMainServer* main_server, CSession* session, std::uint64_t server_time)
+        MainAccountInfoAck GetNewAccInfoMsg(BaseLib::FrontAccount frontAccount, CMainServer* main_server, CSession* session, uint64_t server_time)
         {
             MainAccountInfoAck accInfoMsg = MainAccountInfoAck();
             auto session_id = session->GetSessionId();
@@ -88,7 +88,7 @@ namespace Game
             accInfoMsg.Headshots = frontAccount.Headshots;
             accInfoMsg.HighestKillStreak = frontAccount.HighestKillStreak;
             accInfoMsg.Unknown2 = 0;
-            accInfoMsg.PlayTime = static_cast<std::uint32_t>(frontAccount.PlayTime);
+            accInfoMsg.PlayTime = static_cast<uint32_t>(frontAccount.PlayTime);
             accInfoMsg.ClanId = frontAccount.ClanId;
             accInfoMsg.ClanPadding = 0;
             accInfoMsg.ZombieKillPoints = frontAccount.ZombieKills * 3;
@@ -136,7 +136,7 @@ namespace Game
             return accInfoMsg;
         }
 
-        enum VoiceType : std::uint8_t
+        enum VoiceType : uint8_t
         {
             VoiceA = 0,
             VoiceB = 1,
@@ -148,22 +148,22 @@ namespace Game
             SpecialVoiceD = 7
         };
 
-        void setVoice(std::uint64_t& data, std::uint32_t character, std::uint8_t voice) {
-            std::uint8_t bit_position = (12 * character) + (voice - 4);
+        void setVoice(uint64_t& data, uint32_t character, uint8_t voice) {
+            uint8_t bit_position = (12 * character) + (voice - 4);
             data |= (1ULL << bit_position);
         }
 
-        void unsetVoice(std::uint64_t& data, std::uint32_t character, std::uint8_t voice) {
-            std::uint8_t bit_position = (12 * character) + (voice - 4);
+        void unsetVoice(uint64_t& data, uint32_t character, uint8_t voice) {
+            uint8_t bit_position = (12 * character) + (voice - 4);
             data &= ~(1ULL << bit_position);
         }
 
-        bool isVoiceUnlocked(std::uint64_t data, std::uint32_t character, std::uint8_t voice) {
-            std::uint8_t bit_position = (12 * character) + (voice - 4);
+        bool isVoiceUnlocked(uint64_t data, uint32_t character, uint8_t voice) {
+            uint8_t bit_position = (12 * character) + (voice - 4);
             return (data & (1ULL << bit_position)) != 0;
         }
-        //std::unordered_map<std::uint32_t, std::uint32_t> coupon_map =
-        boost::unordered_flat_map<std::uint32_t, std::uint32_t> coupon_map =
+        //std::unordered_map<uint32_t, uint32_t> coupon_map =
+        boost::unordered_flat_map<uint32_t, uint32_t> coupon_map =
         {
             {4305019, 1}, {4305020, 5}, {4305021, 10}, {4305022, 15},
             {4305023, 20}, {4305024, 25}, {4305025, 0}, {4305026, 30},
@@ -173,7 +173,7 @@ namespace Game
         };
         inline void PackageOpen(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -195,7 +195,7 @@ namespace Game
                 send_msg(session, 102, 1, Items::Package::Result::BoxInventoryFull, 0);
                 return;
             }
-            auto item = ItemSerialInfo(*reinterpret_cast<std::uint64_t*>(callback.message->GetData()));
+            auto item = ItemSerialInfo(*reinterpret_cast<uint64_t*>(callback.message->GetData()));
             const auto& item_inv = main_server->GetPlayerItemInventory(acc_cache, item);
 
             if (!item_inv.has_value()) return;
@@ -211,7 +211,7 @@ namespace Game
                     auto voice_index = ((used_item.item_info.item_number.item_id - 4810000) % 4) + 4;
                     auto cha_id = ((used_item.item_info.item_number.item_id - 4810000) / 4);
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to use voice card for character: ({}) voice index: ({})", cha_id, voice_index);
-                    std::uint64_t unlocked_voices = acc_cache->acc_info.VoiceType;
+                    uint64_t unlocked_voices = acc_cache->acc_info.VoiceType;
                     if (!isVoiceUnlocked(unlocked_voices, cha_id, voice_index))
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will unlock voice");

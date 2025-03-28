@@ -10,7 +10,7 @@ namespace Game
         inline void NormalShop(SCallbackData& callback, CMainServer* main_server)
         {   
             
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -20,7 +20,7 @@ namespace Game
             };
             std::shared_lock lock(callback.session->GetMutex());
             CSession* session = callback.session;
-            std::uint32_t items_count = static_cast<std::uint32_t>(callback.message->GetOption());
+            uint32_t items_count = static_cast<uint32_t>(callback.message->GetOption());
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
@@ -32,7 +32,7 @@ namespace Game
             {
                 const auto& buyItemIdReq = reinterpret_cast<MainBuyItemSerialInfoReq*>(callback.message->GetData());
                 std::vector<ShopSerialInfo> items;
-                for (std::uint32_t i = 0; i < items_count; i++)
+                for (uint32_t i = 0; i < items_count; i++)
                 {
                     const auto& item_bought = buyItemIdReq->items[i];
                     if (main_server->IsItemInShop(item_bought.id))
@@ -43,16 +43,16 @@ namespace Game
                     }
                 }
                 if (items.size() > 0)
-                    send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), static_cast<std::uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopSerialInfo));
+                    send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopSerialInfo));
 
             }
             else
             {
                 const auto& buyItemIdReq = reinterpret_cast<MainBuyItemIdReq*>(callback.message->GetData());
                 std::vector<ShopItem> shop_items;
-                std::uint32_t rt_spent = 0;
-                std::uint32_t mp_spent = 0;
-                for (std::uint32_t i = 0; i < items_count; i++)
+                uint32_t rt_spent = 0;
+                uint32_t mp_spent = 0;
+                for (uint32_t i = 0; i < items_count; i++)
                 {
                     const auto& item_bought_id = buyItemIdReq->items[i] & 0x7FFFFF;
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) request buy id: ({})", acc_cache->acc_info.Nickname.c_str(), item_bought_id);
@@ -86,7 +86,7 @@ namespace Game
                         acc_cache->acc_info.MicroPoints = acc_cache->acc_info.MicroPoints - mp_spent;
                         
                         
-                        send_msg(session, callback.message->GetOrder(), 0, 0, static_cast<std::uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // buy item ack
+                        send_msg(session, callback.message->GetOrder(), 0, 0, static_cast<uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // buy item ack
                         //send_msg(session, 99, 0, 37, shop_items.size(), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // update inventory items ack
                         MainCurrencyUpdateAck currency_update_data{ acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
                         send_msg(session, 307, 0, 1, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // update currency ack
@@ -98,7 +98,7 @@ namespace Game
         }
         inline void CouponShop(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -108,7 +108,7 @@ namespace Game
             };
             std::shared_lock lock(callback.session->GetMutex());
             CSession* session = callback.session;
-            const std::uint32_t items_count = static_cast<std::uint32_t>(callback.message->GetOption());
+            const uint32_t items_count = static_cast<uint32_t>(callback.message->GetOption());
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
@@ -116,8 +116,8 @@ namespace Game
             if (acc_index == -1) return;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) coupon shop -> mission: ({}), extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
             std::vector<ShopItem> items;
-            std::uint32_t coupon_spent = 0;
-            for (std::uint32_t i = 0; i < items_count; i++)
+            uint32_t coupon_spent = 0;
+            for (uint32_t i = 0; i < items_count; i++)
             {
                 const auto& item_bought_id = buyItemIdReq->items[i] & 0x7FFFFF;
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) request buy id: ({})", acc_cache->acc_info.Nickname.c_str(), item_bought_id);

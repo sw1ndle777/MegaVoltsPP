@@ -7,7 +7,7 @@ namespace Game
 
     namespace Handlers
     {
-        inline MainRoomPlayersEquipInfoUpdateRoomAck GetUpdateEquipInfo(std::uint32_t my_unique_id, std::vector<BaseLib::Item>& my_equipped_items, CMainServer* main_server)
+        inline MainRoomPlayersEquipInfoUpdateRoomAck GetUpdateEquipInfo(uint32_t my_unique_id, std::vector<BaseLib::Item>& my_equipped_items, CMainServer* main_server)
         {
             const auto& my_set_item = main_server->GetItemByType(my_equipped_items, 25).item_info.item_number.item_id;
             auto my_setitem_info = main_server->GetSetItemInfoCache(my_set_item);
@@ -49,7 +49,7 @@ namespace Game
         }
         inline void GameEventMessage(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -66,7 +66,7 @@ namespace Game
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_cache->acc_info.Index == -1) return;
 
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player update state: before ({}) now ({})", static_cast<std::uint32_t>(acc_cache->state), static_cast<std::uint32_t>(player_state));
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player update state: before ({}) now ({})", static_cast<uint32_t>(acc_cache->state), static_cast<uint32_t>(player_state));
             acc_cache->state = player_state;
 
             if (player_state == PlayerInfo::State::GachaponMachine)
@@ -86,7 +86,7 @@ namespace Game
                     MainCompleteMissionReq mission_data;
                     mission_data.collection_id = 53;
                     send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
-                    std::vector<std::uint16_t> empty_vec;
+                    std::vector<uint16_t> empty_vec;
                     ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
                 }
 
@@ -123,7 +123,7 @@ namespace Game
                     auto voice_id = acc_cache->voice_id;
                     std::vector<BaseLib::Item> my_equipped_items;
                     for (const auto& item : acc_cache->inventory_items)
-                        if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character))
+                        if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(selected_character))
                             my_equipped_items.push_back(item);
 
                     acc_cache.unlock();
@@ -155,7 +155,7 @@ namespace Game
                     auto voice_id = acc_cache->voice_id;
                     std::vector<BaseLib::Item> my_equipped_items;
                     for (const auto& item : acc_cache->inventory_items)
-                        if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character))
+                        if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(selected_character))
                             my_equipped_items.push_back(item);
 
                     acc_cache.unlock();
@@ -178,7 +178,7 @@ namespace Game
             }
             if (acc_cache->in_party && acc_cache->in_room)
             {
-                bool is_going_to_waiting = (static_cast<std::uint32_t>(player_state) == 7);
+                bool is_going_to_waiting = (static_cast<uint32_t>(player_state) == 7);
                 auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
                 auto party_cache = main_server->GetPartyCacheUnique(acc_cache->party_id);
                 bool is_ruined = (room_cache->blueteam_session_ids.size() == 0 || room_cache->redteam_session_ids.size() == 0);
@@ -198,7 +198,7 @@ namespace Game
                     main_server->NewRemoveRoomPlayer(room_cache, session_id, my_team_id, NetEngine::Room::Leave::Ack::Result::Leave, false);
                     //main_server->RemoveRoomPlayerCache(room_cache, session_id, my_team_id);
                     //main_server->RoomPlayersSlotReorder(room_cache);
-                    std::uint32_t player_count = room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size();
+                    uint32_t player_count = room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size();
                     if (player_count == 0)
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "last player remaining in endmatch screen leave so now room will be removed");

@@ -9,7 +9,7 @@ namespace Game
     {
         inline void JoinRoom(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -23,7 +23,7 @@ namespace Game
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            std::int32_t current_team_id = -1;
+            int32_t current_team_id = -1;
             auto join_result = static_cast<NetEngine::Room::Join::ReqResult>(callback.message->GetExtra());
             if (acc_index == -1) return;
             const auto& joinRoomReq = reinterpret_cast<MainJoinRoomReq*>(callback.message->GetData());
@@ -97,8 +97,8 @@ namespace Game
             auto is_mode_teambased = main_server->IsModeTeamBased(static_cast<NetEngine::Room::Mode::Index>(room_cache->ModeIndex));
             auto observers_max_count = room_cache->allow_observers ? 10 : 0;
             auto room_players_max_count = room_cache->max_players;
-            std::uint32_t players_count = is_mode_teambased ? room_cache->redteam_session_ids.size() + room_cache->blueteam_session_ids.size() : room_cache->neutralteam_session_ids.size();
-            if (room_cache->allow_observers) players_count += static_cast<std::uint32_t>(room_cache->observers_session_ids.size());
+            uint32_t players_count = is_mode_teambased ? room_cache->redteam_session_ids.size() + room_cache->blueteam_session_ids.size() : room_cache->neutralteam_session_ids.size();
+            if (room_cache->allow_observers) players_count += static_cast<uint32_t>(room_cache->observers_session_ids.size());
             if (players_count >= room_players_max_count + observers_max_count)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room was full");
@@ -205,7 +205,7 @@ namespace Game
                 }
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now prepare settings");
-            auto has_password = static_cast<std::uint8_t>(!room_cache->password.empty());
+            auto has_password = static_cast<uint8_t>(!room_cache->password.empty());
             RoomSettingsInfo2 settings_info{};
             settings_info.map_index = room_cache->MapIndex;
             settings_info.mode_index = room_cache->ModeIndex;
@@ -220,8 +220,8 @@ namespace Game
             settings_info.hide_password = false;
             settings_info.is_clan_room = (acc_cache->in_party ? (is_clan ? 2 : 1) : 0);
             auto settings_data = MainRoomSettingsInfoAck(room_cache->password.c_str(), settings_info).Serialize();
-            std::uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
-            std::uint8_t low_room_id_part = room_cache->room_id & 0xFF;
+            uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
+            uint8_t low_room_id_part = room_cache->room_id & 0xFF;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sending settings");
             send_msg(session, 139, has_password, low_room_id_part, high_room_id_part, reinterpret_cast<uint8_t*>(settings_data.data()), settings_data.size());
             RoomSettingsModeInfo2 mode_settings_info;
@@ -247,15 +247,15 @@ namespace Game
             
             auto players_size = players_ids.size();
             auto equipBlocksCount = players_size == 0 ? 0 : (players_size / 16) + 1;
-            constexpr std::size_t MAX_PACKET_SIZE = 1440;          
-            for (std::uint32_t batch_id = 0; batch_id < equipBlocksCount; batch_id++)
+            constexpr size_t MAX_PACKET_SIZE = 1440;          
+            for (uint32_t batch_id = 0; batch_id < equipBlocksCount; batch_id++)
             {
-                const std::uint32_t max_batch_size = (MAX_PACKET_SIZE - 8) / sizeof(MainRoomPlayersInfoAck);
-                const std::uint8_t extra = (batch_id == 0) ? 37 : 0;
-                std::vector<std::uint8_t> new_info;
-                std::uint32_t block_size = 0;
-                const std::uint32_t start_index = batch_id * max_batch_size;
-                const std::uint32_t end_index = std::min(start_index + max_batch_size, static_cast<std::uint32_t>(players_ids.size()));
+                const uint32_t max_batch_size = (MAX_PACKET_SIZE - 8) / sizeof(MainRoomPlayersInfoAck);
+                const uint8_t extra = (batch_id == 0) ? 37 : 0;
+                std::vector<uint8_t> new_info;
+                uint32_t block_size = 0;
+                const uint32_t start_index = batch_id * max_batch_size;
+                const uint32_t end_index = std::min(start_index + max_batch_size, static_cast<uint32_t>(players_ids.size()));
                 for (auto i = start_index; i < end_index; i++)
                 {
                     auto player_id = players_ids[i];
@@ -271,7 +271,7 @@ namespace Game
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player ({}) ({}) is zombie", player_id, player_cache->acc_info.Nickname.c_str());
                         info1.team = player_cache->zombie_team;
                     }
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send ({}) as team ({})", player_cache->acc_info.Nickname.c_str(), static_cast<std::uint32_t>(info1.team));
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "send ({}) as team ({})", player_cache->acc_info.Nickname.c_str(), static_cast<uint32_t>(info1.team));
                 #if defined(RELEASE_1_0_3)
                     info1.level = player_cache->acc_info.Level + 1;
                 #else
@@ -306,14 +306,14 @@ namespace Game
                 send_msg(session, 406, 0, extra, block_size, reinterpret_cast<uint8_t*>(new_info.data()), new_info.size());
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent clan info");
-            for (std::uint32_t batch_id = 0; batch_id < equipBlocksCount; batch_id++)
+            for (uint32_t batch_id = 0; batch_id < equipBlocksCount; batch_id++)
             {
-                const std::uint32_t max_batch_size = (MAX_PACKET_SIZE - 8) / sizeof(MainRoomPlayersEquipInfoAck);
-                const std::uint8_t extra = (batch_id == 0) ? 37 : 0;
+                const uint32_t max_batch_size = (MAX_PACKET_SIZE - 8) / sizeof(MainRoomPlayersEquipInfoAck);
+                const uint8_t extra = (batch_id == 0) ? 37 : 0;
                 std::vector<MainRoomPlayersEquipInfoAck> new_equipinfo;
-                std::uint32_t block_size = 0;
-                const std::uint32_t start_index = batch_id * max_batch_size;
-                const std::uint32_t end_index = std::min(start_index + max_batch_size, static_cast<std::uint32_t>(players_ids.size()));
+                uint32_t block_size = 0;
+                const uint32_t start_index = batch_id * max_batch_size;
+                const uint32_t end_index = std::min(start_index + max_batch_size, static_cast<uint32_t>(players_ids.size()));
                 for (auto i = start_index; i < end_index; i++)
                 {
                     auto player_id = players_ids[i];
@@ -324,7 +324,7 @@ namespace Game
                     auto pcroom_tier = player_cache->acc_info.PCRoom;
                     std::vector<BaseLib::Item> equipped_items;
                     for (const auto& item : player_cache->inventory_items)
-                        if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(player_cache->acc_info.SelectedCharacter))
+                        if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(player_cache->acc_info.SelectedCharacter))
                             equipped_items.push_back(item);
 
                     const auto& set_item = main_server->GetItemByType(equipped_items, 25).item_info.item_number.item_id;
@@ -426,7 +426,7 @@ namespace Game
             const auto& my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             std::vector<BaseLib::Item> my_equipped_items;
             for (const auto& item : acc_cache->inventory_items)
-                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(acc_cache->acc_info.SelectedCharacter))
+                if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(acc_cache->acc_info.SelectedCharacter))
                     my_equipped_items.push_back(item);
 
             const auto& my_set_item = main_server->GetItemByType(my_equipped_items, 25).item_info.item_number.item_id;
@@ -577,7 +577,7 @@ namespace Game
 
                 send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&tdm_info), sizeof(tdm_info));
             }
-            std::vector<std::pair<std::uint32_t, uint32_t>> filtered_slots;
+            std::vector<std::pair<uint32_t, uint32_t>> filtered_slots;
             acc_cache.unlock();
             for (const auto& player_id : players_ids)
             {
@@ -589,7 +589,7 @@ namespace Game
             }
 
             std::stable_sort(filtered_slots.begin(), filtered_slots.end(),
-                [](const std::pair<std::uint32_t, uint32_t>& a, const std::pair<std::uint32_t, uint32_t>& b)
+                [](const std::pair<uint32_t, uint32_t>& a, const std::pair<uint32_t, uint32_t>& b)
             {
                 return a.second < b.second;
             });
@@ -598,7 +598,7 @@ namespace Game
             auto pcroom_tier = acc_cache->acc_info.PCRoom;
             auto my_auto_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
-            acc_cache->slot_id = (current_team_id != NetEngine::Team::IdType::Observer) ? static_cast<std::uint8_t>(filtered_slots.back().second + 1) : 0xFF;
+            acc_cache->slot_id = (current_team_id != NetEngine::Team::IdType::Observer) ? static_cast<uint8_t>(filtered_slots.back().second + 1) : 0xFF;
             send_msg(session, 140, 0, (current_team_id != NetEngine::Team::IdType::Observer) ? NetEngine::Room::Join::Result::JoinAsPlayer : NetEngine::Room::Join::Result::JoinAsObserver, 1);
             PlayerRoomClanListInfo my_clan_info;
             if (acc_cache->acc_info.ClanId)

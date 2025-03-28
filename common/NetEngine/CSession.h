@@ -39,17 +39,18 @@ namespace NetEngine
     public:
         friend class CServer;
 
-        CSession(asio::ip::tcp::socket&& socket, asio::io_context& ioc, CServer* server, SSessionSettings settings, std::uint16_t session_id);
+        CSession(asio::ip::tcp::socket&& socket, asio::io_context& ioc, CServer* server, SSessionSettings settings, uint16_t session_id);
         ~CSession();
 
         void Disconnect();
         void Send(CMessage& message);
-        void SetEncryptionKey(std::int32_t key);
-        void SetSessionId(std::uint16_t id);
+        void DoSend();
+        void SetEncryptionKey(int32_t key);
+        void SetSessionId(uint16_t id);
         void SetOnDisconnectCallback(std::function<void(std::shared_ptr<CSession>)> callback);
-        void SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)>);
-        std::int32_t GetEncryptionKey();
-        std::uint16_t GetSessionId();
+        void SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>);
+        int32_t GetEncryptionKey();
+        uint16_t GetSessionId();
         CServer* GetServer();
         void DoRead();
         void DoReadIpc();
@@ -66,23 +67,21 @@ namespace NetEngine
             asio::io_context& ioc,
             CServer* server,
             SSessionSettings settings,
-            std::uint16_t session_id
+            uint16_t session_id
         ) {
             auto self = std::make_shared<CSession>(
                 std::move(socket), ioc, server, settings, session_id
             );
-            self->m_self = self; // Post-construction initialization
             return self;
         }
     private:
         
-        void onPacket(Protocols::STcpPacketHeader& header, std::vector<std::uint8_t>& data);
+        void onPacket(Protocols::STcpPacketHeader& header, std::vector<uint8_t>& data);
 
     private:
-        //std::map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
-        boost::unordered_flat_map<std::uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
-        
-        std::queue<std::vector<std::uint8_t>> m_SendQueue;
+        //std::map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
+        boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
+        std::deque<std::shared_ptr<std::vector<uint8_t>>> m_SendQueue;
         std::shared_mutex mutex;
         std::shared_mutex SendMtx;
         
@@ -94,12 +93,10 @@ namespace NetEngine
         CServer* m_server = nullptr;
         bool m_verbose = false;
         bool m_useEncryption = false;
-        std::int32_t m_encryptionKey = -1;
-        std::uint16_t m_sessionId = 1;
+        int32_t m_encryptionKey = -1;
+        uint16_t m_sessionId = 1;
         std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback; 
-        std::function<void(std::shared_ptr<CSession>, const std::uint32_t& msg_id, const std::uint32_t& msg_size, const std::vector<uint8_t>&)> m_on_ipc_callback;
+        std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> m_on_ipc_callback;
         bool m_ipc_identifier_skipped;
-
-        std::shared_ptr<CSession> m_self;
     };
 }

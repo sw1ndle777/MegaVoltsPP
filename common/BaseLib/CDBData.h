@@ -6,7 +6,7 @@ namespace BaseLib
 #pragma pack(push, 1)
     struct ItemInfo
     {
-        std::uint32_t Id;
+        uint32_t Id;
         std::string Name;
         //std::string NameTime;
         //std::string NameOption;
@@ -19,17 +19,17 @@ namespace BaseLib
         //bool IsAmeliaUsable;
         //bool IsSharkillUsable;
         //bool IsSophitiaUsable;
-        std::uint32_t Type;
-        //std::uint32_t InventoryType;
+        uint32_t Type;
+        //uint32_t InventoryType;
         bool IsUpgradable;
-        std::uint32_t LimitedTime;
-        std::uint32_t Durability;
-        std::uint32_t CouponPrice;
-        std::uint32_t CashPrice;
-        std::uint32_t PointPrice;
-        std::uint32_t SellPointPrice;
-        std::uint32_t Stock;
-        std::uint32_t BonusEffectId;
+        uint32_t LimitedTime;
+        uint32_t Durability;
+        uint32_t CouponPrice;
+        uint32_t CashPrice;
+        uint32_t PointPrice;
+        uint32_t SellPointPrice;
+        uint32_t Stock;
+        uint32_t BonusEffectId;
         ItemInfo()
         {
             this->Id = 0;
@@ -61,9 +61,9 @@ namespace BaseLib
 #pragma pack(pop)
 
     struct EffectInfo {
-        std::uint32_t id;
-        std::uint32_t key;
-        std::uint32_t valueA;
+        uint32_t id;
+        uint32_t key;
+        uint32_t valueA;
         EffectInfo() {
             this->id = 0;
             this->key = 0;
@@ -72,12 +72,12 @@ namespace BaseLib
     };
 
     struct CollectionInfo {
-        std::uint32_t id;
-        std::uint32_t setIndex;
-        std::uint32_t rewardPoint;
-        std::uint32_t rewardExp;
-        std::uint32_t rewardItem;
-        std::uint32_t missionType;
+        uint32_t id;
+        uint32_t setIndex;
+        uint32_t rewardPoint;
+        uint32_t rewardExp;
+        uint32_t rewardItem;
+        uint32_t missionType;
         CollectionInfo() {
             this->id = 0;
             this->setIndex = 0;
@@ -89,12 +89,12 @@ namespace BaseLib
     };
 
     struct DailyMissionInfo {
-        std::uint32_t id;
-        std::uint32_t setIndex;
-        std::uint32_t rewardPoint;
-        std::uint32_t rewardExp;
-        std::uint32_t rewardItem;
-        std::uint32_t goal;
+        uint32_t id;
+        uint32_t setIndex;
+        uint32_t rewardPoint;
+        uint32_t rewardExp;
+        uint32_t rewardItem;
+        uint32_t goal;
         DailyMissionInfo() {
             this->id = 0;
             this->setIndex = 0;
@@ -107,17 +107,17 @@ namespace BaseLib
 
     struct SetItemInfo
     {
-        std::uint32_t Id;
-        std::uint32_t Hair;
-        std::uint32_t Face;
-        std::uint32_t Upper;
-        std::uint32_t Under;
-        std::uint32_t Arms;
-        std::uint32_t Pants;
-        std::uint32_t Boots;
-        std::uint32_t AccessoryA;
-        std::uint32_t AccessoryB;
-        std::uint32_t AccessoryC;
+        uint32_t Id;
+        uint32_t Hair;
+        uint32_t Face;
+        uint32_t Upper;
+        uint32_t Under;
+        uint32_t Arms;
+        uint32_t Pants;
+        uint32_t Boots;
+        uint32_t AccessoryA;
+        uint32_t AccessoryB;
+        uint32_t AccessoryC;
         SetItemInfo()
         {
             this->Id = 0;
@@ -135,33 +135,33 @@ namespace BaseLib
     };
     struct VendorInfo
     {
-        std::uint32_t Id;
-        std::uint32_t Category;
-        std::uint32_t Type;
-        std::uint32_t None;
-        std::uint32_t New;
-        std::uint32_t Hit;
-        std::uint32_t ListType;
-        std::uint32_t List01;
-        std::uint32_t List01_a;
-        std::uint32_t List01_b;
-        std::uint32_t List01_c;
-        std::uint32_t List01_d;
-        std::uint32_t List02;
-        std::uint32_t List02_a;
-        std::uint32_t List02_b;
-        std::uint32_t List02_c;
-        std::uint32_t List02_d;
-        std::uint32_t List03;
-        std::uint32_t List03_a;
-        std::uint32_t List03_b;
-        std::uint32_t List03_c;
-        std::uint32_t List03_d;
-        std::uint32_t List04;
-        std::uint32_t List04_a;
-        std::uint32_t List04_b;
-        std::uint32_t List04_c;
-        std::uint32_t List04_d;
+        uint32_t Id;
+        uint32_t Category;
+        uint32_t Type;
+        uint32_t None;
+        uint32_t New;
+        uint32_t Hit;
+        uint32_t ListType;
+        uint32_t List01;
+        uint32_t List01_a;
+        uint32_t List01_b;
+        uint32_t List01_c;
+        uint32_t List01_d;
+        uint32_t List02;
+        uint32_t List02_a;
+        uint32_t List02_b;
+        uint32_t List02_c;
+        uint32_t List02_d;
+        uint32_t List03;
+        uint32_t List03_a;
+        uint32_t List03_b;
+        uint32_t List03_c;
+        uint32_t List03_d;
+        uint32_t List04;
+        uint32_t List04_a;
+        uint32_t List04_b;
+        uint32_t List04_c;
+        uint32_t List04_d;
         bool IsGift;
         VendorInfo()
         {
@@ -198,18 +198,18 @@ namespace BaseLib
 
     struct UpgradeInfo
     {
-        std::uint32_t GroupId;
-        std::uint32_t UpgradeType;
-        std::uint32_t ItemId;
-        std::uint32_t ItemParentId;
-        std::uint32_t Probability;
-        std::uint32_t AddedProbability;
-        std::uint32_t HoldProbability;
-        std::uint32_t BuyCash;
-        std::uint32_t BuyPoint;
-        std::uint32_t UseExp;
-        std::uint32_t RestoreCash;
-        std::uint32_t RestorePoint;
+        uint32_t GroupId;
+        uint32_t UpgradeType;
+        uint32_t ItemId;
+        uint32_t ItemParentId;
+        uint32_t Probability;
+        uint32_t AddedProbability;
+        uint32_t HoldProbability;
+        uint32_t BuyCash;
+        uint32_t BuyPoint;
+        uint32_t UseExp;
+        uint32_t RestoreCash;
+        uint32_t RestorePoint;
         UpgradeInfo()
         {
             this->GroupId = -1;
@@ -228,13 +228,13 @@ namespace BaseLib
     };
     struct GachaponPackageItem
     {
-        std::uint32_t Id;
-        std::uint32_t Group;
-        std::uint32_t InfoId;
-        std::uint32_t ItemType;
-        std::uint32_t LuckyType;
-        std::uint32_t Probability;
-        std::uint32_t ItemId;
+        uint32_t Id;
+        uint32_t Group;
+        uint32_t InfoId;
+        uint32_t ItemType;
+        uint32_t LuckyType;
+        uint32_t Probability;
+        uint32_t ItemId;
         GachaponPackageItem()
         {
             this->Id = -1;
@@ -245,7 +245,7 @@ namespace BaseLib
             this->Probability = -1;
             this->ItemId = -1;
         }
-        GachaponPackageItem(std::uint32_t item_id)
+        GachaponPackageItem(uint32_t item_id)
         {
             this->Id = -1;
             this->Group = -1;
@@ -258,15 +258,15 @@ namespace BaseLib
     };
     struct GachaponInfo
     {
-        std::uint32_t Id;
+        uint32_t Id;
         //std::string Name;
-        std::uint32_t Type;
-        std::uint32_t InfoId;
-        std::uint32_t LimitedGrade;
-        std::uint32_t Price;
-        std::uint32_t LuckyPoint;
-        //std::unordered_map<std::uint32_t, std::vector<GachaponPackageItem>> Gachapons;
-        boost::unordered_flat_map<std::uint32_t, std::vector<GachaponPackageItem>> Gachapons;
+        uint32_t Type;
+        uint32_t InfoId;
+        uint32_t LimitedGrade;
+        uint32_t Price;
+        uint32_t LuckyPoint;
+        //std::unordered_map<uint32_t, std::vector<GachaponPackageItem>> Gachapons;
+        boost::unordered_flat_map<uint32_t, std::vector<GachaponPackageItem>> Gachapons;
         GachaponInfo()
         {
             this->Id = -1;
@@ -281,11 +281,11 @@ namespace BaseLib
     };
     struct PackageInfo
     {
-        std::uint32_t InfoId;
-        std::uint32_t GroupId;
-        std::uint32_t ItemId;
-        std::uint32_t Type;
-        std::uint32_t Probability;
+        uint32_t InfoId;
+        uint32_t GroupId;
+        uint32_t ItemId;
+        uint32_t Type;
+        uint32_t Probability;
         PackageInfo()
         {
             this->InfoId = -1;
@@ -297,12 +297,12 @@ namespace BaseLib
     };
     struct RoomOptionInfo
     {
-        std::uint32_t Id;
-        std::uint32_t Type;
+        uint32_t Id;
+        uint32_t Type;
         std::string Name;
-        std::uint32_t Data;
-        std::uint32_t Mode;
-        std::uint32_t CombatType;
+        uint32_t Data;
+        uint32_t Mode;
+        uint32_t CombatType;
         RoomOptionInfo()
         {
             this->Id = -1;
@@ -315,10 +315,10 @@ namespace BaseLib
     };
     struct MapInfo
     {
-        std::uint32_t Id;
+        uint32_t Id;
         std::string Name;
-        std::uint32_t MaxUsers;
-        std::int32_t DeathHeight;
+        uint32_t MaxUsers;
+        int32_t DeathHeight;
         bool tdm;
         bool ffa;
         bool itm;
@@ -370,10 +370,10 @@ namespace BaseLib
 
     struct GradeInfo
     {
-        std::uint32_t Grade;
-        std::uint32_t Exp;
-        std::uint32_t RewardPoint;
-        std::uint32_t RewardItem;
+        uint32_t Grade;
+        uint32_t Exp;
+        uint32_t RewardPoint;
+        uint32_t RewardItem;
         GradeInfo()
         {
             this->Grade = 0;
@@ -384,30 +384,30 @@ namespace BaseLib
     };
     struct RewardInfo
     {
-        std::uint32_t GameMode;
-        std::uint32_t ExpBase;
-        std::uint32_t ExpMax;
-        std::uint32_t ExpKill;
-        std::uint32_t ExpModeKill;
-        std::uint32_t ExpDeath;
-        std::uint32_t ExpAssist;
-        std::uint32_t ExpMission;
-        std::uint32_t ExpMissionWin;
-        std::uint32_t PointBase;
-        std::uint32_t PointMax;
-        std::uint32_t PointKill;
-        std::uint32_t PointModeKill;
-        std::uint32_t PointDeath;
-        std::uint32_t PointAssist;
-        std::uint32_t PointMission;
-        std::uint32_t PointMissionWin;
-        std::uint32_t ModeLimitedTime;
-        std::uint32_t PlayerLimitedTime;
-        std::uint32_t PenaltyPoint;
-        std::uint32_t ExpEvent;
-        std::uint32_t PointEvent;
-        std::uint32_t ClanExpBase;
-        std::uint32_t ClanExpBnus;
+        uint32_t GameMode;
+        uint32_t ExpBase;
+        uint32_t ExpMax;
+        uint32_t ExpKill;
+        uint32_t ExpModeKill;
+        uint32_t ExpDeath;
+        uint32_t ExpAssist;
+        uint32_t ExpMission;
+        uint32_t ExpMissionWin;
+        uint32_t PointBase;
+        uint32_t PointMax;
+        uint32_t PointKill;
+        uint32_t PointModeKill;
+        uint32_t PointDeath;
+        uint32_t PointAssist;
+        uint32_t PointMission;
+        uint32_t PointMissionWin;
+        uint32_t ModeLimitedTime;
+        uint32_t PlayerLimitedTime;
+        uint32_t PenaltyPoint;
+        uint32_t ExpEvent;
+        uint32_t PointEvent;
+        uint32_t ClanExpBase;
+        uint32_t ClanExpBnus;
         RewardInfo()
         {
             this->GameMode = -1;

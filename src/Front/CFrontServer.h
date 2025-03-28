@@ -16,7 +16,7 @@ namespace Game
     using namespace NetEngine::Packets::Front;
     struct FrontAuthorize
     {
-        enum Type : std::uint8_t
+        enum Type : uint8_t
         {
             Wrong = 0x00,
             Success = 0x01,
@@ -30,7 +30,7 @@ namespace Game
     };
     struct ChannelInfo
     {
-        enum Status : std::uint8_t
+        enum Status : uint8_t
         {
             Normal = 0x00,
             Busy = 0x01,
@@ -41,10 +41,10 @@ namespace Game
     struct Player
     {
         std::shared_mutex mutex;
-        std::uint64_t auth_key = 0;
+        uint64_t auth_key = 0;
         bool forcefully_logged_out = false;
 
-        Player(const std::uint64_t& authKey = 0, const bool& forcefullyLoggedOut = false) : auth_key(authKey), forcefully_logged_out(forcefullyLoggedOut){}
+        Player(const uint64_t& authKey = 0, const bool& forcefullyLoggedOut = false) : auth_key(authKey), forcefully_logged_out(forcefullyLoggedOut){}
         Player(const Player& other)
         {
             auth_key = other.auth_key;
@@ -59,14 +59,14 @@ namespace Game
         }
     };
     extern std::shared_mutex players_cache_mutex;
-    extern boost::unordered_flat_map<std::uint64_t, Player> players_cache;
+    extern boost::unordered_flat_map<uint64_t, Player> players_cache;
     class CFrontServer : public NetEngine::CServer
     {
     public:
         CFrontServer();
         ~CFrontServer();
 
-        auto IsPlayerAlready(const std::uint64_t& auth_key)
+        auto IsPlayerAlready(const uint64_t& auth_key)
         {
             std::shared_lock lock(players_cache_mutex);
             if (auto findit = players_cache.find(auth_key); findit != players_cache.end())
@@ -74,7 +74,7 @@ namespace Game
             else
                 return false;
         }
-        auto GetPlayerCacheShared(const std::uint64_t& auth_key)
+        auto GetPlayerCacheShared(const uint64_t& auth_key)
         {
             std::shared_lock lock(players_cache_mutex);
             auto it = players_cache.find(auth_key);
@@ -88,7 +88,7 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_player_mutex), null_player };
             }
         }
-        auto GetPlayerCacheUnique(const std::uint64_t& auth_key)
+        auto GetPlayerCacheUnique(const uint64_t& auth_key)
         {
             std::shared_lock lock(players_cache_mutex);
             auto it = players_cache.find(auth_key);
@@ -102,7 +102,7 @@ namespace Game
                 return LockedResource{ std::unique_lock(null_player_mutex), null_player };
             }
         }
-        void AddPlayerCache(const std::uint64_t& auth_key, const Player& new_player)
+        void AddPlayerCache(const uint64_t& auth_key, const Player& new_player)
         {
             if (!IsPlayerAlready(auth_key))
             {
@@ -112,7 +112,7 @@ namespace Game
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a player with auth key: ({}), but it already exists ", auth_key);
             }
         }
-        bool RemovePlayerCache(const std::uint64_t& auth_key)
+        bool RemovePlayerCache(const uint64_t& auth_key)
         {
             if (IsPlayerAlready(auth_key))
             {

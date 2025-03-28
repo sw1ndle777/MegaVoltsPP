@@ -11,7 +11,7 @@ namespace Game
         {
             std::unique_lock lock(session->GetMutex());
             const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
-            //static_cast<std::int32_t>(rand() + 1)
+            //static_cast<int32_t>(rand() + 1)
             MainEngineServerConnectionAck mainEngineServerConnectionAck = MainEngineServerConnectionAck(random_number, session->GetSessionId(), 1);
 
             session->SetEncryptionKey(mainEngineServerConnectionAck.cryptoKey);

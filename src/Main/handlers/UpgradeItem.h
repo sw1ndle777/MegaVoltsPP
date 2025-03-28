@@ -10,7 +10,7 @@ namespace Game
 
         inline void InjectEnergy(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -34,11 +34,11 @@ namespace Game
             acc_cache->acc_info.Energy = acc_cache->acc_info.Energy - energyInjectItemReq->energy;
             main_server->UpdatePlayerItemEnergy(acc_cache, energyInjectItemReq->item, item_inv.value().item_info.energy + energyInjectItemReq->energy);
             MainInjectEnergyAck injectEnergyData = MainInjectEnergyAck(energyInjectItemReq->item, energyInjectItemReq->energy);
-            send_msg(session, 101, 0, static_cast<std::uint8_t>(Items::Upgrade::Result::EnergyInjection), option, reinterpret_cast<uint8_t*>(&injectEnergyData), sizeof(MainInjectEnergyAck));
+            send_msg(session, 101, 0, static_cast<uint8_t>(Items::Upgrade::Result::EnergyInjection), option, reinterpret_cast<uint8_t*>(&injectEnergyData), sizeof(MainInjectEnergyAck));
         }
         inline void Reset(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -65,11 +65,11 @@ namespace Game
 
             const ShopItem& shop_item = { {item_info->Id , item_info->Stock }, item_inv.value().item_info.expire_date, item_inv.value().item_info.serial_info.data };
             MainResetUpgradeItemAck resetUpgradeItemData = MainResetUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, upgrade_reset_item.value().item_info.serial_info);
-            send_msg(session, 101, 0, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeReset), 0, reinterpret_cast<uint8_t*>(&resetUpgradeItemData), sizeof(MainResetUpgradeItemAck));
+            send_msg(session, 101, 0, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeReset), 0, reinterpret_cast<uint8_t*>(&resetUpgradeItemData), sizeof(MainResetUpgradeItemAck));
         }
         inline void Upgrade(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -159,13 +159,13 @@ namespace Game
             }
             if (current_item_info.repair != item_info->Durability)
             {
-                send_msg(session, 101, 0, static_cast<std::uint8_t>(Items::Upgrade::Result::RepairItem), 0);
+                send_msg(session, 101, 0, static_cast<uint8_t>(Items::Upgrade::Result::RepairItem), 0);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) has no funds to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 return;
             }
             if (acc_cache->acc_info.MicroPoints < current_upgrade.BuyPoint || acc_cache->acc_info.RockTokens < current_upgrade.BuyCash)
             {
-                send_msg(session, 101, 0, static_cast<std::uint8_t>(Items::Upgrade::Result::NotEnoughPoints), 0);
+                send_msg(session, 101, 0, static_cast<uint8_t>(Items::Upgrade::Result::NotEnoughPoints), 0);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) doesn't have enough funds to upgrade item: ({}) -> ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id, current_upgrade.ItemId);
                 return;
             }
@@ -196,8 +196,8 @@ namespace Game
                 {
                     main_server->UpdatePlayerItemUpgrade(acc_cache, item_inv.value().item_info.serial_info, upgraded_item_info->Id, upgraded_item_info->Durability, 0);
                     ShopItem shop_item = { {upgraded_item_info->Id , upgraded_item_info->Stock }, item_inv.value().item_info.expire_date, item_inv.value().item_info.serial_info.data };
-                    auto upgradeItemAckData = MainUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeSuccess));
-                    send_msg(session, 101, upgrade_type, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeSuccess), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
+                    auto upgradeItemAckData = MainUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeSuccess));
+                    send_msg(session, 101, upgrade_type, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeSuccess), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) upgraded item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 }
             }
@@ -221,7 +221,7 @@ namespace Game
                         no_downgrade = true;
                     }
                 }
-                std::uint32_t energy_to_refund = 0;
+                uint32_t energy_to_refund = 0;
                 if (have_energy_refund_item)
                 {
                     const auto& inv_refund_item = main_server->GetPlayerItemInventory(acc_cache, energy_refund_item);
@@ -250,8 +250,8 @@ namespace Game
                 if (no_downgrade)
                 {
                     main_server->UpdatePlayerItemEnergy(acc_cache, item_inv.value().item_info.serial_info, energy_to_refund);
-                    auto upgradeItemAckData = MainUpgradeItemAck(ShopItem(), item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailLow));
-                    send_msg(session, 101, static_cast<std::uint8_t>(Items::Upgrade::FailType::NoChange), static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailLow), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());;
+                    auto upgradeItemAckData = MainUpgradeItemAck(ShopItem(), item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailLow));
+                    send_msg(session, 101, static_cast<uint8_t>(Items::Upgrade::FailType::NoChange), static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailLow), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());;
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) failed to upgrade item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                 }
                 else
@@ -262,8 +262,8 @@ namespace Game
                     {
                         main_server->UpdatePlayerItemUpgrade(acc_cache, item_inv.value().item_info.serial_info, previous_upgrade_item_info->Id, previous_upgrade_item_info->Durability, 0);
                         const ShopItem& shop_item = { {previous_upgrade_item_info->Id, previous_upgrade_item_info->Stock} , item_inv.value().item_info.expire_date , item_inv.value().item_info.serial_info.data };
-                        auto upgradeItemAckData = MainUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailHigh));
-                        send_msg(session, 101, upgrade_type, static_cast<std::uint8_t>(Items::Upgrade::Result::UpgradeFailHigh), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
+                        auto upgradeItemAckData = MainUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, booster_item, energy_refund_item, protection_item).Serialize(upgrade_info, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailHigh));
+                        send_msg(session, 101, upgrade_type, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailHigh), upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) failed to upgrade and downgraded item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
                     }
                 }

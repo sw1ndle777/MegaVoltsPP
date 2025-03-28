@@ -9,7 +9,7 @@ namespace Game
     {
         inline void LobbyUserDetails(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -27,11 +27,11 @@ namespace Game
             if (acc_index == -1) return;
             auto userInfoDetailsReq = reinterpret_cast<MainPlayerDetailsInfoReq*>(callback.message->GetData());
             auto user_uniqueid = NetEngine::Packets::Core::UniqueId(userInfoDetailsReq->unique_id);
-            auto target_acc_cache = main_server->GetAccCacheSharedBySessionId(static_cast<std::uint16_t>(user_uniqueid.session));
+            auto target_acc_cache = main_server->GetAccCacheSharedBySessionId(static_cast<uint16_t>(user_uniqueid.session));
             if (target_acc_cache->acc_info.Index == -1) return;
             std::vector<BaseLib::Item> equipped_items;
             for (auto& item : target_acc_cache->inventory_items)
-                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(target_acc_cache->acc_info.SelectedCharacter))
+                if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(target_acc_cache->acc_info.SelectedCharacter))
                     equipped_items.push_back(item);
 
             MainPlayerDetailsInfoAck detailsInfo;
@@ -50,7 +50,7 @@ namespace Game
             detailsInfo.Grenade = target_acc_cache->acc_info.GrenadeKills;
             detailsInfo.Headshots = target_acc_cache->acc_info.Headshots;
             detailsInfo.HighestKillStreak = target_acc_cache->acc_info.HighestKillStreak;
-            detailsInfo.PlayTime = static_cast<std::uint32_t>(target_acc_cache->acc_info.PlayTime);
+            detailsInfo.PlayTime = static_cast<uint32_t>(target_acc_cache->acc_info.PlayTime);
             detailsInfo.Unknown1 = 0;
             detailsInfo.Unknown2 = 0;
         #if defined(RELEASE_1_1_1)
@@ -128,7 +128,7 @@ namespace Game
             detailsInfo.EquippedGatlingItemId = main_server->GetItemByType(equipped_items, 14).item_info.item_number.item_id;
             detailsInfo.EquippedGrenadeItemId = main_server->GetItemByType(equipped_items, 15).item_info.item_number.item_id;
             detailsInfo.EquippedBazookaItemId = main_server->GetItemByType(equipped_items, 16).item_info.item_number.item_id;
-            send_msg(session, 85, 0, detailsInfo.ClanId ? Userlist::Friends::DetailsType::WithClan : Userlist::Friends::DetailsType::WithoutClan, static_cast<std::uint8_t>(user_uniqueid.server), reinterpret_cast<uint8_t*>(&detailsInfo), sizeof(detailsInfo));
+            send_msg(session, 85, 0, detailsInfo.ClanId ? Userlist::Friends::DetailsType::WithClan : Userlist::Friends::DetailsType::WithoutClan, static_cast<uint8_t>(user_uniqueid.server), reinterpret_cast<uint8_t*>(&detailsInfo), sizeof(detailsInfo));
         }
     }
     

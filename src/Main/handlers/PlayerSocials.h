@@ -9,7 +9,7 @@ namespace Game
     {
         inline void PlayerBlock(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -34,7 +34,7 @@ namespace Game
             {
                 std::shared_lock lock(callback.session->GetMutex());
                 CSession* session = callback.session;
-                std::uint32_t target_acc_id = 0;
+                uint32_t target_acc_id = 0;
                 if (!BaseLib::Database->NicknameExists(target_nickname.c_str(), target_acc_id))
                 {
                     send_msg(session, 52, 0, Userlist::Blocked::AddResult::Offline, 0);
@@ -43,9 +43,9 @@ namespace Game
                 auto blockeds = main_server->GetBlockedsList(session_id);
                 if (main_server->IsBlockedAlready(blockeds, target_acc_id)) return;
                 blockeds.unlock();
-                BlockedInfo newBlockedInfo = { acc_index, static_cast<std::int32_t>(target_acc_id), 0, target_nickname.c_str() };
-                FriendInfo delFriendInfo = { acc_index, static_cast<std::int32_t>(target_acc_id) };
-                FriendInfo delFriendInfo2 = { static_cast<std::int32_t>(target_acc_id), acc_index };
+                BlockedInfo newBlockedInfo = { acc_index, static_cast<int32_t>(target_acc_id), 0, target_nickname.c_str() };
+                FriendInfo delFriendInfo = { acc_index, static_cast<int32_t>(target_acc_id) };
+                FriendInfo delFriendInfo2 = { static_cast<int32_t>(target_acc_id), acc_index };
                 MainPlayerBlockedAddAck blocked_data = { target_acc_id, target_nickname.c_str() };
                 send_msg(session, 52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
 
@@ -63,11 +63,11 @@ namespace Game
             auto blockeds = main_server->GetBlockedsList(session_id);
             if (main_server->IsBlockedAlready(blockeds, target_acc_cache->acc_info.Index)) return;
             blockeds.unlock();
-            const BlockedInfo& newBlockedInfo = { acc_index, target_acc_cache->acc_info.Index, target_acc_cache->session_id ? static_cast<std::uint32_t>(target_acc_cache->session_id) : 0, target_nickname.c_str() };
+            const BlockedInfo& newBlockedInfo = { acc_index, target_acc_cache->acc_info.Index, target_acc_cache->session_id ? static_cast<uint32_t>(target_acc_cache->session_id) : 0, target_nickname.c_str() };
 
             if (target_acc_cache->session_id)
             {
-                MainPlayerBlockedAddAck blocked_data = { static_cast<std::uint32_t>(target_acc_cache->acc_info.Index), target_nickname.c_str() };
+                MainPlayerBlockedAddAck blocked_data = { static_cast<uint32_t>(target_acc_cache->acc_info.Index), target_nickname.c_str() };
                 send_msg(session, 52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
                 main_server->RemovePlayerFriends(target_acc_cache->session_id, acc_index);
                 main_server->AddPlayerFriendsDeleted(target_acc_cache, { target_acc_cache->acc_info.Index, acc_index });
@@ -81,7 +81,7 @@ namespace Game
         }
         inline void PlayerUnblock(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -101,14 +101,14 @@ namespace Game
             if (!main_server->IsBlockedAlready(blockeds, blockedRemoveReq->player_id)) return;
             blockeds.unlock();
             main_server->RemovePlayerBlockedsAdded(acc_cache, blockedRemoveReq->player_id);
-            main_server->AddPlayerBlockedsDeleted(acc_cache, {acc_index, static_cast<std::int32_t>(blockedRemoveReq->player_id) });
+            main_server->AddPlayerBlockedsDeleted(acc_cache, {acc_index, static_cast<int32_t>(blockedRemoveReq->player_id) });
             main_server->RemovePlayerBlockeds(session_id, blockedRemoveReq->player_id);
             send_msg(session, 53, 0, 0, 1);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) unblocked account id ({})", acc_cache->acc_info.Nickname.c_str(), blockedRemoveReq->player_id);
         }
         inline void PlayerBlockList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -137,7 +137,7 @@ namespace Game
         }
         inline void PlayerClanList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -179,7 +179,7 @@ namespace Game
         }
         inline void PlayerAddFriend(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -230,7 +230,7 @@ namespace Game
                     {
                         std::shared_lock lock(callback.session->GetMutex());
                         CSession* session = callback.session;
-                        std::uint32_t target_index = 0;
+                        uint32_t target_index = 0;
                         if (!BaseLib::Database->NicknameExists(target_nickname.c_str(), target_index))
                         {
                             send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
@@ -240,7 +240,7 @@ namespace Game
                         std::vector<BaseLib::FriendInfo> acc_friends;
                         std::vector<BaseLib::BlockedInfo> acc_blockeds;
                         std::vector<PlayerFriendInfo> target_friends_accepted;
-                        BaseLib::Database->GetPlayerBlockeds(static_cast<std::int32_t>(target_index), acc_blockeds);
+                        BaseLib::Database->GetPlayerBlockeds(static_cast<int32_t>(target_index), acc_blockeds);
                         auto my_blockeds = main_server->GetBlockedsList(session_id);
                         if (main_server->IsBlockedAlready(acc_blockeds, acc_index) || main_server->IsBlockedAlready(my_blockeds, target_index))
                         {
@@ -248,7 +248,7 @@ namespace Game
                             return;
                         }
 
-                        if (BaseLib::Database->GetPlayerFriends(static_cast<std::int32_t>(target_index), acc_friends))
+                        if (BaseLib::Database->GetPlayerFriends(static_cast<int32_t>(target_index), acc_friends))
                         {
                             auto accepted_friends_count = std::count_if(acc_friends.begin(), acc_friends.end(),
                                 [](const BaseLib::FriendInfo& friend_info) {
@@ -259,7 +259,7 @@ namespace Game
                                 send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                                 return;
                             }
-                            BaseLib::Database->InsertPlayerFriends({ { static_cast<std::int32_t>(target_index), acc_index, Userlist::Friends::State::Pending, 0, my_nickname.c_str() } });
+                            BaseLib::Database->InsertPlayerFriends({ { static_cast<int32_t>(target_index), acc_index, Userlist::Friends::State::Pending, 0, my_nickname.c_str() } });
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request pending in database to player ({})", my_nickname.c_str(), target_nickname.c_str());
                         }
 
@@ -365,7 +365,7 @@ namespace Game
         }
         inline void PlayerRemoveFriend(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -384,8 +384,8 @@ namespace Game
             {
                 auto friendRemoveReq = reinterpret_cast<MainPlayerFriendRemoveReq*>(callback.message->GetData());
 
-                FriendInfo delFriendInfo = { acc_index,static_cast<std::int32_t>(friendRemoveReq->player_id) };
-                FriendInfo delFriendInfo2 = { static_cast<std::int32_t>(friendRemoveReq->player_id) , acc_index};
+                FriendInfo delFriendInfo = { acc_index,static_cast<int32_t>(friendRemoveReq->player_id) };
+                FriendInfo delFriendInfo2 = { static_cast<int32_t>(friendRemoveReq->player_id) , acc_index};
                 main_server->RemovePlayerFriends(session_id, friendRemoveReq->player_id);
                 main_server->AddPlayerFriendsDeleted(acc_cache, delFriendInfo);
                 auto target_acc_cache = main_server->GetAccCacheUniqueByAccountId(friendRemoveReq->player_id);
@@ -422,13 +422,13 @@ namespace Game
                     send_msg(session, 61, 0, Userlist::ListResult::NoUsers, 0);
                     return;
                 }
-                std::uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
-                for (std::uint32_t i = 0; i < total_friends_fragments; i++)
+                uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
+                for (uint32_t i = 0; i < total_friends_fragments; i++)
                 {
                     std::vector<PlayerFriendInfo> friends_batch;
-                    std::uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
-                    std::uint32_t start_index = i * 51;
-                    std::uint32_t end_index = std::min(start_index + 51, static_cast<std::uint32_t>(friends_accepted.size()));
+                    uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
+                    uint32_t start_index = i * 51;
+                    uint32_t end_index = std::min(start_index + 51, static_cast<uint32_t>(friends_accepted.size()));
                     for (auto j = start_index; j < end_index; j++)
                         friends_batch.push_back(friends_accepted[j]);
 
@@ -438,7 +438,7 @@ namespace Game
         }
         inline void PlayerFriendList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -473,13 +473,13 @@ namespace Game
                     send_msg(session, 63, 0, Userlist::ListResult::NoUsers, 0);
                     return;
                 }
-                std::uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
-                for (std::uint32_t i = 0; i < total_friends_fragments; i++)
+                uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
+                for (uint32_t i = 0; i < total_friends_fragments; i++)
                 {
                     std::vector<PlayerFriendInfo> friends_batch;
-                    std::uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
-                    std::uint32_t start_index = i * 51;
-                    std::uint32_t end_index = std::min(start_index + 51, static_cast<std::uint32_t>(friends_accepted.size()));
+                    uint8_t user_list_result = (i == 0) ? Userlist::ListResult::Users : Userlist::ListResult::Users2;
+                    uint32_t start_index = i * 51;
+                    uint32_t end_index = std::min(start_index + 51, static_cast<uint32_t>(friends_accepted.size()));
                     for (auto j = start_index; j < end_index; j++)
                         friends_batch.push_back(friends_accepted[j]);
 
@@ -504,7 +504,7 @@ namespace Game
         }
         inline void PlayerInviteJoin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -547,7 +547,7 @@ namespace Game
                             send_msg(session, 163, 0, 14, 0);
                             return;
                         }
-                        auto join_confirm_ack_data = MainUserJoinConfirmAck(1, (std::uint16_t)target_acc_cache->plaza_id, 1).Serialize();
+                        auto join_confirm_ack_data = MainUserJoinConfirmAck(1, (uint16_t)target_acc_cache->plaza_id, 1).Serialize();
                         send_msg(session, 163, 0, 0, 1, reinterpret_cast<uint8_t*>(join_confirm_ack_data.data()), join_confirm_ack_data.size());
                         return;
                     }

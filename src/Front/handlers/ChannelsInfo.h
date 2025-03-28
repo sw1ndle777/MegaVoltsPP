@@ -12,7 +12,7 @@ namespace Game
             std::shared_lock lock(callback.session->GetMutex());
             CSession* session = callback.session;
             std::vector<Front::FrontServerInfo> server_infos;
-            for (std::uint32_t i = 1; i < 2; i++)
+            for (uint32_t i = 1; i < 2; i++)
             {
                 Front::FrontServerInfo server_info;
                 server_info.serverId = i;
@@ -27,8 +27,8 @@ namespace Game
 
             CMessage frontServerInfoAckMessage = CMessage(session->GetEncryptionKey());
             frontServerInfoAckMessage.SetSession(session->GetSessionId());
-            frontServerInfoAckMessage.SetCommand(0x17, 0x00, 0, static_cast<std::uint8_t>(server_infos.size()));
-            frontServerInfoAckMessage.SetData(reinterpret_cast<uint8_t*>(server_infos.data()), static_cast<std::uint16_t>(server_infos.size() * sizeof(Front::FrontServerInfo)));
+            frontServerInfoAckMessage.SetCommand(0x17, 0x00, 0, static_cast<uint8_t>(server_infos.size()));
+            frontServerInfoAckMessage.SetData(reinterpret_cast<uint8_t*>(server_infos.data()), static_cast<uint16_t>(server_infos.size() * sizeof(Front::FrontServerInfo)));
 
             session->Send(frontServerInfoAckMessage);
             EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent ({}) channels info", server_infos.size());

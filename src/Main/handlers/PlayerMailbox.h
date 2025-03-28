@@ -9,7 +9,7 @@ namespace Game
     {
         inline void PlayerDeleteMailbox(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -27,9 +27,9 @@ namespace Game
             if (acc_index == -1) return;
 
             const auto& mailboxReq = reinterpret_cast<MailBoxUpdateReq*>(callback.message->GetData());
-            std::vector<std::uint32_t> mail_ids_sender;
-            std::vector<std::uint32_t> mail_ids_received;
-            for (std::uint32_t i = 0; i < mailboxReq->mail_count; i++)
+            std::vector<uint32_t> mail_ids_sender;
+            std::vector<uint32_t> mail_ids_received;
+            for (uint32_t i = 0; i < mailboxReq->mail_count; i++)
             {
                 auto mail_id = mailboxReq->mail_info[i].mail_id;
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
@@ -50,9 +50,9 @@ namespace Game
             if (mail_ids_received.size() > 0)
                 BaseLib::Database->UpdateOrDeleteMailboxForReceiver(mail_ids_received);
 
-            std::uint32_t unopened_gifts = 0, unopened_mails = 0;
+            uint32_t unopened_gifts = 0, unopened_mails = 0;
             auto mail_recv_ids = main_server->GetMailboxRecvCacheShared(acc_index);
-            for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+            for (uint32_t i = 0; i < mail_recv_ids->size(); i++)
             {
                 auto mail_id = mail_recv_ids->at(i);
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
@@ -67,7 +67,7 @@ namespace Game
         }
         inline void PlayerSendMailbox(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -87,7 +87,7 @@ namespace Game
             const auto& mailboxReq = reinterpret_cast<MainMailboxSendReq*>(callback.message->GetData());
             const auto& mailbox_target_name = Utility::ReadMicrovoltsString(mailboxReq->nickname, 16);
             auto msg_size = callback.message->GetDataSize() - 16;
-            std::uint32_t target_index = 0;
+            uint32_t target_index = 0;
             if (!BaseLib::Database->NicknameExists(mailbox_target_name.c_str(), target_index))
             {
                 send_msg(session, 104, 0, Mailbox::SendResult::UserNotFound, 0);
@@ -104,13 +104,13 @@ namespace Game
             if (target_acc_cache->acc_info.Index == -1) //user offline
             {
                 std::vector<BaseLib::BlockedInfo> target_blockeds;
-                BaseLib::Database->GetPlayerBlockeds(static_cast<std::int32_t>(target_index), target_blockeds);
+                BaseLib::Database->GetPlayerBlockeds(static_cast<int32_t>(target_index), target_blockeds);
                 if (main_server->IsBlockedAlready(target_blockeds, acc_index))
                 {
                     send_msg(session, 104, 0, Mailbox::SendResult::Blacklist, 0);
                     return;
                 }
-                target_mailbox_received_count = BaseLib::Database->GetPlayerReceiverMailboxCount(static_cast<std::int32_t>(target_index));
+                target_mailbox_received_count = BaseLib::Database->GetPlayerReceiverMailboxCount(static_cast<int32_t>(target_index));
             }
             else
             {
@@ -120,7 +120,7 @@ namespace Game
                     send_msg(session, 104, 0, Mailbox::SendResult::Blacklist, 0);
                     return;
                 }
-                target_mailbox_received_count = static_cast<std::uint32_t>(main_server->GetMailboxRecvCount(target_index));
+                target_mailbox_received_count = static_cast<uint32_t>(main_server->GetMailboxRecvCount(target_index));
             }
             if (target_mailbox_received_count >= 100)
             {
@@ -133,8 +133,8 @@ namespace Game
                 send_msg(session, 104, 0, Mailbox::SendResult::FullSender, 0);
                 return;
             }
-            std::uint32_t new_mailbox_id = 0;
-            MailboxInfo mailbox_info = { 0, static_cast<std::uint32_t>(acc_index), acc_cache->acc_info.Nickname.c_str(), target_index, mailbox_target_name.c_str(), Utility::GetUtcTimeNow(), 0, Utility::ReadMicrovoltsString(mailboxReq->msg, msg_size), true, false, false };
+            uint32_t new_mailbox_id = 0;
+            MailboxInfo mailbox_info = { 0, static_cast<uint32_t>(acc_index), acc_cache->acc_info.Nickname.c_str(), target_index, mailbox_target_name.c_str(), Utility::GetUtcTimeNow(), 0, Utility::ReadMicrovoltsString(mailboxReq->msg, msg_size), true, false, false };
             if (BaseLib::Database->InsertPlayerMailbox(mailbox_info, new_mailbox_id))
             {
                 mailbox_info.mail_id = new_mailbox_id;
@@ -149,7 +149,7 @@ namespace Game
         }
         inline void PlayerUpdateMailbox(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -167,8 +167,8 @@ namespace Game
             if (acc_index == -1) return;
 
             const auto& mailboxReq = reinterpret_cast<MailBoxUpdateReq*>(callback.message->GetData());
-            std::vector<std::uint32_t> mail_ids;
-            for (std::uint32_t i = 0; i < mailboxReq->mail_count; i++)
+            std::vector<uint32_t> mail_ids;
+            for (uint32_t i = 0; i < mailboxReq->mail_count; i++)
             {
                 auto mail_id = mailboxReq->mail_info[i].mail_id;
                 auto mailbox_data = main_server->GetMailboxDataCacheUnique(mail_id);
@@ -179,7 +179,7 @@ namespace Game
         }
         inline void PlayerOpenMailbox(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -222,22 +222,22 @@ namespace Game
                     }
                 }
 
-                std::uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 5 ? 1 : ((mailbox_msgs.size() + 1) / 5) + 1;
+                uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 5 ? 1 : ((mailbox_msgs.size() + 1) / 5) + 1;
                
-                for (std::uint32_t i = 0; i < total_mails_fragments; i++)
+                for (uint32_t i = 0; i < total_mails_fragments; i++)
                 {
                     std::vector<MailboxMsgInfo> mails_batch;
-                    std::uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
+                    uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
                     if (total_mails_fragments == 1)
                         mail_list_result = Mailbox::OpenResult::SendMails2;
-                    std::uint32_t start_index = i * 5;
-                    std::uint32_t end_index = std::min(start_index + 5, static_cast<std::uint32_t>(mailbox_msgs.size()));
+                    uint32_t start_index = i * 5;
+                    uint32_t end_index = std::min(start_index + 5, static_cast<uint32_t>(mailbox_msgs.size()));
                     for (auto j = start_index; j < end_index; j++)
                         mails_batch.push_back(mailbox_msgs[j]);
 
                     auto mailboxAckMsg = MainMailboxAck(mails_batch).Serialize();
 
-                    send_msg(session, 106, mailbox_tab, mail_list_result, static_cast<std::uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
+                    send_msg(session, 106, mailbox_tab, mail_list_result, static_cast<uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
                 }
                 send_msg(session, 106, mailbox_tab, Mailbox::OpenResult::Confirm, 0);
             }
@@ -266,22 +266,22 @@ namespace Game
                     }
                 }
 
-                std::uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 5 ? 1 : ((mailbox_msgs.size() + 1) / 5) + 1;
+                uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 5 ? 1 : ((mailbox_msgs.size() + 1) / 5) + 1;
 
-                for (std::uint32_t i = 0; i < total_mails_fragments; i++)
+                for (uint32_t i = 0; i < total_mails_fragments; i++)
                 {
                     std::vector<MailboxMsgInfo> mails_batch;
-                    std::uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
+                    uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
                     if (total_mails_fragments == 1)
                         mail_list_result = Mailbox::OpenResult::SendMails2;
-                    std::uint32_t start_index = i * 5;
-                    std::uint32_t end_index = std::min(start_index + 5, static_cast<std::uint32_t>(mailbox_msgs.size()));
+                    uint32_t start_index = i * 5;
+                    uint32_t end_index = std::min(start_index + 5, static_cast<uint32_t>(mailbox_msgs.size()));
                     for (auto j = start_index; j < end_index; j++)
                         mails_batch.push_back(mailbox_msgs[j]);
 
                     auto mailboxAckMsg = MainMailboxAck(mails_batch).Serialize();
 
-                    send_msg(session, 106, mailbox_tab, mail_list_result, static_cast<std::uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
+                    send_msg(session, 106, mailbox_tab, mail_list_result, static_cast<uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
                 }
                 send_msg(session, 106, mailbox_tab, Mailbox::OpenResult::Confirm, 0);
             }
@@ -289,7 +289,7 @@ namespace Game
         }
         inline void PlayerOpenGiftbox(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -337,23 +337,23 @@ namespace Game
                     }
                 }
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "User has ({}) gifts.", mailbox_msgs.size());
-                std::uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 4 ? 1 : ((mailbox_msgs.size() + 1) / 4) + 1;
+                uint32_t total_mails_fragments = (mailbox_msgs.size() + 1) <= 4 ? 1 : ((mailbox_msgs.size() + 1) / 4) + 1;
 
-                for (std::uint32_t i = 0; i < total_mails_fragments; i++)
+                for (uint32_t i = 0; i < total_mails_fragments; i++)
                 {
                     std::vector<GiftboxMsgInfo> mails_batch;
-                    std::uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
+                    uint8_t mail_list_result = (i == 0) ? Mailbox::OpenResult::SendMails : Mailbox::OpenResult::SendMails2;
                     if (total_mails_fragments == 1)
                         mail_list_result = Mailbox::OpenResult::SendMails2;
-                    std::uint32_t start_index = i * 4;
-                    std::uint32_t end_index = std::min(start_index + 4, static_cast<std::uint32_t>(mailbox_msgs.size()));
+                    uint32_t start_index = i * 4;
+                    uint32_t end_index = std::min(start_index + 4, static_cast<uint32_t>(mailbox_msgs.size()));
                     for (auto j = start_index; j < end_index; j++)
                         mails_batch.push_back(mailbox_msgs[j]);
 
                     
                     auto mailboxAckMsg = MainGiftboxAck(mails_batch).Serialize();
 
-                    send_msg(session, 67, mailbox_tab, mail_list_result, static_cast<std::uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
+                    send_msg(session, 67, mailbox_tab, mail_list_result, static_cast<uint8_t>(mails_batch.size()), reinterpret_cast<uint8_t*>(mailboxAckMsg.data()), mailboxAckMsg.size());
                 }
                 send_msg(session, 67, mailbox_tab, Mailbox::OpenResult::Confirm, 0);
             }
@@ -364,7 +364,7 @@ namespace Game
         }
         inline void PlayerReceiveGiftbox(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -382,9 +382,9 @@ namespace Game
             if (acc_index == -1) return;
 
             const auto& mailboxReq = reinterpret_cast<MailBoxUpdateReq*>(callback.message->GetData());
-            std::vector<std::uint32_t> mail_ids_received;
-            std::vector<std::uint32_t> gift_item_ids;
-            for (std::uint32_t i = 0; i < mailboxReq->mail_count; i++)
+            std::vector<uint32_t> mail_ids_received;
+            std::vector<uint32_t> gift_item_ids;
+            for (uint32_t i = 0; i < mailboxReq->mail_count; i++)
             {
                 auto mail_id = mailboxReq->mail_info[i].mail_id;
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
@@ -417,9 +417,9 @@ namespace Game
             
 
 
-            std::uint32_t unopened_gifts = 0;
+            uint32_t unopened_gifts = 0;
             auto mail_recv_ids = main_server->GetGiftboxRecvCacheShared(acc_index);
-            for (std::uint32_t i = 0; i < mail_recv_ids->size(); i++)
+            for (uint32_t i = 0; i < mail_recv_ids->size(); i++)
             {
                 auto mail_id = mail_recv_ids->at(i);
                 auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);

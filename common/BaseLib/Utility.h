@@ -26,57 +26,57 @@ namespace Utility
     
     namespace Random
     {
-        std::uint32_t Gen();
-        std::uint64_t Gen64();
-        std::uint32_t CustomGen(const std::uint32_t min, const std::uint32_t max);
-        std::uint64_t CustomGen64(const std::uint64_t min, const std::uint64_t max);
+        uint32_t Gen();
+        uint64_t Gen64();
+        uint32_t CustomGen(const uint32_t min, const uint32_t max);
+        uint64_t CustomGen64(const uint64_t min, const uint64_t max);
     }
     
     std::string round_float(float var);
-    std::string readable_size(std::uint64_t bytes);
-    std::string readable_time(std::uint64_t ns);
-    std::uint32_t GetUnixEpoch();
-    std::tm ConvertUtcTimestampToDate(std::uint64_t timestamp);
-    std::uint32_t GetUtcTimeNow();
-    std::uint32_t GetCurrentMonth();
-    std::uint32_t GetCurrentDay();
-    std::uint32_t GetUtcTimeNowPlusSeconds(const std::uint32_t& seconds);
-    std::uint64_t GetUtcTimeNow64();
-    std::uint64_t GetLast6AMUtc();
-    std::uint64_t GetUtcTimeNowInMilliseconds();
-    std::string FormatMilliseconds(std::uint64_t milliseconds);
-    std::uint64_t GetUtcTimeNowInSeconds();
-    std::string GetReadableTime(std::uint32_t time, std::string time_zone);
-    std::uint64_t DateTimeToUInt64(const std::string& formatted_datetime);
-    std::string UInt64ToDateTimeString(std::uint64_t unix_timestamp);
-    std::string GetBytesArray(std::uint8_t* data, std::uint16_t size);
-    std::uint64_t GenerateAuthKey(const std::string& username, const std::string& password);
+    std::string readable_size(uint64_t bytes);
+    std::string readable_time(uint64_t ns);
+    uint32_t GetUnixEpoch();
+    std::tm ConvertUtcTimestampToDate(uint64_t timestamp);
+    uint32_t GetUtcTimeNow();
+    uint32_t GetCurrentMonth();
+    uint32_t GetCurrentDay();
+    uint32_t GetUtcTimeNowPlusSeconds(const uint32_t& seconds);
+    uint64_t GetUtcTimeNow64();
+    uint64_t GetLast6AMUtc();
+    uint64_t GetUtcTimeNowInMilliseconds();
+    std::string FormatMilliseconds(uint64_t milliseconds);
+    uint64_t GetUtcTimeNowInSeconds();
+    std::string GetReadableTime(uint32_t time, std::string time_zone);
+    uint64_t DateTimeToUInt64(const std::string& formatted_datetime);
+    std::string UInt64ToDateTimeString(uint64_t unix_timestamp);
+    std::string GetBytesArray(uint8_t* data, uint16_t size);
+    uint64_t GenerateAuthKey(const std::string& username, const std::string& password);
     std::string ToLowercase(const std::string& str);
     void ToLowercase(std::string& str);
     bool IsPasswordValid(const std::string& password, const std::string& hash, const std::string& salt);
     std::string ReadMVString(std::string_view in);
-    std::string ReadMicrovoltsString(const char* data, std::uint32_t size);
+    std::string ReadMicrovoltsString(const char* data, uint32_t size);
     std::pair<std::string, std::string> Hash(const std::string& password);
     std::vector<unsigned char> DecodeBase64(const std::string& str);
     std::string EncodeBase64(const std::vector<unsigned char>& data);
     std::vector<std::string> SplitStrings(std::string_view str, char delimiter);
     bool IsDigitsOnly(const std::string& input);
-    std::uint32_t ExtractNumber(const std::string& input);
+    uint32_t ExtractNumber(const std::string& input);
     template <typename T>
-    std::vector<std::uint8_t> ToVector(const T& data)
+    std::vector<uint8_t> ToVector(const T& data)
     {
-        auto bytes = std::bit_cast<std::array<std::uint8_t, sizeof(T)>>(data);
-        return std::vector<std::uint8_t>(bytes.begin(), bytes.end());
+        auto bytes = std::bit_cast<std::array<uint8_t, sizeof(T)>>(data);
+        return std::vector<uint8_t>(bytes.begin(), bytes.end());
     }
     template <typename T>
-    T FromVector(const std::vector<std::uint8_t>& bytes) 
+    T FromVector(const std::vector<uint8_t>& bytes) 
     {
         T object;
         std::memcpy(&object, bytes.data(), sizeof(T));
         return object;
     }
-    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, std::uint16_t m_sessionId);
-    std::vector<std::uint8_t> load_file(std::source_location source_location, const std::string& filepath);
+    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, uint16_t m_sessionId);
+    std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath);
     double GetCpuUsage(void* m_process_handle);
     std::int64_t GetMemoryUsage(void* m_process_handle);
 }

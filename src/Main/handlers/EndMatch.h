@@ -7,23 +7,23 @@ namespace Game
 
     namespace Handlers
     {
-        boost::unordered_flat_map<std::uint32_t, std::pair<std::uint32_t, std::uint32_t>> boss_rewards =
+        boost::unordered_flat_map<uint32_t, std::pair<uint32_t, uint32_t>> boss_rewards =
         {
             {0, {4801002, 50}}, // bronze 60%
             {1, {4801001, 35}}, // silver 25%
             {2, {4801000, 10}}, // gold 10%
             {3, {4801003, 5}}   // diamond 5%
         };
-        std::uint32_t get_random_boss_reward() 
+        uint32_t get_random_boss_reward() 
         {
 
-            std::uint32_t total_weight = 0;
+            uint32_t total_weight = 0;
             for (const auto& [key, reward] : boss_rewards) 
                 total_weight += reward.second;
 
             auto random_value = Utility::Random::CustomGen(1, total_weight);
 
-            std::uint32_t cumulative_weight = 0;
+            uint32_t cumulative_weight = 0;
             for (const auto& [key, reward] : boss_rewards)
             {
                 cumulative_weight += reward.second;
@@ -32,7 +32,7 @@ namespace Game
             }
             return boss_rewards.begin()->second.first;
         }
-        inline void SingleWaveEasy(std::uint32_t playtime_seconds, SingleWaveEndReq* endmatch_sw, AccCacheResource& acc_cache)
+        inline void SingleWaveEasy(uint32_t playtime_seconds, SingleWaveEndReq* endmatch_sw, AccCacheResource& acc_cache)
         {
             if (playtime_seconds >= 180) // 3 minutes
             {
@@ -42,7 +42,7 @@ namespace Game
             }
             
         }
-        inline void SingleWaveHard(std::uint32_t playtime_seconds, SingleWaveEndReq* endmatch_sw, AccCacheResource& acc_cache)
+        inline void SingleWaveHard(uint32_t playtime_seconds, SingleWaveEndReq* endmatch_sw, AccCacheResource& acc_cache)
         {
             if (playtime_seconds >= 180) // 3 minutes
             {
@@ -60,9 +60,9 @@ namespace Game
                 acc_cache->acc_info.Tutorial = true;
             }
         }
-        inline void ProcessLevelUp(CMainServer* main_server, CServer* server, AccCacheResource& player_acc_cache, std::uint16_t my_id, const std::vector<std::uint16_t>& playing_players)
+        inline void ProcessLevelUp(CMainServer* main_server, CServer* server, AccCacheResource& player_acc_cache, uint16_t my_id, const std::vector<uint16_t>& playing_players)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -104,7 +104,7 @@ namespace Game
                     {
                         if (others_id == my_id) continue;
                         if (auto other_session = server->GetSessionById(others_id))
-                            send_msg(other_session.get(), 311, 0, 0, static_cast<std::uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            send_msg(other_session.get(), 311, 0, 0, static_cast<uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                     }
                 }
             }
@@ -126,29 +126,29 @@ namespace Game
                         {
                             if (others_id == my_id) continue;
                             if (auto other_session = server->GetSessionById(others_id))
-                                send_msg(other_session.get(), 311, 0, 0, static_cast<std::uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                send_msg(other_session.get(), 311, 0, 0, static_cast<uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                         }
                     }
                 }
             }
             */
         }
-        inline void ProcessUpdatePlayerAccCache( AccCacheResource& player_acc_cache, bool draw, bool blue_team_win, std::uint32_t melee_kills, std::uint32_t rifle_kills, std::uint32_t shotgun_kills, 
-            std::uint32_t sniper_kills, std::uint32_t gatling_kills, std::uint32_t bazooka_kills, std::uint32_t grenade_kills, std::uint32_t kills, std::uint32_t deaths, std::uint32_t headshots, 
-            std::uint32_t assists, std::uint32_t killstreak, std::uint32_t earnt_battery, std::uint32_t total_xp ,std::uint32_t total_mp, std::uint64_t playtime_seconds, bool is_clan_match)
+        inline void ProcessUpdatePlayerAccCache( AccCacheResource& player_acc_cache, bool draw, bool blue_team_win, uint32_t melee_kills, uint32_t rifle_kills, uint32_t shotgun_kills, 
+            uint32_t sniper_kills, uint32_t gatling_kills, uint32_t bazooka_kills, uint32_t grenade_kills, uint32_t kills, uint32_t deaths, uint32_t headshots, 
+            uint32_t assists, uint32_t killstreak, uint32_t earnt_battery, uint32_t total_xp ,uint32_t total_mp, uint64_t playtime_seconds, bool is_clan_match)
         {
 
-            auto safe_add_uint32 = [](std::uint32_t& target, std::uint32_t value_to_add)
+            auto safe_add_uint32 = [](uint32_t& target, uint32_t value_to_add)
             {
                 (UINT32_MAX - target < value_to_add) ? target = UINT32_MAX : target += value_to_add;
             };
-            auto safe_add_uint64 = [](std::uint64_t& target, std::uint64_t value_to_add)
+            auto safe_add_uint64 = [](uint64_t& target, uint64_t value_to_add)
             {
                 (UINT32_MAX - target < value_to_add) ? target = UINT32_MAX : target += value_to_add;
             };
-            auto safe_add_uint8 = [](std::uint32_t& target, std::uint32_t new_value)
+            auto safe_add_uint8 = [](uint32_t& target, uint32_t new_value)
             {
-                target = std::min<std::uint8_t>(UINT8_MAX, std::max(target, new_value));
+                target = std::min<uint8_t>(UINT8_MAX, std::max(target, new_value));
             };
 
             safe_add_uint32(player_acc_cache->acc_info.MeleeKills, melee_kills);
@@ -169,7 +169,7 @@ namespace Game
                 safe_add_uint32(player_acc_cache->acc_info.ClanKills, kills);
                 safe_add_uint32(player_acc_cache->acc_info.ClanDeaths, deaths);
                 safe_add_uint32(player_acc_cache->acc_info.ClanAssists, assists);
-                safe_add_uint64(player_acc_cache->acc_info.ClanContribution, (static_cast<std::uint64_t>(kills) * 6 + assists));//TODO: own contribution math
+                safe_add_uint64(player_acc_cache->acc_info.ClanContribution, (static_cast<uint64_t>(kills) * 6 + assists));//TODO: own contribution math
             }
           
             if (player_acc_cache->acc_info.Energy + earnt_battery <= player_acc_cache->acc_info.MaximumEnergy)
@@ -221,7 +221,7 @@ namespace Game
         {
             return { cl_info.melee_kills, cl_info.rifle_kills, cl_info.shotgun_kills, cl_info.sniper_kills, cl_info.gatling_kills, cl_info.bazooka_kills, cl_info.grenade_kills, cl_info.killstreak, cl_info.total_kills, cl_info.deaths, cl_info.headshots, cl_info.assists, 0, 0, 0, 0 };
         }
-        inline void ClearEndmMatchResponse(MainRoomEndMatchResponse& resp, std::uint32_t tmp, std::uint32_t txp)
+        inline void ClearEndmMatchResponse(MainRoomEndMatchResponse& resp, uint32_t tmp, uint32_t txp)
         {
             resp.melee_kills = 0;
             resp.rifle_kills = 0;
@@ -240,17 +240,17 @@ namespace Game
             //resp.unknown = 0;
             //resp.unknown2 = 0;
         }
-        inline void AddBonusExpPoint(CMainServer *server, std::vector<BaseLib::Item> items, std::uint32_t selected_character, std::uint32_t &exp, std::uint32_t &point) {
+        inline void AddBonusExpPoint(CMainServer *server, std::vector<BaseLib::Item> items, uint32_t selected_character, uint32_t &exp, uint32_t &point) {
             float extra_procent_exp = 0, extra_procent_point = 0;
             for (auto& item : items) {
-                if (item.is_equipped == 1 && item.character_id == static_cast<std::uint8_t>(selected_character)) {
-                    //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check item id ({})", (std::uint32_t)item.item_info.item_number.item_id);
+                if (item.is_equipped == 1 && item.character_id == static_cast<uint8_t>(selected_character)) {
+                    //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will check item id ({})", (uint32_t)item.item_info.item_number.item_id);
                     auto item_info = server->GetItemInfoCache(item.item_info.item_number.item_id);
                     auto bonus_ef_id = item_info->BonusEffectId;
-                    //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found bonus effect id ({})", (std::uint32_t)bonus_ef_id);
+                    //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found bonus effect id ({})", (uint32_t)bonus_ef_id);
                     if (bonus_ef_id) {
                         auto bonus_ef_info = server->GetEffectInfoCache(bonus_ef_id);
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found effect info key({}) value({}) for itemid({})", (std::uint32_t)bonus_ef_info->key, (std::uint32_t)bonus_ef_info->valueA, (std::uint32_t)item.item_info.item_number.item_id);
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "found effect info key({}) value({}) for itemid({})", (uint32_t)bonus_ef_info->key, (uint32_t)bonus_ef_info->valueA, (uint32_t)item.item_info.item_number.item_id);
                         if (bonus_ef_info->key == 122) {//bonus exp
                             extra_procent_exp += bonus_ef_info->valueA / 10.0;
                         }
@@ -264,15 +264,15 @@ namespace Game
             extra_procent_point = extra_procent_point / 100;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player before have exp: ({}), point: ({})", exp, point);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player benefit of bonus exp procent: ({}) and bonus point procent: ({})", extra_procent_exp, extra_procent_point);
-            exp += (std::uint32_t)(extra_procent_exp * exp);
-            point += (std::uint32_t)(extra_procent_point * point);
+            exp += (uint32_t)(extra_procent_exp * exp);
+            point += (uint32_t)(extra_procent_point * point);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player now will get exp: ({}), point: ({})", exp, point);
         }
 
         inline void TeamDeathMatch(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache, 
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time) 
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time) 
         {
             for (const auto& id : playing_players)
             {
@@ -324,9 +324,9 @@ namespace Game
         }
 
         inline void FreeForAll(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -377,9 +377,9 @@ namespace Game
         }
 
         inline void ItemMatch(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -430,9 +430,9 @@ namespace Game
         }
 
         inline void CaptureTheBattery(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -486,9 +486,9 @@ namespace Game
         }
 
         inline void Elimination(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -541,9 +541,9 @@ namespace Game
         }
 
         inline void SuperItemMatch(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -594,9 +594,9 @@ namespace Game
         }
 
         inline void ZombieMode(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -650,9 +650,9 @@ namespace Game
         }
 
         inline void ArmsRace(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -704,9 +704,9 @@ namespace Game
         }
 
         inline void BombBattle(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -759,9 +759,9 @@ namespace Game
         }
 
         inline void ClanCaptureTheBattery(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -815,9 +815,9 @@ namespace Game
         }
 
         inline void ClanElimination(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -870,9 +870,9 @@ namespace Game
         }
 
         inline void ClanTeamDeathMatch(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse>& end_match_infos,
-            std::vector<std::uint16_t>& playing_players, bool draw, bool blue_team_win, std::uint16_t id, std::uint64_t end_match_time)
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo>& client_match_infos,
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse>& end_match_infos,
+            std::vector<uint16_t>& playing_players, bool draw, bool blue_team_win, uint16_t id, uint64_t end_match_time)
         {
             for (const auto& id : playing_players)
             {
@@ -923,9 +923,9 @@ namespace Game
         }
 
         inline void BossBattle(CMainServer* main_server, CServer* server, RoomCacheResource& room_cache, std::vector<BossItem>& pve_rewards,
-            std::vector<std::uint16_t>& playing_players, std::uint16_t id, std::uint64_t end_match_time)
+            std::vector<uint16_t>& playing_players, uint16_t id, uint64_t end_match_time)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -967,7 +967,7 @@ namespace Game
 
         inline void NewProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -987,9 +987,9 @@ namespace Game
             bool is_clan_match = room_cache->is_clan_room;
             auto clan_id_1 = room_cache->clan_id_1;
             auto clan_id_2 = room_cache->clan_id_2;
-            boost::unordered_flat_set<std::uint32_t> processed_unique_ids;
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse> end_match_infos;
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
+            boost::unordered_flat_set<uint32_t> processed_unique_ids;
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse> end_match_infos;
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
 
             for (const auto& id : playing_players)
             {
@@ -998,7 +998,7 @@ namespace Game
                     send_msg(player_session.get(), callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption(), callback.message->GetData(), callback.message->GetDataSize());
             }
 
-            for (std::size_t i = 0; i < callback.message->GetOption(); i++)
+            for (size_t i = 0; i < callback.message->GetOption(); i++)
             {
                 auto endmatch_info = reinterpret_cast<MainRoomEndMatchClientInfo*>(callback.message->GetData() + sizeof(MainRoomEndMatchClientInfo) * i + sizeof(MainRoomEndMatchScoreClientInfo));
                 if (processed_unique_ids.find(endmatch_info->unique_id) != processed_unique_ids.end())
@@ -1011,7 +1011,7 @@ namespace Game
             }
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "was clan fight: ({}) between ({}) and ({})", is_clan_match, clan_id_1, clan_id_2);
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now handle mod id: ({})", static_cast<std::uint32_t>(room_cache->ModeIndex));
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now handle mod id: ({})", static_cast<uint32_t>(room_cache->ModeIndex));
             for (const auto& id : playing_players)
             {
                 if (client_match_infos.find(id) == client_match_infos.end())  continue;
@@ -1051,8 +1051,8 @@ namespace Game
                             auto killstreak = match_info.killstreak;
                             auto headshots = match_info.headshots;
                             auto ri = main_server->GetRewardInfoCache(room_cache->ModeIndex);
-                            std::uint32_t exp_earn = 0;
-                            std::uint32_t point_earn = 0;
+                            uint32_t exp_earn = 0;
+                            uint32_t point_earn = 0;
                             bool isClan = false;
                             switch (room_cache->ModeIndex)
                             {
@@ -1065,8 +1065,8 @@ namespace Game
                                 case NetEngine::Room::Mode::Index::Elimination:
                                 case NetEngine::Room::Mode::Index::SuperItemMatch:
                                 {
-                                    std::uint32_t calc_exp = ri->ExpBase;
-                                    std::uint32_t calc_point = ri->PointBase;
+                                    uint32_t calc_exp = ri->ExpBase;
+                                    uint32_t calc_point = ri->PointBase;
 
                                     calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist);
                                     calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist);
@@ -1090,8 +1090,8 @@ namespace Game
                                     auto TeamBatteryCaptures = unknown2;
                                     auto MyBatteryCaptures = unknown1;
 
-                                    std::uint32_t calc_exp = ri->ExpBase;
-                                    std::uint32_t calc_point = ri->PointBase;
+                                    uint32_t calc_exp = ri->ExpBase;
+                                    uint32_t calc_point = ri->PointBase;
 
                                     calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist) + (TeamBatteryCaptures * ri->ExpMission) + (MyBatteryCaptures * ri->ExpMissionWin);
                                     calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist) + (TeamBatteryCaptures * ri->PointMission) + (MyBatteryCaptures * ri->PointMissionWin);
@@ -1112,8 +1112,8 @@ namespace Game
                                 {
                                     auto RoundWin = unknown2;
 
-                                    std::uint32_t calc_exp = ri->ExpBase;
-                                    std::uint32_t calc_point = ri->PointBase;
+                                    uint32_t calc_exp = ri->ExpBase;
+                                    uint32_t calc_point = ri->PointBase;
 
                                     calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist) + (RoundWin * ri->ExpMissionWin);
                                     calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist) + (RoundWin * ri->PointMissionWin);
@@ -1131,8 +1131,8 @@ namespace Game
                                     auto Infected = melee_kills;
                                     auto Survived = unknown2;
 
-                                    std::uint32_t calc_exp = ri->ExpBase;
-                                    std::uint32_t calc_point = ri->PointBase;
+                                    uint32_t calc_exp = ri->ExpBase;
+                                    uint32_t calc_point = ri->PointBase;
 
                                     calc_exp += (ZombiKill * ri->ExpModeKill) + (Infected * ri->ExpKill) + (deaths * ri->ExpDeath) + (Survived * ri->ExpMissionWin);
                                     calc_point += (ZombiKill * ri->PointModeKill) + (Infected * ri->PointKill) - (deaths * ri->PointDeath) + (Survived * ri->PointMissionWin);
@@ -1148,8 +1148,8 @@ namespace Game
                                 {
                                     auto Mission = unknown1;
 
-                                    std::uint32_t calc_exp = ri->ExpBase;
-                                    std::uint32_t calc_point = ri->PointBase;
+                                    uint32_t calc_exp = ri->ExpBase;
+                                    uint32_t calc_point = ri->PointBase;
 
                                     calc_exp += (kills * ri->ExpKill) + (deaths * ri->ExpDeath) + (assists * ri->ExpAssist) + (Mission * ri->ExpMission);
                                     calc_point += (kills * ri->PointKill) - (deaths * ri->PointDeath) + (assists * ri->PointAssist) + (Mission * ri->PointMission);
@@ -1218,7 +1218,7 @@ namespace Game
             NewProcessPvpModes(callback, main_server, room_cache);
             return;
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -1235,9 +1235,9 @@ namespace Game
             auto endmatch_score_header = reinterpret_cast<MainRoomEndMatchScoreClientInfo*>(callback.message->GetData());
             auto blue_team_win = endmatch_score_header->blue_score > endmatch_score_header->red_score;
             auto draw = endmatch_score_header->blue_score == endmatch_score_header->red_score;
-            boost::unordered_flat_set<std::uint32_t> processed_unique_ids;
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse> end_match_infos;
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
+            boost::unordered_flat_set<uint32_t> processed_unique_ids;
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse> end_match_infos;
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
 
             for (const auto& id : playing_players)
             {
@@ -1246,7 +1246,7 @@ namespace Game
                     send_msg(player_session.get(), callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption(), callback.message->GetData(), callback.message->GetDataSize());
             }
 
-            for (std::size_t i = 0; i < callback.message->GetOption(); i++)
+            for (size_t i = 0; i < callback.message->GetOption(); i++)
             {
                 auto endmatch_info = reinterpret_cast<MainRoomEndMatchClientInfo*>(callback.message->GetData() + sizeof(MainRoomEndMatchClientInfo) * i + sizeof(MainRoomEndMatchScoreClientInfo));
                 if (processed_unique_ids.find(endmatch_info->unique_id) != processed_unique_ids.end())
@@ -1336,7 +1336,7 @@ namespace Game
 
         inline void ProcessPveModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -1384,7 +1384,7 @@ namespace Game
 
         inline void EndMatch(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -1407,7 +1407,7 @@ namespace Game
                 if (mission == 2 && extra == 6) //Storymod
                 {
                     struct StoryDoneStruct {
-                        std::uint8_t done_episode;
+                        uint8_t done_episode;
                     };
                     auto story_done = reinterpret_cast<StoryDoneStruct*>(callback.message->GetData());
                     auto story_episode = story_done->done_episode;
@@ -1439,7 +1439,7 @@ namespace Game
                 if (endmatch_sw->type == 1 || endmatch_sw->type == 2)
                 {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "single wave check player level up");
-                    std::vector<std::uint16_t> empty_vec;
+                    std::vector<uint16_t> empty_vec;
                     ProcessLevelUp(main_server, server, acc_cache, session_id, empty_vec);
                 }
 
@@ -1478,7 +1478,7 @@ namespace Game
         /*
         inline void EndMatch(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -1531,22 +1531,22 @@ namespace Game
             acc_cache.unlock();
             auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
 
-            auto safe_add_micropoints = [](std::uint32_t& target, std::uint32_t value_to_add)
+            auto safe_add_micropoints = [](uint32_t& target, uint32_t value_to_add)
             {
                 (0x7FFFFFFF - target < value_to_add) ? target = 0x7FFFFFFF : target += value_to_add;
             };
            
-            auto safe_add_uint32 = [](std::uint32_t& target, std::uint32_t value_to_add)
+            auto safe_add_uint32 = [](uint32_t& target, uint32_t value_to_add)
             {
                 (UINT32_MAX - target < value_to_add) ? target = UINT32_MAX : target += value_to_add;
             };
-            auto safe_add_uint64 = [](std::uint64_t& target, std::uint64_t value_to_add)
+            auto safe_add_uint64 = [](uint64_t& target, uint64_t value_to_add)
             {
                 (UINT32_MAX - target < value_to_add) ? target = UINT32_MAX : target += value_to_add;
             };
-            auto safe_add_uint8 = [](std::uint32_t& target, std::uint32_t new_value)
+            auto safe_add_uint8 = [](uint32_t& target, uint32_t new_value)
             {
-                target = std::min<std::uint8_t>(UINT8_MAX, std::max(target, new_value));
+                target = std::min<uint8_t>(UINT8_MAX, std::max(target, new_value));
             };
 
             auto endmatch_score_header = reinterpret_cast<MainRoomEndMatchScoreClientInfo*>(callback.message->GetData());
@@ -1559,15 +1559,15 @@ namespace Game
                 if (auto player_session = server->GetSessionById(id))
                     send_msg(player_session.get(), callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption(), callback.message->GetData(), callback.message->GetDataSize());
             }
-            boost::unordered_flat_set<std::uint32_t> processed_unique_ids;
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchResponse> end_match_infos;
-            boost::unordered_flat_map<std::uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
+            boost::unordered_flat_set<uint32_t> processed_unique_ids;
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchResponse> end_match_infos;
+            boost::unordered_flat_map<uint32_t, MainRoomEndMatchClientInfo> client_match_infos;
 
 
             auto end_match_time = Utility::GetUtcTimeNowInSeconds();
             std::vector<BossItem> boss_items;
             auto is_boss_battle = room_cache->ModeIndex == NetEngine::Room::Mode::Index::BossBattle;
-            for (std::size_t i = 0; i < callback.message->GetOption(); i++)
+            for (size_t i = 0; i < callback.message->GetOption(); i++)
             {
                 auto endmatch_info = reinterpret_cast<MainRoomEndMatchClientInfo*>(callback.message->GetData() + sizeof(MainRoomEndMatchClientInfo) * i + sizeof(MainRoomEndMatchScoreClientInfo));
                 auto boss_endmatch_info = reinterpret_cast<MainRoomEndMatchClientBossBattleInfo*>(callback.message->GetData() + sizeof(MainRoomEndMatchClientBossBattleInfo) * i + sizeof(MainRoomEndMatchScoreClientBossBattleInfo));
@@ -1581,7 +1581,7 @@ namespace Game
                 
 
                 auto unique_id = NetEngine::Packets::Core::UniqueId(is_boss_battle ? boss_endmatch_info->unique_id : endmatch_info->unique_id);
-                auto player_session_id = static_cast<std::uint16_t>(unique_id.session);
+                auto player_session_id = static_cast<uint16_t>(unique_id.session);
                 auto player_acc_cache = main_server->GetAccCacheUniqueBySessionId(player_session_id);
                 if (player_acc_cache->acc_info.Index != -1)
                 {
@@ -1789,7 +1789,7 @@ namespace Game
                                 {
                                     if (id == player_session_id) continue;
                                     if (auto other_session = server->GetSessionById(id))
-                                        send_msg(other_session.get(), 311, 0, 0, static_cast<std::uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id)); // broadcast to others that player leveled up
+                                        send_msg(other_session.get(), 311, 0, 0, static_cast<uint8_t>(player_acc_cache->acc_info.Level + 1), reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id)); // broadcast to others that player leveled up
                                 }
                             }
                             else
@@ -1855,7 +1855,7 @@ namespace Game
                     for (const auto& boss_reward : boss_items)
                     {
                         auto player_unique_id = NetEngine::Packets::Core::UniqueId(boss_reward.unique_id);
-                        auto player_session_id = static_cast<std::uint16_t>(player_unique_id.session);
+                        auto player_session_id = static_cast<uint16_t>(player_unique_id.session);
                         auto player_won_item = boss_reward.item_id;
 
                         

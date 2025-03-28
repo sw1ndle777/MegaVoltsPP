@@ -16,19 +16,19 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint8_t serverId : 8;
-                    std::uint8_t channel1 : 2;
-                    std::uint8_t channel2 : 2;
-                    std::uint8_t channel3 : 2;
-                    std::uint8_t channel4 : 2;
-                    std::uint8_t channel5 : 2;
-                    std::uint8_t channel6 : 2;
-                    std::uint8_t channel7 : 2;
-                    std::uint8_t channel8 : 2;
-                    std::uint8_t channel9 : 2;
-                    std::uint8_t channel10 : 2;
+                    uint8_t serverId : 8;
+                    uint8_t channel1 : 2;
+                    uint8_t channel2 : 2;
+                    uint8_t channel3 : 2;
+                    uint8_t channel4 : 2;
+                    uint8_t channel5 : 2;
+                    uint8_t channel6 : 2;
+                    uint8_t channel7 : 2;
+                    uint8_t channel8 : 2;
+                    uint8_t channel9 : 2;
+                    uint8_t channel10 : 2;
                 };
-                std::uint32_t data;
+                uint32_t data;
 
                 FrontServerInfo()
                 {
@@ -44,34 +44,34 @@ namespace NetEngine
 
             struct FrontUserAccountInfo
             {
-                std::uint32_t  level;
-                std::uint32_t  experience;
-                std::uint32_t  kills;
-                std::uint32_t  deaths;
-                std::uint32_t  assists;
-                std::uint32_t  wins;
-                std::uint32_t  losses;
-                std::uint32_t  draws;
+                uint32_t  level;
+                uint32_t  experience;
+                uint32_t  kills;
+                uint32_t  deaths;
+                uint32_t  assists;
+                uint32_t  wins;
+                uint32_t  losses;
+                uint32_t  draws;
                 char      nickname[16];
-                std::uint16_t  clanLogoFront;
-                std::uint16_t  clanLogoBack;
+                uint16_t  clanLogoFront;
+                uint16_t  clanLogoBack;
                 char      clanName[16];
-                std::uint32_t  unknown;
+                uint32_t  unknown;
 
                 FrontUserAccountInfo(
-                    std::uint32_t level = 0,
-                    std::uint32_t experience = 0,
-                    std::uint32_t kills = 0,
-                    std::uint32_t deaths = 0,
-                    std::uint32_t assists = 0,
-                    std::uint32_t wins = 0,
-                    std::uint32_t losses = 0,
-                    std::uint32_t draws = 0,
+                    uint32_t level = 0,
+                    uint32_t experience = 0,
+                    uint32_t kills = 0,
+                    uint32_t deaths = 0,
+                    uint32_t assists = 0,
+                    uint32_t wins = 0,
+                    uint32_t losses = 0,
+                    uint32_t draws = 0,
                     const char* nickname = "",
-                    std::uint16_t clanLogoFront = 0,
-                    std::uint16_t clanLogoBack = 0,
+                    uint16_t clanLogoFront = 0,
+                    uint16_t clanLogoBack = 0,
                     const char* clanName = "",
-                    std::uint32_t unknown = 0
+                    uint32_t unknown = 0
                 ) :
                     level(level),
                     experience(experience),
@@ -102,19 +102,19 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint8_t serverId : 8;
-                    std::uint8_t channel1 : 2;
-                    std::uint8_t channel2 : 2;
-                    std::uint8_t channel3 : 2;
-                    std::uint8_t channel4 : 2;
-                    std::uint8_t channel5 : 2;
-                    std::uint8_t channel6 : 2;
-                    std::uint8_t channel7 : 2;
-                    std::uint8_t channel8 : 2;
-                    std::uint8_t channel9 : 2;
-                    std::uint8_t channel10 : 2;
+                    uint8_t serverId : 8;
+                    uint8_t channel1 : 2;
+                    uint8_t channel2 : 2;
+                    uint8_t channel3 : 2;
+                    uint8_t channel4 : 2;
+                    uint8_t channel5 : 2;
+                    uint8_t channel6 : 2;
+                    uint8_t channel7 : 2;
+                    uint8_t channel8 : 2;
+                    uint8_t channel9 : 2;
+                    uint8_t channel10 : 2;
                 };
-                std::uint32_t data;
+                uint32_t data;
 
                 MainServerInfo()
                 {
@@ -131,18 +131,18 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t id : 6;
-                    std::uint32_t sale_price : 15;
-                    std::uint32_t unknown : 11;
+                    uint32_t id : 6;
+                    uint32_t sale_price : 15;
+                    uint32_t unknown : 11;
                 };
-                std::uint32_t data;
+                uint32_t data;
 
-                GachaSaleDataId(std::uint32_t data = 0)
+                GachaSaleDataId(uint32_t data = 0)
                 {
                     std::memset(this, 0, sizeof(data));
                     this->data = data;
                 }
-                GachaSaleDataId(std::uint32_t new_id, std::uint32_t new_sale_price, std::uint32_t new_unknown)
+                GachaSaleDataId(uint32_t new_id, uint32_t new_sale_price, uint32_t new_unknown)
                 {
                     std::memset(this, 0, sizeof(GachaSaleDataId));
                     this->id = new_id;
@@ -153,13 +153,13 @@ namespace NetEngine
             struct MainGachaponSaleInfo
             {
                 GachaSaleDataId data;
-                std::uint32_t start_date;
-                std::uint32_t end_date;
+                uint32_t start_date;
+                uint32_t end_date;
                 MainGachaponSaleInfo(
-                    std::uint32_t id = 0,
-                    std::uint32_t sale_price = 0,
-                    std::uint32_t start_date = 0,
-                    std::uint32_t end_date = 0
+                    uint32_t id = 0,
+                    uint32_t sale_price = 0,
+                    uint32_t start_date = 0,
+                    uint32_t end_date = 0
                 ) :
                     data(GachaSaleDataId(id, sale_price, 0)),
                     start_date(start_date),
@@ -175,20 +175,20 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t id : 20;
-                    std::uint32_t sid : 4;
-                    std::uint32_t unknown : 4;
-                    std::uint32_t origin : 4;
-                    std::uint32_t creation_date;
+                    uint32_t id : 20;
+                    uint32_t sid : 4;
+                    uint32_t unknown : 4;
+                    uint32_t origin : 4;
+                    uint32_t creation_date;
                 };
-                std::uint64_t data;
+                uint64_t data;
 
-                ItemSerialInfo(std::uint64_t data = 0)
+                ItemSerialInfo(uint64_t data = 0)
                 {
                     std::memset(this, 0, sizeof(ItemSerialInfo));
                     this->data = data;
                 }
-                ItemSerialInfo(std::uint32_t id , std::uint32_t sid , std::uint32_t unknown, std::uint32_t origin, std::uint32_t creation_date)
+                ItemSerialInfo(uint32_t id , uint32_t sid , uint32_t unknown, uint32_t origin, uint32_t creation_date)
                 {
                     std::memset(this, 0, sizeof(ItemSerialInfo));
                     this->id = id;
@@ -203,17 +203,17 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t item_id : 23;
-                    std::uint32_t stock : 9;
+                    uint32_t item_id : 23;
+                    uint32_t stock : 9;
                 };
-                std::uint32_t data;
+                uint32_t data;
 
-                InventoryItemNumber(std::uint32_t uint32_t = 0)
+                InventoryItemNumber(uint32_t uint32_t = 0)
                 {
                     std::memset(this, 0, sizeof(uint32_t));
                     this->data = data;
                 }
-                InventoryItemNumber(std::uint32_t new_item_id, std::uint32_t new_stock)
+                InventoryItemNumber(uint32_t new_item_id, uint32_t new_stock)
                 {
                     std::memset(this, 0, sizeof(InventoryItemNumber));
                     this->item_id = new_item_id;
@@ -224,18 +224,18 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t item_type : 9;
-                    std::uint32_t item_id : 23;
+                    uint32_t item_type : 9;
+                    uint32_t item_id : 23;
                    
                 };
-                std::uint32_t data;
+                uint32_t data;
 
-                EquipItemNumber(std::uint32_t uint32_t = 0)
+                EquipItemNumber(uint32_t uint32_t = 0)
                 {
                     std::memset(this, 0, sizeof(uint32_t));
                     this->data = data;
                 }
-                EquipItemNumber(std::uint32_t new_item_id, std::uint32_t new_type)
+                EquipItemNumber(uint32_t new_item_id, uint32_t new_type)
                 {
                     std::memset(this, 0, sizeof(EquipItemNumber));
                     this->item_id = new_item_id;
@@ -246,17 +246,17 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t gachapon_id : 8;
-                    std::uint32_t item_id : 24;
+                    uint32_t gachapon_id : 8;
+                    uint32_t item_id : 24;
                 };
-                std::uint32_t data;
+                uint32_t data;
 
-                GachaponWonItemMsg(std::uint32_t data = 0)
+                GachaponWonItemMsg(uint32_t data = 0)
                 {
                     std::memset(this, 0, sizeof(GachaponWonItemMsg));
                     this->data = data;
                 }
-                GachaponWonItemMsg(std::uint32_t gachapon_id, std::uint32_t item_id)
+                GachaponWonItemMsg(uint32_t gachapon_id, uint32_t item_id)
                 {
                     std::memset(this, 0, sizeof(GachaponWonItemMsg));
                     this->gachapon_id = gachapon_id;
@@ -283,16 +283,16 @@ namespace NetEngine
             {
                 
                 InventoryItemNumber item_number;
-                std::uint32_t expire_date;//0x04
+                uint32_t expire_date;//0x04
                 ItemSerialInfo serial_info;//0x08
-                std::uint16_t repair;//0x10
-                std::uint16_t energy;//0x12
+                uint16_t repair;//0x10
+                uint16_t energy;//0x12
                 InventoryItemInfo(
                     const InventoryItemNumber& itemNumber = 0,
-                    const std::uint32_t& expireDate = 0,
+                    const uint32_t& expireDate = 0,
                     const ItemSerialInfo& serialInfo = ItemSerialInfo(),
-                    const std::uint32_t& repairVal = 0,
-                    const std::uint32_t& energyVal = 0)
+                    const uint32_t& repairVal = 0,
+                    const uint32_t& energyVal = 0)
                     : item_number(itemNumber),
                     expire_date(expireDate),
                     serial_info(serialInfo),
@@ -304,10 +304,10 @@ namespace NetEngine
             struct EquipItemInfo
             {
                 EquipItemNumber item_number;
-                std::uint32_t expire_date;
+                uint32_t expire_date;
                 ItemSerialInfo serial_info;
-                std::uint16_t repair;
-                std::uint16_t energy;
+                uint16_t repair;
+                uint16_t energy;
                 EquipItemInfo(const InventoryItemInfo& inv_item_info)
                 {
                     std::memset(this, 0, sizeof(EquipItemInfo));
@@ -322,26 +322,26 @@ namespace NetEngine
             struct InventoryItemInfo
             {
                 InventoryItemNumber item_number;
-                std::uint32_t expire_date;//0x04
+                uint32_t expire_date;//0x04
                 ItemSerialInfo serial_info;//0x08
-                std::uint16_t repair;//0x10
-                std::uint16_t energy;//0x12
-                std::uint32_t is_sealed;//0x14
-                std::uint32_t seal_level;
-                std::uint32_t enhance_exp;
-                std::uint32_t enhance_level;
-                std::uint32_t item_type;
+                uint16_t repair;//0x10
+                uint16_t energy;//0x12
+                uint32_t is_sealed;//0x14
+                uint32_t seal_level;
+                uint32_t enhance_exp;
+                uint32_t enhance_level;
+                uint32_t item_type;
                 InventoryItemInfo(
                     const InventoryItemNumber& itemNumber = 0,
-                    const std::uint32_t& expireDate = 0,
+                    const uint32_t& expireDate = 0,
                     const ItemSerialInfo& serialInfo = ItemSerialInfo(),
-                    const std::uint32_t& repairVal = 0,
-                    const std::uint32_t& energyVal = 0,
-                    const std::uint32_t& isSealed = 0,
-                    const std::uint32_t& sealLevel = 0,
-                    const std::uint32_t& enhanceExp = 0,
-                    const std::uint32_t& enhanceLevel = 0,
-                    const std::uint32_t& itemType = 0)
+                    const uint32_t& repairVal = 0,
+                    const uint32_t& energyVal = 0,
+                    const uint32_t& isSealed = 0,
+                    const uint32_t& sealLevel = 0,
+                    const uint32_t& enhanceExp = 0,
+                    const uint32_t& enhanceLevel = 0,
+                    const uint32_t& itemType = 0)
                     : item_number(itemNumber),
                     expire_date(expireDate),
                     serial_info(serialInfo),
@@ -358,14 +358,14 @@ namespace NetEngine
             struct EquipItemInfo
             {
                 EquipItemNumber item_number;
-                std::uint32_t expire_date;
+                uint32_t expire_date;
                 ItemSerialInfo serial_info;
-                std::uint16_t repair;
-                std::uint16_t energy;
-                std::uint32_t is_sealed;
-                std::uint32_t seal_level;
-                std::uint32_t enhance_exp;
-                std::uint32_t enhance_level;
+                uint16_t repair;
+                uint16_t energy;
+                uint32_t is_sealed;
+                uint32_t seal_level;
+                uint32_t enhance_exp;
+                uint32_t enhance_level;
                 EquipItemInfo(const InventoryItemInfo& inv_item_info)
                 {
                     std::memset(this, 0, sizeof(EquipItemInfo));
@@ -385,10 +385,10 @@ namespace NetEngine
             struct ShopSerialInfo
             {
                 ItemSerialInfo serial_info;
-                std::uint32_t expire_time;
+                uint32_t expire_time;
                 ShopSerialInfo(
                     const ItemSerialInfo& serialInfo = ItemSerialInfo(),
-                    const std::uint32_t& expireDate = 0)
+                    const uint32_t& expireDate = 0)
                     : serial_info(serialInfo),
                     expire_time(expireDate)
                 {
@@ -396,17 +396,17 @@ namespace NetEngine
             };
             struct BossItem
             {
-                std::uint32_t unique_id;
-                std::uint32_t item_id;
+                uint32_t unique_id;
+                uint32_t item_id;
             };
             struct ShopItem
             {
                 InventoryItemNumber item_number;
-                std::uint32_t expire_time;
+                uint32_t expire_time;
                 ItemSerialInfo serial_info;
                 ShopItem(
                     const InventoryItemNumber& itemNumber = InventoryItemNumber(0),
-                    const std::uint32_t& expireDate = 0,
+                    const uint32_t& expireDate = 0,
                     const ItemSerialInfo& serialInfo = ItemSerialInfo())
                     : item_number(itemNumber),
                     expire_time(expireDate),
@@ -417,12 +417,12 @@ namespace NetEngine
             };
             struct MailboxGift
             {
-                std::uint32_t mail_id;
-                std::uint32_t mail_time;
+                uint32_t mail_id;
+                uint32_t mail_time;
                 ShopItem item;
                 MailboxGift(
-                    const std::uint32_t& mailId = 0,
-                    const std::uint32_t& mailTime = 0,
+                    const uint32_t& mailId = 0,
+                    const uint32_t& mailTime = 0,
                     const ShopItem& item = ShopItem())
                     : mail_id(mailId),
                     mail_time(mailTime),
@@ -432,10 +432,10 @@ namespace NetEngine
             };
             struct PlayerFriendInfo
             {
-                std::uint32_t unique_id;
-                std::int32_t friend_id;
+                uint32_t unique_id;
+                int32_t friend_id;
                 char nickname[16];
-                PlayerFriendInfo(const std::uint32_t& uniqueId = 0, const std::int32_t& friendId = 0, const char* newNickname = "")
+                PlayerFriendInfo(const uint32_t& uniqueId = 0, const int32_t& friendId = 0, const char* newNickname = "")
                 {
                     std::memset(this, 0, sizeof(PlayerFriendInfo));
                     std::memset(this->nickname, 0, sizeof(nickname));
@@ -446,9 +446,9 @@ namespace NetEngine
             };
             struct PlayerBlockedInfo
             {
-                std::int32_t acc_id;
+                int32_t acc_id;
                 char nickname[16];
-                PlayerBlockedInfo(const std::int32_t& accId = 0, const char* newNickname = "")
+                PlayerBlockedInfo(const int32_t& accId = 0, const char* newNickname = "")
                 {
                     std::memset(this, 0, sizeof(PlayerBlockedInfo));
                     std::memset(this->nickname, 0, sizeof(nickname));
@@ -460,21 +460,21 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint64_t clanIdk : 4; // >> 0 (0 display clan, anythin else idk doesnt work)
-                    std::uint64_t logo_front : 16; // >> 4
-                    std::uint64_t logo_back : 14; // >> 20
-                    std::uint64_t clanId : 27; // >> 34
-                    std::uint64_t unknown2 : 3; // >> 61
+                    uint64_t clanIdk : 4; // >> 0 (0 display clan, anythin else idk doesnt work)
+                    uint64_t logo_front : 16; // >> 4
+                    uint64_t logo_back : 14; // >> 20
+                    uint64_t clanId : 27; // >> 34
+                    uint64_t unknown2 : 3; // >> 61
                     
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             struct PlayerRoomClanListInfo
             {
                 char clanName[16];
                 PlayerClanInfoRoom info_room;
 
-                PlayerRoomClanListInfo(std::uint32_t slotIndex = 0, std::string clanName = "", std::uint32_t logo_front = 0, std::uint32_t logo_back = 0, std::uint32_t clanId = 0, std::uint32_t unknown2 = 0)
+                PlayerRoomClanListInfo(uint32_t slotIndex = 0, std::string clanName = "", uint32_t logo_front = 0, uint32_t logo_back = 0, uint32_t clanId = 0, uint32_t unknown2 = 0)
                 {
                     std::memset(this, 0, sizeof(PlayerRoomClanListInfo));
                     std::strcpy(this->clanName, clanName.c_str());
@@ -490,18 +490,18 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t level : 7;
-                    std::uint32_t unknown : 25;
+                    uint32_t level : 7;
+                    uint32_t unknown : 25;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             struct PlayerClanInfo
             {
                 char nickname[16];
-                std::uint32_t unique_id;
+                uint32_t unique_id;
                 PlayerClanListInfo clanInfo;
 
-                PlayerClanInfo(std::string nickname, std::uint32_t uniqueId, std::uint32_t level)
+                PlayerClanInfo(std::string nickname, uint32_t uniqueId, uint32_t level)
                 {
                     std::memset(this, 0, sizeof(PlayerClanInfo));
                     std::strcpy(this->nickname, nickname.c_str());
@@ -514,19 +514,19 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint64_t logo_front : 16;
-                    std::uint64_t logo_back : 14;
-                    std::uint64_t level : 7;
+                    uint64_t logo_front : 16;
+                    uint64_t logo_back : 14;
+                    uint64_t level : 7;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             struct PlayerAgoraInfo 
             {
                 char nickname[16];
-                std::uint32_t unique_id;
+                uint32_t unique_id;
                 PlayerClanInfoLobby clanInfo;
 
-                PlayerAgoraInfo(std::string nickname, std::uint32_t uniqueId, std::uint32_t level, std::uint32_t clanIconFront, std::uint32_t clanIconBack)
+                PlayerAgoraInfo(std::string nickname, uint32_t uniqueId, uint32_t level, uint32_t clanIconFront, uint32_t clanIconBack)
                 {
                     std::memset(this, 0, sizeof(PlayerAgoraInfo));
                     std::strcpy(this->nickname, nickname.c_str());
@@ -548,239 +548,239 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t unused : 10;
-                    std::uint32_t ping : 10;
-                    std::uint32_t rest : 12;
+                    uint32_t unused : 10;
+                    uint32_t ping : 10;
+                    uint32_t rest : 12;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomUserPlayerInfo1
             {
             #if defined(RELEASE_1_0_3)
                 struct
                 {
-                    std::uint32_t grade : 4;
-                    std::uint32_t vip_level : 3;
-                    std::uint32_t character : 4;
-                    std::uint32_t team : 4;
-                    std::uint32_t level : 7;
-                    std::uint32_t ping : 10;
+                    uint32_t grade : 4;
+                    uint32_t vip_level : 3;
+                    uint32_t character : 4;
+                    uint32_t team : 4;
+                    uint32_t level : 7;
+                    uint32_t ping : 10;
                 };
             #else
                 struct
                 {
-                    std::uint32_t grade : 4; //  << 0
-                    std::uint32_t vip_level : 3; // << 4
-                    std::uint32_t character : 5; // << 7
-                    std::uint32_t team : 3; // << 12
-                    std::uint32_t level : 7; // << 15
-                    std::uint32_t ping : 10; // << 22
+                    uint32_t grade : 4; //  << 0
+                    uint32_t vip_level : 3; // << 4
+                    uint32_t character : 5; // << 7
+                    uint32_t team : 3; // << 12
+                    uint32_t level : 7; // << 15
+                    uint32_t ping : 10; // << 22
                 };
             #endif
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomUserPlayerInfo2
             {
                 struct
                 {
-                    std::uint32_t fps_limit : 2;
-                    std::uint32_t player_state : 4;
-                    std::uint32_t ping : 10;
-                    std::uint32_t unknown : 16;
+                    uint32_t fps_limit : 2;
+                    uint32_t player_state : 4;
+                    uint32_t ping : 10;
+                    uint32_t unknown : 16;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomUserPlayerInfo3
             {
                 struct
                 {
-                    std::uint32_t unknown : 3;
-                    std::uint32_t ping : 10;
-                    std::uint32_t fps_limit : 2;
+                    uint32_t unknown : 3;
+                    uint32_t ping : 10;
+                    uint32_t fps_limit : 2;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomPlayerInfo1
             {
                 struct
                 {
-                    std::uint32_t map_index : 7;
-                    std::uint32_t mode_index : 5;
-                    std::uint32_t max_players : 5;
-                    std::uint32_t unknown : 1;
-                    std::uint32_t has_password : 1; 
-                    std::uint32_t allow_intruders : 1; 
+                    uint32_t map_index : 7;
+                    uint32_t mode_index : 5;
+                    uint32_t max_players : 5;
+                    uint32_t unknown : 1;
+                    uint32_t has_password : 1; 
+                    uint32_t allow_intruders : 1; 
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomSettingsModeInfo2
             {
                 struct
                 {
-                    std::uint64_t time_limit : 5;
-                    std::uint64_t score_limit : 5;
-                    std::uint64_t allow_items : 1;
-                    std::uint64_t unknown : 2;
-                    std::uint64_t restriction : 4;
+                    uint64_t time_limit : 5;
+                    uint64_t score_limit : 5;
+                    uint64_t allow_items : 1;
+                    uint64_t unknown : 2;
+                    uint64_t restriction : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             union TDM_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t redscore : 8;
-                    std::uint64_t bluescore : 8;
-                    std::uint64_t winrule : 8;
-                    std::uint64_t state : 2;
-                    std::uint64_t kitdrop : 1;
-                    std::uint64_t timelimited : 5;
-                    std::uint64_t weaponlimited : 4;
+                    uint64_t redscore : 8;
+                    uint64_t bluescore : 8;
+                    uint64_t winrule : 8;
+                    uint64_t state : 2;
+                    uint64_t kitdrop : 1;
+                    uint64_t timelimited : 5;
+                    uint64_t weaponlimited : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             union Zombie_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t redscore : 8;
-                    std::uint64_t bluescore : 8;
-                    std::uint64_t winrule : 8;
-                    std::uint64_t state : 2;
-                    std::uint64_t kitdrop : 1;
-                    std::uint64_t timelimited : 5;
-                    std::uint64_t weaponlimited : 4;
+                    uint64_t redscore : 8;
+                    uint64_t bluescore : 8;
+                    uint64_t winrule : 8;
+                    uint64_t state : 2;
+                    uint64_t kitdrop : 1;
+                    uint64_t timelimited : 5;
+                    uint64_t weaponlimited : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             union Elimination_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t redscore : 8;
-                    std::uint64_t bluescore : 8;
-                    std::uint64_t winrule : 8;
-                    std::uint64_t state : 2;
-                    std::uint64_t kitdrop : 1;
-                    std::uint64_t timelimited : 5;
-                    std::uint64_t weaponlimited : 4;
+                    uint64_t redscore : 8;
+                    uint64_t bluescore : 8;
+                    uint64_t winrule : 8;
+                    uint64_t state : 2;
+                    uint64_t kitdrop : 1;
+                    uint64_t timelimited : 5;
+                    uint64_t weaponlimited : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             union CaptureTheBattery_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t redscore : 8;
-                    std::uint64_t bluescore : 8;
-                    std::uint64_t winrule : 8;
-                    std::uint64_t state : 2;
-                    std::uint64_t kitdrop : 1;
-                    std::uint64_t timelimited : 5;
-                    std::uint64_t weaponlimited : 4;
+                    uint64_t redscore : 8;
+                    uint64_t bluescore : 8;
+                    uint64_t winrule : 8;
+                    uint64_t state : 2;
+                    uint64_t kitdrop : 1;
+                    uint64_t timelimited : 5;
+                    uint64_t weaponlimited : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             union FFA_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t timelimited : 5; // >> 0
-                    std::uint64_t winrule : 5; // >> 5
-                    std::uint64_t kitdrop : 1; // >> 10
-                    std::uint64_t state : 2; // >> 11
-                    std::uint64_t weaponlimited : 4; // >> 13
+                    uint64_t timelimited : 5; // >> 0
+                    uint64_t winrule : 5; // >> 5
+                    uint64_t kitdrop : 1; // >> 10
+                    uint64_t state : 2; // >> 11
+                    uint64_t weaponlimited : 4; // >> 13
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             struct BossBattle_ModeInfo
             {
-                std::uint32_t unknown1;//0
-                std::uint32_t unknown2;//4
-                std::uint32_t pos1 : 16;//8
-                std::uint32_t pos2 : 16;//10
-                std::uint32_t pos3 : 16;//12
-                std::uint32_t pos4 : 16;//14
-                std::uint32_t pos5 : 16;//16
-                std::uint32_t pos6 : 16;//18
-                std::uint64_t winrule : 8;//20
-                std::uint64_t state : 2;
-                std::uint64_t kitdrop : 1;
-                std::uint64_t timelimited : 5;
-                std::uint64_t weaponlimited : 4;
+                uint32_t unknown1;//0
+                uint32_t unknown2;//4
+                uint32_t pos1 : 16;//8
+                uint32_t pos2 : 16;//10
+                uint32_t pos3 : 16;//12
+                uint32_t pos4 : 16;//14
+                uint32_t pos5 : 16;//16
+                uint32_t pos6 : 16;//18
+                uint64_t winrule : 8;//20
+                uint64_t state : 2;
+                uint64_t kitdrop : 1;
+                uint64_t timelimited : 5;
+                uint64_t weaponlimited : 4;
             };
             struct BombBattle_ModeInfo
             {
-                std::uint32_t unknown1;//0
-                std::uint32_t unknown2;//4
-                std::uint32_t pos1 : 16;//8
-                std::uint32_t pos2 : 16;//10
-                std::uint32_t pos3 : 16;//12
-                std::uint32_t pos4 : 16;//14
-                std::uint32_t pos5 : 16;//16
-                std::uint32_t pos6 : 16;//18
-                std::uint32_t redscore : 8;//20
-                std::uint32_t bluescore : 8;
-                std::uint32_t winrule : 8;
-                std::uint32_t state : 2;
-                std::uint32_t kitdrop : 1;
-                std::uint32_t timelimited : 5;
-                std::uint32_t weaponlimited : 4;
+                uint32_t unknown1;//0
+                uint32_t unknown2;//4
+                uint32_t pos1 : 16;//8
+                uint32_t pos2 : 16;//10
+                uint32_t pos3 : 16;//12
+                uint32_t pos4 : 16;//14
+                uint32_t pos5 : 16;//16
+                uint32_t pos6 : 16;//18
+                uint32_t redscore : 8;//20
+                uint32_t bluescore : 8;
+                uint32_t winrule : 8;
+                uint32_t state : 2;
+                uint32_t kitdrop : 1;
+                uint32_t timelimited : 5;
+                uint32_t weaponlimited : 4;
             };
             union ArmsRace_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t timelimited : 5;
-                    std::uint64_t winrule : 5;
-                    std::uint64_t kitdrop : 1;
-                    std::uint64_t state : 2;
-                    std::uint64_t weaponlimited : 4;
+                    uint64_t timelimited : 5;
+                    uint64_t winrule : 5;
+                    uint64_t kitdrop : 1;
+                    uint64_t state : 2;
+                    uint64_t weaponlimited : 4;
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
 
             union Scrimmage_ModeInfo
             {
                 struct
                 {
-                    std::uint64_t redscore : 20; // >> 0
-                    std::uint64_t bluescore : 20; // >> 20
-                    std::uint64_t winrule : 5; // >> 40
-                    std::uint64_t state : 2; // >> 45
-                    std::uint64_t timelimited : 5; // >> 47
-                    std::uint64_t weaponlimited : 4; // >> 52
+                    uint64_t redscore : 20; // >> 0
+                    uint64_t bluescore : 20; // >> 20
+                    uint64_t winrule : 5; // >> 40
+                    uint64_t state : 2; // >> 45
+                    uint64_t timelimited : 5; // >> 47
+                    uint64_t weaponlimited : 4; // >> 52
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             union GameModeSettingsUpdateInfo
             {
                 struct
                 {
-                    std::uint32_t max_players : 5;
-                    std::uint32_t unknown1 : 11;
-                    std::uint32_t map_index : 7;
-                    std::uint32_t unknown2 : 9;
+                    uint32_t max_players : 5;
+                    uint32_t unknown1 : 11;
+                    uint32_t map_index : 7;
+                    uint32_t unknown2 : 9;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomSettingsUpdateInfo
             {
                 struct
                 {
-                    std::uint32_t max_players : 5;
-                    std::uint32_t time : 5;
-                    std::uint32_t restriction : 4;
-                    std::uint32_t allow_items : 1;
-                    std::uint32_t allow_intruders : 1;
-                    std::uint32_t map_index : 6;
-                    std::uint32_t unknown1 : 1;
-                    std::uint32_t unknown2 : 1;
-                    std::uint32_t score_limit : 5;
-                    std::uint32_t team_balance : 2;
-                    std::uint32_t unknown3 : 1;
+                    uint32_t max_players : 5;
+                    uint32_t time : 5;
+                    uint32_t restriction : 4;
+                    uint32_t allow_items : 1;
+                    uint32_t allow_intruders : 1;
+                    uint32_t map_index : 6;
+                    uint32_t unknown1 : 1;
+                    uint32_t unknown2 : 1;
+                    uint32_t score_limit : 5;
+                    uint32_t team_balance : 2;
+                    uint32_t unknown3 : 1;
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             struct RoomSettingsUpdateTitle
             {
@@ -807,67 +807,67 @@ namespace NetEngine
             #if defined(RELEASE_1_0_3)
                 struct
                 {
-                    std::uint32_t map_index : 7;
-                    std::uint32_t mode_index : 5;
-                    std::uint32_t max_players : 5; 
-                    std::uint32_t has_matchStarted : 1; 
-                    std::uint32_t has_password : 1;
-                    std::uint32_t allow_intruders : 1; 
-                    std::uint32_t restriction : 4;
-                    std::uint32_t is_clan_room : 2;
-                    std::uint32_t team_balance : 2;
-                    std::uint32_t allow_observers : 1; 
-                    std::uint32_t hide_password : 1;
-                    std::uint32_t unknown1 : 1;
-                    std::uint32_t unknown2 : 1; 
+                    uint32_t map_index : 7;
+                    uint32_t mode_index : 5;
+                    uint32_t max_players : 5; 
+                    uint32_t has_matchStarted : 1; 
+                    uint32_t has_password : 1;
+                    uint32_t allow_intruders : 1; 
+                    uint32_t restriction : 4;
+                    uint32_t is_clan_room : 2;
+                    uint32_t team_balance : 2;
+                    uint32_t allow_observers : 1; 
+                    uint32_t hide_password : 1;
+                    uint32_t unknown1 : 1;
+                    uint32_t unknown2 : 1; 
                 };
             #else
                 struct
                 {
-                    std::uint32_t map_index : 7;
-                    std::uint32_t mode_index : 5;
-                    std::uint32_t max_players : 5;
-                    std::uint32_t has_matchStarted : 1;
-                    std::uint32_t has_password : 1;
-                    std::uint32_t allow_intruders : 1;
-                    std::uint32_t restriction : 4;
-                    std::uint32_t is_clan_room : 1;
-                    std::uint32_t team_balance : 2;
-                    std::uint32_t allow_observers : 1;
-                    std::uint32_t hide_password : 1;
-                    std::uint32_t unknown1 : 1;
-                    std::uint32_t unknown2 : 1;
-                    std::uint32_t unknown3 : 1;
+                    uint32_t map_index : 7;
+                    uint32_t mode_index : 5;
+                    uint32_t max_players : 5;
+                    uint32_t has_matchStarted : 1;
+                    uint32_t has_password : 1;
+                    uint32_t allow_intruders : 1;
+                    uint32_t restriction : 4;
+                    uint32_t is_clan_room : 1;
+                    uint32_t team_balance : 2;
+                    uint32_t allow_observers : 1;
+                    uint32_t hide_password : 1;
+                    uint32_t unknown1 : 1;
+                    uint32_t unknown2 : 1;
+                    uint32_t unknown3 : 1;
                 };
             #endif
-                std::uint32_t data;
+                uint32_t data;
             };
             union RoomSettings
             {
                 struct
                 {
-                    std::uint32_t time : 5;
-                    std::uint32_t restriction : 4;
-                    std::uint32_t allow_items : 1;
-                    std::uint32_t mode_index : 4;
-                    std::uint32_t unknown1 : 1;
-                    std::uint32_t allow_intruders : 1;
-                    std::uint32_t has_password : 1;
-                    std::uint32_t unknown2 : 1;
-                    std::uint32_t max_players : 4;
-                    std::uint32_t map_index : 7;
-                    std::uint32_t team_balance : 2;
-                    std::uint32_t allow_observers : 1;
+                    uint32_t time : 5;
+                    uint32_t restriction : 4;
+                    uint32_t allow_items : 1;
+                    uint32_t mode_index : 4;
+                    uint32_t unknown1 : 1;
+                    uint32_t allow_intruders : 1;
+                    uint32_t has_password : 1;
+                    uint32_t unknown2 : 1;
+                    uint32_t max_players : 4;
+                    uint32_t map_index : 7;
+                    uint32_t team_balance : 2;
+                    uint32_t allow_observers : 1;
                     
                 };
-                std::uint32_t data;
+                uint32_t data;
             };
             struct RoomSettingsInfo
             {
                 char title[32];
                 char password[16];
                 RoomSettings settings;
-                RoomSettingsInfo(std::uint32_t settings_data = 0, const char* roomtitle = "", const char* roompass = "")
+                RoomSettingsInfo(uint32_t settings_data = 0, const char* roomtitle = "", const char* roompass = "")
                 {
                     std::memset(this, 0, sizeof(RoomSettingsInfo));
                     std::memset(this->title, 0, sizeof(this->title));
@@ -881,38 +881,38 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t room_id : 16;
-                    //std::uint32_t room_id : 11;
-                    //std::uint32_t main_id : 5;
-                    std::uint32_t channel_id : 9; // >> 16
-                    std::uint32_t map_index : 7; // >> 25
-                    std::uint32_t mode_index : 5; // >> 32
-                    std::uint32_t max_players : 5; // >> 37
-                    std::uint32_t current_players : 5; // >> 42
-                    std::uint32_t is_playing : 1; // >> 47
-                    std::uint32_t has_password : 1; // >> 48
-                    std::uint32_t is_observer_off : 1; // >> 49
-                    std::uint32_t weapon_restriction : 4; // >> 50
-                    std::uint32_t is_observer_enabled : 1; // >> 54
-                    std::uint32_t host_ping : 9; // >> 55
+                    uint32_t room_id : 16;
+                    //uint32_t room_id : 11;
+                    //uint32_t main_id : 5;
+                    uint32_t channel_id : 9; // >> 16
+                    uint32_t map_index : 7; // >> 25
+                    uint32_t mode_index : 5; // >> 32
+                    uint32_t max_players : 5; // >> 37
+                    uint32_t current_players : 5; // >> 42
+                    uint32_t is_playing : 1; // >> 47
+                    uint32_t has_password : 1; // >> 48
+                    uint32_t is_observer_off : 1; // >> 49
+                    uint32_t weapon_restriction : 4; // >> 50
+                    uint32_t is_observer_enabled : 1; // >> 54
+                    uint32_t host_ping : 9; // >> 55
                 };
-                std::uint64_t data;
+                uint64_t data;
             };
             struct MailboxMsgInfo
             {
-                std::uint32_t mail_id;
-                std::uint32_t date;
-                std::uint32_t is_opened;
+                uint32_t mail_id;
+                uint32_t date;
+                uint32_t is_opened;
                 char nickname[16];
                 char msg[256];
             };
             struct GiftboxMsgInfo
             {
-                std::uint32_t mail_id;
-                std::uint32_t date;
-                std::uint32_t item_id;
-                std::uint32_t unknown1 = 1;
-                std::uint32_t unknown2 = 0;
+                uint32_t mail_id;
+                uint32_t date;
+                uint32_t item_id;
+                uint32_t unknown1 = 1;
+                uint32_t unknown2 = 0;
                 char nickname[16];
                 char msg[256];
             };
@@ -920,22 +920,22 @@ namespace NetEngine
             {
                 char title[32];
                 RoomDetails details;
-                std::uint32_t unknown;
+                uint32_t unknown;
 
                 RoomListInfo(
                     const std::string& room_title, 
-                    const std::uint32_t& room_id, 
-                    const std::uint32_t& channel_id, 
-                    const std::uint32_t& map_index, 
-                    const std::uint32_t& mode_index, 
-                    const std::uint32_t& max_players, 
-                    const std::uint32_t& current_players, 
+                    const uint32_t& room_id, 
+                    const uint32_t& channel_id, 
+                    const uint32_t& map_index, 
+                    const uint32_t& mode_index, 
+                    const uint32_t& max_players, 
+                    const uint32_t& current_players, 
                     const bool& is_playing, 
                     const bool& has_password, 
                     const bool& is_observer_off, 
-                    const std::uint32_t& weapon_restriction,
+                    const uint32_t& weapon_restriction,
                     const bool& is_observer_enabled, 
-                    const std::uint32_t& host_ping)
+                    const uint32_t& host_ping)
                 {
                     std::strcpy(this->title, room_title.c_str());
                     this->details.room_id = room_id;
@@ -955,74 +955,74 @@ namespace NetEngine
             };
             struct MainRoomEndMatchScoreClientInfo
             {
-                std::uint32_t red_score : 8;
-                std::uint32_t blue_score : 8;
-                std::uint32_t unknown1 : 8;
-                std::uint32_t unknown2 : 8;
+                uint32_t red_score : 8;
+                uint32_t blue_score : 8;
+                uint32_t unknown1 : 8;
+                uint32_t unknown2 : 8;
             };
             struct MainRoomEndMatchClientInfo
             {
-                std::uint32_t melee_kills : 8;
-                std::uint32_t rifle_kills : 8;
-                std::uint32_t shotgun_kills : 8;
-                std::uint32_t sniper_kills : 8;
-                std::uint32_t gatling_kills : 8;
-                std::uint32_t bazooka_kills : 8;
-                std::uint32_t grenade_kills : 8;
-                std::uint32_t killstreak : 8;
-                std::uint32_t total_kills : 8;
-                std::uint32_t deaths : 8;
-                std::uint32_t headshots : 8;
-                std::uint32_t assists : 8;
-                std::uint32_t unknown1 : 8;
-                std::uint32_t unknown2 : 8;
-                std::uint32_t unknown3 : 8;
-                std::uint32_t unknown4 : 8;
-                std::uint32_t unique_id;
+                uint32_t melee_kills : 8;
+                uint32_t rifle_kills : 8;
+                uint32_t shotgun_kills : 8;
+                uint32_t sniper_kills : 8;
+                uint32_t gatling_kills : 8;
+                uint32_t bazooka_kills : 8;
+                uint32_t grenade_kills : 8;
+                uint32_t killstreak : 8;
+                uint32_t total_kills : 8;
+                uint32_t deaths : 8;
+                uint32_t headshots : 8;
+                uint32_t assists : 8;
+                uint32_t unknown1 : 8;
+                uint32_t unknown2 : 8;
+                uint32_t unknown3 : 8;
+                uint32_t unknown4 : 8;
+                uint32_t unique_id;
             };
 
             struct MainRoomEndMatchScoreClientBossBattleInfo
             {
-                std::uint32_t player_count;
+                uint32_t player_count;
             };
             struct MainRoomEndMatchClientBossBattleInfo
             {
                 
-                std::uint32_t unique_id;
-                std::uint32_t unknown[17];
+                uint32_t unique_id;
+                uint32_t unknown[17];
             };
 
 
             // S2C
             struct MainRoomEndMatchResponse
             {
-                std::uint32_t melee_kills : 8;//0
-                std::uint32_t rifle_kills : 8;//1
-                std::uint32_t shotgun_kills : 8;//2
-                std::uint32_t sniper_kills : 8;//3
-                std::uint32_t gatling_kills : 8;//4
-                std::uint32_t bazooka_kills : 8;//5
-                std::uint32_t grenade_kills : 8;//6
-                std::uint32_t killstreak : 8;//7
-                std::uint32_t total_kills : 8;//8
-                std::uint32_t deaths : 8;//9
-                std::uint32_t headshots : 8;//10
-                std::uint32_t assists : 8;//11
-                //std::uint32_t unknown;//12
-                std::uint32_t unknown1 : 8;
-                std::uint32_t unknown2 : 8;
-                std::uint32_t unknown3 : 8;
-                std::uint32_t unknown4 : 8;
-                std::uint32_t total_mp;//16
-                std::uint32_t total_xp;//20
-                //std::uint32_t unknown2;//24
-                std::uint32_t unique_id;
+                uint32_t melee_kills : 8;//0
+                uint32_t rifle_kills : 8;//1
+                uint32_t shotgun_kills : 8;//2
+                uint32_t sniper_kills : 8;//3
+                uint32_t gatling_kills : 8;//4
+                uint32_t bazooka_kills : 8;//5
+                uint32_t grenade_kills : 8;//6
+                uint32_t killstreak : 8;//7
+                uint32_t total_kills : 8;//8
+                uint32_t deaths : 8;//9
+                uint32_t headshots : 8;//10
+                uint32_t assists : 8;//11
+                //uint32_t unknown;//12
+                uint32_t unknown1 : 8;
+                uint32_t unknown2 : 8;
+                uint32_t unknown3 : 8;
+                uint32_t unknown4 : 8;
+                uint32_t total_mp;//16
+                uint32_t total_xp;//20
+                //uint32_t unknown2;//24
+                uint32_t unique_id;
             };
             struct MainRoomEndMatchResponseBossBattle
             {
-                std::uint32_t total_mp;
-                std::uint32_t total_xp;
-                std::uint32_t reward_item_id;
+                uint32_t total_mp;
+                uint32_t total_xp;
+                uint32_t reward_item_id;
             };
 
             struct GuideMissions
@@ -1031,37 +1031,37 @@ namespace NetEngine
                 {
                     struct
                     {
-                        std::uint32_t help : 1;
-                        std::uint32_t personalinfo : 1;
-                        std::uint32_t battleinfo : 1;
-                        std::uint32_t options : 1;
-                        std::uint32_t chat : 1;
-                        std::uint32_t invasion : 1;
-                        std::uint32_t otherinfo : 1;
-                        std::uint32_t gachapon : 1;
-                        std::uint32_t createroom : 1;
-                        std::uint32_t roomlist : 1;
-                        std::uint32_t createparty : 1;
-                        std::uint32_t addfriend : 1;
+                        uint32_t help : 1;
+                        uint32_t personalinfo : 1;
+                        uint32_t battleinfo : 1;
+                        uint32_t options : 1;
+                        uint32_t chat : 1;
+                        uint32_t invasion : 1;
+                        uint32_t otherinfo : 1;
+                        uint32_t gachapon : 1;
+                        uint32_t createroom : 1;
+                        uint32_t roomlist : 1;
+                        uint32_t createparty : 1;
+                        uint32_t addfriend : 1;
                     };
-                    std::uint32_t data;
+                    uint32_t data;
                 };
 
                 GuideMissions() : data(0) {}
-                void SetMissionStatus(std::uint32_t missionId, bool completed)
+                void SetMissionStatus(uint32_t missionId, bool completed)
                 {
                     if (missionId < 46 || missionId > 57) return;
-                    auto bit_pos = static_cast<std::uint32_t>(missionId - 46);
+                    auto bit_pos = static_cast<uint32_t>(missionId - 46);
                     completed ? data |= (1 << bit_pos) : data &= ~(1 << bit_pos);
                 }
                 bool RetrieveMissionStatus(int missionId) const
                 {
                     if (missionId < 46 || missionId > 57) return false;
-                    auto bit_pos = static_cast<std::uint32_t>(missionId - 46);
+                    auto bit_pos = static_cast<uint32_t>(missionId - 46);
                     return (data & (1 << bit_pos)) != 0;
                 }
-                void Set(std::uint32_t data) { data = data; }
-                std::uint32_t Get() const { return data; }
+                void Set(uint32_t data) { data = data; }
+                uint32_t Get() const { return data; }
             };
 
 #pragma pack(pop)
@@ -1099,19 +1099,19 @@ namespace NetEngine
             {
                 PositionStruct position;//0
                 DirectionStruct direction;//6
-                std::uint32_t matchTick{};//12
+                uint32_t matchTick{};//12
             #if defined(RELEASE_1_0_3)
-                std::uint32_t animation1 : 8 = 0;//16
+                uint32_t animation1 : 8 = 0;//16
             #else
-                std::uint32_t animation1 : 7 = 0;
+                uint32_t animation1 : 7 = 0;
             #endif
-                std::uint32_t animation2 : 6 = 0;
-                std::uint32_t weapon : 4 = 0;
-                std::uint32_t rotation : 9 = 0;
+                uint32_t animation2 : 6 = 0;
+                uint32_t weapon : 4 = 0;
+                uint32_t rotation : 9 = 0;
             #if defined(RELEASE_1_0_3)
-                std::uint32_t unknown : 5 = 0;
+                uint32_t unknown : 5 = 0;
             #else
-                std::uint32_t unknown : 6 = 0;
+                uint32_t unknown : 6 = 0;
             #endif
                
             };
@@ -1133,25 +1133,25 @@ namespace NetEngine
             };
             struct SpecificInfo
             {
-                std::uint32_t sessionId : 14 = 0;
-                std::uint32_t enableMovement : 1 = true;// >> 14
-                std::uint32_t enableBullet : 1 = false;// >> 15
-                std::uint32_t animation1 : 7 = 0;// >> 16
-                std::uint32_t enableRotation : 1 = true;// >> 23
-                std::uint32_t animation2 : 6 = 0;// >> 24
-                std::uint32_t unknown : 1 = true; // >> 30
-                std::uint32_t enableJump : 1 = false; // >> 31
+                uint32_t sessionId : 14 = 0;
+                uint32_t enableMovement : 1 = true;// >> 14
+                uint32_t enableBullet : 1 = false;// >> 15
+                uint32_t animation1 : 7 = 0;// >> 16
+                uint32_t enableRotation : 1 = true;// >> 23
+                uint32_t animation2 : 6 = 0;// >> 24
+                uint32_t unknown : 1 = true; // >> 30
+                uint32_t enableJump : 1 = false; // >> 31
             };
             struct PlayerInfoBasicResponse
             {
-                std::uint32_t tick{};//0
+                uint32_t tick{};//0
                 SpecificInfo specificInfo{};//4
                 PositionStruct position;//+0
                 DirectionStruct direction;//+6
-                std::uint32_t rotation1 : 8 = 0;//+12
-                std::uint32_t rotation2 : 8 = 0;//+13
-                std::uint32_t rotation3 : 9 = 0;//+ 14
-                std::uint32_t currentWeapon : 4 = 0;
+                uint32_t rotation1 : 8 = 0;//+12
+                uint32_t rotation2 : 8 = 0;//+13
+                uint32_t rotation3 : 9 = 0;//+ 14
+                uint32_t currentWeapon : 4 = 0;
             };
             struct PlayerInfoResponseWithJump
             {
@@ -1160,15 +1160,15 @@ namespace NetEngine
             };
             struct PlayerInfoResponseWithBullets
             {
-                std::uint32_t tick{};
+                uint32_t tick{};
                 SpecificInfo specificInfo{};
                 PositionStruct position;
                 DirectionStruct direction;
                 BulletsStruct bullets{};
-                std::uint32_t rotation1 : 8 = 0;
-                std::uint32_t rotation2 : 8 = 0;
-                std::uint32_t rotation3 : 9 = 0;
-                std::uint32_t currentWeapon : 4 = 0; // + 22
+                uint32_t rotation1 : 8 = 0;
+                uint32_t rotation2 : 8 = 0;
+                uint32_t rotation3 : 9 = 0;
+                uint32_t currentWeapon : 4 = 0; // + 22
             };
             struct PlayerInfoResponseComplete
             {
@@ -1191,11 +1191,11 @@ namespace NetEngine
             {
                 struct
                 {
-                    std::uint32_t session : 16;
-                    std::uint32_t server : 15;
-                    std::uint32_t  unknown : 1;
+                    uint32_t session : 16;
+                    uint32_t server : 15;
+                    uint32_t  unknown : 1;
                 };
-                std::uint32_t data;
+                uint32_t data;
 
                 UniqueId()
                 {
@@ -1207,7 +1207,7 @@ namespace NetEngine
                     std::memset(this, 0, sizeof(UniqueId));
                     this->data = data;
                 }
-                UniqueId(std::uint16_t session, std::uint16_t server)
+                UniqueId(uint16_t session, uint16_t server)
                 {
                     std::memset(this, 0, sizeof(UniqueId));
                     this->session = session;

@@ -14,7 +14,7 @@ namespace Game
             CastConnectionReq* castConnecReq = (CastConnectionReq*)callback.message->GetData();
             session->SetSessionId(castConnecReq->UniqueId.session);
 
-            auto new_player = Player{ static_cast<std::uint16_t>(castConnecReq->UniqueId.session), 0, 0, 0, static_cast<std::uint16_t>(castConnecReq->UniqueId.server), PlayerInfo::State::Connected, false, false, castConnecReq->Authkey };
+            auto new_player = Player{ static_cast<uint16_t>(castConnecReq->UniqueId.session), 0, 0, 0, static_cast<uint16_t>(castConnecReq->UniqueId.server), PlayerInfo::State::Connected, false, false, castConnecReq->Authkey };
 
             cast_server->AddPlayerCache(castConnecReq->UniqueId.session, new_player);
 
@@ -24,11 +24,11 @@ namespace Game
             castConnAckMsg.SetCommand(501, 0, 32, 1);
             session->Send(castConnAckMsg);
 
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connected with auth_key: ({}) from server_id: ({})", session->GetSessionId(), static_cast<std::uint64_t>(castConnecReq->Authkey), static_cast<std::uint32_t>(castConnecReq->UniqueId.server));
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connected with auth_key: ({}) from server_id: ({})", session->GetSessionId(), static_cast<uint64_t>(castConnecReq->Authkey), static_cast<uint32_t>(castConnecReq->UniqueId.server));
 
             struct PlayerAuthorizeCastToMainInfo
             {
-                std::uint32_t session_id;
+                uint32_t session_id;
             } info;
             info.session_id = session->GetSessionId();
 

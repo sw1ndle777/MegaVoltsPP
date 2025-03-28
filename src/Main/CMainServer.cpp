@@ -57,7 +57,7 @@ namespace Game
         }
         static void Items(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -106,7 +106,7 @@ namespace Game
                     acc_cache.unlock();
                     auto player_ids = main_server->GetRoomSortedPlayerSessionIds(room);
                   
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Rooms Info: {} players, mode: {}", player_ids.size(), static_cast<std::uint8_t>(room->ModeIndex)).c_str());
+                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Rooms Info: {} players, mode: {}", player_ids.size(), static_cast<uint8_t>(room->ModeIndex)).c_str());
                     if (room->has_password)
                         main_server->SendServerMessage(callback.session, fmt::format("RoomId: {} - Title: {} - Password: {}", room->room_id, room->title.c_str(), room->password.c_str()));
                     else
@@ -212,7 +212,7 @@ namespace Game
         static void Announce(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
             acc_cache.unlock();
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -246,7 +246,7 @@ namespace Game
         }
         static void Level(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -284,7 +284,7 @@ namespace Game
         static void Kick(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -340,8 +340,8 @@ namespace Game
             //main_server->RemoveRoomPlayerCache(player_room, player_session_id, player_team_id);
             //main_server->RoomPlayersSlotReorder(player_room);
 
-            std::vector<std::uint32_t> players_ids;
-            std::vector<std::pair<std::uint32_t, std::uint32_t>> player_slot_pairs;
+            std::vector<uint32_t> players_ids;
+            std::vector<std::pair<uint32_t, uint32_t>> player_slot_pairs;
             auto insert_player_slot_pair = [&](const auto& session_ids)
             {
                 for (const auto& id : session_ids)
@@ -368,7 +368,7 @@ namespace Game
             else
                 insert_player_slot_pair(player_room->neutralteam_session_ids);
             insert_player_slot_pair(player_room->observers_session_ids);
-            std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<std::uint32_t, int>& a, const std::pair<std::uint32_t, int>& b) { return a.second < b.second; });
+            std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) { return a.second < b.second; });
             for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
             
 
@@ -383,7 +383,7 @@ namespace Game
                         player_room->host_session_id = best_ping_session_id;
                         for (const auto& id : players_ids)
                             if (auto player_session = main_server->GetSessionById(id))
-                                send_msg(player_session.get(), 128, 0, 1, static_cast<std::uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
+                                send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
                     }
                     best_ping_acc_cache.unlock();
                 }
@@ -430,7 +430,7 @@ namespace Game
         static void Break(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -446,7 +446,7 @@ namespace Game
                 main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /break or /break room_id", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
-            std::uint16_t target_room_id = 0;
+            uint16_t target_room_id = 0;
 
             if (args.size() == 1) 
             {
@@ -461,7 +461,7 @@ namespace Game
             {
                 try
                 {
-                    target_room_id = static_cast<std::uint16_t>(std::stoi(args[1]));
+                    target_room_id = static_cast<uint16_t>(std::stoi(args[1]));
                 }
                 catch (const std::exception&)
                 {
@@ -514,7 +514,7 @@ namespace Game
         static void BreakAll(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, std::uint16_t order, std::uint8_t mission, std::uint8_t extra, std::uint8_t option, std::uint8_t* data = nullptr, std::uint16_t data_size = 0)
+            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
                 CMessage message(session->GetEncryptionKey());
                 message.SetSession(session->GetSessionId());
@@ -531,7 +531,7 @@ namespace Game
             main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, successfully broke all rooms.", acc_cache->acc_info.Nickname.c_str()).c_str());
             acc_cache.unlock();
 
-            std::vector<std::uint16_t> room_ids;
+            std::vector<uint16_t> room_ids;
             std::shared_lock room_cache_lock(main_server->GetRoomsCacheMutex());
             for (const auto& rooms : rooms_cache)
             {
@@ -603,13 +603,13 @@ namespace Game
         {
             HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
             auto cpu_usage = Utility::GetCpuUsage(m_process_handle);
-            auto mem_usage = static_cast<std::uint32_t>(Utility::GetMemoryUsage(m_process_handle));
+            auto mem_usage = static_cast<uint32_t>(Utility::GetMemoryUsage(m_process_handle));
             CloseHandle(m_process_handle);
-            auto sessions_count = static_cast<std::uint16_t>(main_server->GetSessions()->size());
+            auto sessions_count = static_cast<uint16_t>(main_server->GetSessions()->size());
 
             auto msg = fmt::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",
-                static_cast<std::uint16_t>(sessions_count),
-                static_cast<std::uint32_t>(mem_usage),
+                static_cast<uint16_t>(sessions_count),
+                static_cast<uint32_t>(mem_usage),
                 static_cast<double>(cpu_usage));
 
             main_server->SendServerMessage(callback.session, msg.c_str());
@@ -622,11 +622,11 @@ namespace Game
             auto my_session_id = acc_cache->session_id;
             acc_cache.unlock();
             auto session_ids = main_server->GetSessions();
-            std::vector<std::uint16_t> my_session_ids;
+            std::vector<uint16_t> my_session_ids;
             for (auto& [id, session] : *session_ids)
                 my_session_ids.push_back(id);
             session_ids.unlock();
-            std::uint32_t kicked_cnt = 0;
+            uint32_t kicked_cnt = 0;
             for (auto id : my_session_ids)
             {
                 if (id == my_session_id) continue;
@@ -637,7 +637,7 @@ namespace Game
             
             /*
             auto my_session_id = acc_cache->session_id;
-            std::uint32_t kicked_cnt = 0;
+            uint32_t kicked_cnt = 0;
             acc_cache.unlock();
             std::shared_lock lock(main_server->GetAccountsCacheMutex());
             for (const auto& acc : accounts_cache)
@@ -704,53 +704,53 @@ namespace Game
     std::shared_mutex gachapon_sale_cache_mutex;
     std::shared_mutex gachapon_ids_sale_cache_mutex;
     /*
-    std::unordered_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
-    std::unordered_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
+    std::unordered_map<uint32_t, BaseLib::ItemInfo> items_info; //read only
+    std::unordered_map<uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     std::vector<BaseLib::VendorInfo> vendors_info; //read only
-    std::unordered_map<std::uint32_t, std::unordered_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
-    std::unordered_map<std::uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
-    std::unordered_map<std::uint32_t, std::unordered_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
-    std::vector<std::uint32_t> vendor_item_ids; //read only
-    std::unordered_map<std::uint32_t, std::unordered_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
-    std::unordered_map<std::uint32_t, BaseLib::GradeInfo> grades_info; //read only
-    std::unordered_map<std::uint32_t, BaseLib::RewardInfo> rewards_info; //read only
-    std::unordered_map<std::uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
-    std::unordered_map<std::uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
-    std::unordered_map<std::uint32_t, Player> accounts_cache; //read & write
-    std::unordered_map<std::uint32_t, Room> rooms_cache; //read & write
-    std::unordered_map<std::uint32_t, Plaza> plaza_cache; //read & write
-    std::vector<std::uint32_t> room_ids; //read & write
+    std::unordered_map<uint32_t, std::unordered_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
+    std::unordered_map<uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
+    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
+    std::vector<uint32_t> vendor_item_ids; //read only
+    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
+    std::unordered_map<uint32_t, BaseLib::GradeInfo> grades_info; //read only
+    std::unordered_map<uint32_t, BaseLib::RewardInfo> rewards_info; //read only
+    std::unordered_map<uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
+    std::unordered_map<uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
+    std::unordered_map<uint32_t, Player> accounts_cache; //read & write
+    std::unordered_map<uint32_t, Room> rooms_cache; //read & write
+    std::unordered_map<uint32_t, Plaza> plaza_cache; //read & write
+    std::vector<uint32_t> room_ids; //read & write
     */
 
-    boost::unordered_flat_map<std::uint32_t, BaseLib::ItemInfo> items_info; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::EffectInfo> effect_info; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::CollectionInfo> collection_info; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::DailyMissionInfo> dailymission_info; //read only
-    std::vector<std::uint32_t> dailymission_ids; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::ItemInfo> items_info; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::EffectInfo> effect_info; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::CollectionInfo> collection_info; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::DailyMissionInfo> dailymission_info; //read only
+    std::vector<uint32_t> dailymission_ids; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
     std::vector<BaseLib::VendorInfo> vendors_info; //read only
-    boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
-    boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
-    std::vector<std::uint32_t> vendor_item_ids; //read only
-    boost::unordered_flat_map<std::uint32_t, boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::GradeInfo> grades_info; //read only
-    boost::unordered_flat_map<std::uint32_t, BaseLib::RewardInfo> rewards_info; //read only
-    boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
-    boost::unordered_flat_map<std::uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
-    boost::unordered_flat_map<std::uint32_t, Player> accounts_cache; //read & write
-    boost::unordered_flat_map<std::uint32_t, Room> rooms_cache; //read & write
-    boost::unordered_flat_map<std::uint32_t, Plaza> plaza_cache; //read & write
-    std::vector<std::uint32_t> room_ids; //read & write 
-    std::vector<std::uint32_t> party_ids; //read & write
-    boost::unordered_flat_map<std::uint32_t, Clan> clan_cache; //read & write
-    boost::unordered_flat_map<std::uint16_t, Party> party_cache; //read & write
-    boost::unordered_flat_map<std::uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
-    boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
-    boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
-    boost::unordered_flat_map<std::uint32_t, std::vector<std::uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
-    boost::unordered_flat_map<std::uint32_t, BaseLib::GachaponSaleInfo> gachapon_sales_info;
-    std::vector<std::uint32_t> gachapon_ids_sale;
+    boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
+    boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
+    std::vector<uint32_t> vendor_item_ids; //read only
+    boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::GradeInfo> grades_info; //read only
+    boost::unordered_flat_map<uint32_t, BaseLib::RewardInfo> rewards_info; //read only
+    boost::unordered_flat_map<uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
+    boost::unordered_flat_map<uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
+    boost::unordered_flat_map<uint32_t, Player> accounts_cache; //read & write
+    boost::unordered_flat_map<uint32_t, Room> rooms_cache; //read & write
+    boost::unordered_flat_map<uint32_t, Plaza> plaza_cache; //read & write
+    std::vector<uint32_t> room_ids; //read & write 
+    std::vector<uint32_t> party_ids; //read & write
+    boost::unordered_flat_map<uint32_t, Clan> clan_cache; //read & write
+    boost::unordered_flat_map<uint16_t, Party> party_cache; //read & write
+    boost::unordered_flat_map<uint32_t, MailboxData> mailbox_data_cache; //read & write access by mail id
+    boost::unordered_flat_map<uint32_t, std::vector<uint32_t>> mailbox_sent_cache; //read & write access by acc id, get vector of mail sent mail ids
+    boost::unordered_flat_map<uint32_t, std::vector<uint32_t>> mailbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    boost::unordered_flat_map<uint32_t, std::vector<uint32_t>> giftbox_recv_cache; //read & write access by acc id, get vector of mail recv mail ids
+    boost::unordered_flat_map<uint32_t, BaseLib::GachaponSaleInfo> gachapon_sales_info;
+    std::vector<uint32_t> gachapon_ids_sale;
 
 
     RECT rc = { 0 };

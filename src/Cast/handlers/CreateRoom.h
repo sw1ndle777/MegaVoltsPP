@@ -14,7 +14,7 @@ namespace Game
             CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheUnique(self_session_id);
-            std::uint16_t current_room_id = 0;
+            uint16_t current_room_id = 0;
             server->GetNextAvailableRoomId(current_room_id);          
             Game::Room new_room = { current_room_id , self_session_id };
             new_room.players_session_id.push_back(self_session_id);
