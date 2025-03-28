@@ -174,7 +174,7 @@ namespace NetEngine
 			auto option = GetOption();
 			auto size = GetFullSize();
 			auto str = std::format("Message already created: order: {}, mission: {}, extra: {}, option: {}, size: {}", order, mission, extra, option, size);
-            std::runtime_error(str.c_str());
+            throw std::runtime_error(str.c_str());
         }
 
         const auto data_size = dataSize();
