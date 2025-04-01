@@ -2,8 +2,10 @@
   MicroVolts's private server
   
    ## dependencies
-- [StackWalker](https://github.com/JochenKalmbach/StackWalker)
-- [asio](https://github.com/chriskohlhoff/asiog)
+   
+- [google's crashpad](https://github.com/chromium/crashpad)
+- [monocypher's argon2 and other crypto implementations](https://github.com/LoupVaillant/Monocypher)
+- [asio](https://github.com/chriskohlhoff/asio)
 - [fmt](https://github.com/fmtlib/fmt)
 - [rapidjson](https://github.com/Tencent/rapidjson)
 - [mariadb](https://github.com/mariadb-corporation/mariadb-connector-cpp)

@@ -1,10 +1,11 @@
 #pragma once
+#include "CLog.h"
 #ifdef _WIN64
 #pragma comment(lib, "mariadbcpp.lib")
 #endif
 #include <conncpp.hpp>
 #include <iostream>
-#include "CLog.h"
+
 #include "Utility.h"
 #include <array>
 #include <NetEngine/Packets/PacketData.h>
@@ -36,6 +37,7 @@ namespace BaseLib
     struct FrontAccount
     {
         int32_t Index;
+		bool IsOnline;
         std::string Username;
         std::string Password;
         std::string Salt;
@@ -95,6 +97,7 @@ namespace BaseLib
         FrontAccount()
         {
             this->Index = -1;
+			this->IsOnline = false;
             this->Username = "";
             this->Password = "";
             this->Salt = "";
@@ -153,7 +156,8 @@ namespace BaseLib
             this->SingleWaveLastUpdate = -1;
         }
         FrontAccount(
-            const uint32_t& index,            
+            const uint32_t& index,
+			const bool& is_online,
             const std::string&   username,         const std::string&   password,       const std::string&   salt,               const uint8_t&  grade,
             const uint8_t& pc_room,           const uint64_t& auth_key,       const uint32_t& clan_id,            const uint32_t& clan_kills,
             const uint32_t& clan_deaths,
@@ -172,6 +176,7 @@ namespace BaseLib
         )
         {
             this->Index = index;
+			this->IsOnline = is_online;
             this->Username = username;
             this->Password = password;
             this->Salt = salt;
@@ -365,12 +370,16 @@ namespace BaseLib
         bool CreateDatabase(const std::string& name);
         bool RegisterAccount(const std::string& username, const std::string& password, const uint8_t& grade, const uint32_t& mp, const uint32_t& rt, const uint32_t& coupons = 0, const uint32_t& coins = 0, const uint32_t& energy = 0, const uint32_t& max_items = 1000, const uint32_t& max_battery = 5000, const std::string& nickname = "");
         bool GetFrontAccount(const std::string& username, FrontAccount* outFrontAccount);
-		bool GetFrontAccount(const std::string& username, const std::string& password, const std::string& salt, FrontAccount* outFrontAccount);
+		bool GetFrontAccount(const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
+		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
+		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount);
+        bool SetAccountOffline(const std::uint32_t& accountId);
+        bool GetMainFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids);
         bool NicknameExists(const std::string_view& nickname);
         bool NicknameExists(const std::string_view& nickname, uint32_t& account_id);;
         bool UpdateNickname(const std::string_view& nickname, const uint64_t& authKey);
         bool UpdateSelectedCharacter(const uint32_t& character, const uint64_t& authKey);
-        bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount);
+        //bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount);
         bool UpdateFrontAccount(const FrontAccount& front_acc);
         bool GetInventoryItems(const uint32_t& acc_id, std::vector<Item>& inv_items);
         bool UpdateInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items);

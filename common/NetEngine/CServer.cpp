@@ -1,9 +1,9 @@
 #include "CServer.h"
-#include <fmt/color.h>
+#include "fmt/color.h"
 #include <numeric>
 namespace NetEngine
 {
-    CServer::CServer() : m_ioContext(), m_socket(m_ioContext), m_watchdog_timer(asio::steady_timer(m_ioContext))//, m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
+    CServer::CServer() : m_ioContext(), m_socket(m_ioContext)//, m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
     { 
         m_sessionIdGenerator = IdGenerator(1, 65535);
         m_roomIdGenerator = IdGenerator(2048, 4096);
@@ -28,7 +28,8 @@ namespace NetEngine
         m_concurrentThreads = settings.concurrent_threads;
         m_playtimeMinSeconds = settings.playtime_min_seconds;
         m_watchguard = settings.useWatchguard;
-        //m_poolThreads = settings.pool_threads;
+        m_loggerThreads = settings.logger_threads;
+		m_databaseThreads = settings.database_threads;
 
         asio::error_code errorCode;
         asio::ip::tcp::resolver resolver(m_ioContext);
@@ -75,7 +76,9 @@ namespace NetEngine
 
         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "running server on: ({}:{})", m_ip_address.c_str(), m_port.c_str());
         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "asio threads: ({}) out of ({})", m_concurrentThreads, std::jthread::hardware_concurrency());
-        //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "pool threads: ({}) out of ({})", m_poolThreads, std::jthread::hardware_concurrency());
+        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "logger threads: ({}) out of ({})", m_loggerThreads, std::jthread::hardware_concurrency());
+		if(m_databaseThreads)
+			BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "database threads: ({}) out of ({})", m_databaseThreads, std::jthread::hardware_concurrency());
 
         this->start_time = Utility::GetUtcTimeNowInMilliseconds();
         static const std::set<std::string> ipc_addresses = { "127.0.0.1", this->server_settings.front.host, this->server_settings.main.host, this->server_settings.cast.host};
@@ -519,7 +522,7 @@ namespace NetEngine
             }
         }
     }
-    void CServer::watchdog(std::chrono::nanoseconds timeout)
+    void CServer::watchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout)
     {
         std::shared_lock lock(m_execution_guard_mutex);
 
@@ -537,17 +540,40 @@ namespace NetEngine
                 }
             }
         }
+		if(m_watchdogTimer)
+		{
+			m_watchdogTimer->expires_after(interval);
+			m_watchdogTimer->async_wait([this, interval, timeout](const std::error_code& ec)
+			{
+				if (!ec && !m_watchguard)
+				{
+					BaseLib::LogPool->submit_task([this, interval, timeout]()
+					{
+						this->watchdog(interval, timeout);
+					}, BS::pr::lowest);
+				}
+			});
+		}	
     }
     void CServer::startWatchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout)
     {
-        std::jthread([this, interval, timeout]()
-        {
-            while (true)
-            {
-                this->watchdog(timeout);
-                std::this_thread::sleep_for(interval); // Sleep for the specified interval
-            }
-        }).detach();
+		if (!m_watchguard)
+		{
+			if (!m_watchdogTimer)
+				m_watchdogTimer = std::make_shared<asio::steady_timer>(GetIoContext());
+
+			m_watchdogTimer->expires_after(interval);
+			m_watchdogTimer->async_wait([this, interval, timeout](const std::error_code& ec)
+			{
+				if (!ec && !m_watchguard)
+				{
+					BaseLib::LogPool->submit_task([this, interval, timeout]()
+					{
+						this->watchdog(interval, timeout);
+					}, BS::pr::lowest);
+				}
+			});
+		}
     }
 }
 

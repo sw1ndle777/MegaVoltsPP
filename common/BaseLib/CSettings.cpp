@@ -32,6 +32,8 @@ namespace BaseLib
                 obj.AddMember("port", port, allocator);
                 obj.AddMember("ipc_port", ipc, allocator);
                 obj.AddMember("asio_threads", 0, allocator);
+                obj.AddMember("database_threads", 0, allocator);
+				obj.AddMember("logger_threads", 0, allocator);
                 obj.AddMember("playtime_min_seconds", 0, allocator);
                 obj.AddMember("debug", debug, allocator);
                 obj.AddMember("watchguard", false, allocator);
@@ -99,6 +101,8 @@ namespace BaseLib
             settings.port = obj["port"].GetUint();
             settings.ipc_port = obj["ipc_port"].GetUint();
             settings.asio_threads = obj["asio_threads"].GetUint();
+            settings.database_threads = obj["database_threads"].GetUint();
+			settings.logger_threads = obj["logger_threads"].GetUint();
             try {
                 settings.playtime_min_seconds = obj["playtime_min_seconds"].GetUint();
             }

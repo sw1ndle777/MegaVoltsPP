@@ -13,6 +13,15 @@
     <Filter Include="NetEngine\Packets">
       <UniqueIdentifier>{662b431c-be8a-4772-9066-136610e9a928}</UniqueIdentifier>
     </Filter>
+    <Filter Include="fmt">
+      <UniqueIdentifier>{ca504436-7114-474e-81f2-7fbeeb5d6e2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NetEngine\monocypher">
+      <UniqueIdentifier>{9becadb3-5b4e-49bd-8552-22391de143a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NetEngine\monocypher\optional">
+      <UniqueIdentifier>{204ab559-3434-45ca-9d4f-146aece3adfe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Packets\PacketData.h">
@@ -57,11 +66,56 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBData.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CCrashHandler.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\StackWalker\StackWalker.h">
-      <Filter>BaseLib</Filter>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\args.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\base.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\chrono.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\color.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\compile.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\core.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\format.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\format-inl.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\os.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\ostream.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\printf.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\ranges.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\std.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fmt\xchar.h">
+      <Filter>fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\monocypher.h">
+      <Filter>NetEngine\monocypher</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\optional\monocypher-ed25519.h">
+      <Filter>NetEngine\monocypher\optional</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -89,11 +143,20 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.cpp">
       <Filter>BaseLib</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CCrashHandler.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.cpp">
       <Filter>BaseLib</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\StackWalker\StackWalker.cpp">
-      <Filter>BaseLib</Filter>
+    <ClCompile Include="$(MSBuildThisFileDirectory)fmt\format.cc">
+      <Filter>fmt</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)fmt\os.cc">
+      <Filter>fmt</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\monocypher.c">
+      <Filter>NetEngine\monocypher</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\optional\monocypher-ed25519.c">
+      <Filter>NetEngine\monocypher\optional</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

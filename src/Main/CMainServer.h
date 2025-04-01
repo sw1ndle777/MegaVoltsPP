@@ -2342,7 +2342,19 @@ namespace Game
 
         }
 
-
+        void DisconnectPlayerMultipleLogin(uint64_t auth_key, CMainServer* main_server)
+        {
+            auto player = main_server->GetAccCacheSharedByAuthKey(auth_key);
+            auto player_session_id = player->session_id;
+            if (player_session_id)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "ipc disconnect player request auth key: ({}), session id: ({})", auth_key, player_session_id);
+                main_server->DisconnectPlayer(main_server, player_session_id, auth_key, Disconnect::Block);
+            }
+            else
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "ipc disconnect player request auth key: ({}), session id: ({}) ERROR SESSION ID NULL", auth_key, player_session_id);
+            player.unlock();
+        }
 
         auto AddPlayerFriendsDeleted(AccCacheResource& acc_cache, const BaseLib::FriendInfo& new_friend)
         {

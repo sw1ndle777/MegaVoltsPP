@@ -22,8 +22,9 @@ namespace BaseLib
             uint32_t port;
             uint32_t ipc_port;
             uint32_t asio_threads;
+            uint32_t database_threads;
+			uint32_t logger_threads;
             uint32_t playtime_min_seconds;
-            //uint32_t pool_threads;
             bool debug;
             bool watchguard;
         };

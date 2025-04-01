@@ -1,5 +1,6 @@
 #include "CDatabase.h"
-#include <fmt/color.h>
+//#include <fmt/color.h>
+#include "fmt/color.h"
 namespace BaseLib
 {
     void CDatabase::Initialize(const std::string& database, const std::string& host, const uint16_t& port, const std::string& user, const std::string& password)
@@ -26,7 +27,8 @@ namespace BaseLib
 
                     conn->setSchema(database);
                     CreateTable("accounts", R"(
-                    Id int unsigned NOT NULL AUTO_INCREMENT, 
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+					IsOnline bit(1) NOT NULL DEFAULT 0, 
                     Username varchar(16) NOT NULL, 
                     Password varchar(127) NOT NULL, 
                     Salt varchar(127) NOT NULL, 
@@ -524,7 +526,7 @@ namespace BaseLib
             return false;
         }
     }
-
+    /*
     bool CDatabase::RegisterAccount(const std::string& username, const std::string& password, const uint8_t& grade, const uint32_t& mp, const uint32_t& rt, const uint32_t& coupons, const uint32_t& coins, const uint32_t& energy, const uint32_t& max_items, const uint32_t& max_battery, const std::string& nickname)
     {
 
@@ -620,7 +622,7 @@ namespace BaseLib
             return false;
         }
     }
-    
+    */
     bool CDatabase::UpdateFrontAccount(const FrontAccount& front_acc)
     {
         try
@@ -1235,6 +1237,7 @@ namespace BaseLib
             if (result->next())
             {
                 *outFrontAccount = FrontAccount(result->getUInt("Id"),
+					result->getBoolean("IsOnline"),
                     result->getString("Username").c_str(),
                     result->getString("Password").c_str(),
                     result->getString("Salt").c_str(),
@@ -1299,6 +1302,344 @@ namespace BaseLib
         catch (sql::SQLException& e)
         {
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+
+
+    bool CDatabase::SetAccountOffline(const std::uint32_t& accountId)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            try
+            {
+                std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                    "UPDATE accounts SET IsOnline = FALSE WHERE Id = ?"));
+                pstmt->setUInt(1, accountId);
+
+                int affected = pstmt->executeUpdate();
+                stmt->execute("COMMIT");
+                return affected > 0;
+            }
+            catch (sql::SQLException& inner)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Inner SQL error in SetAccountOffline: ({})", inner.what());
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+        }
+        catch (sql::SQLException& outer)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Outer SQL error in SetAccountOffline: ({})", outer.what());
+            return false;
+        }
+    }
+    bool CDatabase::GetMainFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids)
+    {
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            try
+            {
+                // 1. Load account and clan
+                std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(R"(
+                SELECT 
+                    a.Id, a.IsOnline, a.Username, a.Password, a.Salt, a.Grade, a.PCRoom, a.AuthKey, a.ClanId,
+                    a.ClanKills, a.ClanDeaths, a.ClanAssists, a.ClanContribution, a.ClanWins, a.ClanLoses, a.ClanDraws,
+                    a.Nickname, a.Level, a.Experience, a.Tutoral, a.Story, a.GuideMission, a.Achievement, a.VoiceType, a.VIPExperience,
+                    a.MaximumItems, a.MaximumEnergy, a.SelectedCharacter, a.PlayTime, a.MutedUntil, a.Coins, a.Energy, a.LuckyPoints,
+                    a.MicroPoints, a.RockTokens, a.Coupons, a.Wins, a.Loses, a.Draws, a.Kills, a.Deaths, a.Assists, a.Headshots,
+                    a.HighestKillStreak, a.MeleeKills, a.RifleKills, a.ShotgunKills, a.SniperKills, a.GatlingKills, a.BazookaKills,
+                    a.GrenadeKills, a.ZombieKills, a.Infections, a.SingleWaveDailyAttempts, a.SingleWaveHighestWave, a.SingleWaveHighScore,
+                    a.SingleWaveLastUpdate,
+                    c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack
+                    d.UpdateTime, d.Mission1, d.Mission2, d.Mission3, d.GoalMission1, d.GoalMission2, d.GoalMission3
+                FROM accounts a
+                LEFT JOIN clans c ON a.ClanId = c.Id
+                LEFT JOIN player_daily_mission d ON a.Id = d.PlayerId
+                WHERE a.AuthKey = ?
+            )"));
+
+                pstmt->setUInt64(1, authKey);
+                std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+
+                if (!result->next())
+                {
+                    stmt->execute("ROLLBACK");
+                    return false;
+                }
+
+                auto accId = static_cast<std::int32_t>(result->getUInt("Id"));
+				auto isOnline = result->getBoolean("IsOnline");
+                *outFrontAccount = FrontAccount(
+                    accId,
+                    isOnline,
+                    result->getString("Username").c_str(),
+                    result->getString("Password").c_str(),
+                    result->getString("Salt").c_str(),
+                    result->getByte("Grade"),
+                    result->getByte("PCRoom"),
+                    result->getUInt64("AuthKey"),
+                    result->getUInt("ClanId"),
+                    result->getUInt("ClanKills"),
+                    result->getUInt("ClanDeaths"),
+                    result->getUInt("ClanAssists"),
+                    result->getUInt64("ClanContribution"),
+                    result->getUInt64("ClanWins"),
+                    result->getUInt64("ClanLoses"),
+                    result->getUInt64("ClanDraws"),
+                    result->getString("Nickname").c_str(),
+                    result->getUInt("Level"),
+                    result->getUInt("Experience"),
+                    result->getBoolean("Tutoral"),
+                    result->getUInt("Story"),
+                    result->getUInt("GuideMission"),
+                    result->getUInt64("Achievement"),
+                    result->getUInt64("VoiceType"),
+                    result->getUInt("VIPExperience"),
+                    result->getUInt("MaximumItems"),
+                    result->getUInt("MaximumEnergy"),
+                    result->getUInt("SelectedCharacter"),
+                    result->getUInt64("PlayTime"),
+                    result->getUInt64("MutedUntil"),
+                    result->getUInt("Coins"),
+                    result->getUInt("Energy"),
+                    result->getUInt("LuckyPoints"),
+                    result->getUInt("MicroPoints"),
+                    result->getUInt("RockTokens"),
+                    result->getUInt("Coupons"),
+                    result->getUInt("Wins"),
+                    result->getUInt("Loses"),
+                    result->getUInt("Draws"),
+                    result->getUInt("Kills"),
+                    result->getUInt("Deaths"),
+                    result->getUInt("Assists"),
+                    result->getUInt("Headshots"),
+                    result->getUInt("HighestKillStreak"),
+                    result->getUInt("MeleeKills"),
+                    result->getUInt("RifleKills"),
+                    result->getUInt("ShotgunKills"),
+                    result->getUInt("SniperKills"),
+                    result->getUInt("GatlingKills"),
+                    result->getUInt("BazookaKills"),
+                    result->getUInt("GrenadeKills"),
+                    result->getUInt("ZombieKills"),
+                    result->getUInt("Infections"),
+                    result->getUInt("SingleWaveDailyAttempts"),
+                    result->getUInt("SingleWaveHighestWave"),
+                    result->getUInt("SingleWaveHighScore"),
+                    result->getUInt64("SingleWaveLastUpdate")
+                );
+
+                if (outClanInfo && result->getUInt("ClanId") > 0)
+                {
+                    *outClanInfo = ClanInfo(
+                        result->getUInt("ClanId"),
+                        result->getUInt("OwnerId"),
+                        result->getString("ClanName").c_str(),
+                        result->getUInt("ClanLogoFront"),
+                        result->getUInt("ClanLogoBack")
+                    );
+                }
+
+                if (outDailyMission)
+                {
+                    uint64_t now_time = Utility::GetUtcTimeNow64();
+                    uint64_t last_6am = Utility::GetLast6AMUtc();
+                    bool existed = !result->isNull("UpdateTime");
+                    uint64_t last_update = existed ? result->getUInt64("UpdateTime") : 0;
+
+                    PlayerDailyMission dm = {
+                        accId,
+                        last_update,
+                        result->getUInt("Mission1"),
+                        result->getUInt("Mission2"),
+                        result->getUInt("Mission3"),
+                        result->getUInt("GoalMission1"),
+                        result->getUInt("GoalMission2"),
+                        result->getUInt("GoalMission3")
+                    };
+
+                    if (last_update < last_6am)
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Daily mission outdated. Generating new missions.");
+                        dm.mission1 = daily_mission_random_ids[0]; dm.goal_mission1 = 0;
+                        dm.mission2 = daily_mission_random_ids[1]; dm.goal_mission2 = 0;
+                        dm.mission3 = daily_mission_random_ids[2]; dm.goal_mission3 = 0;
+                        dm.update_time = now_time;
+
+                        if (existed)
+                        {
+                            std::unique_ptr<sql::PreparedStatement> updateStmt(conn->prepareStatement(R"(
+                            UPDATE player_daily_mission SET
+                                UpdateTime = ?, Mission1 = ?, Mission2 = ?, Mission3 = ?,
+                                GoalMission1 = ?, GoalMission2 = ?, GoalMission3 = ?
+                            WHERE PlayerId = ?
+                        )"));
+
+                            updateStmt->setUInt64(1, dm.update_time);
+                            updateStmt->setUInt(2, dm.mission1);
+                            updateStmt->setUInt(3, dm.mission2);
+                            updateStmt->setUInt(4, dm.mission3);
+                            updateStmt->setUInt(5, dm.goal_mission1);
+                            updateStmt->setUInt(6, dm.goal_mission2);
+                            updateStmt->setUInt(7, dm.goal_mission3);
+                            updateStmt->setUInt(8, accId);
+
+                            updateStmt->executeUpdate();
+                        }
+                        else
+                        {
+                            std::unique_ptr<sql::PreparedStatement> insertStmt(conn->prepareStatement(R"(
+                            INSERT INTO player_daily_mission
+                                (PlayerId, UpdateTime, Mission1, Mission2, Mission3, GoalMission1, GoalMission2, GoalMission3)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        )"));
+
+                            insertStmt->setUInt(1, accId);
+                            insertStmt->setUInt64(2, dm.update_time);
+                            insertStmt->setUInt(3, dm.mission1);
+                            insertStmt->setUInt(4, dm.mission2);
+                            insertStmt->setUInt(5, dm.mission3);
+                            insertStmt->setUInt(6, dm.goal_mission1);
+                            insertStmt->setUInt(7, dm.goal_mission2);
+                            insertStmt->setUInt(8, dm.goal_mission3);
+
+                            insertStmt->executeUpdate();
+                        }
+                    }
+
+                    *outDailyMission = dm;
+                }
+
+                // 2. Inventory
+                std::unique_ptr<sql::PreparedStatement> invStmt(conn->prepareStatement("SELECT * FROM player_items WHERE PlayerId = ?"));
+                invStmt->setUInt(1, accId);
+                std::unique_ptr<sql::ResultSet> invRes(invStmt->executeQuery());
+
+                while (invRes->next())
+                {
+                    Item newItem;
+                    NetEngine::Packets::Main::InventoryItemInfo newItemInfo;
+
+                #if defined(RELEASE_1_0_3)
+                    newItemInfo.serial_info.data = invRes->getUInt64("SerialInfo");
+                    newItemInfo.item_number.item_id = invRes->getUInt("ItemId");
+                    newItemInfo.expire_date = invRes->getUInt("ExpirationDate");
+                    newItemInfo.repair = invRes->getUInt("Repair");
+                    newItemInfo.energy = invRes->getUInt("Energy");
+                    newItem.stock = invRes->getUInt("Stock");
+                    newItemInfo.item_number.stock = newItem.stock;
+                    newItem.is_equipped = invRes->getByte("IsEquipped");
+                    newItem.character_id = invRes->getByte("CharacterId");
+                    newItem.in_database = 1;
+                    newItem.item_info = newItemInfo;
+                #else
+                    newItemInfo.serial_info.data = invRes->getUInt64("SerialInfo");
+                    newItemInfo.item_number.item_id = invRes->getUInt("ItemId");
+                    newItemInfo.expire_date = invRes->getUInt("ExpirationDate");
+                    newItemInfo.repair = invRes->getUInt("Repair");
+                    newItemInfo.energy = invRes->getUInt("Energy");
+                    newItemInfo.item_type = invRes->getUInt("ItemType");
+                    newItemInfo.is_sealed = invRes->getUInt("IsSealed");
+                    newItemInfo.seal_level = invRes->getUInt("SealLevel");
+                    newItemInfo.enhance_exp = invRes->getUInt("EnhanceExp");
+                    newItemInfo.enhance_level = invRes->getUInt("EnhanceLevel");
+                    newItem.stock = invRes->getUInt("Stock");
+                    newItem.is_equipped = invRes->getByte("IsEquipped");
+                    newItem.character_id = invRes->getByte("CharacterId");
+                    newItem.in_database = 1;
+                    newItem.item_info = newItemInfo;
+                #endif
+
+                    inv_items.push_back(newItem);
+                }
+
+                // 3. Blocked players
+                std::unique_ptr<sql::PreparedStatement> blockStmt(conn->prepareStatement(
+                    "SELECT BlockedPlayerId, BlockedNickname FROM player_ignores WHERE PlayerId = ?"));
+                blockStmt->setInt(1, accId);
+                std::unique_ptr<sql::ResultSet> blockRes(blockStmt->executeQuery());
+                while (blockRes->next())
+                    blockeds.push_back({ accId, blockRes->getInt("BlockedPlayerId"), 0, blockRes->getString("BlockedNickname").c_str() });
+
+                // 4. Friends
+                std::unique_ptr<sql::PreparedStatement> friendStmt(conn->prepareStatement(
+                    "SELECT FriendPlayerId, State, FriendNickname FROM player_friends WHERE PlayerId = ?"));
+                friendStmt->setInt(1, accId);
+                std::unique_ptr<sql::ResultSet> friendRes(friendStmt->executeQuery());
+                while (friendRes->next())
+                    friends.push_back({ accId, friendRes->getInt("FriendPlayerId"), static_cast<uint8_t>(friendRes->getByte("State")), 0, friendRes->getString("FriendNickname").c_str() });
+
+                // 5. Mailbox
+                std::unique_ptr<sql::PreparedStatement> mailStmt(conn->prepareStatement(R"(
+                SELECT Id, SenderId, SenderNickname, ReceiverId, ReceiverNickname, Date, GiftItemId, Message, IsNew, DeletedFromSender, DeletedFromReceiver
+                FROM player_mailbox WHERE SenderId = ? OR ReceiverId = ?
+            )"));
+                mailStmt->setUInt(1, accId);
+                mailStmt->setUInt(2, accId);
+                std::unique_ptr<sql::ResultSet> mailRes(mailStmt->executeQuery());
+                while (mailRes->next())
+                {
+                    mailbox_list.push_back({
+                        mailRes->getUInt("Id"),
+                        mailRes->getUInt("SenderId"),
+                        mailRes->getString("SenderNickname").c_str(),
+                        mailRes->getUInt("ReceiverId"),
+                        mailRes->getString("ReceiverNickname").c_str(),
+                        mailRes->getUInt("Date"),
+                        mailRes->getUInt("GiftItemId"),
+                        mailRes->getString("Message").c_str(),
+                        static_cast<bool>(mailRes->getByte("IsNew")),
+                        static_cast<bool>(mailRes->getByte("DeletedFromSender")),
+                        static_cast<bool>(mailRes->getByte("DeletedFromReceiver"))
+                                           });
+                }
+
+                if (!isOnline)
+                {
+                    std::unique_ptr<sql::PreparedStatement> updateOnlineStmt(conn->prepareStatement(
+                        "UPDATE accounts SET IsOnline = TRUE WHERE Id = ?"));
+                    updateOnlineStmt->setUInt(1, accId);
+                    updateOnlineStmt->executeUpdate();
+                }
+
+
+                // All succeeded — commit
+                stmt->execute("COMMIT");
+                return true;
+            }
+            catch (sql::SQLException& inner)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Inner SQL exception: ({})", inner.what());
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+        }
+        catch (sql::SQLException& outer)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Outer SQL exception: ({})", outer.what());
             return false;
         }
     }
@@ -1324,6 +1665,7 @@ namespace BaseLib
             if (result->next())
             {
                 *outFrontAccount = FrontAccount(result->getUInt("Id"),
+					result->getBoolean("IsOnline"),
                     result->getString("Username").c_str(),
                     result->getString("Password").c_str(),
                     result->getString("Salt").c_str(),
@@ -1391,7 +1733,7 @@ namespace BaseLib
             return false;
         }
     }
-    bool CDatabase::GetFrontAccount(const std::string& username, const std::string& password, const std::string& salt, FrontAccount* outFrontAccount)
+    bool CDatabase::GetFrontAccount(const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo)
     {
         try
         {
@@ -1407,87 +1749,131 @@ namespace BaseLib
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT Id, Username, Password, Salt, Grade, AuthKey, ClanId, Level, Experience, Kills, Deaths, Assists, Wins, Loses, Draws, Nickname "
-                "FROM accounts WHERE Username = ? AND Password = ? AND Salt = ?"
-            ));
+			std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+				"SELECT a.Id, a.IsOnline, a.Username, a.Password, a.Salt, a.Grade, a.AuthKey, a.ClanId, a.Level, a.Experience, "
+				"a.Kills, a.Deaths, a.Assists, a.Wins, a.Loses, a.Draws, a.Nickname, "
+				"c.Id as ClanId, c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack "
+				"FROM accounts a "
+				"LEFT JOIN clans c ON a.ClanId = c.Id "
+				"WHERE a.Username = ?"
+			));
 
             pstmt->setString(1, username.c_str());
-            pstmt->setString(2, password.c_str());
-            pstmt->setString(3, salt.c_str());
+            //pstmt->setString(2, password.c_str());
+            //pstmt->setString(3, salt.c_str());
 
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
 
-            if (result->next())
+            if (!result->next())
             {
-
-                *outFrontAccount = FrontAccount(result->getUInt("Id"),
-                    result->getString("Username").c_str(),
-                    result->getString("Password").c_str(),
-                    result->getString("Salt").c_str(),
-                    result->getByte("Grade"),
-                    0,
-                    result->getUInt64("AuthKey"),
-                    result->getUInt("ClanId"),
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    result->getString("Nickname").c_str(),
-                    result->getUInt("Level"),
-                    result->getUInt("Experience"),
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    result->getUInt("Wins"),
-                    result->getUInt("Loses"),
-                    result->getUInt("Draws"),
-                    result->getUInt("Kills"),
-                    result->getUInt("Deaths"),
-                    result->getUInt("Assists"),
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                );
-                // Commit transaction
-                stmt->execute("COMMIT");
-                return true;
-            }
-            else
-            {
-                // Rollback transaction if not found
                 stmt->execute("ROLLBACK");
                 return false;
             }
+
+            // Extract stored hash and salt
+            std::string stored_hash_str = result->getString("Password").c_str();
+            std::string stored_salt_str = result->getString("Salt").c_str();
+
+            if (stored_hash_str.size() != 32 || stored_salt_str.size() != 16)
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+
+            uint8_t stored_hash[32];
+            uint8_t stored_salt[16];
+            std::memcpy(stored_hash, stored_hash_str.data(), 32);
+            std::memcpy(stored_salt, stored_salt_str.data(), 16);
+
+            // Recompute hash
+            uint8_t computed_hash[32];
+            if (!Utility::HashPassword(password, stored_salt, computed_hash))
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+
+            // Verify using constant-time comparison
+            if (crypto_verify32(computed_hash, stored_hash) != 0)
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+
+            *outFrontAccount = FrontAccount(result->getUInt("Id"),
+                                            result->getBoolean("IsOnline"),
+                                            result->getString("Username").c_str(),
+                                            result->getString("Password").c_str(),
+                                            result->getString("Salt").c_str(),
+                                            result->getByte("Grade"),
+                                            0,
+                                            result->getUInt64("AuthKey"),
+                                            result->getUInt("ClanId"),
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            result->getString("Nickname").c_str(),
+                                            result->getUInt("Level"),
+                                            result->getUInt("Experience"),
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            result->getUInt("Wins"),
+                                            result->getUInt("Loses"),
+                                            result->getUInt("Draws"),
+                                            result->getUInt("Kills"),
+                                            result->getUInt("Deaths"),
+                                            result->getUInt("Assists"),
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0
+            );
+
+            auto clanId = result->getUInt("ClanId");
+            if(clanId > 0 && outClanInfo != nullptr)
+            {
+                *outClanInfo = ClanInfo(
+                    result->getUInt("Id"),
+                    result->getUInt("OwnerId"),
+                    result->getString("ClanName").c_str(),
+                    result->getUInt("ClanLogoFront"),
+                    result->getUInt("ClanLogoBack")
+                );
+            }
+
+            // Commit transaction
+            stmt->execute("COMMIT");
+            return true;
         }
         catch (sql::SQLException& e)
         {
@@ -1495,6 +1881,126 @@ namespace BaseLib
             return false;
         }
     }
+	bool CDatabase::GetFrontAccount(const uint64_t& authKey, FrontAccount *outFrontAccount, ClanInfo *outClanInfo)
+	{
+		try
+		{
+			if (!conn || !conn->isValid())
+			{
+				BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+				conn = driver->connect(this->properties);
+				if (conn)
+					BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+			}
+
+			// Begin transaction
+			std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+			stmt->execute("START TRANSACTION");
+
+			std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+				"SELECT a.Id, a.IsOnline, a.Username, a.Password, a.Salt, a.Grade, a.AuthKey, a.ClanId, a.Level, a.Experience, "
+				"a.Kills, a.Deaths, a.Assists, a.Wins, a.Loses, a.Draws, a.Nickname, "
+				"c.Id as ClanId, c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack "
+				"FROM accounts a "
+				"LEFT JOIN clans c ON a.ClanId = c.Id "
+				"WHERE a.AuthKey = ?"
+			));
+
+			pstmt->setUInt64(1, authKey);
+
+			std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+
+			if (result->next())
+			{
+
+				*outFrontAccount = FrontAccount(result->getUInt("Id"),
+					result->getBoolean("IsOnline"),
+					result->getString("Username").c_str(),
+					result->getString("Password").c_str(),
+					result->getString("Salt").c_str(),
+					result->getByte("Grade"),
+					0,
+					result->getUInt64("AuthKey"),
+					result->getUInt("ClanId"),
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					result->getString("Nickname").c_str(),
+					result->getUInt("Level"),
+					result->getUInt("Experience"),
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					result->getUInt("Wins"),
+					result->getUInt("Loses"),
+					result->getUInt("Draws"),
+					result->getUInt("Kills"),
+					result->getUInt("Deaths"),
+					result->getUInt("Assists"),
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0,
+					0
+				);
+
+				auto clanId = result->getUInt("ClanId");
+				if(clanId > 0 && outClanInfo != nullptr)
+				{
+					*outClanInfo = ClanInfo(
+                        clanId,
+						result->getUInt("OwnerId"),
+						result->getString("ClanName").c_str(),
+						result->getUInt("ClanLogoFront"),
+						result->getUInt("ClanLogoBack")
+					);
+				}
+
+				// Commit transaction
+				stmt->execute("COMMIT");
+				return true;
+			}
+			else
+			{
+				// Rollback transaction if not found
+				stmt->execute("ROLLBACK");
+				return false;
+			}
+		}
+		catch (sql::SQLException& e)
+		{
+			BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+			return false;
+		}
+	}
     bool CDatabase::UpdateNickname(const std::string_view& nickname, const uint64_t& authKey)
     {
         try

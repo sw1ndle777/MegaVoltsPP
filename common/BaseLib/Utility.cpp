@@ -1,3 +1,4 @@
+#include "CLog.h"
 #include "Utility.h"
 #ifdef _WIN64
 #define WIN32_LEAN_AND_MEAN
@@ -9,7 +10,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #endif
-#include "CLog.h"
+
 namespace Utility
 {
     std::map<std::string, std::string> time_zones = {
@@ -84,11 +85,12 @@ namespace Utility
         const uint64_t minutes = 60 * seconds;
         const uint64_t hours = 60 * minutes;
 
-        auto format_float = [](float number, int precision = 2) -> std::string {
+        auto format_float = [](float number, int precision = 2) -> std::string
+        {
             std::ostringstream out;
             out << std::fixed << std::setprecision(precision) << number;
             return out.str();
-            };
+        };
 
         if (ns >= hours) return format_float(static_cast<float>(ns) / hours) + " hours ";
         if (ns >= minutes) return format_float(static_cast<float>(ns) / minutes) + " minutes ";
@@ -97,7 +99,7 @@ namespace Utility
         if (ns >= microseconds) return format_float(static_cast<float>(ns) / microseconds) + " microseconds ";
         return std::to_string(ns) + " nanoseconds ";
     }
-    bool ContainsForbiddenSubstring(std::string_view str) 
+    bool ContainsForbiddenSubstring(std::string_view str)
     {
         for (const auto& forbidden : forbiddenSubstrings)
         {
@@ -196,7 +198,8 @@ namespace Utility
         auto now_c = std::chrono::system_clock::to_time_t(now);
         return static_cast<uint64_t>(now_c);
     }
-    uint64_t GetLast6AMUtc() {
+    uint64_t GetLast6AMUtc()
+    {
         // Get current UTC time
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -213,21 +216,23 @@ namespace Utility
         std::time_t six_am_today = std::mktime(&utc_tm);
 
         // If current time is before 6 AM, subtract one day
-        if (now_c < six_am_today) {
+        if (now_c < six_am_today)
+        {
             six_am_today -= 86400; // Subtract 24 hours in seconds
         }
 
         // Return as uint64_t
         return static_cast<uint64_t>(six_am_today);
     }
-    uint64_t GetUtcTimeNowInMilliseconds() 
+    uint64_t GetUtcTimeNowInMilliseconds()
     {
         auto now = std::chrono::system_clock::now();
         auto durationSinceEpoch = now.time_since_epoch();
         auto millis = duration_cast<std::chrono::milliseconds>(durationSinceEpoch).count();
         return static_cast<uint64_t>(millis);
     }
-    std::string FormatMilliseconds(uint64_t milliseconds) {
+    std::string FormatMilliseconds(uint64_t milliseconds)
+    {
         constexpr uint64_t ms_in_a_second = 1000;
         constexpr uint64_t ms_in_a_minute = ms_in_a_second * 60;
         constexpr uint64_t ms_in_an_hour = ms_in_a_minute * 60;
@@ -261,8 +266,8 @@ namespace Utility
         std::tm tm_time = *std::gmtime(&truncated_time);
 
         return fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}",
-            tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
-            tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
+                           tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
+                           tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
     }
     uint64_t DateTimeToUInt64(const std::string& formatted_datetime)
     {
@@ -303,7 +308,8 @@ namespace Utility
     {
         std::stringstream ss;
         ss << std::hex;
-        for (size_t i = 0; i < size; ++i) {
+        for (size_t i = 0; i < size; ++i)
+        {
             ss << std::setw(2) << std::setfill('0') << (int)data[i] << ' ';
         }
         return ss.str();
@@ -312,16 +318,17 @@ namespace Utility
     {
         std::string result = str;
         std::transform(result.begin(), result.end(), result.begin(),
-            [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) { return std::tolower(c); });
         return result;
     }
     void ToLowercase(std::string& str)
     {
         std::transform(str.begin(), str.end(), str.begin(),
-            [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) { return std::tolower(c); });
     }
-    uint64_t GenerateAuthKey(const std::string& username, const std::string& password)
+    uint64_t GenerateAuthKey(const std::string& username, const std::string& password, const uint8_t* salt)
     {
+        /*
         uint64_t auth_key = 0;
         unsigned char hash[EVP_MAX_MD_SIZE];
         unsigned int hash_len = 0;
@@ -333,7 +340,37 @@ namespace Utility
         EVP_DigestFinal_ex(mdctx, hash, &hash_len);
         EVP_MD_CTX_free(mdctx);
         std::memcpy(&auth_key, hash, sizeof(auth_key));
+        */
+        crypto_argon2_config config = {
+            .algorithm  = CRYPTO_ARGON2_ID,  // ID = hybrid variant
+            .nb_blocks  = 1000,              // Less intensive for fast auth key
+            .nb_passes  = 2,
+            .nb_lanes   = 1
+        };
 
+        std::string combined = username + password;
+        crypto_argon2_inputs inputs = {
+            .pass       = reinterpret_cast<const uint8_t*>(combined.data()),
+            .salt       = salt,
+            .pass_size  = static_cast<uint32_t>(combined.size()),
+            .salt_size  = 16
+        };
+
+        crypto_argon2_extras extras = {0};
+
+        void* work_area = malloc((size_t)config.nb_blocks * 1024);
+        if (!work_area)
+            return 0;
+
+        uint8_t hash[32];
+        crypto_argon2(hash, 32, work_area, config, inputs, extras);
+
+        crypto_wipe(work_area, config.nb_blocks * 1024);
+        free(work_area);
+
+        // Take the first 8 bytes of hash and cast to uint64_t
+        uint64_t auth_key = 0;
+        std::memcpy(&auth_key, hash, sizeof(auth_key));
         return auth_key;
     }
     const int kIterations = 30000;
@@ -356,7 +393,7 @@ namespace Utility
         */
 
         //return actualPasswordHash == passwordGuess;
-       
+
         return password._Equal(hash.c_str());
     }
     std::string ReadMicrovoltsString(const char* data, uint32_t size)
@@ -374,17 +411,18 @@ namespace Utility
         if (pos == in.npos) { return ""; }
         return { in.data(), (size_t)pos };
     }
+    /*
     std::pair<std::string, std::string> Hash(const std::string& password)
     {
-        
+
         std::vector<unsigned char> salt(kSaltLength);
         RAND_bytes(salt.data(), kSaltLength);
 
         std::vector<unsigned char> hash(kHashLength);
         PKCS5_PBKDF2_HMAC(password.c_str(), static_cast<int32_t>(password.length()),
-            salt.data(), kSaltLength,
-            kIterations, EVP_sha256(),
-            kHashLength, hash.data());
+                          salt.data(), kSaltLength,
+                          kIterations, EVP_sha256(),
+                          kHashLength, hash.data());
 
         //return { EncodeBase64(hash), EncodeBase64(salt) };
         return { password,password };
@@ -417,6 +455,7 @@ namespace Utility
         BIO_free_all(bio);
         return output;
     }
+    */
 
     std::vector<std::string> SplitStrings(std::string_view str, char delimiter)
     {
@@ -424,7 +463,7 @@ namespace Utility
         size_t start = 0;
         size_t end = str.find(delimiter);
 
-        while (end != std::string_view::npos) 
+        while (end != std::string_view::npos)
         {
             if (end != start)  result.emplace_back(str.substr(start, end - start));
             start = end + 1;
@@ -438,7 +477,7 @@ namespace Utility
 
     bool IsDigitsOnly(const std::string& input)
     {
-        for (char ch : input) 
+        for (char ch : input)
             if (!std::isdigit(ch))
                 return false;
 
@@ -452,7 +491,8 @@ namespace Utility
     std::int64_t cpu_last_time = 0;
     std::int64_t cpu_last_system_time = 0;
 
-    uint32_t num_processors = [] {
+    uint32_t num_processors = []
+    {
         SYSTEM_INFO info;
         GetSystemInfo(&info);
         return info.dwNumberOfProcessors;
@@ -512,7 +552,8 @@ namespace Utility
     double GetCpuUsage(void* m_process_handle)
     {
     #ifdef _WIN64
-        auto fileTimeToUtc = [](const FILETIME* ftime) -> std::int64_t {
+        auto fileTimeToUtc = [](const FILETIME* ftime) -> std::int64_t
+        {
             LARGE_INTEGER li;
             li.LowPart = ftime->dwLowDateTime;
             li.HighPart = ftime->dwHighDateTime;
@@ -593,5 +634,31 @@ namespace Utility
         return -1;
     #endif
     }
-    
+
+    bool HashPassword(const std::string& password, const uint8_t* salt, uint8_t* out_hash)
+    {
+        crypto_argon2_config config = {
+            .algorithm = CRYPTO_ARGON2_I,
+            .nb_blocks = 100000,
+            .nb_passes = 3,
+            .nb_lanes = 1
+        };
+
+        crypto_argon2_inputs inputs = {
+            .pass = reinterpret_cast<const uint8_t*>(password.data()),
+            .salt = salt,
+            .pass_size = static_cast<uint32_t>(password.size()),
+            .salt_size = 16
+        };
+
+        crypto_argon2_extras extras = { 0 };
+
+        void* work_area = malloc(static_cast<size_t>(config.nb_blocks) * 1024);
+        if (!work_area) return false;
+
+        crypto_argon2(out_hash, 32, work_area, config, inputs, extras);
+        crypto_wipe(work_area, config.nb_blocks * 1024);
+        free(work_area);
+        return true;
+    }
 }

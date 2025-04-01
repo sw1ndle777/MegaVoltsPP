@@ -74,6 +74,14 @@ namespace NetEngine
                     }));
             });
     }
+    void CSession::SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data, uint16_t data_size)
+    {
+        CMessage message(this->GetEncryptionKey());
+        message.SetSession(this->GetSessionId());
+        message.SetCommand(order, mission, extra, option);
+        if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+        this->Send(message);
+    }
     void CSession::SetEncryptionKey(int32_t key)
     {
         m_encryptionKey = key;

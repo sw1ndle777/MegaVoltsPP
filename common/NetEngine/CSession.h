@@ -1,4 +1,5 @@
 #pragma once
+#include "BaseLib/CLog.h"
 #include <iostream>
 #include <vector>
 #include <map>
@@ -10,7 +11,7 @@
 #include "CMessage.h"
 #include "CServer.h"
 #include "CCrypt.h"
-#include "BaseLib/CLog.h"
+
 #include "Constants.h"
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "NetEngine/Packets/PacketStruct.h"
@@ -44,6 +45,7 @@ namespace NetEngine
 
         void Disconnect();
         void Send(CMessage& message);
+        void SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0);
         void DoSend();
         void SetEncryptionKey(int32_t key);
         void SetSessionId(uint16_t id);

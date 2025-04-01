@@ -4,6 +4,7 @@
 #include <mutex>
 #include <chrono>
 #include <format>
+
 namespace BaseLib
 {
 
@@ -39,10 +40,25 @@ namespace BaseLib
         {
             throw std::runtime_error("Could not open file: " + Path);
         }
+        /*
         logThread.emplace([this] 
         {
             ProcessQueue();
         });
+        */
+		/*
+        auto recurringTask = [this]()
+            {
+                if (!stopLogging)
+                {
+                    this->ProcessQueue();
+                    BaseLib::ThreadPool->submit_task([this]() { 
+                        this->ProcessQueue(); 
+                        }, BS::pr::low);
+                }
+            };
+        BaseLib::ThreadPool->submit_task(recurringTask, BS::pr::low);
+		*/
     }
 
     void CLog::Write(const std::string& Text)

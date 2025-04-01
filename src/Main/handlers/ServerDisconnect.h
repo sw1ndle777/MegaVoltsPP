@@ -45,6 +45,7 @@ namespace Game
             auto friends = main_server->GetFriendsList(session_id);
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto acc_info = acc_cache->acc_info;
+            acc_info.IsOnline = false;
             auto inventory_items = acc_cache->inventory_items;
             auto items_added = acc_cache->items_added;
             auto items_deleted = acc_cache->items_deleted;
@@ -58,7 +59,7 @@ namespace Game
             CServer* server = session->GetServer();
             
 
-            main_server->SendFrontIpc(PacketIds::Ipc::MainToFrontDisconnectPlayer, Utility::ToVector(auth_key));
+            //main_server->SendFrontIpc(PacketIds::Ipc::MainToFrontDisconnectPlayer, Utility::ToVector(auth_key));
             main_server->SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
 
             if (clan_id)

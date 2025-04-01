@@ -1,4 +1,5 @@
 #pragma once
+#include "BaseLib/CLog.h"
 #include <iostream>
 #include <vector>
 #include <map>
@@ -9,12 +10,13 @@
 
 #include "Constants.h"
 #include "CSession.h"
-#include "BaseLib/CLog.h"
+
 //#include <boost/unordered/concurrent_flat_map.hpp>
 //#include "../deps/unordered/boost/unordered/unordered_flat_map.hpp"
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
 #include "BaseLib/CSettings.h"
+#include <BaseLib/CThreadPool.h>
 namespace NetEngine
 {
     class CSession;
@@ -110,10 +112,11 @@ namespace NetEngine
             bool useEncryption;
             bool useMultithreaded;
             uint32_t concurrent_threads;
+            uint32_t database_threads;
+			uint32_t logger_threads;
             uint32_t playtime_min_seconds;
             bool useWatchguard;
-            //uint32_t pool_threads;
-            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, uint32_t concurrent_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads), playtime_min_seconds(playtime_min_seconds) {}
+            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, uint32_t concurrent_threads, uint32_t database_threads, uint32_t logger_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads), database_threads(database_threads), logger_threads(logger_threads), playtime_min_seconds(playtime_min_seconds) {}
         };
 
     public:
@@ -210,9 +213,11 @@ namespace NetEngine
         bool m_useEncryption = false;
         bool m_useMultithreaded = false;
         bool m_watchguard = false;
+        std::shared_ptr<asio::steady_timer> m_watchdogTimer;
         uint32_t m_concurrentThreads = 1;
         uint32_t m_playtimeMinSeconds = 90;
-        //uint32_t m_poolThreads = 1;
+        uint32_t m_loggerThreads = 1;
+		uint32_t m_databaseThreads = 0;
         uint32_t m_availableConcurrentThreads = std::jthread::hardware_concurrency();
         std::function<void(std::shared_ptr<CSession>)> m_OnDisconnect;
         std::function<void(std::shared_ptr<CSession>)> m_OnConnect;
@@ -220,8 +225,7 @@ namespace NetEngine
         uint64_t start_time = 0;
         boost::unordered_flat_map<size_t, std::vector<ExecutionInfo>> m_execution_info;
         std::shared_mutex m_execution_guard_mutex;
-        asio::steady_timer m_watchdog_timer;
-        void watchdog(std::chrono::nanoseconds timeout);
+        void watchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
         void startWatchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
 
     };

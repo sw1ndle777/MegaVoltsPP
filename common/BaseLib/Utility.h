@@ -9,11 +9,15 @@
 #ifdef _WIN64
 #pragma comment(lib, "libcrypto.lib")
 #endif
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
-#include <fmt/format.h>
-#include <fmt/color.h>
+
+
+#include <NetEngine/monocypher/monocypher.h>
+
+//#include <openssl/evp.h>
+//#include <openssl/rand.h>
+//#include <openssl/sha.h>
+#include "fmt/format.h"
+#include "fmt/color.h"
 #include <NetEngine/CMessage.h>
 #include <source_location>
 namespace Utility
@@ -50,7 +54,7 @@ namespace Utility
     uint64_t DateTimeToUInt64(const std::string& formatted_datetime);
     std::string UInt64ToDateTimeString(uint64_t unix_timestamp);
     std::string GetBytesArray(uint8_t* data, uint16_t size);
-    uint64_t GenerateAuthKey(const std::string& username, const std::string& password);
+    uint64_t GenerateAuthKey(const std::string& username, const std::string& password, const uint8_t* salt);
     std::string ToLowercase(const std::string& str);
     void ToLowercase(std::string& str);
     bool IsPasswordValid(const std::string& password, const std::string& hash, const std::string& salt);
@@ -79,6 +83,8 @@ namespace Utility
     std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath);
     double GetCpuUsage(void* m_process_handle);
     std::int64_t GetMemoryUsage(void* m_process_handle);
+
+    bool HashPassword(const std::string& password, const uint8_t* salt, uint8_t* out_hash);
 }
 
 

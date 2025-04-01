@@ -7,20 +7,58 @@ namespace Game
 
     namespace Handlers
     {
-        inline void LoginAuth(SCallbackData& callback, CFrontServer* front_server)
-        {
-            
-            auto loginAuthorizeReq = reinterpret_cast<FrontLoginAuthorizeReq*>(callback.message->GetData());
 
+
+        inline void LoginAuth(SCallbackData& callback, CFrontServer* front_server)
+        {    
+            auto loginAuthorizeReq = reinterpret_cast<FrontLoginAuthorizeReq*>(callback.message->GetData());
             auto acc_user = Utility::ReadMVString({ loginAuthorizeReq->username, sizeof(loginAuthorizeReq->username) });
             auto acc_pass = Utility::ReadMVString({ loginAuthorizeReq->password, sizeof(loginAuthorizeReq->password) });
-
             EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "authorize request id: ({}), password: ({})", acc_user.c_str(), acc_pass.c_str());
-            //std::shared_lock lock(callback.session->GetMutex());
-            //callback.session->GetStrand(), 
+            BaseLib::DbPool->submit_task([=]() mutable
+            {
+                BaseLib::FrontAccount frontAccount;
+                BaseLib::ClanInfo clanInfo;
+                auto found = BaseLib::Database->GetFrontAccount(acc_user, acc_pass, acc_pass, &frontAccount, &clanInfo);
 
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+                std::shared_lock lock(callback.session->GetMutex());
+                CSession* session = callback.session;
+
+                if (!found)
+                {
+                    CMessage authorizeAck = CMessage(session->GetEncryptionKey());
+                    authorizeAck.SetSession(session->GetSessionId());
+                    authorizeAck.SetCommand(22, 0, FrontAuthorize::Type::DontExist, 0);
+                    session->Send(authorizeAck);
+                }
+                else
+                {
+                    FrontUserAccountInfo  accountInfo =
+                    {
+                        frontAccount.Level + 1,
+                        frontAccount.Experience,
+                        frontAccount.Kills,
+                        frontAccount.Deaths,
+                        frontAccount.Assists,
+                        frontAccount.Wins,
+                        frontAccount.Loses,
+                        frontAccount.Draws,
+                        frontAccount.Nickname.c_str(),
+                        static_cast<std::uint16_t>(frontAccount.ClanId ? clanInfo.logo_front : 0),
+                        static_cast<std::uint16_t>(frontAccount.ClanId ? clanInfo.logo_back : 0),
+                        frontAccount.ClanId ? clanInfo.name.c_str() : "",
+                        0
+                    };
+                    FrontLoginAuthorizeAck authorizeData = FrontLoginAuthorizeAck(frontAccount.AuthKey, accountInfo);
+
+                    CMessage authorizeAck = CMessage(session->GetEncryptionKey());
+                    authorizeAck.SetSession(session->GetSessionId());
+                    authorizeAck.SetCommand(22, 0, frontAccount.IsOnline ? FrontAuthorize::Type::Busy : FrontAuthorize::Type::Success, 0);
+                    authorizeAck.SetData(reinterpret_cast<uint8_t*>(&authorizeData), sizeof(FrontLoginAuthorizeAck));
+                    session->Send(authorizeAck);
+                }
+            }, BS::pr::highest);
+            /*
             BaseLib::FrontAccount frontAccount;
             auto authorize = [&](const FrontAuthorize::Type& authorize_type, const uint8_t& grade, FrontLoginAuthorizeAck* optionalData = nullptr)
             {
@@ -97,11 +135,6 @@ namespace Game
                 authorize(FrontAuthorize::Type::Success, frontAccount.Grade, &authorizeData);
                 front_server->AddPlayerCache(frontAccount.AuthKey, Player{ frontAccount.AuthKey });
             }
-            /*
-            asio::post([callback, front_server, loginAuthorizeReq, acc_user, acc_pass]()
-            {
-                
-            });
             */
         }
     }
