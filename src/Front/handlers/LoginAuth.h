@@ -19,7 +19,7 @@ namespace Game
             {
                 BaseLib::FrontAccount frontAccount;
                 BaseLib::ClanInfo clanInfo;
-                auto found = BaseLib::Database->GetFrontAccount(acc_user, acc_pass, acc_pass, &frontAccount, &clanInfo);
+                auto found = BaseLib::Database->GetFrontAccount(acc_user, acc_pass, &frontAccount, &clanInfo);
 
                 std::shared_lock lock(callback.session->GetMutex());
                 CSession* session = callback.session;
