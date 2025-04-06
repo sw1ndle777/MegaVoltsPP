@@ -965,7 +965,7 @@ namespace Game
             }
         }
 
-        inline void NewProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
+        inline void NewProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache, std::vector<uint32_t>& playerIds)
         {
             auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
@@ -1007,6 +1007,7 @@ namespace Game
                 auto client_unique_id = NetEngine::Packets::Core::UniqueId(endmatch_info->unique_id);
                 auto client_session_id = client_unique_id.session;
                 client_match_infos.insert({ client_session_id, *endmatch_info });
+                playerIds.push_back(client_session_id);
                 processed_unique_ids.insert(endmatch_info->unique_id);
             }
 
@@ -1213,9 +1214,9 @@ namespace Game
             }
         }
 
-        inline void ProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
+        inline void ProcessPvpModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache, std::vector<uint32_t>& playerIds)
         {
-            NewProcessPvpModes(callback, main_server, room_cache);
+            NewProcessPvpModes(callback, main_server, room_cache, playerIds);
             return;
 
             auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
@@ -1334,7 +1335,7 @@ namespace Game
             }
         }
 
-        inline void ProcessPveModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache)
+        inline void ProcessPveModes(SCallbackData& callback, CMainServer* main_server, RoomCacheResource& room_cache, std::vector<uint32_t>& playerIds, std::vector<BossItem>& pve_rewards)
         {
             auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
             {
@@ -1358,7 +1359,7 @@ namespace Game
                     send_msg(player_session.get(), callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption(), callback.message->GetData(), callback.message->GetDataSize());
             }
 
-            std::vector<BossItem> pve_rewards;
+            //std::vector<BossItem> pve_rewards;
 
             switch (room_cache->ModeIndex)
             {
@@ -1378,6 +1379,7 @@ namespace Game
                     std::copy_if(pve_rewards.begin(), pve_rewards.end(), std::back_inserter(others_rewards), [my_unique_id](const BossItem& item) {  return item.unique_id != my_unique_id;  });
                     auto other_rewards_ack = MainBossBattleEndMatchResultAck(others_rewards).Serialize();
                     send_msg(player_session.get(), 254, 0, 41, 0, reinterpret_cast<uint8_t*>(other_rewards_ack.data()), other_rewards_ack.size());
+                    playerIds.push_back(id);
                 }
             }
         }
@@ -1458,10 +1460,13 @@ namespace Game
             //auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
             auto is_pve = room_cache->ModeIndex == NetEngine::Room::Mode::Index::BossBattle;
 
+            std::vector<uint32_t> playerIds;
+            std::vector<BossItem> pve_rewards;
+
             if (is_pve)
-                ProcessPveModes(callback, main_server, room_cache);
+                ProcessPveModes(callback, main_server, room_cache, playerIds, pve_rewards);
             else
-                ProcessPvpModes(callback, main_server, room_cache);
+                ProcessPvpModes(callback, main_server, room_cache, playerIds);
 
 
             room_cache->is_playing = false;
@@ -1473,6 +1478,58 @@ namespace Game
                 if (auto player_session = server->GetSessionById(room_player_session_id))
                     send_msg(player_session.get(), 256, 0, 33, 0); // notify leave match
             }
+
+            std::vector<EndMatchUpdateDatabaseInfo> playerUpdates;
+            playerUpdates.resize(playerIds.size());
+            for (auto& id : playerIds) 
+            {
+                auto player_acc_cache = main_server->GetAccCacheSharedBySessionId(id);
+                EndMatchUpdateDatabaseInfo new_endmatch_info = {
+                    player_acc_cache->acc_info.Index,
+                    player_acc_cache->acc_info.ClanKills,
+                    player_acc_cache->acc_info.ClanDeaths,
+                    player_acc_cache->acc_info.ClanAssists,
+                    player_acc_cache->acc_info.ClanContribution,
+                    player_acc_cache->acc_info.ClanWins,
+                    player_acc_cache->acc_info.ClanLoses,
+                    player_acc_cache->acc_info.ClanDraws,
+                    player_acc_cache->acc_info.Level,
+                    player_acc_cache->acc_info.Experience,
+                    player_acc_cache->acc_info.PlayTime,
+                    player_acc_cache->acc_info.SelectedCharacter,
+                    player_acc_cache->acc_info.Energy,
+                    player_acc_cache->acc_info.MicroPoints,
+                    player_acc_cache->acc_info.Wins,
+                    player_acc_cache->acc_info.Loses,
+                    player_acc_cache->acc_info.Draws,
+                    player_acc_cache->acc_info.Kills,
+                    player_acc_cache->acc_info.Deaths,
+                    player_acc_cache->acc_info.Assists,
+                    player_acc_cache->acc_info.Headshots,
+                    player_acc_cache->acc_info.HighestKillStreak,
+                    player_acc_cache->acc_info.MeleeKills,
+                    player_acc_cache->acc_info.RifleKills,
+                    player_acc_cache->acc_info.ShotgunKills,
+                    player_acc_cache->acc_info.SniperKills,
+                    player_acc_cache->acc_info.GatlingKills,
+                    player_acc_cache->acc_info.BazookaKills,
+                    player_acc_cache->acc_info.GrenadeKills,
+                    player_acc_cache->acc_info.ZombieKills,
+                    player_acc_cache->acc_info.Infections
+                };
+                player_acc_cache.unlock();
+                playerUpdates.push_back(new_endmatch_info);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "will update match info for player id ({})", id);
+            }
+            BaseLib::DbPool->submit_task([=]() mutable
+            {
+                if (!BaseLib::Database->UpdateEndMatchInfo(playerUpdates))
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "failed to update player end match info");
+                    return;
+                }
+            });
         }
 
         /*

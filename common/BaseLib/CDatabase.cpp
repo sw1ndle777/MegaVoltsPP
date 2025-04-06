@@ -1644,6 +1644,151 @@ namespace BaseLib
         }
     }
 
+    bool CDatabase::UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& updates)
+    {
+        if (updates.empty())
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                "UpdateEndMatchInfo called with empty playerUpdates");
+            return true;
+        }
+
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+            }
+
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            try
+            {
+                std::ostringstream sql;
+                sql << "UPDATE accounts SET ";
+
+                const std::vector<std::string> fields = {
+                    "ClanKills", "ClanDeaths", "ClanAssists", "ClanContribution",
+                    "ClanWins", "ClanLoses", "ClanDraws", "Level", "Experience",
+                    "PlayTime", "SelectedCharacter", "Energy", "MicroPoints",
+                    "Wins", "Loses", "Draws", "Kills", "Deaths", "Assists",
+                    "Headshots", "HighestKillStreak", "MeleeKills", "RifleKills",
+                    "ShotgunKills", "SniperKills", "GatlingKills", "BazookaKills",
+                    "GrenadeKills", "ZombieKills", "Infections"
+                };
+
+                // Build CASE statements
+                for (size_t i = 0; i < fields.size(); ++i)
+                {
+                    sql << fields[i] << " = CASE Id ";
+                    for (size_t j = 0; j < updates.size(); ++j)
+                    {
+                        sql << "WHEN ? THEN ? ";
+                    }
+                    sql << "ELSE " << fields[i] << " END";
+                    if (i != fields.size() - 1) sql << ", ";
+                }
+
+                // WHERE Id IN (?, ?, ...)
+                sql << " WHERE Id IN (";
+                for (size_t i = 0; i < updates.size(); ++i)
+                {
+                    sql << "?";
+                    if (i != updates.size() - 1) sql << ", ";
+                }
+                sql << ");";
+
+                std::string finalQuery = sql.str();
+                std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(finalQuery));
+
+                // Safe manual field binding
+                int paramIndex = 1;
+
+                for (size_t fieldIndex = 0; fieldIndex < fields.size(); ++fieldIndex)
+                {
+                    const auto& field = fields[fieldIndex];
+                    for (const auto& player : updates)
+                    {
+                        pstmt->setUInt(paramIndex++, player.Id);
+
+                        // Safely access the correct member
+                        switch (fieldIndex)
+                        {
+                        case 0: pstmt->setUInt(paramIndex++, player.ClanKills); break;
+                        case 1: pstmt->setUInt(paramIndex++, player.ClanDeaths); break;
+                        case 2: pstmt->setUInt(paramIndex++, player.ClanAssists); break;
+                        case 3: pstmt->setUInt64(paramIndex++, player.ClanContribution); break;
+                        case 4: pstmt->setUInt64(paramIndex++, player.ClanWins); break;
+                        case 5: pstmt->setUInt64(paramIndex++, player.ClanLoses); break;
+                        case 6: pstmt->setUInt64(paramIndex++, player.ClanDraws); break;
+                        case 7: pstmt->setUInt(paramIndex++, player.Level); break;
+                        case 8: pstmt->setUInt(paramIndex++, player.Experience); break;
+                        case 9: pstmt->setUInt64(paramIndex++, player.PlayTime); break;
+                        case 10: pstmt->setUInt(paramIndex++, player.SelectedCharacter); break;
+                        case 11: pstmt->setUInt(paramIndex++, player.Energy); break;
+                        case 12: pstmt->setUInt(paramIndex++, player.MicroPoints); break;
+                        case 13: pstmt->setUInt(paramIndex++, player.Wins); break;
+                        case 14: pstmt->setUInt(paramIndex++, player.Loses); break;
+                        case 15: pstmt->setUInt(paramIndex++, player.Draws); break;
+                        case 16: pstmt->setUInt(paramIndex++, player.Kills); break;
+                        case 17: pstmt->setUInt(paramIndex++, player.Deaths); break;
+                        case 18: pstmt->setUInt(paramIndex++, player.Assists); break;
+                        case 19: pstmt->setUInt(paramIndex++, player.Headshots); break;
+                        case 20: pstmt->setUInt(paramIndex++, player.HighestKillStreak); break;
+                        case 21: pstmt->setUInt(paramIndex++, player.MeleeKills); break;
+                        case 22: pstmt->setUInt(paramIndex++, player.RifleKills); break;
+                        case 23: pstmt->setUInt(paramIndex++, player.ShotgunKills); break;
+                        case 24: pstmt->setUInt(paramIndex++, player.SniperKills); break;
+                        case 25: pstmt->setUInt(paramIndex++, player.GatlingKills); break;
+                        case 26: pstmt->setUInt(paramIndex++, player.BazookaKills); break;
+                        case 27: pstmt->setUInt(paramIndex++, player.GrenadeKills); break;
+                        case 28: pstmt->setUInt(paramIndex++, player.ZombieKills); break;
+                        case 29: pstmt->setUInt(paramIndex++, player.Infections); break;
+                        }
+                    }
+                }
+
+
+                // Bind WHERE Id IN (...)
+                for (const auto& player : updates)
+                {
+                    pstmt->setUInt(paramIndex++, player.Id);
+                }
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::cyan,
+                    "Executing CASE update with {} bound parameters", paramIndex - 1);
+
+                pstmt->executeUpdate();
+                stmt->execute("COMMIT");
+
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::green,
+                    "Successfully updated end match info for {} players", updates.size());
+
+                return true;
+            }
+            catch (sql::SQLException& inner)
+            {
+                stmt->execute("ROLLBACK");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Inner SQL exception in UpdateEndMatchInfo: {}", inner.what());
+                return false;
+            }
+        }
+        catch (sql::SQLException& outer)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "Outer SQL exception in UpdateEndMatchInfo: {}", outer.what());
+            return false;
+        }
+    }
+
+
     bool CDatabase::GetFrontAccount(const std::string& username, FrontAccount* outFrontAccount)
     {
         try

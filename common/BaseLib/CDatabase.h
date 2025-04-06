@@ -360,6 +360,39 @@ namespace BaseLib
             gachapon_id(gachapon_id), sale_price(sale_price), start_date(start_date), end_date(end_date) {
         }
     };
+    struct EndMatchUpdateDatabaseInfo {
+        uint32_t Id;
+        uint32_t ClanKills;
+        uint32_t ClanDeaths;
+        uint32_t ClanAssists;
+        uint64_t ClanContribution;
+        uint64_t ClanWins;
+        uint64_t ClanLoses;
+        uint64_t ClanDraws;
+        uint32_t Level;
+        uint32_t Experience;
+        uint64_t PlayTime;
+        uint32_t SelectedCharacter;
+        uint32_t Energy;
+        uint32_t MicroPoints;
+        uint32_t Wins;
+        uint32_t Loses;
+        uint32_t Draws;
+        uint32_t Kills;
+        uint32_t Deaths;
+        uint32_t Assists;
+        uint32_t Headshots;
+        uint32_t HighestKillStreak;
+        uint32_t MeleeKills;
+        uint32_t RifleKills;
+        uint32_t ShotgunKills;
+        uint32_t SniperKills;
+        uint32_t GatlingKills;
+        uint32_t BazookaKills;
+        uint32_t GrenadeKills;
+        uint32_t ZombieKills;
+        uint32_t Infections;
+    };
 
     class CDatabase
     {
@@ -369,6 +402,7 @@ namespace BaseLib
         bool CreateTable(const std::string& table_name, const std::string& data_collumns);
         bool CreateDatabase(const std::string& name);
         bool RegisterAccount(const std::string& username, const std::string& password, const uint8_t& grade, const uint32_t& mp, const uint32_t& rt, const uint32_t& coupons = 0, const uint32_t& coins = 0, const uint32_t& energy = 0, const uint32_t& max_items = 1000, const uint32_t& max_battery = 5000, const std::string& nickname = "");
+        bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates);
         bool GetFrontAccount(const std::string& username, FrontAccount* outFrontAccount);
 		bool GetFrontAccount(const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
 		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
