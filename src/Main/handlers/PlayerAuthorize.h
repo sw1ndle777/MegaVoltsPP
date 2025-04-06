@@ -261,7 +261,7 @@ namespace Game
                 auto timer = std::make_shared<asio::steady_timer>(main_server->GetIoContext(), std::chrono::milliseconds(100));
                 timer->async_wait([timer, main_server, session_id, send_msg, session](const asio::error_code& ec)
                 {
-                    CMessage keepAliveMsg = CMessage();
+                    CMessage keepAliveMsg = CMessage(session->GetEncryptionKey());
                     keepAliveMsg.SetSession(session->GetSessionId());
                     keepAliveMsg.SetCommand(0, 0, 0, 0);
                     session->Send(keepAliveMsg);

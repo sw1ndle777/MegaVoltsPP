@@ -389,6 +389,7 @@ namespace Game
             main_server->RemoveSession(session_id);
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session_id);
 
+            BaseLib::Database->SetAccountOffline(acc_index);
 
             rapidjson::Document doc;
             doc.SetObject();

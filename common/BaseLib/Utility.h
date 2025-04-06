@@ -6,10 +6,14 @@
 #include <chrono>
 #include <map>
 #include <sstream>
+
+/*
 #ifdef _WIN64
 #pragma comment(lib, "libcrypto.lib")
 #endif
+*/
 
+#include <base64/base64.hpp>
 
 #include <NetEngine/monocypher/monocypher.h>
 

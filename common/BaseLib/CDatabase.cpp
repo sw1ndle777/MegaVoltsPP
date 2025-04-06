@@ -1373,7 +1373,7 @@ namespace BaseLib
                     a.HighestKillStreak, a.MeleeKills, a.RifleKills, a.ShotgunKills, a.SniperKills, a.GatlingKills, a.BazookaKills,
                     a.GrenadeKills, a.ZombieKills, a.Infections, a.SingleWaveDailyAttempts, a.SingleWaveHighestWave, a.SingleWaveHighScore,
                     a.SingleWaveLastUpdate,
-                    c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack
+                    c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack,
                     d.UpdateTime, d.Mission1, d.Mission2, d.Mission3, d.GoalMission1, d.GoalMission2, d.GoalMission3
                 FROM accounts a
                 LEFT JOIN clans c ON a.ClanId = c.Id
@@ -1391,7 +1391,7 @@ namespace BaseLib
                 }
 
                 auto accId = static_cast<std::int32_t>(result->getUInt("Id"));
-				auto isOnline = result->getBoolean("IsOnline");
+                auto isOnline = result->getBoolean("IsOnline");
                 *outFrontAccount = FrontAccount(
                     accId,
                     isOnline,
@@ -1543,7 +1543,7 @@ namespace BaseLib
                     Item newItem;
                     NetEngine::Packets::Main::InventoryItemInfo newItemInfo;
 
-                #if defined(RELEASE_1_0_3)
+#if defined(RELEASE_1_0_3)
                     newItemInfo.serial_info.data = invRes->getUInt64("SerialInfo");
                     newItemInfo.item_number.item_id = invRes->getUInt("ItemId");
                     newItemInfo.expire_date = invRes->getUInt("ExpirationDate");
@@ -1555,7 +1555,7 @@ namespace BaseLib
                     newItem.character_id = invRes->getByte("CharacterId");
                     newItem.in_database = 1;
                     newItem.item_info = newItemInfo;
-                #else
+#else
                     newItemInfo.serial_info.data = invRes->getUInt64("SerialInfo");
                     newItemInfo.item_number.item_id = invRes->getUInt("ItemId");
                     newItemInfo.expire_date = invRes->getUInt("ExpirationDate");
@@ -1571,7 +1571,7 @@ namespace BaseLib
                     newItem.character_id = invRes->getByte("CharacterId");
                     newItem.in_database = 1;
                     newItem.item_info = newItemInfo;
-                #endif
+#endif
 
                     inv_items.push_back(newItem);
                 }
@@ -1614,7 +1614,7 @@ namespace BaseLib
                         static_cast<bool>(mailRes->getByte("IsNew")),
                         static_cast<bool>(mailRes->getByte("DeletedFromSender")),
                         static_cast<bool>(mailRes->getByte("DeletedFromReceiver"))
-                                           });
+                        });
                 }
 
                 if (!isOnline)
@@ -1771,8 +1771,8 @@ namespace BaseLib
             }
 
             // Extract stored hash and salt
-            std::string stored_hash_str = result->getString("Password").c_str();
-            std::string stored_salt_str = result->getString("Salt").c_str();
+            std::string stored_hash_str = base64::from_base64(result->getString("Password").c_str());
+            std::string stored_salt_str = base64::from_base64(result->getString("Salt").c_str());
 
             if (stored_hash_str.size() != 32 || stored_salt_str.size() != 16)
             {
