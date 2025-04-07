@@ -2150,6 +2150,7 @@ namespace BaseLib
     {
         try
         {
+            // Check if connection is valid, reconnect if needed
             if (!conn || !conn->isValid())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
@@ -2158,96 +2159,245 @@ namespace BaseLib
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("UPDATE accounts SET Nickname = ? WHERE AuthKey = ? LIMIT 1"));
-            pstmt->setString(1, std::string(nickname).c_str()); 
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Prepare and execute the nickname update
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "UPDATE accounts SET Nickname = ? WHERE AuthKey = ? LIMIT 1"
+            ));
+            pstmt->setString(1, std::string(nickname)); // Convert string_view to string
             pstmt->setUInt64(2, authKey);
-            int32_t affectedRows = pstmt->executeUpdate();
-            return affectedRows > 0;
+
+            int affectedRows = pstmt->executeUpdate();
+
+            if (affectedRows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
         catch (sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "SQL exception: {}", e.what());
+
+            // Attempt rollback if the connection is still valid
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
     bool CDatabase::UpdateSelectedCharacter(const uint32_t& character, const uint64_t& authKey)
     {
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("UPDATE accounts SET SelectedCharacter = ? WHERE AuthKey = ? LIMIT 1"));
-            pstmt->setInt(1, character);
+            // Begin SQL transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Prepare and execute update statement
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "UPDATE accounts SET SelectedCharacter = ? WHERE AuthKey = ? LIMIT 1"
+            ));
+            pstmt->setInt(1, static_cast<int>(character));
             pstmt->setUInt64(2, authKey);
-            int32_t affectedRows = pstmt->executeUpdate();
-            return affectedRows > 0;
+
+            int affectedRows = pstmt->executeUpdate();
+
+            // If update was successful, commit the transaction
+            if (affectedRows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback in case of failure
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
     bool CDatabase::NicknameExists(const std::string_view& nickname)
     {
         try
         {
+            // Ensure connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1"));
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
 
-            pstmt->setString(1, std::string(nickname).c_str());
+            // Prepare and execute query
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1"
+            ));
+            pstmt->setString(1, std::string(nickname));
+
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
-            return result->next();
+
+            bool exists = result->next();
+
+            // Commit read-only transaction
+            stmt->execute("COMMIT");
+
+            return exists;
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback if connection is still valid
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
 
     bool CDatabase::NicknameExists(const std::string_view& nickname, uint32_t& account_id)
     {
         try
         {
+            // Ensure the connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1"));
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
 
-            pstmt->setString(1, std::string(nickname).c_str());
+            // Prepare and execute the SELECT statement
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1"
+            ));
+            pstmt->setString(1, std::string(nickname)); // Convert string_view safely
+
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+
+            bool found = false;
+
             if (result->next())
             {
                 account_id = result->getUInt("Id");
-                return true;
+                found = true;
             }
-            return false;;
+
+            // Commit the transaction
+            stmt->execute("COMMIT");
+            return found;
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
 
     std::string CDatabase::GetDatabaseName()
     {
@@ -2347,151 +2497,256 @@ namespace BaseLib
     {
         try
         {
+            // Validate or reconnect to the database
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Prepare the update statement
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "UPDATE clans SET "
-                "OwnerId=?, ClanName=?, ClanLogoFront=?, ClanLogoBack=? "
-                "WHERE Id=?"));
+                "UPDATE clans SET OwnerId = ?, ClanName = ?, ClanLogoFront = ?, ClanLogoBack = ? WHERE Id = ?"
+            ));
 
             int index = 1;
             pstmt->setUInt(index++, owner_id);
             pstmt->setString(index++, name);
             pstmt->setUInt(index++, logo_front);
             pstmt->setUInt(index++, logo_back);
-
-
-            pstmt->setUInt(index, clan_id);
+            pstmt->setUInt(index++, clan_id);
 
             int updateCount = pstmt->executeUpdate();
-            return updateCount > 0;
+
+            if (updateCount > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback if transaction failed
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
 
     bool CDatabase::InsertPlayerMailbox(const MailboxInfo& mailbox_info, uint32_t& out_mail_id)
     {
         try
         {
+            // Ensure connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
-            conn->setAutoCommit(false);
+
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Insert mailbox entry
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
                 "INSERT INTO player_mailbox (SenderId, SenderNickname, ReceiverId, ReceiverNickname, Date, GiftItemId, Message, IsNew, DeletedFromSender, DeletedFromReceiver) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            ));
 
             int index = 1;
             pstmt->setUInt(index++, mailbox_info.sender_account_id);
-            pstmt->setString(index++, mailbox_info.sender_nickname.c_str());
+            pstmt->setString(index++, mailbox_info.sender_nickname);
             pstmt->setUInt(index++, mailbox_info.receiver_account_id);
-            pstmt->setString(index++, mailbox_info.receiver_nickname.c_str());
+            pstmt->setString(index++, mailbox_info.receiver_nickname);
             pstmt->setUInt(index++, mailbox_info.time);
             pstmt->setUInt(index++, mailbox_info.gift_itemid);
-            pstmt->setString(index++, mailbox_info.message.c_str());
+            pstmt->setString(index++, mailbox_info.message);
             pstmt->setByte(index++, mailbox_info.is_new);
             pstmt->setByte(index++, mailbox_info.deleted_from_sender);
             pstmt->setByte(index++, mailbox_info.deleted_from_receiver);
-            
-            if (!pstmt->execute())
-            {
-                std::unique_ptr<sql::Statement> stmt(conn->createStatement());
-                std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT LAST_INSERT_ID()"));
 
-                if (res->next())
-                {
-                    out_mail_id = res->getUInt(1);
-                    conn->commit(); // Commit the transaction
-                    conn->setAutoCommit(true); // Reset to default auto-commit mode
-                    return true;
-                }
-            }
-            conn->rollback(); 
-            conn->setAutoCommit(true);
-        }
-        catch (sql::SQLException& e)
-        {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
-            if (conn)
+            pstmt->executeUpdate();
+
+            // Get inserted ID
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT LAST_INSERT_ID()"));
+            if (res->next())
             {
-                try
-                {
-                    conn->rollback(); // Ensure rollback in case of error
-                    conn->setAutoCommit(true); // Reset auto-commit mode
-                }
-                catch (...) {}
+                out_mail_id = res->getUInt(1);
+                stmt->execute("COMMIT");
+                return true;
             }
+
+            stmt->execute("ROLLBACK");
+            return false;
         }
-        return false;
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback on failure
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
+            return false;
+        }
     }
+
     bool CDatabase::DeletePlayerMailbox(const std::vector<MailboxInfo>& mails)
     {
-        if (mails.empty()) return false;
+        if (mails.empty())
+            return false;
 
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::string query = "DELETE FROM player_mailbox WHERE (Id) IN (";
-            std::string placeholders;
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Construct query: DELETE FROM player_mailbox WHERE Id IN (?, ?, ?, ...)
+            std::string query = "DELETE FROM player_mailbox WHERE Id IN (";
             for (size_t i = 0; i < mails.size(); ++i)
             {
-                placeholders += (i == 0 ? "(?, ?)" : ", (?, ?)");
+                query += (i > 0 ? ", ?" : "?");
             }
-            query += placeholders + ")";
+            query += ")";
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(query));
 
             int paramIndex = 1;
             for (const auto& mail_info : mails)
-                pstmt->setInt(paramIndex++, mail_info.mail_id);
+            {
+                pstmt->setUInt(paramIndex++, mail_info.mail_id);
+            }
 
-            pstmt->executeUpdate();
-            return true;
+            int affectedRows = pstmt->executeUpdate();
+
+            if (affectedRows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
 
+
     std::vector<MailboxInfo> CDatabase::GetPlayerMailbox(const int32_t& acc_id)
     {
         std::vector<MailboxInfo> mailbox_list;
+
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Prepare the SELECT statement
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
                 "SELECT Id, SenderId, SenderNickname, ReceiverId, ReceiverNickname, Date, GiftItemId, Message, IsNew, DeletedFromSender, DeletedFromReceiver "
-                "FROM player_mailbox WHERE SenderId = ? OR ReceiverId = ?"));
+                "FROM player_mailbox WHERE SenderId = ? OR ReceiverId = ?"
+            ));
 
             pstmt->setUInt(1, acc_id);
             pstmt->setUInt(2, acc_id);
@@ -2500,83 +2755,178 @@ namespace BaseLib
 
             while (res->next())
             {
-                MailboxInfo mailbox_info = 
-                { 
-                    res->getUInt("Id") , res->getUInt("SenderId"), res->getString("SenderNickname").c_str(), res->getUInt("ReceiverId"), res->getString("ReceiverNickname").c_str(),
-                    res->getUInt("Date"), res->getUInt("GiftItemId"), res->getString("Message").c_str(), static_cast<bool>(res->getByte("IsNew")), static_cast<bool>(res->getByte("DeletedFromSender")), static_cast<bool>(res->getByte("DeletedFromReceiver"))
-                };
-                mailbox_list.push_back(mailbox_info);
+                // Convert sql::SQLString to std::string using asStdString()
+                std::string senderNick = static_cast<std::string>(res->getString("SenderNickname"));
+                std::string receiverNick = static_cast<std::string>(res->getString("ReceiverNickname"));
+                std::string message = static_cast<std::string>(res->getString("Message"));
+
+                MailboxInfo mailbox_info(
+                    res->getUInt("Id"),
+                    res->getUInt("SenderId"),
+                    senderNick,
+                    res->getUInt("ReceiverId"),
+                    receiverNick,
+                    res->getUInt("Date"),
+                    res->getUInt("GiftItemId"),
+                    message,
+                    static_cast<bool>(res->getByte("IsNew")),
+                    static_cast<bool>(res->getByte("DeletedFromSender")),
+                    static_cast<bool>(res->getByte("DeletedFromReceiver"))
+                );
+
+                mailbox_list.push_back(std::move(mailbox_info));
+            }
+
+            stmt->execute("COMMIT");
+        }
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
             }
         }
-        catch (sql::SQLException& e)
-        {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
-        }
+
         return mailbox_list;
     }
+
 
     uint32_t CDatabase::GetPlayerReceiverMailboxCount(const int32_t& acc_id)
     {
         try
         {
+            // Validate or reconnect to the database
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ? AND GiftItemId = 0"));
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
 
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ? AND GiftItemId = 0"
+            ));
             pstmt->setUInt(1, acc_id);
 
             std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
+            uint32_t count = 0;
             if (res->next())
             {
-                return res->getInt("MailCount");
+                count = res->getUInt("MailCount");
             }
-        }
-        catch (sql::SQLException& e)
-        {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
-        }
 
-        return 0;
+            stmt->execute("COMMIT");
+            return count;
+        }
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback if failed
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
+            return 0;
+        }
     }
+
     uint32_t CDatabase::GetPlayerReceiverGiftboxCount(const int32_t& acc_id)
     {
         try
         {
+            // Reconnect if needed
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ? AND GiftItemId != 0"));
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
 
+            // Prepare and execute count query
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT COUNT(*) AS MailCount FROM player_mailbox WHERE ReceiverId = ? AND GiftItemId != 0"
+            ));
             pstmt->setUInt(1, acc_id);
 
             std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
+            uint32_t count = 0;
             if (res->next())
             {
-                return res->getInt("MailCount");
+                count = res->getUInt("MailCount");
             }
-        }
-        catch (sql::SQLException& e)
-        {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
-        }
 
-        return 0;
+            stmt->execute("COMMIT");
+            return count;
+        }
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
+            return 0;
+        }
     }
+
     bool CDatabase::UpdateMailboxIsNew(const std::vector<uint32_t>& mail_ids, bool is_new)
     {
         try
@@ -2816,18 +3166,30 @@ namespace BaseLib
     {
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM system_monthly_rewards WHERE Month = ?"));
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT * FROM system_monthly_rewards WHERE Month = ?"
+            ));
             pstmt->setUInt(1, month);
 
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+
             if (result->next())
             {
                 *outMonthlyRewards = SystemMonthlyRewards(result->getUInt("Month"),
@@ -2842,118 +3204,265 @@ namespace BaseLib
                     }
                 );
 
+                stmt->execute("COMMIT");
                 return true;
             }
-            else return false;
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
 
     bool CDatabase::GetPlayerMonthlyDayCount(const uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards)
     {
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM player_monthly_rewards WHERE PlayerId = ?"));
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT * FROM player_monthly_rewards WHERE PlayerId = ?"
+            ));
             pstmt->setUInt(1, acc_id);
 
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
+
             if (result->next())
             {
-                *outMonthlyRewards = PlayerMonthlyReward(acc_id, result->getByte("RewardCount"), result->getUInt64("LastUpdate"));
+                *outMonthlyRewards = PlayerMonthlyReward(
+                    acc_id,
+                    result->getByte("RewardCount"),
+                    result->getUInt64("LastUpdate")
+                );
 
+                stmt->execute("COMMIT");
                 return true;
             }
-            else return false;
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
 
     bool CDatabase::InsertPlayerMonthlyDayCount(const uint32_t& acc_id, const uint8_t& reward_count, const uint64_t& last_update)
     {
         try
         {
+            // Ensure connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Insert player reward data
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "INSERT INTO player_monthly_rewards (PlayerId, RewardCount, LastUpdate) VALUES (?, ?, ?)"));
+                "INSERT INTO player_monthly_rewards (PlayerId, RewardCount, LastUpdate) VALUES (?, ?, ?)"
+            ));
             pstmt->setUInt(1, acc_id);
             pstmt->setUInt(2, reward_count);
             pstmt->setUInt64(3, last_update);
 
             pstmt->executeUpdate();
+
+            stmt->execute("COMMIT");
             return true;
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback if transaction fails
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
+
 
     bool CDatabase::UpdatePlayerMonthlyDayCount(const uint32_t& acc_id, const uint8_t& reward_count, const uint64_t& last_update)
     {
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "UPDATE player_monthly_rewards SET RewardCount = ?, LastUpdate = ? WHERE PlayerId = ?"));
+                "UPDATE player_monthly_rewards SET RewardCount = ?, LastUpdate = ? WHERE PlayerId = ?"
+            ));
             pstmt->setUInt(1, reward_count);
             pstmt->setUInt64(2, last_update);
             pstmt->setUInt(3, acc_id);
 
-            pstmt->executeUpdate();
-            return true;
+            int affected_rows = pstmt->executeUpdate();
+
+            if (affected_rows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback on failure
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
 
-    bool CDatabase::GetPlayerDailyMission(const uint32_t& acc_id, PlayerDailyMission* outDailyMission) {
-        try {
-            if (!conn || !conn->isValid()) {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+
+    bool CDatabase::GetPlayerDailyMission(const uint32_t& acc_id, PlayerDailyMission* outDailyMission)
+    {
+        try
+        {
+            // Ensure database connection is valid
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT * FROM player_daily_mission WHERE PlayerId = ?"));
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "SELECT * FROM player_daily_mission WHERE PlayerId = ?"
+            ));
             pstmt->setUInt(1, acc_id);
 
             std::unique_ptr<sql::ResultSet> result(pstmt->executeQuery());
-            if (result->next()) {
+
+            if (result->next())
+            {
                 *outDailyMission = PlayerDailyMission{
                     acc_id,
                     result->getUInt64("UpdateTime"),
@@ -2964,27 +3473,69 @@ namespace BaseLib
                     result->getUInt("GoalMission2"),
                     result->getUInt("GoalMission3")
                 };
+
+                stmt->execute("COMMIT");
                 return true;
             }
-            return false;
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e) {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
 
-    bool CDatabase::InsertPlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
-        try {
-            if (!conn || !conn->isValid()) {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+
+    bool CDatabase::InsertPlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission)
+    {
+        try
+        {
+            // Ensure connection is valid
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Insert daily mission data
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "INSERT INTO player_daily_mission (PlayerId, UpdateTime, Mission1, Mission2, Mission3, GoalMission1, GoalMission2, GoalMission3) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
+                "INSERT INTO player_daily_mission "
+                "(PlayerId, UpdateTime, Mission1, Mission2, Mission3, GoalMission1, GoalMission2, GoalMission3) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            ));
+
             pstmt->setUInt(1, acc_id);
             pstmt->setUInt64(2, dailyMission.update_time);
             pstmt->setUInt(3, dailyMission.mission1);
@@ -2995,25 +3546,63 @@ namespace BaseLib
             pstmt->setUInt(8, dailyMission.goal_mission3);
 
             pstmt->executeUpdate();
+
+            stmt->execute("COMMIT");
             return true;
         }
-        catch (sql::SQLException& e) {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback on error
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
 
-    bool CDatabase::UpdatePlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission) {
-        try {
-            if (!conn || !conn->isValid()) {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+
+    bool CDatabase::UpdatePlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission)
+    {
+        try
+        {
+            // Ensure database connection is valid
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
 
+            // Start transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "UPDATE player_daily_mission SET UpdateTime = ?, Mission1 = ?, Mission2 = ?, Mission3 = ?, GoalMission1 = ?, GoalMission2 = ?, GoalMission3 = ? WHERE PlayerId = ?"));
+                "UPDATE player_daily_mission SET "
+                "UpdateTime = ?, Mission1 = ?, Mission2 = ?, Mission3 = ?, "
+                "GoalMission1 = ?, GoalMission2 = ?, GoalMission3 = ? "
+                "WHERE PlayerId = ?"
+            ));
+
             pstmt->setUInt64(1, dailyMission.update_time);
             pstmt->setUInt(2, dailyMission.mission1);
             pstmt->setUInt(3, dailyMission.mission2);
@@ -3023,71 +3612,173 @@ namespace BaseLib
             pstmt->setUInt(7, dailyMission.goal_mission3);
             pstmt->setUInt(8, acc_id);
 
-            pstmt->executeUpdate();
-            return true;
+            int affectedRows = pstmt->executeUpdate();
+
+            if (affectedRows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e) {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback in case of failure
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
 
+
     std::vector<GachaponSaleInfo> CDatabase::GetGachaponSalesInfo()
     {
         std::vector<GachaponSaleInfo> sales;
+
         try
         {
+            // Ensure connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
+
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT GachaponId, SalePrice, UNIX_TIMESTAMP(EventStartDate) AS EventStartTimestamp, UNIX_TIMESTAMP(EventEndDate) AS EventEndTimestamp FROM system_gachapon_machine"
+                "SELECT GachaponId, SalePrice, "
+                "UNIX_TIMESTAMP(EventStartDate) AS EventStartTimestamp, "
+                "UNIX_TIMESTAMP(EventEndDate) AS EventEndTimestamp "
+                "FROM system_gachapon_machine"
             ));
 
-
             std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-            
+
             while (res->next())
             {
-                GachaponSaleInfo gachapon_info =
-                {
+                GachaponSaleInfo gachapon_info(
+                    res->getUInt("GachaponId"),
+                    res->getUInt("SalePrice"),
+                    res->getUInt("EventStartTimestamp"),
+                    res->getUInt("EventEndTimestamp")
+                );
+                sales.push_back(std::move(gachapon_info));
+            }
 
-                    res->getUInt("GachaponId") , res->getUInt("SalePrice"), 
-                    res->getUInt("EventStartTimestamp"), res->getUInt("EventEndTimestamp")
-                };
-                sales.push_back(gachapon_info);
+            stmt->execute("COMMIT");
+        }
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback on failure
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
             }
         }
-        catch (sql::SQLException& e)
-        {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
-        }
+
         return sales;
     }
+
 
     bool CDatabase::DeleteGachaponSaleInfo(const uint32_t& gachapon_id)
     {
         try
         {
+            // Ensure database connection is valid
             if (!conn || !conn->isValid())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
                 if (conn)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
             }
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("DELETE FROM system_gachapon_machine WHERE GachaponId = ?"));
+
+            // Begin transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "DELETE FROM system_gachapon_machine WHERE GachaponId = ?"
+            ));
             pstmt->setUInt(1, gachapon_id);
-            return !pstmt->execute();
+
+            int affected_rows = pstmt->executeUpdate();
+
+            if (affected_rows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
         }
-        catch (sql::SQLException& e)
+        catch (const sql::SQLException& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Rollback if something fails
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
             return false;
         }
     }
