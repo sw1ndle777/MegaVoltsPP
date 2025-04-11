@@ -327,14 +327,20 @@ namespace Game
                 //mailbox
                 for (const auto& mail : mailbox_list)
                 {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "mail id ({})", mail.mail_id);
+                    if (main_server->IsMailboxDataAlready(mail.mail_id))
+                    {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "mail id is already exist");
+                        continue;
+                    }
                     main_server->AddMailboxDataCache(mail.mail_id, MailboxData(mail));
                     if (mail.gift_itemid == 0)
                     {
-                        main_server->AddMailboxSentIdCache(mail.mail_id, mail.sender_account_id);
-                        main_server->AddMailboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
+                        main_server->AddMailboxSentIdCache(mail.sender_account_id, mail.mail_id);
+                        main_server->AddMailboxRecvIdCache(mail.receiver_account_id, mail.mail_id);
                     }
                     else
-                        main_server->AddGiftboxRecvIdCache(mail.mail_id, mail.receiver_account_id);
+                        main_server->AddGiftboxRecvIdCache(mail.receiver_account_id, mail.mail_id);
 
                 }
                 uint32_t unopened_gifts = 0, unopened_mails = 0;
@@ -360,11 +366,13 @@ namespace Game
 
 
                 auto guideMissionData = guide_daily_mission(46, 0, 1);
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "current progress of guide mission is ({})", frontAccount.GuideMission);
                 guideMissionData.mission_id = frontAccount.GuideMission + 46;
 
-                send_msg(session, 167, 0, 1, 1, reinterpret_cast<uint8_t*>(&guideMissionData), sizeof(guideMissionData));
+                //send_msg(session, 167, 0, 1, 1, reinterpret_cast<uint8_t*>(&guideMissionData), sizeof(guideMissionData));
 
                 std::vector<guide_daily_mission> dailyMissions;
+                dailyMissions.push_back(guideMissionData);
                 dailyMissions.push_back(guide_daily_mission(daily_mission_ids_random[0], 0, 4));
                 dailyMissions.push_back(guide_daily_mission(daily_mission_ids_random[1], 0, 4));
                 dailyMissions.push_back(guide_daily_mission(daily_mission_ids_random[2], 0, 4));

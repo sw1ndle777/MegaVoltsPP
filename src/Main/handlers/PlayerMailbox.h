@@ -202,6 +202,7 @@ namespace Game
                 auto received_mail_ids = main_server->GetMailboxRecvCacheShared(acc_index);
                 if (received_mail_ids->empty())
                 {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "mailbox empty");
                     send_msg(session, 106, mailbox_tab, Mailbox::OpenResult::Empty, 0);
                     return;
                 }
@@ -209,9 +210,11 @@ namespace Game
                 for (const auto& mail_id : *received_mail_ids)
                 {
                     auto mailbox_data = main_server->GetMailboxDataCacheShared(mail_id);
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "check mail id ({})", mailbox_data->mail_id);
                     if (mailbox_data->gift_itemid != 0) continue;
                     if (!mailbox_data->sender_nickname.empty())
                     {
+                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "add mail id ({})", mailbox_data->mail_id);
                         MailboxMsgInfo new_mailbox_msg;
                         new_mailbox_msg.mail_id = mailbox_data->mail_id;
                         new_mailbox_msg.date = mailbox_data->time;

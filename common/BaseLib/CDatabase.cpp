@@ -1602,6 +1602,7 @@ namespace BaseLib
                 std::unique_ptr<sql::ResultSet> mailRes(mailStmt->executeQuery());
                 while (mailRes->next())
                 {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "adding mail to cache");
                     mailbox_list.push_back({
                         mailRes->getUInt("Id"),
                         mailRes->getUInt("SenderId"),

@@ -301,7 +301,7 @@ namespace Game
             BaseLib::Database->InsertPlayerBlockeds(blockeds_added);
             BaseLib::Database->DeletePlayerBlockeds(blockeds_deleted);
 
-            BaseLib::Database->UpdatePlayerDailyMission(acc_info.Index, acc_cache->daily_mission_info);
+            //BaseLib::Database->UpdatePlayerDailyMission(acc_info.Index, acc_cache->daily_mission_info);
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "database updated account info ({})", acc_info.Nickname.c_str());
 

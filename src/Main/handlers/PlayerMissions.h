@@ -129,6 +129,7 @@ namespace Game
                         send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->id), sizeof(mission_data->id));
                     }
                 }
+                BaseLib::Database->UpdatePlayerDailyMission(acc_index, acc_cache->daily_mission_info);
                 return;
             }
 
@@ -182,6 +183,7 @@ namespace Game
                     //send_msg(session, 307, 0x0, 0, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // currency update ack
                     send_msg(session, 168, 0, 3, missions.size(), reinterpret_cast<uint8_t*>(missions.data()), missions.size() * sizeof(MainCompleteMissionReq));
                 }
+                BaseLib::Database->UpdatePlayerDailyMission(acc_index, acc_cache->daily_mission_info);
                 return;
             }
 
@@ -217,7 +219,6 @@ namespace Game
                     ProcessLevelUp(main_server, callback.server, acc_cache, session_id, playing_players);
                 }
             }
-
         }
 
         inline void PlayerMissions(SCallbackData& callback, CMainServer* main_server)
