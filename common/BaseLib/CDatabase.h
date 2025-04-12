@@ -413,6 +413,7 @@ namespace BaseLib
         bool NicknameExists(const std::string_view& nickname, uint32_t& account_id);;
         bool UpdateNickname(const std::string_view& nickname, const uint64_t& authKey);
         bool UpdateSelectedCharacter(const uint32_t& character, const uint64_t& authKey);
+        bool UpdateEnergy(const uint32_t& energy, const uint64_t& authKey);
         //bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount);
         bool UpdateFrontAccount(const FrontAccount& front_acc);
         bool GetInventoryItems(const uint32_t& acc_id, std::vector<Item>& inv_items);

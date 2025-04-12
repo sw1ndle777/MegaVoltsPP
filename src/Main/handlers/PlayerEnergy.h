@@ -44,6 +44,7 @@ namespace Game
             if (acc_cache->earnt_battery + battery_earnt > 1000) return;
             if(acc_cache->earnt_battery + acc_cache->acc_info.Energy > acc_cache->acc_info.MaximumEnergy) return;
             acc_cache->earnt_battery += battery_earnt;
+            BaseLib::Database->UpdateEnergy(static_cast<uint32_t>(acc_cache->earnt_battery), acc_cache->acc_info.AuthKey);
             if (auto player_session = server->GetSessionById(unique_id.session))
                 send_msg(player_session.get(), 86, 0, 1, battery_earnt, reinterpret_cast<uint8_t*>(&battery_earnt), sizeof(battery_earnt));
         }

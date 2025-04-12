@@ -2273,6 +2273,72 @@ namespace BaseLib
         }
     }
 
+    bool CDatabase::UpdateEnergy(const uint32_t& energy, const uint64_t& authKey)
+    {
+        try
+        {
+            // Ensure database connection is valid
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow,
+                    "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan,
+                        "Successfully reconnected to database");
+                }
+            }
+
+            // Begin SQL transaction
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            // Prepare and execute update statement
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "UPDATE accounts SET Energy = ? WHERE AuthKey = ? LIMIT 1"
+            ));
+            pstmt->setInt(1, static_cast<int>(energy));
+            pstmt->setUInt64(2, authKey);
+
+            int affectedRows = pstmt->executeUpdate();
+
+            // If update was successful, commit the transaction
+            if (affectedRows > 0)
+            {
+                stmt->execute("COMMIT");
+                return true;
+            }
+            else
+            {
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+        }
+        catch (const sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                "SQL exception: {}", e.what());
+
+            // Attempt rollback in case of failure
+            try
+            {
+                if (conn && conn->isValid())
+                {
+                    std::unique_ptr<sql::Statement> rollbackStmt(conn->createStatement());
+                    rollbackStmt->execute("ROLLBACK");
+                }
+            }
+            catch (const sql::SQLException& rollbackEx)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                    "Rollback failed: {}", rollbackEx.what());
+            }
+
+            return false;
+        }
+    }
+
     bool CDatabase::NicknameExists(const std::string_view& nickname)
     {
         try
