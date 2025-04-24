@@ -11,18 +11,22 @@ namespace Game
 
         inline void LoginAuth(SCallbackData& callback, CFrontServer* front_server)
         {    
-            auto loginAuthorizeReq = reinterpret_cast<FrontLoginAuthorizeReq*>(callback.message->GetData());
-            auto acc_user = Utility::ReadMVString({ loginAuthorizeReq->username, sizeof(loginAuthorizeReq->username) });
-            auto acc_pass = Utility::ReadMVString({ loginAuthorizeReq->password, sizeof(loginAuthorizeReq->password) });
-            EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "authorize request id: ({}), password: ({})", acc_user.c_str(), acc_pass.c_str());
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            
+            
             BaseLib::DbPool->submit_task([=]() mutable
             {
+                std::shared_lock lock(session->GetMutex());
+                auto loginAuthorizeReq = reinterpret_cast<FrontLoginAuthorizeReq*>(message->GetData());
+                auto acc_user = Utility::ReadMVString({ loginAuthorizeReq->username, sizeof(loginAuthorizeReq->username) });
+                auto acc_pass = Utility::ReadMVString({ loginAuthorizeReq->password, sizeof(loginAuthorizeReq->password) });
+                EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "authorize request id: ({}), password: ({})", acc_user.c_str(), acc_pass.c_str());
                 BaseLib::FrontAccount frontAccount;
                 BaseLib::ClanInfo clanInfo;
                 auto found = BaseLib::Database->GetFrontAccount(acc_user, acc_pass, &frontAccount, &clanInfo);
 
-                std::shared_lock lock(callback.session->GetMutex());
-                CSession* session = callback.session;
 
                 if (!found)
                 {

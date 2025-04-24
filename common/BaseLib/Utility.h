@@ -83,7 +83,7 @@ namespace Utility
         std::memcpy(&object, bytes.data(), sizeof(T));
         return object;
     }
-    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, uint16_t m_sessionId);
+    void LogPackets(std::source_location source_location, std::shared_ptr<NetEngine::CMessage>& packetMessage, uint16_t m_sessionId);
     std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath);
     double GetCpuUsage(void* m_process_handle);
     std::int64_t GetMemoryUsage(void* m_process_handle);

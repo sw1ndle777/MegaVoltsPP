@@ -9,6 +9,7 @@ namespace Game
     {
         inline void ServerConnect(std::shared_ptr<CSession> session, CFrontServer* front_server)
         {
+            if (!session) return;
             std::unique_lock lock(session->GetMutex());
             const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
             auto utc_now = Utility::GetUtcTimeNow();
@@ -23,10 +24,8 @@ namespace Game
             frontEngineServerConnectionAckMessage.SetCommand(0x191, 0x00, 0x22, 0x00);
             frontEngineServerConnectionAckMessage.SetData(reinterpret_cast<uint8_t*>(&frontEngineServerConnectionAck), sizeof(FrontEngineServerConnectionAck));//sizeof(FrontEngineServerConnectionAck));
             frontEngineServerConnectionAckMessage.SetEncryptMethod(SendOption::EncryptionMethod::Default);
-            session->Send(frontEngineServerConnectionAckMessage);
-
-
             EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "crypto Key: ({}), utc now: ({})", frontEngineServerConnectionAck.cryptoKey, utc_now);
+            session->Send(frontEngineServerConnectionAckMessage);
         }
     }
     

@@ -1917,35 +1917,50 @@ namespace BaseLib
             }
 
             // Extract stored hash and salt
-            std::string stored_hash_str = base64::from_base64(result->getString("Password").c_str());
-            std::string stored_salt_str = base64::from_base64(result->getString("Salt").c_str());
-
-            if (stored_hash_str.size() != 32 || stored_salt_str.size() != 16)
+            auto password_str = result->getString("Password");
+            auto password_salt_str = result->getString("Salt");
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "compare ({}) ({}) and ({})", password_str.c_str(), password_salt_str.c_str(), password);
+            if (strcmp(password_str.c_str(), password_salt_str.c_str()) == 0)
             {
-                stmt->execute("ROLLBACK");
-                return false;
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "use legacy login - TODO: remove this!");
+                if (strcmp(password_str.c_str(), password.c_str()))
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "legacy password is wrong");
+                    stmt->execute("ROLLBACK");
+                    return false;
+                }
             }
-
-            uint8_t stored_hash[32];
-            uint8_t stored_salt[16];
-            std::memcpy(stored_hash, stored_hash_str.data(), 32);
-            std::memcpy(stored_salt, stored_salt_str.data(), 16);
-
-            // Recompute hash
-            uint8_t computed_hash[32];
-            if (!Utility::HashPassword(password, stored_salt, computed_hash))
+            else
             {
-                stmt->execute("ROLLBACK");
-                return false;
-            }
+                std::string stored_hash_str = base64::from_base64(password_str.c_str());
+                std::string stored_salt_str = base64::from_base64(password_salt_str.c_str());
 
-            // Verify using constant-time comparison
-            if (crypto_verify32(computed_hash, stored_hash) != 0)
-            {
-                stmt->execute("ROLLBACK");
-                return false;
-            }
+                if (stored_hash_str.size() != 32 || stored_salt_str.size() != 16)
+                {
+                    stmt->execute("ROLLBACK");
+                    return false;
+                }
 
+                uint8_t stored_hash[32];
+                uint8_t stored_salt[16];
+                std::memcpy(stored_hash, stored_hash_str.data(), 32);
+                std::memcpy(stored_salt, stored_salt_str.data(), 16);
+
+                // Recompute hash
+                uint8_t computed_hash[32];
+                if (!Utility::HashPassword(password, stored_salt, computed_hash))
+                {
+                    stmt->execute("ROLLBACK");
+                    return false;
+                }
+
+                // Verify using constant-time comparison
+                if (crypto_verify32(computed_hash, stored_hash) != 0)
+                {
+                    stmt->execute("ROLLBACK");
+                    return false;
+                }
+            }
             *outFrontAccount = FrontAccount(result->getUInt("Id"),
                                             result->getBoolean("IsOnline"),
                                             result->getString("Username").c_str(),

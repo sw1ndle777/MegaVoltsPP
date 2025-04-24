@@ -12,6 +12,7 @@ namespace Game
     {
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CMainServer* main_server)
         {
+            if (!session) return;
             BaseLib::DbPool->submit_task([=]() mutable
             {
                 auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)

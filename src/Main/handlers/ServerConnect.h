@@ -9,6 +9,7 @@ namespace Game
     {
         inline void ServerConnect(std::shared_ptr<CSession> session, CMainServer* main_server)
         {
+            if (!session) return;
             std::unique_lock lock(session->GetMutex());
             const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
             //static_cast<int32_t>(rand() + 1)

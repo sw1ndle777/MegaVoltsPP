@@ -9,8 +9,9 @@ namespace Game
     {
         inline void ChannelsInfo(SCallbackData& callback, CFrontServer* front_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            if (!session) return;
+            std::shared_lock lock(session->GetMutex());
             std::vector<Front::FrontServerInfo> server_infos;
             for (uint32_t i = 1; i < 2; i++)
             {

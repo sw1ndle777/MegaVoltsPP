@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <optional>
 #include <string_view>
+#include <memory>
 namespace NetEngine
 {
 
@@ -34,8 +35,9 @@ namespace NetEngine
 
     struct SCallbackData
     {
-        CSession* session;
-        CMessage* message;
+        std::shared_ptr<CSession> session;
+        std::shared_ptr<CMessage> message;
+
         CServer* server;
     };
 

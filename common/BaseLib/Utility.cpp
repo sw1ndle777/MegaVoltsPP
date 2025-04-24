@@ -497,23 +497,23 @@ namespace Utility
         GetSystemInfo(&info);
         return info.dwNumberOfProcessors;
     }();
-    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, uint16_t m_sessionId)
+    void LogPackets(std::source_location source_location, std::shared_ptr<NetEngine::CMessage>& packetMessage, uint16_t m_sessionId)
     {
-        if (packetMessage.GetOrder() != 71 || packetMessage.GetOrder() != 72)
+        if (packetMessage->GetOrder() != 71 || packetMessage->GetOrder() != 72)
         {
             std::string data_buffer;
-            data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
+            data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage->GetDataSize() * 3));
 
             for (uint32_t i = 0; i < 4; i++)
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
+                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetHeader().data >> (i * 8)));
 
             for (uint32_t i = 0; i < 4; i++)
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetCommand().data >> (i * 8)));
 
-            for (uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
+            for (uint32_t i = 0; i < packetMessage->GetDataSize(); i++)
             {
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
-                if (i != packetMessage.GetDataSize() - 1)
+                fmt::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage->GetData()[i]);
+                if (i != packetMessage->GetDataSize() - 1)
                     data_buffer += ' ';
             }
             /*
@@ -521,7 +521,7 @@ namespace Utility
                 return;
             }
             */
-            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
+            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage->GetDataSize() + 8, packetMessage->GetSession(), m_sessionId, packetMessage->GetOrder(), packetMessage->GetMission(), packetMessage->GetExtra(), packetMessage->GetOption(), data_buffer);
         }
     }
     std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath)

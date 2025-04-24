@@ -106,65 +106,69 @@ namespace NetEngine
     {
 
         int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
-        CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data.data()), static_cast<uint16_t>(data.size()), encryptionKey);
-
-        auto order = packetMessage.GetOrder();
+        //CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data.data()), static_cast<uint16_t>(data.size()), encryptionKey);
+        auto packetMessage = std::make_shared<CMessage>(
+            reinterpret_cast<uint8_t*>(data.data()),
+            static_cast<uint16_t>(data.size()),
+            encryptionKey
+        );
+        auto order = packetMessage->GetOrder();
         if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), packetMessage, m_sessionId);
 
-        if (!packetMessage.GetOrder()) return;
-        if (m_callbacks.count(packetMessage.GetOrder()) == 0)
+        if (!packetMessage->GetOrder()) return;
+        if (m_callbacks.count(packetMessage->GetOrder()) == 0)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no callback for packet order: ({})", packetMessage.GetOrder());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no callback for packet order: ({})", packetMessage->GetOrder());
             return;
         }
 
         SCallbackData callbackData;
 
-        callbackData.session = this;
-        callbackData.message = &packetMessage;
+        callbackData.session = shared_from_this();
+        callbackData.message = packetMessage;
         callbackData.server = this->m_server;
-        m_server->logExecution(m_sessionId, packetMessage.GetOrder());
+        m_server->logExecution(m_sessionId, packetMessage->GetOrder());
 
         try
         {
             // Execute the callback
-            m_callbacks[packetMessage.GetOrder()](callbackData);
+            m_callbacks[packetMessage->GetOrder()](callbackData);
         }
         catch (const std::system_error& e)
         {
             // Handle system errors (e.g., mutex lock failures)
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "System error in callback for packet order {}: {} (code: {})",
-                packetMessage.GetOrder(), e.what(), e.code().value());
+                packetMessage->GetOrder(), e.what(), e.code().value());
         }
         catch (const std::runtime_error& e)
         {
             // Handle runtime errors
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "Runtime error in callback for packet order {}: {}",
-                packetMessage.GetOrder(), e.what());
+                packetMessage->GetOrder(), e.what());
         }
         catch (const std::logic_error& e)
         {
             // Handle logic errors
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "Logic error in callback for packet order {}: {}",
-                packetMessage.GetOrder(), e.what());
+                packetMessage->GetOrder(), e.what());
         }
         catch (const std::exception& e)
         {
             // Catch other standard exceptions
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "Exception in callback for packet order {}: {}",
-                packetMessage.GetOrder(), e.what());
+                packetMessage->GetOrder(), e.what());
         }
         catch (...)
         {
             // Catch non-standard exceptions
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
-                "Unknown exception in callback for packet order {}", packetMessage.GetOrder());
+                "Unknown exception in callback for packet order {}", packetMessage->GetOrder());
         }
-        m_server->clearExecution(m_sessionId, packetMessage.GetOrder());
+        m_server->clearExecution(m_sessionId, packetMessage->GetOrder());
     }
     void CSession::DoRead()
     {
