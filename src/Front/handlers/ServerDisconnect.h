@@ -10,7 +10,7 @@ namespace Game
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CFrontServer* front_server)
         {
             if (!session) return;
-            std::shared_lock lock(session->GetMutex());
+            std::unique_lock lock(session->GetMutex());
             EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session->GetSessionId());
             front_server->RemoveSession(session->GetSessionId());
         }

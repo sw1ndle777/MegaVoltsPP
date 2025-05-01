@@ -267,16 +267,11 @@ namespace Game
         }
         inline void SelectVoiceType(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -284,22 +279,17 @@ namespace Game
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_index == -1) return;
 
-            acc_cache->voice_id = callback.message->GetOption();
+            acc_cache->voice_id = message->GetOption();
+            session->SendMsg(160, 0, 0, message->GetOption());
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player select voice id: ({})", acc_cache->voice_id);
-            send_msg(session, 160, 0, 0, callback.message->GetOption());
         }
         inline void PlayerAutomatchLobby(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -307,13 +297,13 @@ namespace Game
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
-            auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(callback.message->GetExtra());
+            auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(message->GetExtra());
             if (acc_index == -1) return;
 
             struct info {
                 uint16_t mod_combo;
             };
-            auto req_info = reinterpret_cast<info*>(callback.message->GetData());
+            auto req_info = reinterpret_cast<info*>(message->GetData());
 
             const std::unordered_map<uint16_t, std::string> mod_map = {
                 {0x0001, "TDM"}, {0x0002, "FFA"}, {0x0004, "ITM"}, {0x0008, "CTB"},
@@ -355,27 +345,22 @@ namespace Game
                             auto res = automatchResponse(room->room_id, room->channel_id);
                             room.unlock();
                             room_ids_lock.unlock();
-                            send_msg(session, 169, 0, 0, 1, reinterpret_cast<uint8_t*>(&res), sizeof(res));
+							session->SendMsg(169, 0, 0, 1, reinterpret_cast<uint8_t*>(&res), sizeof(res));
                             return;
                         }
                     }
                 }
             }
             room_ids_lock.unlock();
-            send_msg(session, 169, 0, 2, 1);
+			session->SendMsg(169, 0, 2, 1);
         }
         inline void CreateParty(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -383,9 +368,9 @@ namespace Game
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             auto my_slot = acc_cache->slot_id;
             auto my_team_id = acc_cache->team_id;
-            auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(callback.message->GetExtra());
+            auto leave_result = static_cast<NetEngine::Room::Leave::Req::Result>(message->GetExtra());
             if (acc_index == -1) return;
-            auto createPartyReq = reinterpret_cast<MainCreatePartyReq*>(callback.message->GetData());
+            auto createPartyReq = reinterpret_cast<MainCreatePartyReq*>(message->GetData());
 
             uint16_t party_id = 0;
             if (server->GetNextAvailableQueuePartyId(party_id)) {
@@ -437,7 +422,7 @@ namespace Game
                                 {
                                     if (plaza_player_session_id == session_id) continue;
                                     if (auto player_session = server->GetSessionById(plaza_player_session_id))
-                                        send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                        player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                                 }
                             }
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
@@ -455,8 +440,7 @@ namespace Game
             else {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "party pool is full");
             }
-
-            send_msg(session, 109, 0, 1, 0, reinterpret_cast<uint8_t*>(createPartyReq), sizeof(MainCreatePartyReq));
+            session->SendMsg(109, 0, 1, 0, reinterpret_cast<uint8_t*>(createPartyReq), sizeof(MainCreatePartyReq));
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) create party -> unknown: ({})", acc_cache->acc_info.Nickname.c_str(), createPartyReq->unknown);
 
@@ -474,23 +458,19 @@ namespace Game
                 }
                 MainCompleteMissionReq mission_data;
                 mission_data.collection_id = 56;
-                send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
+                session->SendMsg(168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
                 std::vector<uint16_t> empty_vec;
                 ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
             }
         }
         inline void PartyList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
+
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -525,20 +505,15 @@ namespace Game
                     }
                 }
             }
-            send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 37, selfClanInfoList.size(), reinterpret_cast<uint8_t*>(selfClanInfoList.data()), sizeof(structs::PartyInfo) * selfClanInfoList.size());
+            session->SendMsg(message->GetOrder(), message->GetMission(), 37, selfClanInfoList.size(), reinterpret_cast<uint8_t*>(selfClanInfoList.data()), sizeof(structs::PartyInfo) * selfClanInfoList.size());
         }
         inline void PartyJoin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -561,17 +536,17 @@ namespace Game
             auto party = main_server->GetPartyCacheUnique(req_info->roomId);
             if (main_server->IsSessionIdAlready(session_id, party->kicked_members)) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player try to join but was kick");
-                send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 42, callback.message->GetOption());
+				session->SendMsg(message->GetOrder(), message->GetMission(), 42, message->GetOption());
                 return;
             }
 
             if (party->is_clan && acc_cache->acc_info.ClanId != party->clan_id) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player try to join a clan party he dont belong with");
-                send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 43, callback.message->GetOption());
+                session->SendMsg(message->GetOrder(), message->GetMission(), 43, message->GetOption());
                 return;
             }
             if (party->members.size() >= party->max_members) {
-                send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 7, callback.message->GetOption());
+                session->SendMsg(message->GetOrder(), message->GetMission(), 7, message->GetOption());
                 return;
             }
             uint32_t party_room_id = 0;
@@ -579,13 +554,11 @@ namespace Game
             party_room_id = leader_acc_cache->in_room ? leader_acc_cache->room_id : 0;
             leader_acc_cache.unlock();
             if (party_room_id != 0 || party->is_registered) {
-                send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), 5, callback.message->GetOption());
+                session->SendMsg(message->GetOrder(), message->GetMission(), 5, message->GetOption());
                 return;
             }
 
             std::vector<structs::PartyPlayerInfo> PartyInfoList;
-
-            //structs::JoinPartyInfo2 joinInfo(acc_cache->acc_info.Nickname.c_str(), my_unique_id);
             RoomUserPlayerInfo1 joinInfo1{ acc_cache->acc_info.Grade,
                     0,
                     acc_cache->acc_info.SelectedCharacter,
@@ -616,7 +589,7 @@ namespace Game
 
             auto set_item = main_server->GetItemByType(equipped_items, 25).item_info.item_number.item_id;
             auto setitem_info = main_server->GetSetItemInfoCache(set_item);
-            auto assign_item = [&](int type, auto setitem_field)
+            static auto assign_item = [&](int type, auto setitem_field)
                 {
                     auto item = main_server->GetItemByType(equipped_items, type).item_info.item_number.item_id;
                     return item ? item : (setitem_field != UINT32_MAX ? setitem_info->Id : 0);
@@ -733,9 +706,8 @@ namespace Game
                 others_equipinfo.push_back(equip_data);
 
                 if (auto player_session = server->GetSessionById(member_session_id)) {
-                    send_msg(player_session.get(), 418, 0, 1, 0, reinterpret_cast<uint8_t*>(&joinInfo_new), sizeof(joinInfo_new));
-
-                    send_msg(player_session.get(), 409, NetEngine::Room::Clan::IconUpdateMission::PartyMembers, 37, 1, reinterpret_cast<uint8_t*>(&my_clan_info), sizeof(PlayerRoomClanListInfo));
+					player_session->SendMsg(418, 0, 1, 0, reinterpret_cast<uint8_t*>(&joinInfo_new), sizeof(joinInfo_new));
+					player_session->SendMsg(409, NetEngine::Room::Clan::IconUpdateMission::PartyMembers, 37, 1, reinterpret_cast<uint8_t*>(&my_clan_info), sizeof(PlayerRoomClanListInfo));
                 }
 
                 if (member_acc_cache->acc_info.ClanId)
@@ -753,12 +725,12 @@ namespace Game
 
                 idx++;
             }
-            send_msg(session, 417, 0, 37, PartyInfoList.size(), reinterpret_cast<uint8_t*>(PartyInfoList.data()), sizeof(structs::PartyPlayerInfo) * PartyInfoList.size());
-            send_msg(session, 303, 0, 37, others_equipinfo.size(), reinterpret_cast<uint8_t*>(others_equipinfo.data()), others_equipinfo.size() * sizeof(MainRoomPlayersEquipInfoAck));
+            session->SendMsg(417, 0, 37, PartyInfoList.size(), reinterpret_cast<uint8_t*>(PartyInfoList.data()), sizeof(structs::PartyPlayerInfo) * PartyInfoList.size());
+            session->SendMsg(303, 0, 37, others_equipinfo.size(), reinterpret_cast<uint8_t*>(others_equipinfo.data()), others_equipinfo.size() * sizeof(MainRoomPlayersEquipInfoAck));
 
-            send_msg(session, callback.message->GetOrder(), 0, 1, 0);
+            session->SendMsg(message->GetOrder(), 0, 1, 0);
 
-            send_msg(session, 409, NetEngine::Room::Clan::IconUpdateMission::PartyMembers, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info.size());
+            session->SendMsg(409, NetEngine::Room::Clan::IconUpdateMission::PartyMembers, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info.size());
 
             acc_cache->in_party = true;
             acc_cache->party_id = req_info->roomId;
@@ -781,7 +753,7 @@ namespace Game
                             {
                                 if (plaza_player_session_id == session_id) continue;
                                 if (auto player_session = server->GetSessionById(plaza_player_session_id))
-                                    send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                    player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                             }
                         }
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
@@ -799,22 +771,17 @@ namespace Game
             };
             info2 party_info;
             party_info.partyUi = (party->is_clan ? 1 : 2);
-            send_msg(session, 116, 0, party->mod_id, party->map_id, reinterpret_cast<uint8_t*>(&party_info.partyUi), sizeof(party_info.partyUi));
+            session->SendMsg(116, 0, party->mod_id, party->map_id, reinterpret_cast<uint8_t*>(&party_info.partyUi), sizeof(party_info.partyUi));
         }
         inline void GetActiveClanList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
-            auto order = callback.message->GetOrder();
+            auto order = message->GetOrder();
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
@@ -835,7 +802,7 @@ namespace Game
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will build party clan list! now exist ({}) party", party_ids.size());
                 if (party_ids.size() <= 0)
                 {
-                    send_msg(session, 113, 0, 6, 0);
+                    session->SendMsg(113, 0, 6, 0);
                     return;
                 }
                 uint32_t max_batch_size = 31;
@@ -866,22 +833,17 @@ namespace Game
                         //REPLACE WITH MAX_MEMBERS NOT SIZE OF MEMBERS !!
                         StandbyClanList.push_back(new_clan_party);
                     }
-                    send_msg(session, 113, 0, extra, StandbyClanList.size(), reinterpret_cast<uint8_t*>(StandbyClanList.data()), sizeof(structs::RegisteredClanInfo) * StandbyClanList.size());
+                    session->SendMsg(113, 0, extra, StandbyClanList.size(), reinterpret_cast<uint8_t*>(StandbyClanList.data()), sizeof(structs::RegisteredClanInfo) * StandbyClanList.size());
                 }
             }
         }
         inline void PartyChangeLeader(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -899,32 +861,27 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party want to change leader");
             if (party_cache->party_host_session_id != session_id) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party change leader request is not the leader!");
-                //send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
-                send_msg(session, 114, 0, 16, 0);
+                //player_session->SendMsg(114, 0, 1, static_cast<uint8_t>(new_leader_index));
+                session->SendMsg(114, 0, 16, 0);
                 return;
             }
-            auto new_leader_index = callback.message->GetOption();
+            auto new_leader_index = message->GetOption();
             for (const auto& party_member_session_id : party_cache->members)
             {
                 if (auto player_session = server->GetSessionById(party_member_session_id))
-                    send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
+                    player_session->SendMsg(114, 0, 1, static_cast<uint8_t>(new_leader_index));
             }
             auto new_leader = party_cache->members[new_leader_index];
             party_cache->party_host_session_id = new_leader;
-            //send_msg(session, 114, 0, 1, 0);
+            //session->SendMsg(114, 0, 1, 0);
         }
         inline void PartyKickMember(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -937,7 +894,7 @@ namespace Game
             struct info {
                 uint32_t victimUniqueId;
             };
-            auto req_info = reinterpret_cast<info*>(callback.message->GetData());
+            auto req_info = reinterpret_cast<info*>(message->GetData());
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "party will kick player: ({})", req_info->victimUniqueId);
 
@@ -968,11 +925,11 @@ namespace Game
             for (const auto& party_member_session_id : party_cache->members)
             {
                 if (auto player_session = server->GetSessionById(party_member_session_id))
-                    send_msg(player_session.get(), 419, 0, 0, 0, reinterpret_cast<uint8_t*>(&req_info->victimUniqueId), sizeof(req_info->victimUniqueId));
+                    player_session->SendMsg(419, 0, 0, 0, reinterpret_cast<uint8_t*>(&req_info->victimUniqueId), sizeof(req_info->victimUniqueId));
             }
 
             if (auto victim_session = server->GetSessionById(target_acc_cache->session_id))
-                send_msg(victim_session.get(), 111, 0, NetEngine::Room::Leave::Ack::Result::KickedByHost, 0);
+                victim_session->SendMsg(111, 0, NetEngine::Room::Leave::Ack::Result::KickedByHost, 0);
 
             target_acc_cache->party_id = 0;
             target_acc_cache->in_party = false;
@@ -983,16 +940,11 @@ namespace Game
 
         inline void ClanRegister(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -1044,9 +996,9 @@ namespace Game
                 for (const auto& party_member_session_id : party_cache->members)
                 {
                     if (auto player_session = server->GetSessionById(party_member_session_id))
-                        send_msg(player_session.get(), 115, 0, 44, 0);
+                        player_session->SendMsg(115, 0, 44, 0);
                 }
-                //send_msg(session, 115, 0, 44, 0, reinterpret_cast<uint8_t*>(nickname), 16);
+                //session->SendMsg(115, 0, 44, 0, reinterpret_cast<uint8_t*>(nickname), 16);
             }
             else if (c_order == 120) {
                 if (c_extra == 44) {
@@ -1058,23 +1010,18 @@ namespace Game
                 for (const auto& party_member_session_id : party_cache->members)
                 {
                     if (auto player_session = server->GetSessionById(party_member_session_id))
-                        send_msg(player_session.get(), 120, callback.message->GetMission(), c_extra, callback.message->GetOption());
+                        player_session->SendMsg(120, message->GetMission(), c_extra, message->GetOption());
                 }
-                //send_msg(session, 120, callback.message->GetMission(), c_extra, callback.message->GetOption());
+                //session->SendMsg(120, callback.message->GetMission(), c_extra, callback.message->GetOption());
             }
         }
         inline void PartySettings(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -1087,7 +1034,7 @@ namespace Game
             struct info {
                 uint8_t partyUi;//1 = CLAN PARTY - 2 = PARTY NORMAL
             };
-            auto req_info = reinterpret_cast<info*>(callback.message->GetData());
+            auto req_info = reinterpret_cast<info*>(message->GetData());
 
             if (!acc_cache->in_party) return;
 
@@ -1102,39 +1049,34 @@ namespace Game
                 return;
             }
 
-            auto order = callback.message->GetOrder();
+            auto order = message->GetOrder();
             if (order == 116) {//general settings
                 party_cache->is_clan = (req_info->partyUi == 1);
 
-                party_cache->map_id = callback.message->GetOption();
-                party_cache->mod_id = callback.message->GetExtra();
+                party_cache->map_id = message->GetOption();
+                party_cache->mod_id = message->GetExtra();
                 for (const auto& party_member_session_id : party_cache->members)
                 {
                     if (auto player_session = server->GetSessionById(party_member_session_id))
-                        send_msg(player_session.get(), order, callback.message->GetMission(), party_cache->mod_id, party_cache->map_id, reinterpret_cast<uint8_t*>(&req_info->partyUi), sizeof(req_info->partyUi));
+                        player_session->SendMsg(order, message->GetMission(), party_cache->mod_id, party_cache->map_id, reinterpret_cast<uint8_t*>(&req_info->partyUi), sizeof(req_info->partyUi));
                 }
             }
             else if (order == 117) {//change size
-                party_cache->max_members = callback.message->GetOption();
+                party_cache->max_members = message->GetOption();
                 for (const auto& party_member_session_id : party_cache->members)
                 {
                     if (auto player_session = server->GetSessionById(party_member_session_id))
-                        send_msg(player_session.get(), order, callback.message->GetMission(), 1, callback.message->GetOption());
+                        player_session->SendMsg(order, message->GetMission(), 1, message->GetOption());
                 }
             }
         }
         inline void ClanOtherJoin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -1149,7 +1091,7 @@ namespace Game
                 uint16_t channelId;
                 char password[16];
             };
-            auto req_info = reinterpret_cast<info*>(callback.message->GetData());
+            auto req_info = reinterpret_cast<info*>(message->GetData());
 
             if (!main_server->IsPartyAlready(acc_cache->party_id)) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "could not find player's party id ({})", acc_cache->party_id);
@@ -1193,7 +1135,7 @@ namespace Game
 
             if (target_password.size() && new_password != target_password) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "fail join clan battle, wrong password: ({}), target password: ({})", new_password.c_str(), target_password.c_str());
-                send_msg(callback.session, 121, 0, 1, 0);
+                session->SendMsg(121, 0, 1, 0);
                 return;
             }
 
@@ -1248,13 +1190,14 @@ namespace Game
 
                 SCallbackData callback;
                 callback.server = main_server;
-                callback.session = (main_server->GetSessionById(target_host_id)).get();
-                CMessage msg = CMessage();
-                msg.SetSession(callback.session->GetSessionId());
+                callback.session = main_server->GetSessionById(target_host_id);
+                auto msg = std::make_shared<CMessage>();
+                msg->SetSession(callback.session->GetSessionId());
                 //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-                msg.SetData(reinterpret_cast<uint8_t*>(&clan_room_req), sizeof(clan_room_req));
-                msg.SetExtra(score_limit);
-                callback.message = &msg;
+                msg->SetData(reinterpret_cast<uint8_t*>(&clan_room_req), sizeof(clan_room_req));
+                msg->SetExtra(score_limit);
+
+                callback.message = msg;
                 lock.unlock();
                 CreateRoom(callback, main_server);
 
@@ -1273,29 +1216,30 @@ namespace Game
 
                 acc_cache.unlock();
 
-                auto join_clan_room = [&](std::vector<uint16_t> players)
+                static auto join_clan_room = [&](std::vector<uint16_t> players)
+                {
+                    MainJoinRoomReq clan_room_join_req;
+                    clan_room_join_req.channel_id = 1;
+                    clan_room_join_req.room_id = new_clan_room_id;
+                    for (const auto& party_member_session_id : players)
                     {
-                        MainJoinRoomReq clan_room_join_req;
-                        clan_room_join_req.channel_id = 1;
-                        clan_room_join_req.room_id = new_clan_room_id;
-                        for (const auto& party_member_session_id : players)
+                        if (party_member_session_id == target_host_id) continue;
+                        if (auto player_session = server->GetSessionById(party_member_session_id))
                         {
-                            if (party_member_session_id == target_host_id) continue;
-                            if (auto player_session = server->GetSessionById(party_member_session_id)) {
-                                SCallbackData callback;
-                                callback.server = main_server;
-                                callback.session = player_session.get();
-                                CMessage msg = CMessage();
-                                msg.SetSession(callback.session->GetSessionId());
-                                //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-                                msg.SetData(reinterpret_cast<uint8_t*>(&clan_room_join_req), sizeof(clan_room_join_req));
-                                callback.message = &msg;
-                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now call join room");
-                                JoinRoom(callback, main_server);
-                                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now done join room");
-                            }
+                            SCallbackData callback;
+                            callback.server = main_server;
+                            callback.session = player_session;
+                            auto msg = std::make_shared<CMessage>();
+                            msg->SetSession(callback.session->GetSessionId());
+                            //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
+                            msg->SetData(reinterpret_cast<uint8_t*>(&clan_room_join_req), sizeof(clan_room_join_req));
+                            callback.message = msg;
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now call join room");
+                            JoinRoom(callback, main_server);
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now done join room");
                         }
-                    };
+                    }
+                };
 
                 join_clan_room(self_players);
                 join_clan_room(target_players);
@@ -1319,7 +1263,7 @@ namespace Game
                 auto settings_data = MainRoomSettingsInfoAck(room_cache->password.c_str(), settings_info).Serialize();
                 uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
                 uint8_t low_room_id_part = room_cache->room_id & 0xFF;
-                send_msg(callback.session, 139, room_cache->has_password, low_room_id_part, high_room_id_part, reinterpret_cast<uint8_t*>(settings_data.data()), settings_data.size());
+                callback.session->SendMsg(139, room_cache->has_password, low_room_id_part, high_room_id_part, reinterpret_cast<uint8_t*>(settings_data.data()), settings_data.size());
 
                 room_cache.unlock();
                 host_cache.unlock();
@@ -1330,16 +1274,11 @@ namespace Game
         }
         inline void ClanRoomLeave(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -1397,7 +1336,7 @@ namespace Game
 
                         if (auto player_session = main_server->GetSessionById(player_id))
                         {
-                            send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0);
+                            player_session->SendMsg(141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0);
                         }
 
                     }
@@ -1415,16 +1354,11 @@ namespace Game
         }
         inline void PartyRegister(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -1454,7 +1388,7 @@ namespace Game
 
             party_cache.unlock();
 
-            auto c_extra = callback.message->GetExtra();
+            auto c_extra = message->GetExtra();
             if (c_extra == 44) {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "want to find a match for ({}) players", my_party_count);
                 uint16_t match_party_id = 0;
@@ -1481,11 +1415,11 @@ namespace Game
                     };
                     info_req new_req;
                     new_req.targetPartyId = match_party_id;
-                    CMessage msg = CMessage();
-                    msg.SetSession(callback.session->GetSessionId());
+                    auto msg = std::make_shared<CMessage>();
+                    msg->SetSession(callback.session->GetSessionId());
                     //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-                    msg.SetData(reinterpret_cast<uint8_t*>(&new_req), sizeof(new_req));
-                    callback.message = &msg;
+                    msg->SetData(reinterpret_cast<uint8_t*>(&new_req), sizeof(new_req));
+                    callback.message = msg;
                     acc_cache.unlock();
                     lock.unlock();
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will join battle with party id: ({})", match_party_id);
@@ -1500,7 +1434,7 @@ namespace Game
             for (const auto& party_member_session_id : party_cache->members)
             {
                 if (auto player_session = server->GetSessionById(party_member_session_id))
-                    send_msg(player_session.get(), 119, callback.message->GetMission(), c_extra, callback.message->GetOption());
+                    player_session->SendMsg(119, callback.message->GetMission(), c_extra, callback.message->GetOption());
             }
         }
     }

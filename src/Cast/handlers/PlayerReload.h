@@ -9,9 +9,12 @@ namespace Game
     {
         inline void PlayerReload(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
-            session->Send(*callback.message);
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
+            session->Send(*message);
         }
     }  
 }

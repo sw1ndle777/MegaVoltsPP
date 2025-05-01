@@ -9,8 +9,11 @@ namespace Game
     {
         inline void HostWeaponAttack(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
@@ -19,13 +22,13 @@ namespace Game
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "receive attack packet");
 
-            switch (callback.message->GetOrder())
+            switch (message->GetOrder())
             {
                 case 266:
                 case 269:
                 {//PlayerVictimWeapon2Req
-                    auto attackReq = reinterpret_cast<PlayerVictimWeapon2Req*>(callback.message->GetData());
-                    auto cnt = callback.message->GetOption();
+                    auto attackReq = reinterpret_cast<PlayerVictimWeapon2Req*>(message->GetData());
+                    auto cnt = message->GetOption();
                     for (int i = 0; i < cnt; i++)
                     {
                         auto current_dmg = attackReq->player_victims_data[i];
@@ -40,7 +43,7 @@ namespace Game
                 case 268:
                 case 270:
                 {//PlayerVictimWeaponReq
-                    auto attackReq = reinterpret_cast<PlayerVictimWeaponReq*>(callback.message->GetData());
+                    auto attackReq = reinterpret_cast<PlayerVictimWeaponReq*>(message->GetData());
                     auto victim_session_id = (uint32_t)attackReq->victim_unique_id.session;
                     auto victim_new_health = (uint32_t)attackReq->player_info.health;
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player ({}) attacked and now have hp: ({})", victim_session_id, victim_new_health);
@@ -51,7 +54,7 @@ namespace Game
                 }
             }
 
-            auto broadcast = [&](auto player_session_id, auto& msg)
+            static auto broadcast = [&](auto player_session_id, auto& msg)
             {
                 msg->SetEncryptMethod(SendOption::EncryptionMethod::None);
                 msg->SetSession(player_session_id);
@@ -62,7 +65,7 @@ namespace Game
             };
             lock.unlock();
             for (const auto& id : room->players_session_id)
-                broadcast(id, callback.message);
+                broadcast(id, message);
         }
     } 
 }

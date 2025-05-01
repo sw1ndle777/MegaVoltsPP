@@ -1849,15 +1849,6 @@ namespace Game
 
         void NewRemoveRoomPlayer(RoomCacheResource& room, const uint16_t& session_id, const uint8_t& team_id, NetEngine::Room::Leave::Ack::Result leave_type, bool return_state)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-
             auto room_id = room->room_id;
             if (!IsRoomAlready(room_id))
             {
@@ -1940,7 +1931,7 @@ namespace Game
             {
                 if (room_player_session_id == session_id) continue;
                 if (auto player_session = this->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 422, 0, 0, my_slot_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                    player_session->SendMsg(422, 0, 0, my_slot_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
             }
             acc_cache.lock();
             acc_cache->zombie_team = 0;
@@ -1970,7 +1961,7 @@ namespace Game
             }
 
             if (return_state)
-                send_msg(session.get(), 141, 0, leave_type, 0); // leave room ack
+                session->SendMsg(141, 0, leave_type, 0); // leave room ack
 
             if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty())
             {
@@ -1987,7 +1978,7 @@ namespace Game
                         auto observer_cache_team_id = observer_cache->team_id;
                         observer_cache.unlock();
                         if (auto observer_session = this->GetSessionById(observer_id))
-                            send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
+                            observer_session->SendMsg(141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
                     }
                 }
                 this->RemoveRoomCache(room_id);
@@ -2033,7 +2024,7 @@ namespace Game
                                 }
                                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) ({}) at slot id ({})", c_nick.c_str(), c_sid, c_slot);
                                 if (id == session_id && !return_state) continue;
-                                send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
+                                player_session->SendMsg(128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
                             }
 
 
@@ -2148,7 +2139,7 @@ namespace Game
             {
                 if (room_player_session_id == session_id) continue;
                 if (auto player_session = this->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 422, 0, 0, my_slot, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                    player_session->SendMsg(422, 0, 0, my_slot, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
             }
 
             auto acc_cache = this->GetAccCacheUniqueBySessionId(session_id);
@@ -2293,21 +2284,12 @@ namespace Game
 
         void DisconnectPlayer(CServer* server, const uint16_t& session_id, const uint8_t& reason)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            
             if (auto player_session = server->GetSessionById(session_id))
             {
                 auto acc_cache = GetAccCacheSharedBySessionId(session_id);
                 auto auth_key = acc_cache->acc_info.AuthKey;
                 acc_cache.unlock();
-                send_msg(player_session.get(), 73, 0, reason, 0);
+                player_session->SendMsg(73, 0, reason, 0);
                 player_session.get()->Disconnect();
                 SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
                 // send ipc to cast to disconnect same session id
@@ -2319,18 +2301,9 @@ namespace Game
 
         void DisconnectPlayer(CServer* server, const uint16_t& session_id, const uint64_t& auth_key, const uint8_t& reason)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             if (auto player_session = server->GetSessionById(session_id))
             {
-                send_msg(player_session.get(), 73, 0, reason, 0);
+                player_session->SendMsg(73, 0, reason, 0);
                 player_session.get()->Disconnect();
                 SendCastIpc(PacketIds::Ipc::MainToCastDisconnectPlayer, Utility::ToVector(auth_key));
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "MainToCastDisconnectPlayer auth key: ({}) session id: ({})", auth_key, session_id);
@@ -3693,15 +3666,6 @@ namespace Game
 
         bool SendInventoryItem(CSession* session, AccCacheResource& acc_cache, std::vector<uint32_t> item_ids, Items::Origin origin = Items::Origin::From_GM_Spawn)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             std::vector<ShopItem> items;
             for (auto item_id : item_ids)
             {
@@ -3728,19 +3692,11 @@ namespace Game
                     return false;
                     
             }
-            send_msg(session, 99, 0, 37, static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), static_cast<uint16_t>(items.size() * sizeof(ShopItem)));
+            session->SendMsg(99, 0, 37, static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), static_cast<uint16_t>(items.size() * sizeof(ShopItem)));
             return true;
         }
         bool SendGiftItem(CSession* session, AccCacheResource& target_acc_cache, uint32_t item_id, std::string msg)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
             auto target_mailbox_received_count = 0;
             if (target_acc_cache->acc_info.Index == -1) //user offline
                 return false;
@@ -3773,7 +3729,7 @@ namespace Game
                     if (mailbox_data->gift_itemid != 0) unopened_gifts++;
                 }
 
-                send_msg(session, 66, 0, 37, unopened_gifts); // remainder of unopened mails
+                session->SendMsg(66, 0, 37, unopened_gifts); // remainder of unopened mails
                 return true;
             }
 
@@ -3781,12 +3737,8 @@ namespace Game
         }
         void SendServerMessage(CSession* session, const std::string& message)
         {
-            CMessage chatMsgAck = CMessage(session->GetEncryptionKey());
-            chatMsgAck.SetSession(session->GetSessionId());
-            chatMsgAck.SetCommand(0x13C, 0, Chat::Type::Server, static_cast<uint8_t>(message.size()));
             auto msgData = MainChatAck("", message.data(), static_cast<uint32_t>(message.size())).Serialize(Chat::Type::Server, message.size());
-            chatMsgAck.SetData(reinterpret_cast<uint8_t*>(msgData.data()), static_cast<uint16_t>(msgData.size()));
-            session->Send(chatMsgAck);
+			session->SendMsg(316, 0, Chat::Type::Server, static_cast<uint8_t>(message.size()), reinterpret_cast<uint8_t*>(msgData.data()), static_cast<uint16_t>(msgData.size()));
         }
        
         constexpr std::string_view GetModeName(const uint32_t& index)

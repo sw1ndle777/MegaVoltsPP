@@ -101,11 +101,7 @@ namespace Game
                     auto data = Utility::FromVector<MainToCastSendPingAssureInfo>(payload);
                     if (auto player_session = cast_server->GetSessionByIdNoLock(data.session_id))
                     {
-
-                        CMessage keepAliveMsg = CMessage();
-                        keepAliveMsg.SetSession(player_session->GetSessionId());
-                        keepAliveMsg.SetCommand(0, 0, 0, 0);
-                        player_session->Send(keepAliveMsg);
+						player_session->SendMsg(0, 0, 0, 0); // send keep alive ack
                         /*
                         CMessage castPingAck = CMessage(player_session->GetEncryptionKey());
                         castPingAck.SetSession(player_session->GetSessionId());
@@ -130,16 +126,12 @@ namespace Game
                     auto data = Utility::FromVector<MainToCastSendPacketInfo>(payload);
                     if (auto player_session = cast_server->GetSessionByIdNoLock(data.session_id))
                     {
-                        CMessage castPingAck = CMessage(player_session->GetEncryptionKey());
-                        castPingAck.SetSession(player_session->GetSessionId());
-                        castPingAck.SetCommand(96, 0, 0, 0);
                         struct new_data {
                             uint32_t item_id;
                             uint32_t unk;
                         } news_data;
                         news_data.item_id = data.item_id;
-                        castPingAck.SetData(reinterpret_cast<uint8_t*>(&news_data), sizeof(news_data));
-                        player_session->Send(castPingAck);
+                        player_session->SendMsg(96, 0, 0, 0, reinterpret_cast<uint8_t*>(&news_data), sizeof(news_data));
                     }
                     break;
                 }

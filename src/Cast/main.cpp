@@ -112,7 +112,7 @@ int main()
     //BaseLib::Database->Initialize(server_settings.database.db_name.c_str(), server_settings.database.host.c_str(), server_settings.database.port, server_settings.database.user.c_str(), server_settings.database.password.c_str());
 
     Game::CCastServer* castServer = new Game::CCastServer();
-    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.cast.host.c_str(), std::to_string(server_settings.cast.port).c_str(), std::to_string(server_settings.cast.ipc_port).c_str(), server_settings.cast.debug, false, true, server_settings.cast.watchguard, server_settings.cast.asio_threads, 0, server_settings.cast.database_threads);
+    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.cast.host.c_str(), std::to_string(server_settings.cast.port).c_str(), std::to_string(server_settings.cast.ipc_port).c_str(), server_settings.cast.debug, false, true, server_settings.cast.watchguard, server_settings.cast.asio_threads, 0, server_settings.cast.logger_threads);
     castServer->Setup(settings, server_settings);
     castServer->Run();
     

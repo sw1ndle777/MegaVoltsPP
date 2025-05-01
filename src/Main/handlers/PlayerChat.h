@@ -10,16 +10,11 @@ namespace Game
 
         inline void PlayerChat(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
@@ -27,9 +22,9 @@ namespace Game
             auto blockeds = main_server->GetBlockedsList(session_id); 
             auto acc_index = acc_cache->acc_info.Index;
 
-            auto message_length = callback.message->GetOption();
-            auto chat_type = callback.message->GetExtra();
-            auto order = callback.message->GetOrder();
+            auto message_length = message->GetOption();
+            auto chat_type = message->GetExtra();
+            auto order = message->GetOrder();
             if (acc_index != -1)
             {
                 auto my_nickname = acc_cache->acc_info.Nickname;
@@ -57,7 +52,7 @@ namespace Game
 
                 if (chat_type == Chat::Type::User)
                 {
-                    const auto& chatReq = reinterpret_cast<MainChatReq*>(callback.message->GetData());
+                    const auto& chatReq = reinterpret_cast<MainChatReq*>(message->GetData());
                     if (in_room)
                     {
                         if (main_server->IsRoomAlready(room_id))
@@ -97,7 +92,7 @@ namespace Game
                                 if (auto player_session = server->GetSessionById(id))
                                 {
                                     auto msgData = MainChatMatchAck(my_unique_id, chatReq->msg, message_length).Serialize(message_length);
-                                    send_msg(player_session.get(), 315, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                    player_session->SendMsg(315, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                 }
                             }
                         }
@@ -134,7 +129,7 @@ namespace Game
                                     if (auto player_session = server->GetSessionById(id))
                                     {
                                         auto msgData = MainChatAck(my_nickname.c_str(), chatReq->msg, message_length).Serialize(chat_type, message_length);
-                                        send_msg(player_session.get(), 316, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                        player_session->SendMsg(316, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                     }
                                 }
                             }
@@ -155,7 +150,7 @@ namespace Game
                             if (auto player_session = server->GetSessionById(lobby_player_session_id))
                             {
                                 auto msgData = MainChatAck(my_nickname.c_str(), chatReq->msg, message_length).Serialize(chat_type, message_length);
-                                send_msg(player_session.get(), 316, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                player_session->SendMsg(316, chat_color, Chat::Type::User, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                             }
                         }
                         lock.unlock();
@@ -164,44 +159,44 @@ namespace Game
                 else if (chat_type == Chat::Type::Whisper)
                 {
                     auto in_room = order == 161;
-                    const auto& chatWhisperReq = reinterpret_cast<MainChatWhisperReq*>(callback.message->GetData());
-                    const auto& chatWhisperInRoomReq = reinterpret_cast<MainChatWhisperInRoomReq*>(callback.message->GetData());
+                    const auto& chatWhisperReq = reinterpret_cast<MainChatWhisperReq*>(message->GetData());
+                    const auto& chatWhisperInRoomReq = reinterpret_cast<MainChatWhisperInRoomReq*>(message->GetData());
                     const auto& whisper_target_name = Utility::ReadMicrovoltsString(chatWhisperReq->nickname, 16);
 
                     auto whisper_target_cache = in_room ? main_server->GetAccCacheSharedBySessionId(chatWhisperInRoomReq->unique_id.session) : main_server->GetAccCacheSharedByNickname(whisper_target_name.c_str());
                     if (whisper_target_cache->acc_info.Index == -1)
                     {
-                        send_msg(session, 315, 1, Chat::WhisperResult::NoUser, 0);
+                        session->SendMsg(315, 1, Chat::WhisperResult::NoUser, 0);
                         return;
                     }
                     if (acc_index == whisper_target_cache->acc_info.Index)
                     {
-                        send_msg(session, 315, 1, Chat::WhisperResult::DontMyself, 0);
+                        session->SendMsg(315, 1, Chat::WhisperResult::DontMyself, 0);
                         return;
                     }
                     auto my_blockeds = main_server->GetBlockedsList(session_id);
                     if (main_server->IsBlockedAlready(my_blockeds, whisper_target_cache->acc_info.Index))
                     {
-                        send_msg(session, 315, 1, Chat::WhisperResult::Failed, 0);
+                        session->SendMsg(315, 1, Chat::WhisperResult::Failed, 0);
                         return;
                     }
                     auto target_blockeds = main_server->GetBlockedsList(whisper_target_cache->session_id);
                     if (main_server->IsBlockedAlready(target_blockeds, acc_index))
                     {
-                        send_msg(session, 315, 1, Chat::WhisperResult::WhisperRefuse, 0);
+                        session->SendMsg(315, 1, Chat::WhisperResult::WhisperRefuse, 0);
                         return;
                     }
                     auto msgData = MainChatAck(my_nickname.c_str(), in_room ? chatWhisperInRoomReq->msg : chatWhisperReq->msg, message_length).Serialize(chat_type, message_length);
                     if (auto player_session = server->GetSessionById(whisper_target_cache->session_id))
-                        send_msg(player_session.get(), 316, chat_color, Chat::Type::Whisper, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                        player_session->SendMsg(316, chat_color, Chat::Type::Whisper, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
 
-                    send_msg(session, 316, chat_color, Chat::Type::Whisper, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                    session->SendMsg(316, chat_color, Chat::Type::Whisper, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                     whisper_target_cache.unlock();
                         
                 }
                 else if (chat_type == Chat::Type::Team)
                 {
-                    const auto& chatReq = reinterpret_cast<MainChatReq*>(callback.message->GetData());
+                    const auto& chatReq = reinterpret_cast<MainChatReq*>(message->GetData());
                     if (in_room)
                     {
                         if (main_server->IsRoomAlready(room_id))
@@ -233,7 +228,7 @@ namespace Game
                                 if (auto player_session = server->GetSessionById(id))
                                 {
                                     auto msgData = MainChatMatchAck(my_unique_id, chatReq->msg, message_length).Serialize(message_length);
-                                    send_msg(player_session.get(), 315, chat_color, Chat::Type::Team, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                    player_session->SendMsg(315, chat_color, Chat::Type::Team, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                 }
                             }
                         }
@@ -241,7 +236,7 @@ namespace Game
                 }
                 else if (chat_type == Chat::Type::Clan)
                 {
-                    const auto& chatReq = reinterpret_cast<MainChatReq*>(callback.message->GetData());
+                    const auto& chatReq = reinterpret_cast<MainChatReq*>(message->GetData());
                     if (clan_id)
                     {
                         if (main_server->IsClanAlready(clan_id))
@@ -255,7 +250,7 @@ namespace Game
                                 if (auto player_session = server->GetSessionById(id))
                                 {
                                     auto msgData = MainChatAck(my_nickname.c_str(), chatReq->msg, message_length).Serialize(chat_type, message_length);
-                                    send_msg(player_session.get(), 316, chat_color, Chat::Type::Clan, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                    player_session->SendMsg(316, chat_color, Chat::Type::Clan, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                 }
                             }
                             clan_info.unlock();
@@ -264,7 +259,7 @@ namespace Game
                 }
                 else if (chat_type == Chat::Type::Command)
                 {
-                    const auto& chatReq = reinterpret_cast<MainChatReq*>(callback.message->GetData());
+                    const auto& chatReq = reinterpret_cast<MainChatReq*>(message->GetData());
                     const auto& args = Utility::SplitStrings(std::string_view(chatReq->msg, message_length), ' ');
                     if (!args.empty() && args[0].starts_with('/'))
                     {
@@ -275,7 +270,7 @@ namespace Game
                 }
                 else if (chat_type == Chat::Type::Party)
                 {
-                    const auto& chatReq = reinterpret_cast<MainChatReq*>(callback.message->GetData());
+                    const auto& chatReq = reinterpret_cast<MainChatReq*>(message->GetData());
                     if (in_party)
                     {
                         const auto& args = Utility::SplitStrings(std::string_view(chatReq->msg, message_length), ' ');
@@ -312,7 +307,7 @@ namespace Game
                                 if (auto player_session = server->GetSessionById(id))
                                 {
                                     auto msgData = MainChatAck(my_nickname.c_str(), chatReq->msg, message_length).Serialize(chat_type, message_length);
-                                    send_msg(player_session.get(), 316, chat_color, Chat::Type::Team, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
+                                    player_session->SendMsg(316, chat_color, Chat::Type::Team, message_length, reinterpret_cast<uint8_t*>(msgData.data()), msgData.size());
                                 }
                             }
                             party.unlock();
@@ -321,7 +316,7 @@ namespace Game
                 }
                 else
                 {
-                    main_server->SendServerMessage(session, fmt::format("chat type unknown {}", chat_type).c_str());
+                    main_server->SendServerMessage(session.get(), fmt::format("chat type unknown {}", chat_type).c_str());
                 }
             }
         }

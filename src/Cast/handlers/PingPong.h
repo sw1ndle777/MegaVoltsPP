@@ -9,13 +9,13 @@ namespace Game
     {
         inline void PingPong(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
 
-            CMessage castPingAck = CMessage(session->GetEncryptionKey());
-            castPingAck.SetSession(session->GetSessionId());
-            castPingAck.SetCommand(72, 1, 0x00, callback.message->GetOption());
-            session->Send(castPingAck);
+            std::shared_lock lock(session->GetMutex());
+
+            session->SendMsg(72, 1, 0, message->GetOption());
         }
     }
 }

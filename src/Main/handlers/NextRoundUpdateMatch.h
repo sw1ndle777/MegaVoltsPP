@@ -9,18 +9,13 @@ namespace Game
     {
         inline void NextRoundUpdateMatch(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
-            auto order = callback.message->GetOrder();
+            auto order = message->GetOrder();
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
@@ -30,12 +25,12 @@ namespace Game
             auto room_cache = main_server->GetRoomCacheShared(acc_cache->room_id);
             acc_cache.unlock();
             auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
-            auto extra = order == 108 ? 1 : callback.message->GetExtra();
+            auto extra = order == 108 ? 1 : message->GetExtra();
             for (const auto& id : players)
             {
                 if (id == session_id) continue;
                 if (auto player_session = server->GetSessionById(id))
-                    send_msg(player_session.get(), order, 0, extra, callback.message->GetOption(), callback.message->GetData(), callback.message->GetDataSize());
+                    player_session->SendMsg(order, 0, extra, message->GetOption(), message->GetData(), message->GetDataSize());
             }
         }
     }  

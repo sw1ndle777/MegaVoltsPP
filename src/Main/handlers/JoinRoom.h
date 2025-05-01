@@ -9,31 +9,26 @@ namespace Game
     {
         inline void JoinRoom(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
             int32_t current_team_id = -1;
-            auto join_result = static_cast<NetEngine::Room::Join::ReqResult>(callback.message->GetExtra());
+            auto join_result = static_cast<NetEngine::Room::Join::ReqResult>(message->GetExtra());
             if (acc_index == -1) return;
-            const auto& joinRoomReq = reinterpret_cast<MainJoinRoomReq*>(callback.message->GetData());
+            const auto& joinRoomReq = reinterpret_cast<MainJoinRoomReq*>(message->GetData());
 
             if (acc_cache->in_room)
             {
                 if (joinRoomReq->room_id == acc_cache->room_id)
                 {
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "fail: already in room");
-                    send_msg(session, 140, 0, NetEngine::Room::Join::Result::GenericError, 0);
+                    session->SendMsg(140, 0, NetEngine::Room::Join::Result::GenericError, 0);
                     return;
                 }
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "is in room previously and now will be removed");
@@ -50,7 +45,7 @@ namespace Game
             if (room_cache->title.empty())
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "fail: no title");
-                send_msg(session, 140, 0, NetEngine::Room::Join::Result::RoomDeleted, 0);
+                session->SendMsg(140, 0, NetEngine::Room::Join::Result::RoomDeleted, 0);
                 return;
             }
             if (room_cache->has_password || join_result == NetEngine::Room::Join::ReqResult::Password)
@@ -59,7 +54,7 @@ namespace Game
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player try to join with password: ({})", room_pass_req);
                 if (room_pass_req.empty() || room_pass_req != room_cache->password)
                 {
-                    send_msg(session, 140, 0, NetEngine::Room::Join::Result::InvalidPassword, 0);
+                    session->SendMsg(140, 0, NetEngine::Room::Join::Result::InvalidPassword, 0);
                     return;
                 }
             }
@@ -102,7 +97,7 @@ namespace Game
             if (players_count >= room_players_max_count + observers_max_count)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room was full");
-                send_msg(session, 140, 0, NetEngine::Room::Join::Result::LobbyFull, 0);
+                session->SendMsg(140, 0, NetEngine::Room::Join::Result::LobbyFull, 0);
                 return;
             }
             if (main_server->IsSessionIdAlready(session_id, room_cache->neutralteam_session_ids) ||
@@ -111,13 +106,13 @@ namespace Game
                 main_server->IsSessionIdAlready(session_id, room_cache->observers_session_ids))
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "already in room");
-                send_msg(session, 140, 0, NetEngine::Room::Join::Result::GenericError, 0);
+                session->SendMsg(140, 0, NetEngine::Room::Join::Result::GenericError, 0);
                 return;
             }
             if (main_server->IsSessionIdAlready(acc_index, room_cache->kicked_index_ids))
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player was kicked");
-                send_msg(session, 140, 0, NetEngine::Room::Join::Result::PreviouslyKicked, 0);
+                session->SendMsg(140, 0, NetEngine::Room::Join::Result::PreviouslyKicked, 0);
                 return;
             }
             if (!is_mode_teambased)
@@ -140,10 +135,10 @@ namespace Game
                             current_team_id = Team::IdType::Observer;
                         }
                         else
-                            send_msg(session, 140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
+                            session->SendMsg(140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
                     }
                     else
-                        send_msg(session, 140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
+                        session->SendMsg(140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
                 }
             }
             else if (in_party)
@@ -198,10 +193,10 @@ namespace Game
                             current_team_id = Team::IdType::Observer;
                         }
                         else
-                            send_msg(session, 140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
+                            session->SendMsg(140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
                     }
                     else
-                        send_msg(session, 140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
+                        session->SendMsg(140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
                 }
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now prepare settings");
@@ -223,7 +218,7 @@ namespace Game
             uint8_t high_room_id_part = (room_cache->room_id >> 8) & 0xFF; // Extract the high 8 bits
             uint8_t low_room_id_part = room_cache->room_id & 0xFF;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sending settings");
-            send_msg(session, 139, has_password, low_room_id_part, high_room_id_part, reinterpret_cast<uint8_t*>(settings_data.data()), settings_data.size());
+            session->SendMsg(139, has_password, low_room_id_part, high_room_id_part, reinterpret_cast<uint8_t*>(settings_data.data()), settings_data.size());
             RoomSettingsModeInfo2 mode_settings_info;
             mode_settings_info.time_limit = room_cache->time_rule;
             mode_settings_info.score_limit = room_cache->score_rule;
@@ -303,7 +298,7 @@ namespace Game
 
                     player_cache.unlock();
                 }
-                send_msg(session, 406, 0, extra, block_size, reinterpret_cast<uint8_t*>(new_info.data()), new_info.size());
+                session->SendMsg(406, 0, extra, block_size, reinterpret_cast<uint8_t*>(new_info.data()), new_info.size());
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent clan info");
             for (uint32_t batch_id = 0; batch_id < equipBlocksCount; batch_id++)
@@ -368,11 +363,11 @@ namespace Game
                     block_size++;
                     player_cache.unlock();
 
-                    send_msg(session, 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id));
-                    //send_msg(session, 403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id));
+                    session->SendMsg(314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id));
+                    //session->SendMsg(403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&unique_id), sizeof(unique_id));
                 }
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent player info for: ({}) players", new_equipinfo.size());
-                send_msg(session, 303, 0, extra, block_size, reinterpret_cast<uint8_t*>(new_equipinfo.data()), new_equipinfo.size() * sizeof(MainRoomPlayersEquipInfoAck));
+                session->SendMsg(303, 0, extra, block_size, reinterpret_cast<uint8_t*>(new_equipinfo.data()), new_equipinfo.size() * sizeof(MainRoomPlayersEquipInfoAck));
             }
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent players info");
             acc_cache.lock();
@@ -398,7 +393,7 @@ namespace Game
                             {
                                 if (plaza_player_session_id == session_id) continue;
                                 if (auto player_session = server->GetSessionById(plaza_player_session_id))
-                                    send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                    player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                             }
                         }
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
@@ -467,7 +462,7 @@ namespace Game
                 my_EquippedGrenadeItemId, my_EquippedBazookaItemId).Serialize();
 
 
-            send_msg(session, 409, 0, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo)  * players_clan_info.size());
+            session->SendMsg(409, 0, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo)  * players_clan_info.size());
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "sent players clan info for: ({}) players", players_clan_info.size());
 
             if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::FreeForAll)
@@ -478,7 +473,7 @@ namespace Game
                 ffa_info.weaponlimited = room_cache->Restriction;
                 ffa_info.winrule = room_cache->score_rule;
                 ffa_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&ffa_info), sizeof(ffa_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&ffa_info), sizeof(ffa_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::Scrimmage)
             {
@@ -487,7 +482,7 @@ namespace Game
                 scrimmage_info.state = room_cache->is_playing ? 3 : 0;
                 scrimmage_info.timelimited = room_cache->time_rule;
                 scrimmage_info.weaponlimited = room_cache->Restriction;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&scrimmage_info), sizeof(scrimmage_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&scrimmage_info), sizeof(scrimmage_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::CaptureTheBattery ||
                 room_cache->ModeIndex == NetEngine::Room::Mode::Index::CLAN_CaptureTheBattery)
@@ -500,7 +495,7 @@ namespace Game
                 ctb_info.bluescore = 0;
                 ctb_info.redscore = 0;
                 ctb_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&ctb_info), sizeof(ctb_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&ctb_info), sizeof(ctb_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::Elimination ||
                 room_cache->ModeIndex == NetEngine::Room::Mode::Index::CLAN_Elimination)
@@ -513,7 +508,7 @@ namespace Game
                 sbt_info.bluescore = 0;
                 sbt_info.redscore = 0;
                 //sbt_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&sbt_info), sizeof(sbt_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&sbt_info), sizeof(sbt_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::ZombieMode)
             {
@@ -525,7 +520,7 @@ namespace Game
                 zombie_info.bluescore = 0;
                 zombie_info.redscore = 0;
                 //zombie_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&zombie_info), sizeof(zombie_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&zombie_info), sizeof(zombie_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::ArmsRace)
             {
@@ -535,7 +530,7 @@ namespace Game
                 arms_info.weaponlimited = room_cache->Restriction;
                 arms_info.winrule = room_cache->score_rule;
                 //arms_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&arms_info), sizeof(arms_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&arms_info), sizeof(arms_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle)
             {
@@ -547,7 +542,7 @@ namespace Game
                 bmb_info.weaponlimited = room_cache->Restriction;
                 bmb_info.winrule = room_cache->score_rule;
                 //arms_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&bmb_info), sizeof(bmb_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&bmb_info), sizeof(bmb_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BossBattle)
             {
@@ -557,7 +552,7 @@ namespace Game
                 boss_info.weaponlimited = room_cache->Restriction;
                 boss_info.winrule = room_cache->score_rule;
                 //arms_info.kitdrop = room_cache->allow_drops;
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&boss_info), sizeof(boss_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&boss_info), sizeof(boss_info));
             }
             else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::TeamDeathMatch ||
                 room_cache->ModeIndex == NetEngine::Room::Mode::Index::ItemMatch ||
@@ -575,7 +570,7 @@ namespace Game
                 if (room_cache->ModeIndex != NetEngine::Room::Mode::Index::CloseCombat)
                     tdm_info.kitdrop = room_cache->allow_drops;
 
-                send_msg(session, 309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&tdm_info), sizeof(tdm_info));
+                session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&tdm_info), sizeof(tdm_info));
             }
             std::vector<std::pair<uint32_t, uint32_t>> filtered_slots;
             acc_cache.unlock();
@@ -599,7 +594,7 @@ namespace Game
             auto my_auto_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
             acc_cache->slot_id = (current_team_id != NetEngine::Team::IdType::Observer) ? static_cast<uint8_t>(filtered_slots.back().second + 1) : 0xFF;
-            send_msg(session, 140, 0, (current_team_id != NetEngine::Team::IdType::Observer) ? NetEngine::Room::Join::Result::JoinAsPlayer : NetEngine::Room::Join::Result::JoinAsObserver, 1);
+            session->SendMsg(140, 0, (current_team_id != NetEngine::Team::IdType::Observer) ? NetEngine::Room::Join::Result::JoinAsPlayer : NetEngine::Room::Join::Result::JoinAsObserver, 1);
             PlayerRoomClanListInfo my_clan_info;
             if (acc_cache->acc_info.ClanId)
             {
@@ -619,10 +614,10 @@ namespace Game
                 if (room_player_session_id == session_id) continue;
                 if (auto player_session = server->GetSessionById(room_player_session_id))
                 {
-                    send_msg(player_session.get(), 421, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
-                    send_msg(player_session.get(), 409, 0, 37, 1, reinterpret_cast<uint8_t*>(&my_clan_info), sizeof(PlayerRoomClanListInfo));
-                    send_msg(player_session.get(), 314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
-                    //send_msg(player_session.get(), 403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
+                    player_session->SendMsg(421, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
+                    player_session->SendMsg(409, 0, 37, 1, reinterpret_cast<uint8_t*>(&my_clan_info), sizeof(PlayerRoomClanListInfo));
+                    player_session->SendMsg(314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
+                    //player_session->SendMsg(403, 0, 0, pcroom_tier, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
                 }
                     
             }
@@ -652,7 +647,7 @@ namespace Game
                 }
                 for (const auto& room_player_session_id : players_ids)
                     if (auto player_session = server->GetSessionById(room_player_session_id))
-                        send_msg(player_session.get(), 409, 0, 37, players_clan_info_assure.size(), reinterpret_cast<uint8_t*>(players_clan_info_assure.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info_assure.size());
+                        player_session->SendMsg(409, 0, 37, players_clan_info_assure.size(), reinterpret_cast<uint8_t*>(players_clan_info_assure.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info_assure.size());
 
                 acc_cache.lock();
             }
@@ -662,7 +657,7 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will broadcast to all player new state 7 (waiting) to avoid playing bug state");
             for (const auto& room_player_session_id : players_ids)
                 if (auto player_session = server->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 312, 0, 0, 7, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
+                    player_session->SendMsg(312, 0, 0, 7, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_cache->room_id);
         }

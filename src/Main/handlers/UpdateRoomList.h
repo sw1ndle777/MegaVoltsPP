@@ -9,29 +9,24 @@ namespace Game
     {
         inline void UpdateRoomList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
+
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
             acc_cache.unlock();
-            auto channel_id = callback.message->GetOption() + 1;
-            auto score_limit = callback.message->GetExtra();
+            auto channel_id = message->GetOption() + 1;
+            auto score_limit = message->GetExtra();
             if (acc_index == -1) return;
             
             std::shared_lock room_ids_lock(main_server->GetRoomIdsMutex());
             if (room_ids.size() <= 0)
             {
-                send_msg(session, 142, 0x0, NetEngine::Room::List::Result::NoRooms, 0);
+                session->SendMsg(142, 0x0, NetEngine::Room::List::Result::NoRooms, 0);
                 return;
             }
             uint32_t max_batch_size = 31;
@@ -54,7 +49,7 @@ namespace Game
                     new_rooms.push_back(new_roomListInfo);
                 }
                 auto rooms_data = MainRoomListInfoAck(static_cast<uint16_t>(new_rooms.size()), static_cast<uint16_t>(room_ids.size()), new_rooms).Serialize(extra);
-                send_msg(session, 142, 0, extra, 0, reinterpret_cast<uint8_t*>(rooms_data.data()), rooms_data.size());
+                session->SendMsg(142, 0, extra, 0, reinterpret_cast<uint8_t*>(rooms_data.data()), rooms_data.size());
             }
         }
     }

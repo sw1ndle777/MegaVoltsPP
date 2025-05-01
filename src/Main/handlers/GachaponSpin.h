@@ -9,27 +9,22 @@ namespace Game
     {
         inline void GachaponSpin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto spin_count = static_cast<uint32_t>(callback.message->GetOption());
-            auto gachaponSpinReq = reinterpret_cast<MainGachaponSpinReq*>(callback.message->GetData());
+            auto spin_count = static_cast<uint32_t>(message->GetOption());
+            auto gachaponSpinReq = reinterpret_cast<MainGachaponSpinReq*>(message->GetData());
             if (acc_index == -1) return;
             auto gachapon_info = main_server->GetGachaponInfo(gachaponSpinReq->gachapon_id);
             if (gachapon_info->Id == -1 || acc_cache->acc_info.Level < gachapon_info->LimitedGrade)
             {
-                send_msg(session, 92, 0, Items::Gachapon::Spin::Result::Stuck, 0);
+                session->SendMsg(92, 0, Items::Gachapon::Spin::Result::Stuck, 0);
                 return;
             }
             std::vector<GachaponPackageItem> items_extracted;
@@ -63,7 +58,7 @@ namespace Game
             if (gachapon_price == 0 && gachapon_info->Type != 3)
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "cannot spin gachapon with price 0");
-                send_msg(session, 92, 0, Items::Gachapon::Spin::Result::Stuck, 0);
+                session->SendMsg(92, 0, Items::Gachapon::Spin::Result::Stuck, 0);
                 return;
             }
 
@@ -116,7 +111,7 @@ namespace Game
 
             if(acc_cache->inventory_items.size() + items_count > acc_cache->acc_info.MaximumItems)
             {
-                send_msg(session, 92, 0, Items::Gachapon::Spin::Result::InventoryFull, 0);
+                session->SendMsg(92, 0, Items::Gachapon::Spin::Result::InventoryFull, 0);
                 return;
             }
 
@@ -125,7 +120,7 @@ namespace Game
             auto insufficient_mp = gachapon_info->Type == Items::Gachapon::Type::MP && acc_cache->acc_info.MicroPoints < money_spent;
             if(insufficient_coin || insufficient_rt || insufficient_mp)
             {
-                send_msg(session, 92, 0, Items::Gachapon::Spin::Result::MoneyError, (insufficient_coin) ? Items::Gachapon::Error::NoCoin : (insufficient_rt) ? Items::Gachapon::Error::NoRT : Items::Gachapon::Error::NoMP);
+                session->SendMsg(92, 0, Items::Gachapon::Spin::Result::MoneyError, (insufficient_coin) ? Items::Gachapon::Error::NoCoin : (insufficient_rt) ? Items::Gachapon::Error::NoRT : Items::Gachapon::Error::NoMP);
                 return;
             }
             switch (gachapon_info->Type) {
@@ -198,12 +193,12 @@ namespace Game
                 if (lucky_type > Items::Gachapon::LuckyType::NoLucky)
                 {
                     acc_cache->acc_info.LuckyPoints = 0;
-                    send_msg(session, 92, Items::Gachapon::Spin::Type::LuckySpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
+                    session->SendMsg(92, Items::Gachapon::Spin::Type::LuckySpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
                 }
                 else
                 {
                     acc_cache->acc_info.LuckyPoints += gachapon_info->LuckyPoint;
-                    send_msg(session, 92, Items::Gachapon::Spin::Type::NormalSpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
+                    session->SendMsg(92, Items::Gachapon::Spin::Type::NormalSpin, Items::Gachapon::Spin::Result::SpinSuccess, static_cast<uint8_t>(items_to_send.size()), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
                 }
             }
             acc_cache.unlock();
@@ -217,7 +212,7 @@ namespace Game
                 if (auto player_session = server->GetSessionById(lobby_player_session_id))
                     for (auto& announcement : lucky_items_announce)
                         main_server->SendServerMessage(player_session.get(), fmt::format("[{}] won a [{}] item from the capsule machine.", acc_cache->acc_info.Nickname, announcement.c_str()).c_str());
-                        //send_msg(player_session.get(), 402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
+                        //player_session->SendMsg(402, Announcement::Gacha::RareNotice, Announcement::Chat::Type::GameMessage, lucky_items_announce.size(), reinterpret_cast<uint8_t*>(&announcement), sizeof(announcement));
             }
         }
     }

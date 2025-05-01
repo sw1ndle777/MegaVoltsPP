@@ -9,12 +9,15 @@ namespace Game
     {
         inline void PlayerMovement(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
-            auto option = callback.message->GetOption();
-            auto extra = callback.message->GetExtra();
-            auto mission = callback.message->GetMission();
+            auto option = message->GetOption();
+            auto extra = message->GetExtra();
+            auto mission = message->GetMission();
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
             auto in_room = self_player->in_room;
@@ -23,40 +26,18 @@ namespace Game
             auto plaza_id = self_player->plaza_id;
             auto is_dead = self_player->health == 0;
             self_player.unlock();
-            auto data_size = callback.message->GetDataSize();
+            auto data_size =message->GetDataSize();
             auto room = cast_server->GetRoomCacheShared(room_id);
-
-
-
-            
 
             CMessage movementMsg = CMessage();
             movementMsg.SetSession(self_session_id);
             movementMsg.SetCommand(322, 0, 0, 1);
 
-            ClientPlayerInfoBasic* player_info = (ClientPlayerInfoBasic*)callback.message->GetData();
-            //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) ani1: ({}) ani2: ({}) wpn: ({}) unk: ({})", data_size, self_session_id, static_cast<uint32_t>(player_info->animation1), static_cast<uint32_t>(player_info->animation2), static_cast<uint32_t>(player_info->weapon), static_cast<uint32_t>(player_info->unknown));
-            /*
-            auto direction_x = DirectX::PackedVector::XMConvertHalfToFloat(player_info->direction.directionX);
-            auto direction_y = DirectX::PackedVector::XMConvertHalfToFloat(player_info->direction.directionY);
-            auto direction_z = DirectX::PackedVector::XMConvertHalfToFloat(player_info->direction.directionZ);
-            auto pos_x = DirectX::PackedVector::XMConvertHalfToFloat(player_info->position.positionX);
-            auto pos_y = DirectX::PackedVector::XMConvertHalfToFloat(player_info->position.positionY);
-            auto pos_z = DirectX::PackedVector::XMConvertHalfToFloat(player_info->position.positionZ);
-
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "ssid: ({}) posX: ({}) posY: ({}) posZ: ({})", self_session_id, pos_x, pos_y, pos_z);
-
-            
-            if (pos_z < -2000 && room->host_session_id == self_session_id && room->players_session_id.size() > 1)
-            {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "host not single in room fall off map and need to die");
-            }
-            */
-            //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "({}) ssid: ({}) dir: ({}) ({}) ({}) rot1: ({}) rot2: ({}) rot3: ({})", data_size, self_session_id, direction_x, direction_y, direction_z, extra, option, static_cast<uint32_t>(player_info->rotation));
+            ClientPlayerInfoBasic* player_info = (ClientPlayerInfoBasic*)message->GetData();
 
             if (data_size == 28)
             {
-                ClientPlayerInfoBullet* bullets_info = (ClientPlayerInfoBullet*)callback.message->GetData();
+                ClientPlayerInfoBullet* bullets_info = (ClientPlayerInfoBullet*)message->GetData();
 
                 PlayerInfoResponseWithBullets player_info_bullets;
                 player_info_bullets.specificInfo.enableBullet = true;
@@ -76,8 +57,8 @@ namespace Game
             }
             else if (data_size == 32)
             {
-                ClientPlayerInfoComplete* player_info_complete = (ClientPlayerInfoComplete*)callback.message->GetData();
-                ClientPlayerInfoBullet* bullets_info = (ClientPlayerInfoBullet*)callback.message->GetData();
+                ClientPlayerInfoComplete* player_info_complete = (ClientPlayerInfoComplete*)message->GetData();
+                ClientPlayerInfoBullet* bullets_info = (ClientPlayerInfoBullet*)message->GetData();
 
                 PlayerInfoResponseWithBullets player_info_bullets;
                 player_info_bullets.specificInfo.enableBullet = true;
@@ -134,7 +115,6 @@ namespace Game
                 {
                     for (const auto& id : players)
                     {
-                        //if (id == self_session_id) continue;
                         movementMsg.SetEncryptMethod(SendOption::EncryptionMethod::None);
                         movementMsg.SetSession(id);
                         if (auto player_session = server->GetSessionById(id))

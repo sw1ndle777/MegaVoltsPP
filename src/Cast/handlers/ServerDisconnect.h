@@ -9,7 +9,9 @@ namespace Game
     {
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CCastServer* cast_server)
         {
-            std::shared_lock lock(session->GetMutex());
+            if (!session) return;
+
+            std::unique_lock lock(session->GetMutex());
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session->GetSessionId());
             auto self_session_id = session->GetSessionId();
             cast_server->RemoveSession(self_session_id);

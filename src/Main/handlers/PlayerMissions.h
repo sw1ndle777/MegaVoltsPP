@@ -20,17 +20,11 @@ namespace Game
         }
         inline void PlayerCompleteAchievement(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
 
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
 
@@ -38,7 +32,7 @@ namespace Game
             if (acc_index == -1) return;
 
             auto achievement_done = acc_cache->acc_info.Achievement;
-            auto desired_achiv = callback.message->GetOption();
+            auto desired_achiv = message->GetOption();
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to complete achievement: ({})", desired_achiv);
             if (desired_achiv > 0 && desired_achiv < 64)
             {
@@ -57,24 +51,17 @@ namespace Game
         }
         inline void PlayerCompleteGuideMission(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             
             auto acc_index = acc_cache->acc_info.Index;
             if (acc_index == -1) return;
 
-            if (callback.message->GetExtra() == 2) // Do a goal of Daily mission
+            if (message->GetExtra() == 2) // Do a goal of Daily mission
             {
                 struct daily_mission_req {
                     uint32_t id;
@@ -82,7 +69,7 @@ namespace Game
                     uint32_t idk2;
                     uint32_t idk3;
                 };
-                auto mission_data = reinterpret_cast<daily_mission_req*>(callback.message->GetData());
+                auto mission_data = reinterpret_cast<daily_mission_req*>(message->GetData());
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "daily mission request: ({}) ({}) ({}) ({})", mission_data->id, mission_data->idk1, mission_data->idk2, mission_data->idk3);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player did goal of daily mission: ({})", mission_data->id);
                 uint32_t* current_goal = nullptr;
@@ -115,7 +102,7 @@ namespace Game
                         missions.push_back(MainCompleteMissionReq{ acc_cache->daily_mission_info.mission1, 0, acc_cache->daily_mission_info.goal_mission1, 4 });
                         missions.push_back(MainCompleteMissionReq{ acc_cache->daily_mission_info.mission2, 0, acc_cache->daily_mission_info.goal_mission2, 4 });
                         missions.push_back(MainCompleteMissionReq{ acc_cache->daily_mission_info.mission3, 0, acc_cache->daily_mission_info.goal_mission3, 4 });
-                        send_msg(session, 168, 0, 1, missions.size(), reinterpret_cast<uint8_t*>(missions.data()), missions.size() * sizeof(MainCompleteMissionReq));
+                        session->SendMsg(168, 0, 1, missions.size(), reinterpret_cast<uint8_t*>(missions.data()), missions.size() * sizeof(MainCompleteMissionReq));
 
                         if (daily_mission_info->rewardPoint)
                         {
@@ -124,21 +111,21 @@ namespace Game
                         if (daily_mission_info->rewardItem)
                         {
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player get reward item: ({})", daily_mission_info->rewardItem);
-                            main_server->SendInventoryItem(callback.session, acc_cache, { daily_mission_info->rewardItem });
+                            main_server->SendInventoryItem(session.get(), acc_cache, {daily_mission_info->rewardItem});
                         }
-                        send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->id), sizeof(mission_data->id));
+                        session->SendMsg(168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->id), sizeof(mission_data->id));
                     }
                 }
                 BaseLib::Database->UpdatePlayerDailyMission(acc_index, acc_cache->daily_mission_info);
                 return;
             }
 
-            if (callback.message->GetExtra() == 3) // Reset a Daily mission
+            if (message->GetExtra() == 3) // Reset a Daily mission
             {
                 struct daily_mission_reset_req {
                     uint32_t id;
                 };
-                auto mission_data = reinterpret_cast<daily_mission_reset_req*>(callback.message->GetData());
+                auto mission_data = reinterpret_cast<daily_mission_reset_req*>(message->GetData());
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player want to reset daily mission: ({})", mission_data->id);
                 uint32_t* current_goal = nullptr;
                 uint32_t* current_mission = nullptr;
@@ -167,7 +154,7 @@ namespace Game
                 {
                     if (acc_cache->acc_info.MicroPoints < 10000) //Value to check is in constantinfo!
                     {
-                        send_msg(session, 168, 0, 3, 0);
+                        session->SendMsg(168, 0, 3, 0);
                         return;
                     }
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "checks passed and will reset mission");
@@ -177,17 +164,13 @@ namespace Game
                     *current_goal = 0;
                     std::vector<MainCompleteMissionReq> missions;
                     missions.push_back(MainCompleteMissionReq{ *current_mission, 0, *current_goal, 4 });
-                    //missions.push_back(MainCompleteMissionReq{ acc_cache->daily_mission_info.mission2, 0, acc_cache->daily_mission_info.goal_mission2, 4 });
-                    //missions.push_back(MainCompleteMissionReq{ acc_cache->daily_mission_info.mission3, 0, acc_cache->daily_mission_info.goal_mission3, 4 });
-                    //MainCurrencyUpdateAck currency_update_data = { acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
-                    //send_msg(session, 307, 0x0, 0, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // currency update ack
-                    send_msg(session, 168, 0, 3, missions.size(), reinterpret_cast<uint8_t*>(missions.data()), missions.size() * sizeof(MainCompleteMissionReq));
+                    session->SendMsg(168, 0, 3, missions.size(), reinterpret_cast<uint8_t*>(missions.data()), missions.size() * sizeof(MainCompleteMissionReq));
                 }
                 BaseLib::Database->UpdatePlayerDailyMission(acc_index, acc_cache->daily_mission_info);
                 return;
             }
 
-            auto mission_data = reinterpret_cast<MainCompleteMissionReq*>(callback.message->GetData());
+            auto mission_data = reinterpret_cast<MainCompleteMissionReq*>(message->GetData());
             if (mission_data->mission_type == 1 && mission_data->set_index == 9) //Guide mission
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player did guide mission: ({})", mission_data->collection_id);
@@ -202,7 +185,7 @@ namespace Game
                     {
                         acc_cache->acc_info.MicroPoints += current_coll->rewardPoint;
                     }
-                    send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->collection_id), sizeof(mission_data->collection_id));
+                    session->SendMsg(168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->collection_id), sizeof(mission_data->collection_id));
                     std::vector<uint16_t> playing_players;
                     if (acc_cache->in_room)
                     {

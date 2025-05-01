@@ -15,15 +15,6 @@ namespace Game
             if (!session) return;
             BaseLib::DbPool->submit_task([=]() mutable
             {
-                auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-            
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
            
@@ -91,121 +82,6 @@ namespace Game
                     acc_cache.unlock();
 
                     main_server->NewRemoveRoomPlayer(room, session_id, my_team_id, (left_while_vote_kicked ? NetEngine::Room::Leave::Ack::Result::KickedByKickVote : NetEngine::Room::Leave::Ack::Result::Leave), false);
-
-                    //acc_cache.lock();
-                    /*
-                    if (left_while_vote_kicked)
-                    {
-                        room->voters_session_ids.clear();
-                        room->vote_kick_target_session_id = 0;
-                        room->is_kick_vote_running = false;
-                        if (!main_server->IsSessionIdAlready(acc_index, room->kicked_index_ids))
-                            room->kicked_index_ids.push_back(acc_index);
-                    }
-
-                    //acc_cache.unlock();
-                    //main_server->RemoveRoomPlayerCache(room, session_id, team_id);
-                    //main_server->RoomPlayersSlotReorder(room);
-
-
-
-                    auto isFreeForAllOrSimilarMode = !main_server->IsModeTeamBased(room->ModeIndex);
-                    std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
-
-
-                    auto process_team = [&](const std::vector<uint16_t>& session_ids)
-                    {
-                        for (const auto& id : session_ids)
-                        {
-                            auto player_cache = main_server->GetAccCacheSharedBySessionId(id);
-                            if (player_cache->acc_info.Index != -1 && player_cache->in_room && player_cache->room_id == room->room_id)
-                                player_slot_pairs.emplace_back(id, player_cache->slot_id);
-
-                            player_cache.unlock();
-                        }
-                    };
-
-                    if (isFreeForAllOrSimilarMode)
-                        process_team(room->neutralteam_session_ids);
-                    else
-                    {
-                        process_team(room->blueteam_session_ids);
-                        process_team(room->redteam_session_ids);
-                    }
-                    process_team(room->observers_session_ids);
-
-                    std::sort(player_slot_pairs.begin(), player_slot_pairs.end(),
-                        [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) {
-                        return a.second < b.second;
-                    });
-
-
-                    auto notify_player_leave = [&](uint32_t room_player_session_id)
-                    {
-                        if (room_player_session_id == session_id) return;;
-                        if (auto player_session = server->GetSessionById(room_player_session_id))
-                        {
-                            CMessage playerLeaveInfoAck(player_session->GetEncryptionKey());
-                            playerLeaveInfoAck.SetSession(room_player_session_id);
-                            playerLeaveInfoAck.SetCommand(422, 0, 0, my_slot);
-                            playerLeaveInfoAck.SetData(reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
-                            player_session->Send(playerLeaveInfoAck);
-                        }
-                    };
-
-                    //acc_cache.lock();
-
-
-                    CMessage leaveRoomAck = CMessage(session->GetEncryptionKey());
-                    leaveRoomAck.SetSession(session_id);
-                    leaveRoomAck.SetCommand(141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
-                    session->Send(leaveRoomAck);
-
-                    if (!room->neutralteam_session_ids.empty() || !room->redteam_session_ids.empty() || !room->blueteam_session_ids.empty())
-                    {
-                        if (room->host_session_id == session_id)
-                        {
-
-                            auto best_ping_session_id = main_server->GetBestPlayerPingSessionIdInMatch(room);
-                            if (best_ping_session_id != 0)
-                            {
-                                auto best_ping_acc_cache = main_server->GetAccCacheUniqueBySessionId(best_ping_session_id);
-                                if (best_ping_acc_cache->acc_info.Index != -1)
-                                {
-                                    auto best_ping_slot_id = best_ping_acc_cache->slot_id;
-                                    acc_cache.lock();
-                                    best_ping_acc_cache->slot_id = acc_cache->slot_id;
-                                    //acc_cache->slot_id = 0xFF;
-                                    room->host_session_id = best_ping_session_id;
-                                    for (const auto& [room_player_session_id, _] : player_slot_pairs)
-                                        if (auto player_session = server->GetSessionById(room_player_session_id))
-                                            send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_slot_id)); // host change
-
-                                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "room No. ({}) changed host ({}) -> ({}) due to leaving while playing. ", room->room_id, acc_cache->acc_info.Nickname.c_str(), best_ping_acc_cache->acc_info.Nickname.c_str());
-
-                                    struct RoomAuthData
-                                    {
-                                        uint16_t room_id;
-                                        uint64_t auth_key;
-                                    };
-                                    RoomAuthData new_host_data{ room->room_id, best_ping_acc_cache->acc_info.AuthKey };
-
-                                    main_server->SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
-                                }
-                            }
-                        }
-                    }
-
-                    for (const auto& [room_player_session_id, _] : player_slot_pairs)
-                        notify_player_leave(room_player_session_id);
-                    main_server->RemoveRoomPlayerCache(room, session_id, team_id);
-
-                    if (room->neutralteam_session_ids.empty() && room->redteam_session_ids.empty() && room->blueteam_session_ids.empty() && room->observers_session_ids.empty())
-                    {
-                        main_server->RemoveRoomCache(room_id);
-                        server->SetRoomIdAvailable(room_id);
-                    }
-                    */
                 }
 
                 if (in_party && main_server->IsPartyAlready(party_id))
@@ -224,7 +100,7 @@ namespace Game
                             for (const auto& party_member_session_id : party_cache->members)
                             {
                                 if (auto player_session = server->GetSessionById(party_member_session_id))
-                                    send_msg(player_session.get(), 120, 0, 45, 0);
+                                    player_session->SendMsg(120, 0, 45, 0);
                             }
                         }
                         uint16_t new_leader_index = 0;
@@ -241,7 +117,7 @@ namespace Game
                         {
                             if (party_member_session_id == party_cache->party_host_session_id) continue;
                             if (auto player_session = server->GetSessionById(party_member_session_id))
-                                send_msg(player_session.get(), 114, 0, 1, static_cast<uint8_t>(new_leader_index));
+                                player_session->SendMsg(114, 0, 1, static_cast<uint8_t>(new_leader_index));
                         }
                         party_cache->party_host_session_id = new_leader;
                     }
@@ -253,7 +129,7 @@ namespace Game
                     for (const auto& party_member_session_id : party_cache->members)
                     {
                         if (auto player_session = server->GetSessionById(party_member_session_id))
-                            send_msg(player_session.get(), 419, 0, 0, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            player_session->SendMsg(419, 0, 0, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                     }
 
                     acc_cache->party_id = 0;
@@ -283,7 +159,7 @@ namespace Game
                             {
                                 if (plaza_player_session_id == session_id) continue;
                                 if (auto player_session = server->GetSessionById(plaza_player_session_id))
-                                    send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                    player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                             }
                         }
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
@@ -312,11 +188,7 @@ namespace Game
                 {
                     if (auto friend_session = server->GetSessionById(friend_info.friend_session_id))
                     {
-                        CMessage friendsStatusUpdateAck(friend_session->GetEncryptionKey());
-                        friendsStatusUpdateAck.SetSession(friend_session->GetSessionId());
-                        friendsStatusUpdateAck.SetCommand(85, 0x0, Userlist::Friends::DetailsType::FriendState, Userlist::FriendsState::Logout);
-                        friendsStatusUpdateAck.SetData(reinterpret_cast<uint8_t*>(&acc_index), sizeof(acc_index));
-                        friend_session->Send(friendsStatusUpdateAck);
+						friend_session->SendMsg(85, 0, Userlist::Friends::DetailsType::FriendState, Userlist::FriendsState::Logout, reinterpret_cast<uint8_t*>(&acc_index), sizeof(acc_index));
                     }
                 };
                 std::vector<FriendInfo> current_friends_accepted;
@@ -393,7 +265,7 @@ namespace Game
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) disconnected", session_id);
 
                 BaseLib::Database->SetAccountOffline(acc_index);
-
+                /*
                 rapidjson::Document doc;
                 doc.SetObject();
                 rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
@@ -446,13 +318,8 @@ namespace Game
                 doc.Accept(writer);
 
                 main_server->WebsitePost("/", payload.GetString());
-
-                /*
-                asio::post([session, main_server, send_msg]()
-                {
-                
-                });
                 */
+
             });
         }
     }  

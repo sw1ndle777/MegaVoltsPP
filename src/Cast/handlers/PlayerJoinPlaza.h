@@ -9,20 +9,23 @@ namespace Game
     {
         inline void PlayerJoinPlaza(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
 
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheUnique(self_session_id);
 
-            auto plazaReq = reinterpret_cast<CastJoinPlazaReq*>(callback.message->GetData());
+            auto plazaReq = reinterpret_cast<CastJoinPlazaReq*>(message->GetData());
             auto plaza_id = plazaReq->plaza_id;
 
            
 
             
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) attempt to join plaza id: ({}), mission: ({}),  extra: ({}), option: ({})", self_session_id, plaza_id, callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) attempt to join plaza id: ({}), mission: ({}),  extra: ({}), option: ({})", self_session_id, plaza_id, message->GetMission(), message->GetExtra(), message->GetOption());
 
 
 
@@ -73,12 +76,7 @@ namespace Game
 
             self_player->plaza_id = plaza_id;
             self_player->in_plaza = true;
-
-            CMessage joinPlazaAck = CMessage(session->GetEncryptionKey());
-            joinPlazaAck.SetSession(session->GetSessionId());
-            joinPlazaAck.SetCommand(175, callback.message->GetMission(), 6, callback.message->GetOption());
-            session->Send(joinPlazaAck);
-
+            session->SendMsg(176, message->GetMission(), 6, message->GetOption());
         }
     }
 }

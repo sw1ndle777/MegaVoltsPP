@@ -16,17 +16,9 @@ namespace Game
             auto time_zone = "GMT+2";
             auto readable_time = Utility::GetReadableTime(utc_now, time_zone);
             FrontEngineServerConnectionAck frontEngineServerConnectionAck = FrontEngineServerConnectionAck(random_number, utc_now);
-
             session->SetEncryptionKey(frontEngineServerConnectionAck.cryptoKey);
-
-            CMessage frontEngineServerConnectionAckMessage = CMessage(session->GetEncryptionKey());
-            frontEngineServerConnectionAckMessage.SetSession(session->GetSessionId());
-            frontEngineServerConnectionAckMessage.SetCommand(0x191, 0x00, 0x22, 0x00);
-            frontEngineServerConnectionAckMessage.SetData(reinterpret_cast<uint8_t*>(&frontEngineServerConnectionAck), sizeof(FrontEngineServerConnectionAck));//sizeof(FrontEngineServerConnectionAck));
-            frontEngineServerConnectionAckMessage.SetEncryptMethod(SendOption::EncryptionMethod::Default);
+            session->SendMsg(401, 0, 34, 0, reinterpret_cast<uint8_t*>(&frontEngineServerConnectionAck), sizeof(FrontEngineServerConnectionAck), SendOption::EncryptionMethod::Default);
             EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "crypto Key: ({}), utc now: ({})", frontEngineServerConnectionAck.cryptoKey, utc_now);
-            session->Send(frontEngineServerConnectionAckMessage);
         }
-    }
-    
+    } 
 }

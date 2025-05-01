@@ -9,13 +9,15 @@ namespace Game
     {
         inline void HostSyncTick(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto player_session_id = callback.message->GetSession();
             auto host_session_id = session->GetSessionId();
 
-            auto message = callback.message;
             message->SetEncryptMethod(SendOption::EncryptionMethod::None);
             message->SetSession(host_session_id);
             if (auto forwarded_session = server->GetSessionById(player_session_id))

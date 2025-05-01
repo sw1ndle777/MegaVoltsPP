@@ -52,8 +52,6 @@ namespace NetEngine
     {
         auto order = message.GetOrder();
         if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), message, m_sessionId);
-        //auto data = message.GenerateMessage();
-        //auto data_vec = std::make_shared<std::vector<uint8_t>>(&data[0], &data[message.GetFullSize()]);
         auto data_vec = message.GenerateMessage();
         asio::dispatch(m_strand, [this, self = shared_from_this(), data_vec]() {
             if (!m_socket.is_open())
@@ -74,11 +72,21 @@ namespace NetEngine
                     }));
             });
     }
-    void CSession::SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data, uint16_t data_size)
+    void CSession::SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data, uint16_t data_size, SendOption::EncryptionMethod encryptMethod)
     {
         CMessage message(this->GetEncryptionKey());
         message.SetSession(this->GetSessionId());
         message.SetCommand(order, mission, extra, option);
+		message.SetEncryptMethod(encryptMethod);
+        if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+        this->Send(message);
+    }
+    void CSession::ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data, uint16_t data_size, SendOption::EncryptionMethod encryptMethod)
+    {
+        CMessage message(this->GetEncryptionKey());
+        message.SetSession(session_id);
+        message.SetCommand(order, mission, extra, option);
+        message.SetEncryptMethod(encryptMethod);
         if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
         this->Send(message);
     }

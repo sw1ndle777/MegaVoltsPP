@@ -12,17 +12,10 @@ namespace Game
             if (!session) return;
             std::unique_lock lock(session->GetMutex());
             const auto random_number = Utility::Random::CustomGen(100000000, 999999999);
-            //static_cast<int32_t>(rand() + 1)
             MainEngineServerConnectionAck mainEngineServerConnectionAck = MainEngineServerConnectionAck(random_number, session->GetSessionId(), 1);
 
             session->SetEncryptionKey(mainEngineServerConnectionAck.cryptoKey);
-
-            CMessage mainEngineServerConnectionAckMessage = CMessage(session->GetEncryptionKey());
-            mainEngineServerConnectionAckMessage.SetSession(session->GetSessionId());
-            mainEngineServerConnectionAckMessage.SetCommand(401, 0, 0, 1);
-            mainEngineServerConnectionAckMessage.SetData(reinterpret_cast<uint8_t*>(&mainEngineServerConnectionAck), sizeof(MainEngineServerConnectionAck));
-            mainEngineServerConnectionAckMessage.SetEncryptMethod(SendOption::EncryptionMethod::Default);
-            session->Send(mainEngineServerConnectionAckMessage);
+            session->SendMsg(401, 0, 0, 1, reinterpret_cast<uint8_t*>(&mainEngineServerConnectionAck), sizeof(MainEngineServerConnectionAck), SendOption::EncryptionMethod::Default);
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connection acknowledged", session->GetSessionId());
         }

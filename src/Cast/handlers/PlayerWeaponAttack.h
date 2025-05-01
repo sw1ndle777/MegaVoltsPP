@@ -9,13 +9,16 @@ namespace Game
     {
         inline void PlayerWeaponAttack(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
+
             CServer* server = callback.server;
-            auto host_session_id = callback.message->GetSession();
+            auto host_session_id = message->GetSession();
             auto self_session_id = session->GetSessionId();
 
-            auto message = callback.message;
             message->SetEncryptMethod(SendOption::EncryptionMethod::None);
             message->SetSession(self_session_id);
 

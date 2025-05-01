@@ -9,10 +9,13 @@ namespace Game
     {
         inline void PlayerJoinRoom(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
-            auto host_session_id = callback.message->GetSession();
+            auto host_session_id = message->GetSession();
             auto self_session_id = session->GetSessionId();
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) attempt to join host session id: ({})'s room", self_session_id, host_session_id);

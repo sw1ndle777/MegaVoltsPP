@@ -9,22 +9,16 @@ namespace Game
     {
         inline void StartMatch(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
 
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto match_result = static_cast<NetEngine::Room::Match::Result>(callback.message->GetExtra());
+            auto match_result = static_cast<NetEngine::Room::Match::Result>(message->GetExtra());
             auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
             if (acc_index == -1 || !acc_cache->in_room || !main_server->IsRoomAlready(acc_cache->room_id)) return;
@@ -60,7 +54,7 @@ namespace Game
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player normal started match and will broadcast to: ({}) players", players_ids.size());
                     for (const auto& room_player_session_id : players_ids)
                         if (auto player_session = server->GetSessionById(room_player_session_id))
-                            send_msg(player_session.get(), callback.message->GetOrder(), 0, NetEngine::Room::Match::Result::Started, (room_cache->MapIndex == NetEngine::Room::Map::Index::Random ? room_cache->RandomMapIndex : room_cache->MapIndex), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match is loading
+                            player_session->SendMsg(message->GetOrder(), 0, NetEngine::Room::Match::Result::Started, (room_cache->MapIndex == NetEngine::Room::Map::Index::Random ? room_cache->RandomMapIndex : room_cache->MapIndex), reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match is loading
                     break;
                 }
                 case NetEngine::Room::Match::Result::Loaded:
@@ -81,7 +75,7 @@ namespace Game
                                     continue;
                                 }
                                 //extra might need to be 5
-                                send_msg(player_session.get(), 258, 0, 1, 0, reinterpret_cast<uint8_t*>(&sv_uptime_tick), sizeof(sv_uptime_tick)); // broadcasted players room tick
+                                player_session->SendMsg(258, 0, 1, 0, reinterpret_cast<uint8_t*>(&sv_uptime_tick), sizeof(sv_uptime_tick)); // broadcasted players room tick
                                 player_acc_cache->state = PlayerInfo::State::Normal;
                                 player_acc_cache->playing = true;
                                 player_acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
@@ -102,7 +96,7 @@ namespace Game
                                     player_acc_cache.unlock();
                                     continue;
                                 }
-                                send_msg(player_session.get(), 415, 0, 1, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match loaded
+                                player_session->SendMsg(415, 0, 1, 0, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // broadcasted players that match loaded
                                 player_acc_cache->state = PlayerInfo::State::Normal;
                                 player_acc_cache->playing = true;
                                 player_acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();

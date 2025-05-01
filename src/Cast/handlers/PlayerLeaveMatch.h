@@ -9,8 +9,9 @@ namespace Game
     {
         inline void PlayerLeaveMatch(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            if (!session) return;
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheUnique(self_session_id);

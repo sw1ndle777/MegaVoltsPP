@@ -77,13 +77,13 @@ void init_crash_handler()
 {
     StringType exeDir = L"..";
     base::FilePath handler(exeDir + L"\\crash_dumps\\crashpad_handler.exe");
-    base::FilePath db_path(exeDir + L"\\crash_dumps\\cast\\");
-    base::FilePath metrics_path(exeDir + L"\\crash_dumps\\cast\\metrics\\");
+    base::FilePath db_path(exeDir + L"\\crash_dumps\\main\\");
+    base::FilePath metrics_path(exeDir + L"\\crash_dumps\\main\\metrics\\");
 
     std::map<std::string, std::string> annotations;
     annotations["format"] = "minidump";           // Required: Crashpad setting to save crash as a minidump
-    annotations["database"] = "mvo_cast_crash_db";             // Required: BugSplat appName
-    annotations["product"] = "mvo_cast_gs"; // Required: BugSplat appName
+    annotations["database"] = "mvo_main_crash_db";             // Required: BugSplat appName
+    annotations["product"] = "mvo_main_gs"; // Required: BugSplat appName
     annotations["version"] = "1.0.0";             // Required: BugSplat appVersion
 
     std::vector<std::string> arguments;

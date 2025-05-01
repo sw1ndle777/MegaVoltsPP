@@ -9,8 +9,11 @@ namespace Game
     {
         inline void PlayerLeavePlaza(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
@@ -31,11 +34,7 @@ namespace Game
                 self_player->state_id = PlayerInfo::State::Lobby;
                 self_player->in_plaza = false;
             }
-
-            CMessage leavePlazaAck = CMessage(session->GetEncryptionKey());
-            leavePlazaAck.SetSession(session->GetSessionId());
-            leavePlazaAck.SetCommand(176, callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-            session->Send(leavePlazaAck); 
+            session->SendMsg(176, message->GetMission(), message->GetExtra(), message->GetOption());
         }
     }  
 }

@@ -9,16 +9,11 @@ namespace Game
     {
         inline void LobbyUserList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
@@ -27,7 +22,7 @@ namespace Game
             std::shared_lock acc_lock(main_server->GetAccountsCacheMutex());
             if (accounts_cache.size() <= 1)
             {
-                send_msg(session, 84, 0, Userlist::ListResult::NoUsers, 0);
+                session->SendMsg(84, 0, Userlist::ListResult::NoUsers, 0);
                 return;
             }
             std::vector<PlayerAgoraInfo> user_list;
@@ -63,7 +58,7 @@ namespace Game
 
             if (user_list.size() <= 0) 
             {
-                send_msg(session, 84, 0, Userlist::ListResult::NoUsers, 0);
+                session->SendMsg(84, 0, Userlist::ListResult::NoUsers, 0);
                 return;
             }
             uint32_t total_users_fragments = (user_list.size() == 0) ? 0 : (user_list.size() / 51) + 1;
@@ -77,7 +72,7 @@ namespace Game
                     users_batch.push_back(user_list[j]);
 
 
-                send_msg(session, 84, 0, user_list_result, users_batch.size(), reinterpret_cast<uint8_t*>(users_batch.data()), users_batch.size() * sizeof(PlayerAgoraInfo));
+                session->SendMsg(84, 0, user_list_result, users_batch.size(), reinterpret_cast<uint8_t*>(users_batch.data()), users_batch.size() * sizeof(PlayerAgoraInfo));
             }     
         }
     }

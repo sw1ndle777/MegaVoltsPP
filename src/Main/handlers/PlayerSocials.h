@@ -9,37 +9,29 @@ namespace Game
     {
         inline void PlayerBlock(SCallbackData& callback, CMainServer* main_server)
         {
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
             BaseLib::DbPool->submit_task([=]() mutable
             {
-                auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-
-                std::shared_lock lock(callback.session->GetMutex());
-                CSession* session = callback.session;
+                std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
 
-                const auto& blockedAddReq = reinterpret_cast<MainPlayerBlockedAddReq*>(callback.message->GetData());
+                const auto& blockedAddReq = reinterpret_cast<MainPlayerBlockedAddReq*>(message->GetData());
                 const auto& target_nickname = Utility::ReadMicrovoltsString(blockedAddReq->nickname, sizeof(blockedAddReq->nickname));
                 auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
 
                 if (target_acc_cache->acc_info.Index == -1)
                 {
-                    std::shared_lock lock(callback.session->GetMutex());
-                    CSession* session = callback.session;
                     uint32_t target_acc_id = 0;
                     if (!BaseLib::Database->NicknameExists(target_nickname.c_str(), target_acc_id))
                     {
-                        send_msg(session, 52, 0, Userlist::Blocked::AddResult::Offline, 0);
+                        session->SendMsg(52, 0, Userlist::Blocked::AddResult::Offline, 0);
                         return;
                     }
                     auto blockeds = main_server->GetBlockedsList(session_id);
@@ -49,7 +41,7 @@ namespace Game
                     FriendInfo delFriendInfo = { acc_index, static_cast<int32_t>(target_acc_id) };
                     FriendInfo delFriendInfo2 = { static_cast<int32_t>(target_acc_id), acc_index };
                     MainPlayerBlockedAddAck blocked_data = { target_acc_id, target_nickname.c_str() };
-                    send_msg(session, 52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
+                    session->SendMsg(52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
 
                     auto post_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
 
@@ -71,7 +63,7 @@ namespace Game
                 if (target_acc_cache->session_id)
                 {
                     MainPlayerBlockedAddAck blocked_data = { static_cast<uint32_t>(target_acc_cache->acc_info.Index), target_nickname.c_str() };
-                    send_msg(session, 52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
+                    session->SendMsg(52, 0, Userlist::Blocked::AddResult::Success, 0, reinterpret_cast<uint8_t*>(&blocked_data), sizeof(MainPlayerBlockedAddAck));
                     main_server->RemovePlayerFriends(target_acc_cache->session_id, acc_index);
                     main_server->AddPlayerFriendsDeleted(target_acc_cache, { target_acc_cache->acc_info.Index, acc_index });
                 }
@@ -86,48 +78,38 @@ namespace Game
         }
         inline void PlayerUnblock(SCallbackData& callback, CMainServer* main_server)
         {
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
             BaseLib::DbPool->submit_task([=]() mutable
             {
-                auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-                std::shared_lock lock(callback.session->GetMutex());
-                CSession* session = callback.session;
+                std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
                 auto blockeds = main_server->GetBlockedsList(session_id);
-                auto blockedRemoveReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(callback.message->GetData());
+                auto blockedRemoveReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(message->GetData());
                 if (!main_server->IsBlockedAlready(blockeds, blockedRemoveReq->player_id)) return;
                 blockeds.unlock();
                 main_server->RemovePlayerBlockedsAdded(acc_cache, blockedRemoveReq->player_id);
                 main_server->AddPlayerBlockedsDeleted(acc_cache, {acc_index, static_cast<int32_t>(blockedRemoveReq->player_id) });
                 main_server->RemovePlayerBlockeds(session_id, blockedRemoveReq->player_id);
                 BaseLib::Database->DeletePlayerBlockeds(acc_cache->blockeds_deleted);
-                send_msg(session, 53, 0, 0, 1);
+                session->SendMsg(53, 0, 0, 1);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) unblocked account id ({})", acc_cache->acc_info.Nickname.c_str(), blockedRemoveReq->player_id);
 
             });
         }
         inline void PlayerBlockList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
+
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             
@@ -141,22 +123,17 @@ namespace Game
                 blockeds_info.push_back({ blocked_info.blocked_account_id, blocked_info.blocked_nickname.c_str() });
             blockeds.unlock();
             if (blockeds_info.size() > 0)
-                send_msg(session, 54, 0, Userlist::Blocked::ListResult::UsersBlocked, blockeds_info.size(), reinterpret_cast<uint8_t*>(blockeds_info.data()), blockeds_info.size() * sizeof(PlayerBlockedInfo));
+                session->SendMsg(54, 0, Userlist::Blocked::ListResult::UsersBlocked, blockeds_info.size(), reinterpret_cast<uint8_t*>(blockeds_info.data()), blockeds_info.size() * sizeof(PlayerBlockedInfo));
             else
-                send_msg(session, 54, 0, Userlist::Blocked::ListResult::NotUser, 0);
+                session->SendMsg(54, 0, Userlist::Blocked::ListResult::NotUser, 0);
         }
         inline void PlayerClanList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
+
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             
@@ -180,33 +157,28 @@ namespace Game
                     }
 
                     if (clan_members.size() > 0)
-                        send_msg(session, 57, 0, Userlist::Clan::ListResult::UsersClan, clan_members.size(), reinterpret_cast<uint8_t*>(clan_members.data()), clan_members.size() * sizeof(PlayerClanInfo));
+                        session->SendMsg(57, 0, Userlist::Clan::ListResult::UsersClan, clan_members.size(), reinterpret_cast<uint8_t*>(clan_members.data()), clan_members.size() * sizeof(PlayerClanInfo));
                     else
-                        send_msg(session, 57, 0, Userlist::Clan::ListResult::NotUser, 0);
+                        session->SendMsg(57, 0, Userlist::Clan::ListResult::NotUser, 0);
 
                 }
             }
         }
         inline void PlayerAddFriend(SCallbackData& callback, CMainServer* main_server)
         {
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
             BaseLib::DbPool->submit_task([=]() mutable
             {
-                auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-                std::shared_lock lock(callback.session->GetMutex());
-                CSession* session = callback.session;
+                std::shared_lock lock(session->GetMutex());
                 CServer* server = callback.server;
                 auto session_id = session->GetSessionId();
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
            
                 auto acc_index = acc_cache->acc_info.Index;
-                auto request_type = callback.message->GetExtra();
+                auto request_type = message->GetExtra();
                 if (acc_index != -1)
                 {
 
@@ -225,27 +197,25 @@ namespace Game
                     {
                         if (friends_accepted.size() >= 100)
                         {
-                            send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
                             return;
                         }
-                        const auto& friendAddSendReq = reinterpret_cast<MainPlayerFriendAddSendReq*>(callback.message->GetData());
+                        const auto& friendAddSendReq = reinterpret_cast<MainPlayerFriendAddSendReq*>(message->GetData());
                         const auto& target_nickname = Utility::ReadMicrovoltsString(friendAddSendReq->nickname, sizeof(friendAddSendReq->nickname));
                         const auto& my_nickname = acc_cache->acc_info.Nickname;
                         if (strcmp(acc_cache->acc_info.Nickname.c_str(), target_nickname.c_str()) == 0)
                         {
-                            send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
                             return;
                         }
                     
                         auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname);
                         if (target_acc_cache->acc_info.Index == -1)
                         {
-                            std::shared_lock lock(callback.session->GetMutex());
-                            CSession* session = callback.session;
                             uint32_t target_index = 0;
                             if (!BaseLib::Database->NicknameExists(target_nickname.c_str(), target_index))
                             {
-                                send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
+                                session->SendMsg(61, 0, Userlist::Friends::AddResult::PlayerNotFound, 0);
                                 return;
                             }
                             if (main_server->IsFriendsAlready(friends_accepted, target_index)) return;
@@ -256,7 +226,7 @@ namespace Game
                             auto my_blockeds = main_server->GetBlockedsList(session_id);
                             if (main_server->IsBlockedAlready(acc_blockeds, acc_index) || main_server->IsBlockedAlready(my_blockeds, target_index))
                             {
-                                send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerBlocked, 0);
+                                session->SendMsg(61, 0, Userlist::Friends::AddResult::PlayerBlocked, 0);
                                 return;
                             }
 
@@ -268,19 +238,13 @@ namespace Game
                                 });
                                 if (accepted_friends_count >= 100)
                                 {
-                                    send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                                    session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                                     return;
                                 }
                                 BaseLib::Database->InsertPlayerFriends({ { static_cast<int32_t>(target_index), acc_index, Userlist::Friends::State::Pending, 0, my_nickname.c_str() } });
                                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request pending in database to player ({})", my_nickname.c_str(), target_nickname.c_str());
                             }
 
-                            /*
-                            asio::post([acc_index, session_id, friends_accepted, target_nickname, my_nickname, callback, main_server, send_msg]()
-                            {
-                            
-                            });
-                            */
                             return;
                         }
 
@@ -289,7 +253,7 @@ namespace Game
                         auto my_blockeds = main_server->GetBlockedsList(session_id);
                         if (main_server->IsBlockedAlready(target_blockeds, acc_index) || main_server->IsBlockedAlready(my_blockeds, target_acc_cache->acc_info.Index))
                         {
-                            send_msg(session, 61, 0, Userlist::Friends::AddResult::PlayerBlocked, 0);
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::PlayerBlocked, 0);
                             return;
                         }
                         auto target_friends = main_server->GetFriendsList(target_acc_cache->session_id);
@@ -300,18 +264,21 @@ namespace Game
                         target_friends.unlock();
                         if (accepted_friends_count >= 100)
                         {
-                            send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                             return;
                         }
                         PlayerFriendInfo newFriendInfo = { NetEngine::Packets::Core::UniqueId(session_id, 1).data , acc_index , acc_cache->acc_info.Nickname.c_str() };
-                        send_msg(server->GetSessionById(target_acc_cache->session_id).get(), 61, 0, Userlist::Friends::AddResult::SendSingle, 0, reinterpret_cast<uint8_t*>(&newFriendInfo), sizeof(PlayerFriendInfo));
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request to player ({})", acc_cache->acc_info.Nickname.c_str(), target_acc_cache->acc_info.Nickname.c_str());
+                        if (auto target_session = server->GetSessionById(target_acc_cache->session_id))
+                        {
+                            target_session->SendMsg(61, 0, Userlist::Friends::AddResult::SendSingle, 0, reinterpret_cast<uint8_t*>(&newFriendInfo), sizeof(PlayerFriendInfo));
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sent friend request to player ({})", acc_cache->acc_info.Nickname.c_str(), target_acc_cache->acc_info.Nickname.c_str());
+                        }  
                     }
                     else if (request_type == Userlist::Friends::RequestResult::RequestRecv)
                     {
                         if (friends_accepted.size() >= 100)
                         {
-                            send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
                             return;
                         }
                         const auto& friendAddRecvReq = reinterpret_cast<MainPlayerFriendAddRecvReq*>(callback.message->GetData());
@@ -335,7 +302,7 @@ namespace Game
                                 });
                                 if (accepted_friends_count >= 100)
                                 {
-                                    send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                                    session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                                     return;
                                 }
                                 auto my_acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
@@ -355,24 +322,26 @@ namespace Game
                         target_friends.unlock();
                         if (accepted_friends_count >= 100)
                         {
-                            send_msg(session, 61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::OtherListIsFull);
                             return;
                         }
                         PlayerFriendInfo newFriendInfoForSender = { NetEngine::Packets::Core::UniqueId(session_id, 1).data , acc_index, acc_cache->acc_info.Nickname.c_str() };
-                        auto target_session = server->GetSessionById(sender_uniqueId.session);
-                        send_msg(target_session.get(), 61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
-                        send_msg(target_session.get(), 61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
-                        PlayerFriendInfo newFriendInfoForCurrent = { sender_uniqueId.data , sender_acc->acc_info.Index , sender_acc->acc_info.Nickname.c_str() };
-                        send_msg(session, 61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForCurrent), sizeof(PlayerFriendInfo));
-                        send_msg(session, 61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForCurrent), sizeof(PlayerFriendInfo));
-                        FriendInfo current = { acc_index, sender_acc->acc_info.Index, Userlist::Friends::State::Accepted, sender_uniqueId.session, sender_acc->acc_info.Nickname.c_str() };
-                        FriendInfo sender = { sender_acc->acc_info.Index, acc_index, Userlist::Friends::State::Accepted, session_id, acc_cache->acc_info.Nickname.c_str() };
-                        main_server->AddPlayerFriendsAccepted(acc_cache, current);
-                        main_server->AddPlayerFriends(session_id, current);
-                        main_server->AddPlayerFriendsAccepted(sender_acc, sender);
-                        main_server->AddPlayerFriends(sender_uniqueId.session, sender);
-                        BaseLib::Database->InsertPlayerFriends(acc_cache->friends_accepted);
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) accepted friend request from player ({})", acc_cache->acc_info.Nickname.c_str(), sender_acc->acc_info.Nickname.c_str());
+                        if (auto target_session = server->GetSessionById(sender_uniqueId.session))
+                        {
+                            target_session->SendMsg(61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
+                            target_session->SendMsg(61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForSender), sizeof(PlayerFriendInfo));
+                            PlayerFriendInfo newFriendInfoForCurrent = { sender_uniqueId.data , sender_acc->acc_info.Index , sender_acc->acc_info.Nickname.c_str() };
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::FriendAccepted, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForCurrent), sizeof(PlayerFriendInfo));
+                            session->SendMsg(61, 0, Userlist::Friends::AddResult::UpdateList, 0, reinterpret_cast<uint8_t*>(&newFriendInfoForCurrent), sizeof(PlayerFriendInfo));
+                            FriendInfo current = { acc_index, sender_acc->acc_info.Index, Userlist::Friends::State::Accepted, sender_uniqueId.session, sender_acc->acc_info.Nickname.c_str() };
+                            FriendInfo sender = { sender_acc->acc_info.Index, acc_index, Userlist::Friends::State::Accepted, session_id, acc_cache->acc_info.Nickname.c_str() };
+                            main_server->AddPlayerFriendsAccepted(acc_cache, current);
+                            main_server->AddPlayerFriends(session_id, current);
+                            main_server->AddPlayerFriendsAccepted(sender_acc, sender);
+                            main_server->AddPlayerFriends(sender_uniqueId.session, sender);
+                            BaseLib::Database->InsertPlayerFriends(acc_cache->friends_accepted);
+                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) accepted friend request from player ({})", acc_cache->acc_info.Nickname.c_str(), sender_acc->acc_info.Nickname.c_str());
+                        }
                     }
                 }
 
@@ -380,19 +349,13 @@ namespace Game
         }
         inline void PlayerRemoveFriend(SCallbackData& callback, CMainServer* main_server)
         {
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
             BaseLib::DbPool->submit_task([=]() mutable
             {
-                auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
-
-                std::shared_lock lock(callback.session->GetMutex());
-                CSession* session = callback.session;
+                std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
                 auto acc_index = acc_cache->acc_info.Index;
@@ -418,13 +381,7 @@ namespace Game
                         const auto& acc_nickname = acc_cache->acc_info.Nickname;
                         BaseLib::Database->DeletePlayerFriends({ delFriendInfo, delFriendInfo2 });
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) removed friend account id ({})", acc_nickname.c_str(), friendRemoveReq->player_id);
-                        /*
-                        asio::post([delFriendInfo, delFriendInfo2, acc_nickname, acc_index, friendRemoveReq]()
-                        {
 
-                        
-                        });
-                        */
                     }
                     auto friends = main_server->GetFriendsList(session_id);//deadlock
 
@@ -437,7 +394,7 @@ namespace Game
 
                     if (friends_accepted.size() <= 0)
                     {
-                        send_msg(session, 61, 0, Userlist::ListResult::NoUsers, 0);
+                        session->SendMsg(61, 0, Userlist::ListResult::NoUsers, 0);
                         return;
                     }
                     uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
@@ -450,23 +407,18 @@ namespace Game
                         for (auto j = start_index; j < end_index; j++)
                             friends_batch.push_back(friends_accepted[j]);
 
-                        send_msg(session, 63, 0, user_list_result, friends_batch.size(), reinterpret_cast<uint8_t*>(friends_batch.data()), friends_batch.size() * sizeof(PlayerFriendInfo));
+                        session->SendMsg(63, 0, user_list_result, friends_batch.size(), reinterpret_cast<uint8_t*>(friends_batch.data()), friends_batch.size() * sizeof(PlayerFriendInfo));
                     }
                 }
             });
         }
         inline void PlayerFriendList(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
+
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             
@@ -478,7 +430,7 @@ namespace Game
 
                 if (friends->size() <= 0)
                 {
-                    send_msg(session, 63, 0, Userlist::ListResult::NoUsers, 0);
+                    session->SendMsg(63, 0, Userlist::ListResult::NoUsers, 0);
                     return;
                 }
                 std::vector<PlayerFriendInfo> friends_accepted;
@@ -489,7 +441,7 @@ namespace Game
 
                 if (friends_accepted.size() <= 0)
                 {
-                    send_msg(session, 63, 0, Userlist::ListResult::NoUsers, 0);
+                    session->SendMsg(63, 0, Userlist::ListResult::NoUsers, 0);
                     return;
                 }
                 uint32_t total_friends_fragments = (friends_accepted.size() == 0) ? 0 : (friends_accepted.size() / 51) + 1;
@@ -502,7 +454,7 @@ namespace Game
                     for (auto j = start_index; j < end_index; j++)
                         friends_batch.push_back(friends_accepted[j]);
 
-                    send_msg(session, 63, 0, user_list_result, friends_batch.size(), reinterpret_cast<uint8_t*>(friends_batch.data()), friends_batch.size() * sizeof(PlayerFriendInfo));
+                    session->SendMsg(63, 0, user_list_result, friends_batch.size(), reinterpret_cast<uint8_t*>(friends_batch.data()), friends_batch.size() * sizeof(PlayerFriendInfo));
                 }
             }
 
@@ -523,20 +475,15 @@ namespace Game
         }
         inline void PlayerInviteJoin(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+            std::shared_lock lock(session->GetMutex());
+
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
-            auto option = callback.message->GetOption();
-            auto extra = callback.message->GetExtra();
+            auto option = message->GetOption();
+            auto extra = message->GetExtra();
 
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
 
@@ -545,41 +492,41 @@ namespace Game
             switch (option) 
             {
                 case 1: {//JOIN
-                    auto joinReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(callback.message->GetData());
+                    auto joinReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(message->GetData());
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] player want to join player id ({})", joinReq->player_id);
                     auto target_acc_cache = main_server->GetAccCacheUniqueByAccountId(joinReq->player_id);
                     if (target_acc_cache->in_party)
                     {
-                        send_msg(session, 163, 0, 9, 0);//generic fail msg, you can only invite to party not join
+                        session->SendMsg(163, 0, 9, 0);//generic fail msg, you can only invite to party not join
                         return;
                     }
                     if (target_acc_cache->in_plaza)
                     {
                         if (acc_cache->in_plaza && acc_cache->plaza_id == target_acc_cache->plaza_id) //in the same plaza dont do anything
                         {
-                            send_msg(session, 163, 0, 9, 0);
+                            session->SendMsg(163, 0, 9, 0);
                             return;
                         }
                         auto current_plaza = main_server->GetPlazaCacheUnique(target_acc_cache->plaza_id);
                         if (current_plaza->session_ids.size() >= current_plaza->max_players) //plaza is full
                         {
-                            send_msg(session, 163, 0, 14, 0);
+                            session->SendMsg(163, 0, 14, 0);
                             return;
                         }
                         auto join_confirm_ack_data = MainUserJoinConfirmAck(1, (uint16_t)target_acc_cache->plaza_id, 1).Serialize();
-                        send_msg(session, 163, 0, 0, 1, reinterpret_cast<uint8_t*>(join_confirm_ack_data.data()), join_confirm_ack_data.size());
+                        session->SendMsg(163, 0, 0, 1, reinterpret_cast<uint8_t*>(join_confirm_ack_data.data()), join_confirm_ack_data.size());
                         return;
                     }
                     if (acc_cache->in_room) 
                     {
                         if (target_acc_cache->in_room && acc_cache->room_id == target_acc_cache->room_id)  //is in same room
                         {
-                            send_msg(session, 163, 0, 9, 0);//generic fail msg
+                            session->SendMsg(163, 0, 9, 0);//generic fail msg
                             return;
                         }
                         if (acc_cache->state == 8) //is ready or host
                         {
-                            send_msg(session, 163, 0, 5, 0);
+                            session->SendMsg(163, 0, 5, 0);
                             return;
                         }
                     }
@@ -588,34 +535,34 @@ namespace Game
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] found target join player acc info nickname: ({})", target_acc_cache->acc_info.Nickname);
                         if (!target_acc_cache->in_room) 
                         {
-                            send_msg(session, 163, 0, 2, 0);//target is in lobby
+                            session->SendMsg(163, 0, 2, 0);//target is in lobby
                             return;
                         }
                        
                         if (!main_server->IsRoomAlready(target_acc_cache->room_id))
                         {
-                            send_msg(session, 163, 0, 2, 0);//target is in lobby
+                            session->SendMsg(163, 0, 2, 0);//target is in lobby
                             return;
                         }
                         //now need info for current room
                         auto room_cache = main_server->GetRoomCacheUnique(target_acc_cache->room_id);
                         if (room_cache->max_players == room_cache->neutralteam_session_ids.size() || room_cache->max_players == (room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size())) //room is full
                         {
-                            send_msg(session, 163, 0, 14, 0);
+                            session->SendMsg(163, 0, 14, 0);
                             return;
                         }
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] target join player is okay to join and will receive confirmation");
                         if (extra == 28) //send him cumfirmation
                         {
                             auto join_confirm_ack_data = MainUserJoinConfirmAck(1, room_cache->room_id, room_cache->channel_id).Serialize();
-                            send_msg(session, 163, 0, room_cache->has_password ? 44 : 0, 0, reinterpret_cast<uint8_t*>(join_confirm_ack_data.data()), join_confirm_ack_data.size());
+                            session->SendMsg(163, 0, room_cache->has_password ? 44 : 0, 0, reinterpret_cast<uint8_t*>(join_confirm_ack_data.data()), join_confirm_ack_data.size());
                             return;
                         }
                     }
                     else 
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] target join player cannot find cache");
-                        send_msg(session, 163, 0, 13, 0);//target is logged out!
+                        session->SendMsg(163, 0, 13, 0);//target is logged out!
                     }
                     break;
                 }
@@ -627,7 +574,7 @@ namespace Game
                         return;
                     }
 
-                    const auto& inviteReq = reinterpret_cast<MainPlayerBlockedAddReq*>(callback.message->GetData());
+                    const auto& inviteReq = reinterpret_cast<MainPlayerBlockedAddReq*>(message->GetData());
                     const auto& target_nickname = Utility::ReadMicrovoltsString(inviteReq->nickname, sizeof(inviteReq->nickname));
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] player want to invite player ({})", target_nickname);
                     auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
@@ -640,13 +587,13 @@ namespace Game
                             {
                                 if (target_acc_cache->playing) 
                                 {
-                                    send_msg(session, 319, 0, 5, 0);//target is in battle!
+                                    session->SendMsg(319, 0, 5, 0);//target is in battle!
                                     return;
                                 }
                             }
                             else //is already in your room
                             {
-                                send_msg(session, 319, 0, 11, 0);//Invite fail
+                                session->SendMsg(319, 0, 11, 0);//Invite fail
                                 return;
                             }
                         }
@@ -655,12 +602,12 @@ namespace Game
                             auto party_cache = main_server->GetPartyCacheUnique(acc_cache->party_id);
                             if (target_acc_cache->in_party && target_acc_cache->party_id == acc_cache->party_id)//in same party already
                             {
-                                send_msg(session, 319, 0, 11, 0);
+                                session->SendMsg(319, 0, 11, 0);
                                 return;
                             }
                             if (party_cache->members.size() >= party_cache->max_members)//party is full
                             {
-                                send_msg(session, 319, 0, 7, 0);
+                                session->SendMsg(319, 0, 7, 0);
                                 return;
                             }
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] party is okay to propose the player an invite");
@@ -668,20 +615,20 @@ namespace Game
                             auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
                             if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                             {
-                                send_msg(target_session.get(), 319, 0, 60, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
+                                target_session->SendMsg(319, 0, 60, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
                             }
                             return;
                         }
                         if (!main_server->IsRoomAlready(acc_cache->room_id))
                         {
-                            send_msg(session, 319, 0, 11, 0);//Invite fail
+                            session->SendMsg(319, 0, 11, 0);//Invite fail
                             return;
                         }
                         //now need info for current room
                         auto room_cache = main_server->GetRoomCacheUnique(acc_cache->room_id);
                         if (room_cache->max_players == room_cache->neutralteam_session_ids.size() || room_cache->max_players == (room_cache->blueteam_session_ids.size() + room_cache->redteam_session_ids.size())) //room is full
                         {
-                            send_msg(session, 319, 0, 7, 0);
+                            session->SendMsg(319, 0, 7, 0);
                             return;
                         }
                         //all good, now send him an invite
@@ -690,13 +637,13 @@ namespace Game
                         if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                         {
                             auto invite_ack_data = MainUserInviteAck(1, room_cache->room_id, room_cache->channel_id, acc_cache->acc_info.Nickname.c_str(), room_cache->title.c_str(), room_cache->password.c_str()).Serialize(room_cache->has_password);
-                            send_msg(target_session.get(), 319, 0, room_cache->has_password ? 44 : 0, 0, reinterpret_cast<uint8_t*>(invite_ack_data.data()), invite_ack_data.size());
+                            target_session->SendMsg(319, 0, room_cache->has_password ? 44 : 0, 0, reinterpret_cast<uint8_t*>(invite_ack_data.data()), invite_ack_data.size());
                         }
                     }
                     else 
                     {
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "[InviteJoin] target invite player cannot find cache");
-                        send_msg(session, 319, 0, 6, 0);//target is logged out!
+                        session->SendMsg(319, 0, 6, 0);//target is logged out!
                     }
                     break;
                 }

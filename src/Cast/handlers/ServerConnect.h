@@ -9,15 +9,12 @@ namespace Game
     {
         inline void ServerConnect(std::shared_ptr<CSession> session, CCastServer* cast_server)
         {
-            std::shared_lock lock(session->GetMutex());
+            if (!session) return;
+            std::unique_lock lock(session->GetMutex());
             auto random_number = Utility::Random::CustomGen(100000000, 999999999);
             CastEngineServerConnectionAck castEngineServerConnectionAck = CastEngineServerConnectionAck(random_number);
 
-            CMessage castEngineServerConnectionAckMessage = CMessage();
-            castEngineServerConnectionAckMessage.SetSession(session->GetSessionId());
-            castEngineServerConnectionAckMessage.SetCommand(401, 0x00, 54, 0x00);
-            castEngineServerConnectionAckMessage.SetData(reinterpret_cast<uint8_t*>(&castEngineServerConnectionAck), sizeof(CastEngineServerConnectionAck));
-            session->Send(castEngineServerConnectionAckMessage);
+            session->SendMsg(401, 00, 54, 00, reinterpret_cast<uint8_t*>(&castEngineServerConnectionAck), sizeof(CastEngineServerConnectionAck));
 
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connection acknowledged", session->GetSessionId());
         }

@@ -56,27 +56,22 @@ namespace Game
         };
         inline void HostExplosivesDamage(SCallbackData& callback, CCastServer* cast_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-                {
-                    CMessage message(session->GetEncryptionKey());
-                    message.SetSession(session->GetSessionId());
-                    message.SetCommand(order, mission, extra, option);
-                    if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                    session->Send(message);
-                };
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
 
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            std::shared_lock lock(session->GetMutex());
+
             CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
             auto room = cast_server->GetRoomCacheShared(self_player->room_id);
             self_player.unlock();
 
-            auto extra = callback.message->GetExtra();
-            auto cnt = callback.message->GetOption();
+            auto extra = message->GetExtra();
+            auto cnt = message->GetOption();
 
-            auto projectileReq = reinterpret_cast<AddProjectileReq*>(callback.message->GetData());
+            auto projectileReq = reinterpret_cast<AddProjectileReq*>(message->GetData());
 
             auto pos_x = DirectX::PackedVector::XMConvertHalfToFloat(projectileReq->coord_x);
             auto pos_y = DirectX::PackedVector::XMConvertHalfToFloat(projectileReq->coord_y);
@@ -87,7 +82,7 @@ namespace Game
             std::vector<PlayerVictimDataReq> player_victims_data;
             for (int i = 0; i < cnt; i++)
             {
-                auto data = reinterpret_cast<PlayerVictimDataReq*>(callback.message->GetData() + sizeof(AddProjectileReq) + i * sizeof(PlayerVictimDataReq));
+                auto data = reinterpret_cast<PlayerVictimDataReq*>(message->GetData() + sizeof(AddProjectileReq) + i * sizeof(PlayerVictimDataReq));
                 player_victims_data.push_back(*data);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "idk2: ({})", data->idk2);
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player uid: ({}) ({}) attacked and now have hp: ({})", (uint32_t)data->victim_unique_id.data, (uint16_t)data->victim_unique_id.session, (uint32_t)data->player_info.health);
@@ -96,37 +91,18 @@ namespace Game
                 target_player_cache.unlock();
             }
 
-            //auto projectileReqNew = Test264Data(projectileReq->projectile_id, projectileReq->coord_x, projectileReq->coord_y, projectileReq->coord_z, projectileReq->idk, player_victims_data).Serialize();
-
-            /*
-            for (const auto& id : room->players_session_id)
+            static auto broadcast = [&](auto player_session_id, auto& msg)
             {
-                if (auto player_session = cast_server->GetSessionById(id))
-                {
-                    send_msg(player_session.get(), 264, callback.message->GetMission(), extra, cnt, reinterpret_cast<uint8_t*>(projectileReqNew.data()), projectileReqNew.size());
-                }
-            }
-            */
-
-            //[14]
-            //auto og_data = callback.message->GetData();
-            //BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "change at 14 original: ({})", og_data[14]);
-            //og_data[12] = 0x1;
-            //og_data[14] = 0x1;
-            //callback.message->SetData(og_data, callback.message->GetDataSize());
-
-            auto broadcast = [&](auto player_session_id, auto& msg)
-                {
-                    msg->SetEncryptMethod(SendOption::EncryptionMethod::None);
-                    msg->SetSession(player_session_id);
-                    if (auto player_session = server->GetSessionById(player_session_id))
-                        player_session->Send(*msg);
-                    else
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "couldn't broadcast packet to session id: ({})", player_session_id);
-                };
+                msg->SetEncryptMethod(SendOption::EncryptionMethod::None);
+                msg->SetSession(player_session_id);
+                if (auto player_session = server->GetSessionById(player_session_id))
+                    player_session->Send(*msg);
+                else
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "couldn't broadcast packet to session id: ({})", player_session_id);
+            };
             lock.unlock();
             for (const auto& id : room->players_session_id)
-                broadcast(id, callback.message);
+                broadcast(id, message);
         }
     }  
 }

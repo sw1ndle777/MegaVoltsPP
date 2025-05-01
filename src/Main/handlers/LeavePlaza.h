@@ -9,16 +9,11 @@ namespace Game
     {
         inline void LeavePlaza(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
@@ -37,7 +32,7 @@ namespace Game
                         {
                             if (plaza_player_session_id == session_id) continue;
                             if (auto player_session = server->GetSessionById(plaza_player_session_id))
-                                send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                                player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                         }
                     }
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
@@ -47,7 +42,7 @@ namespace Game
                     acc_cache->in_plaza = false;           
                 }
             }
-            send_msg(session, 174, 0, 0, 0); // leave plaza success
+            session->SendMsg(174, 0, 0, 0); // leave plaza success
             acc_cache.unlock();
 
             if (acc_cache->state == 0 && acc_cache->acc_info.GuideMission == 9) // Done guide mission "View roomlist"
@@ -65,7 +60,7 @@ namespace Game
                 }
                 MainCompleteMissionReq mission_data;
                 mission_data.collection_id = 55;
-                send_msg(session, 168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
+                session->SendMsg(168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data.collection_id), sizeof(mission_data.collection_id));
                 std::vector<uint16_t> empty_vec;
                 ProcessLevelUp(main_server, callback.server, acc_cache, session_id, empty_vec);
             }

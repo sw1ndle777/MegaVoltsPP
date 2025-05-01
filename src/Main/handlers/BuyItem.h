@@ -13,14 +13,6 @@ namespace Game
             auto message = callback.message;
             if (!session || !message) return;
 
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
             std::shared_lock lock(session->GetMutex());
             uint32_t items_count = static_cast<uint32_t>(message->GetOption());
             auto session_id = session->GetSessionId();
@@ -45,12 +37,11 @@ namespace Game
                     }
                 }
                 if (items.size() > 0)
-                    send_msg(session, callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopSerialInfo));
-
+                    session->SendMsg(message->GetOrder(), message->GetMission(), message->GetExtra(), static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopSerialInfo));
             }
             else
             {
-                const auto& buyItemIdReq = reinterpret_cast<MainBuyItemIdReq*>(callback.message->GetData());
+                const auto& buyItemIdReq = reinterpret_cast<MainBuyItemIdReq*>(message->GetData());
                 std::vector<ShopItem> shop_items;
                 uint32_t rt_spent = 0;
                 uint32_t mp_spent = 0;
@@ -87,11 +78,9 @@ namespace Game
                         acc_cache->acc_info.RockTokens = acc_cache->acc_info.RockTokens - rt_spent;
                         acc_cache->acc_info.MicroPoints = acc_cache->acc_info.MicroPoints - mp_spent;
                         
-                        
-                        send_msg(session, callback.message->GetOrder(), 0, 0, static_cast<uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // buy item ack
-                        //send_msg(session, 99, 0, 37, shop_items.size(), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem)); // update inventory items ack
+                        session->SendMsg(message->GetOrder(), 0, 0, static_cast<uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), shop_items.size() * sizeof(ShopItem));
                         MainCurrencyUpdateAck currency_update_data{ acc_cache->acc_info.RockTokens, acc_cache->acc_info.MicroPoints, acc_cache->acc_info.Coins };
-                        send_msg(session, 307, 0, 1, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data)); // update currency ack
+                        session->SendMsg(307, 0, 1, 0, reinterpret_cast<uint8_t*>(&currency_update_data), sizeof(currency_update_data));
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) spent ({}) mp and ({}) rt", acc_cache->acc_info.Nickname.c_str(), mp_spent, rt_spent);
                     }
                 }
@@ -100,21 +89,16 @@ namespace Game
         }
         inline void CouponShop(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
-            const uint32_t items_count = static_cast<uint32_t>(callback.message->GetOption());
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
+            const uint32_t items_count = static_cast<uint32_t>(message->GetOption());
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            const auto& buyItemIdReq = reinterpret_cast<MainBuyItemIdReq*>(callback.message->GetData());
+            const auto& buyItemIdReq = reinterpret_cast<MainBuyItemIdReq*>(message->GetData());
             if (acc_index == -1) return;
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) coupon shop -> mission: ({}), extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
             std::vector<ShopItem> items;
@@ -146,27 +130,12 @@ namespace Game
             {
                 if (items.size() > 0)
                 {
-                    //auto deleteItemData = MainDeleteItemAck({ItemSerialInfo(0, 0, 0, 0, 0) }).Serialize();
-                    //send_msg(session, 89, 0, 1, 0, reinterpret_cast<uint8_t*>(deleteItemData.data()), deleteItemData.size());//delete coupons
-
                     acc_cache->acc_info.Coupons = acc_cache->acc_info.Coupons - coupon_spent;
-                    
-                    send_msg(session, callback.message->GetOrder(), 0, 1, items.size(), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopItem)); // buy item ack
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) spent ({}) coupons", acc_cache->acc_info.Nickname.c_str(), coupon_spent);
+					session->SendMsg(message->GetOrder(), 0, 1, static_cast<uint8_t>(items.size()), reinterpret_cast<uint8_t*>(items.data()), items.size() * sizeof(ShopItem));
 
-                    
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) spent ({}) coupons", acc_cache->acc_info.Nickname.c_str(), coupon_spent);               
                 }
             }
         }
-        inline void BuyItem(SCallbackData& callback, CMainServer* main_server)
-        {
-            const auto& order = callback.message->GetOrder();
-            switch (order)
-            {
-                case 87: NormalShop(callback, main_server); break;
-                case 91: CouponShop(callback, main_server); break;
-            }
-        }
-    }
-    
+    }   
 }

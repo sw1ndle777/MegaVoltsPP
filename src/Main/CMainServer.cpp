@@ -53,37 +53,28 @@ namespace Game
         {
             const auto& cmds = Commands::ListCommands(acc_cache->acc_info.Grade);
             for(const auto& cmd : cmds)
-                main_server->SendServerMessage(callback.session, cmd.c_str());
+                main_server->SendServerMessage(callback.session.get(), cmd.c_str());
         }
         static void Items(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             if (args.size() <= 1)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /item item_id item_id2 (max 25 item ids)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /item item_id item_id2 (max 25 item ids)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             if (acc_cache->inventory_items.size() + args.size() - 1 > acc_cache->acc_info.MaximumItems)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, you can't spawn {} items because your inventory will be over it's capacity.", acc_cache->acc_info.Nickname.c_str(), args.size() - 1).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, you can't spawn {} items because your inventory will be over it's capacity.", acc_cache->acc_info.Nickname.c_str(), args.size() - 1).c_str());
                 //return;
             }
             for (const auto& item_id_str : args)
             {
                 if (!Utility::IsDigitsOnly(item_id_str)) continue;
                 const auto& item_id = Utility::ExtractNumber(item_id_str.c_str());
-                if (main_server->SendInventoryItem(callback.session, acc_cache, { item_id }))
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] spawned ({}) item", item_id).c_str());
+                if (main_server->SendInventoryItem(callback.session.get(), acc_cache, { item_id }))
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] spawned ({}) item", item_id).c_str());
                 else
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Could not find item id ({})", item_id).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] Could not find item id ({})", item_id).c_str());
             }
         }
         static void Info(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
@@ -94,7 +85,7 @@ namespace Game
                 {
                     auto party = main_server->GetPartyCacheShared(acc_cache->party_id);
                     acc_cache.unlock();
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Party Info: is_registered: ({}) is_queueing: ({}), has_password: ({}), password: ({}), is_clan: ({}), clan_id: ({}), is_playing: ({}), max_members: ({}), members.size(): ({})", party->is_registered, party->is_queueing, party->has_password, party->password.c_str(), party->is_clan, party->clan_id, party->is_playing, party->max_members, party->members.size()).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] Party Info: is_registered: ({}) is_queueing: ({}), has_password: ({}), password: ({}), is_clan: ({}), clan_id: ({}), is_playing: ({}), max_members: ({}), members.size(): ({})", party->is_registered, party->is_queueing, party->has_password, party->password.c_str(), party->is_clan, party->clan_id, party->is_playing, party->max_members, party->members.size()).c_str());
                     acc_cache.lock();
                 }
             }
@@ -106,11 +97,11 @@ namespace Game
                     acc_cache.unlock();
                     auto player_ids = main_server->GetRoomSortedPlayerSessionIds(room);
                   
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Rooms Info: {} players, mode: {}", player_ids.size(), static_cast<uint8_t>(room->ModeIndex)).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] Rooms Info: {} players, mode: {}", player_ids.size(), static_cast<uint8_t>(room->ModeIndex)).c_str());
                     if (room->has_password)
-                        main_server->SendServerMessage(callback.session, fmt::format("RoomId: {} - Title: {} - Password: {}", room->room_id, room->title.c_str(), room->password.c_str()));
+                        main_server->SendServerMessage(callback.session.get(), fmt::format("RoomId: {} - Title: {} - Password: {}", room->room_id, room->title.c_str(), room->password.c_str()));
                     else
-                        main_server->SendServerMessage(callback.session, fmt::format("RoomId: {} - Title: {}", room->room_id, room->title.c_str()).c_str());
+                        main_server->SendServerMessage(callback.session.get(), fmt::format("RoomId: {} - Title: {}", room->room_id, room->title.c_str()).c_str());
 
                     for (const auto& player_id : player_ids)
                     {
@@ -120,12 +111,12 @@ namespace Game
                             const auto& is_playing = player_cache->playing ? "Yes" : "No";
                             const auto& state = player_cache->state;
                             if (room->host_session_id == player_id)
-                                main_server->SendServerMessage(callback.session, fmt::format("(HOST) ({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}", player_cache->acc_info.Nickname.c_str(), player_cache->session_id, player_cache->acc_info.Grade, player_cache->slot_id, is_playing, state).c_str());
+                                main_server->SendServerMessage(callback.session.get(), fmt::format("(HOST) ({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}", player_cache->acc_info.Nickname.c_str(), player_cache->session_id, player_cache->acc_info.Grade, player_cache->slot_id, is_playing, state).c_str());
                             else
-                                main_server->SendServerMessage(callback.session, fmt::format("({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}", player_cache->acc_info.Nickname.c_str(), player_cache->session_id, player_cache->acc_info.Grade, player_cache->slot_id, is_playing, state).c_str());
+                                main_server->SendServerMessage(callback.session.get(), fmt::format("({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}", player_cache->acc_info.Nickname.c_str(), player_cache->session_id, player_cache->acc_info.Grade, player_cache->slot_id, is_playing, state).c_str());
                         }
                         else
-                            main_server->SendServerMessage(callback.session, fmt::format("Unknown Cache Player SessionID: {}", player_id));
+                            main_server->SendServerMessage(callback.session.get(), fmt::format("Unknown Cache Player SessionID: {}", player_id));
 
                         player_cache.unlock();
 
@@ -134,8 +125,8 @@ namespace Game
             }
             else
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Your Info").c_str());
-                main_server->SendServerMessage(callback.session, fmt::format("({}) SessionID: {} - Grade: {}", acc_cache->acc_info.Nickname.c_str(), acc_cache->session_id, acc_cache->acc_info.Grade).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] Your Info").c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("({}) SessionID: {} - Grade: {}", acc_cache->acc_info.Nickname.c_str(), acc_cache->session_id, acc_cache->acc_info.Grade).c_str());
 
             }
         }
@@ -147,7 +138,7 @@ namespace Game
 
             
             std::shared_lock lock(main_server->GetAccountsCacheMutex());
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Players Online: {}, Sessions Size: {}", accounts_cache.size(), sessions_list->size()).c_str());
+            main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] Players Online: {}, Sessions Size: {}", accounts_cache.size(), sessions_list->size()).c_str());
             for (const auto& acc : accounts_cache)
             {
                 const auto& account = acc.second;
@@ -155,20 +146,20 @@ namespace Game
                 const auto& in_room = account.in_room;
                 const auto& state = account.state;
                 if (in_room)
-                    main_server->SendServerMessage(callback.session, fmt::format("({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}, Ping: {}, Room id: {}", account.acc_info.Nickname.c_str(), account.session_id, account.acc_info.Grade, account.slot_id, is_playing, state, account.ping, account.room_id).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}, Ping: {}, Room id: {}", account.acc_info.Nickname.c_str(), account.session_id, account.acc_info.Grade, account.slot_id, is_playing, state, account.ping, account.room_id).c_str());
                 else
-                    main_server->SendServerMessage(callback.session, fmt::format("({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}, Ping: {}", account.acc_info.Nickname.c_str(), account.session_id, account.acc_info.Grade, account.slot_id, is_playing, state, account.ping).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("({}) SessionID: {} - Grade: {}, Slot: {}, Playing: {}, State: {}, Ping: {}", account.acc_info.Nickname.c_str(), account.session_id, account.acc_info.Grade, account.slot_id, is_playing, state, account.ping).c_str());
             }
 
             for (auto& sid : *sessions_list)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("sid online: {}", sid.first).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("sid online: {}", sid.first).c_str());
             }
         }
         static void Rooms(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
             std::shared_lock lock(main_server->GetRoomsCacheMutex());
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] Rooms Online: {}", rooms_cache.size()).c_str());
+            main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] Rooms Online: {}", rooms_cache.size()).c_str());
             for (const auto& rooms : rooms_cache)
             {
                 const auto& room = rooms.second;
@@ -177,9 +168,9 @@ namespace Game
                 const auto& blue_size = room.blueteam_session_ids.size();
                 const auto& obs_size = room.observers_session_ids.size();
                 if (room.has_password)
-                    main_server->SendServerMessage(callback.session, fmt::format("  -> ({}) - Title: {} - Password: {} - plr count N: ({}), R: ({}), B: ({}), O: ({})", room.room_id, room.title.c_str(), room.password.c_str(), neutral_size, red_size, blue_size, obs_size).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("  -> ({}) - Title: {} - Password: {} - plr count N: ({}), R: ({}), B: ({}), O: ({})", room.room_id, room.title.c_str(), room.password.c_str(), neutral_size, red_size, blue_size, obs_size).c_str());
                 else
-                    main_server->SendServerMessage(callback.session, fmt::format("  -> ({}) - Title: {} - plr count N: ({}), R: ({}), B: ({}), O: ({})", room.room_id, room.title.c_str(), neutral_size, red_size, blue_size, obs_size).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("  -> ({}) - Title: {} - plr count N: ({}), R: ({}), B: ({}), O: ({})", room.room_id, room.title.c_str(), neutral_size, red_size, blue_size, obs_size).c_str());
             }
         }
         static void Disconnect(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
@@ -187,14 +178,14 @@ namespace Game
 
             if (args.size() != 3)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /disc nickname id (0-255)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /disc nickname id (0-255)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             
             auto disconnect_type = std::stoi(args[2].c_str());
             if (disconnect_type > 255 || disconnect_type < 0)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, disconnect id should be between (0-255)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, disconnect id should be between (0-255)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             
@@ -206,31 +197,22 @@ namespace Game
             auto player_auth_key = player->acc_info.AuthKey;
             player.unlock();
             main_server->DisconnectPlayer(main_server, player_session_id, player_auth_key, disconnect_type);
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, disconnected auth key {}", acc_cache->acc_info.Nickname.c_str(), player_auth_key).c_str());
+            main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, disconnected auth key {}", acc_cache->acc_info.Nickname.c_str(), player_auth_key).c_str());
 
         }
         static void Announce(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
             acc_cache.unlock();
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             CServer* server = callback.server;
             if (args.size() != 2)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /! msg (512 max chars)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /! msg (512 max chars)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             
             if (args[1].size() > 512 || args[1].size() < 1)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /! msg (512 max chars)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /! msg (512 max chars)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             auto msg = args[1];
@@ -240,30 +222,21 @@ namespace Game
                 auto session_id = acc.first;
                 if (auto player_session = main_server->GetSessionById(session_id))
                 {
-                    send_msg(player_session.get(), 402, 0, 10, 0, reinterpret_cast<uint8_t*>(msg.data()), msg.size());
+                    player_session->SendMsg(402, 0, 10, 0, reinterpret_cast<uint8_t*>(msg.data()), msg.size());
                 }
             }
         }
         static void Level(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             if (args.size() != 2)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /level new_level (0-100)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /level new_level (0-100)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             
             if (!Utility::IsDigitsOnly(args[1]))
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /level new_level (0-100)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /level new_level (0-100)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             auto lvl = std::stoi(args[1].c_str());
@@ -272,36 +245,26 @@ namespace Game
             {
                 acc_cache->acc_info.Experience = gi->Exp;
                 acc_cache->acc_info.Level = lvl;
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, changed level to {}", acc_cache->acc_info.Nickname.c_str(), lvl).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, changed level to {}", acc_cache->acc_info.Nickname.c_str(), lvl).c_str());
             }
             else
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, invalid level", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, invalid level", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
            
         }
         static void Kick(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             if (args.size() != 2)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /kick nickname (0-255)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /kick nickname (0-255)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             const auto& nickname = args[1];
             if (acc_cache->acc_info.Nickname == nickname)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, you can't kick yourself", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, you can't kick yourself", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
 
@@ -319,131 +282,23 @@ namespace Game
             if(player_acc_index == -1) return;
             if (!player_in_room || !main_server->IsRoomAlready(player_room_id))
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] player {} is not in any room.", player->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] player {} is not in any room.", player->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             player.unlock();
 
             auto player_room = main_server->GetRoomCacheUnique(player_room_id);
             main_server->NewRemoveRoomPlayer(player_room, player_session_id, player_team_id, NetEngine::Room::Leave::Ack::Result::KickedByGm, true);
-
-            /*
-            player->in_room = false;
-            player->slot_id = 0xFF;
-            player->playing = false;
-            player->state = PlayerInfo::State::Waiting;
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] kicked {} from room id {}", player->acc_info.Nickname.c_str(), player_room_id).c_str());
-            player.unlock();
-            auto player_room = main_server->GetRoomCacheUnique(player_room_id);
-            player_room->kicked_session_ids.push_back(player_session_id);
-
-            //main_server->RemoveRoomPlayerCache(player_room, player_session_id, player_team_id);
-            //main_server->RoomPlayersSlotReorder(player_room);
-
-            std::vector<uint32_t> players_ids;
-            std::vector<std::pair<uint32_t, uint32_t>> player_slot_pairs;
-            auto insert_player_slot_pair = [&](const auto& session_ids)
-            {
-                for (const auto& id : session_ids)
-                {
-                    auto player_cache = main_server->GetAccCacheSharedBySessionId(id);
-                    if (player_cache->acc_info.Index == -1 || !player_cache->in_room || player_cache->room_id != player_room->room_id)
-                    {
-                        player_cache.unlock();
-                        continue;
-                    }
-                    else
-                    {
-                        player_slot_pairs.emplace_back(id, player_cache->slot_id);
-                        player_cache.unlock();
-                    }
-
-                }
-            };
-            if (main_server->IsModeTeamBased(player_room->ModeIndex))
-            {
-                insert_player_slot_pair(player_room->blueteam_session_ids);
-                insert_player_slot_pair(player_room->redteam_session_ids);
-            }
-            else
-                insert_player_slot_pair(player_room->neutralteam_session_ids);
-            insert_player_slot_pair(player_room->observers_session_ids);
-            std::sort(player_slot_pairs.begin(), player_slot_pairs.end(), [](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) { return a.second < b.second; });
-            for (const auto& pair : player_slot_pairs)  players_ids.push_back(pair.first);
-            
-
-            if (!player_room->neutralteam_session_ids.empty() || !player_room->redteam_session_ids.empty() || !player_room->blueteam_session_ids.empty())
-            {
-                if (player_room->host_session_id == player_session_id)
-                {
-                    auto best_ping_session_id = main_server->GetBestPlayerPingSessionIdInRoom(player_room);
-                    auto best_ping_acc_cache = main_server->GetAccCacheSharedBySessionId(best_ping_session_id);
-                    if (best_ping_acc_cache->acc_info.Index != -1)
-                    {
-                        player_room->host_session_id = best_ping_session_id;
-                        for (const auto& id : players_ids)
-                            if (auto player_session = main_server->GetSessionById(id))
-                                send_msg(player_session.get(), 128, 0, 1, static_cast<uint8_t>(best_ping_acc_cache->slot_id)); // broadcast host change
-                    }
-                    best_ping_acc_cache.unlock();
-                }
-            }
-
-            main_server->RemoveRoomPlayerCache(player_room, player_session_id, player_team_id);
-
-            if (auto player_session = main_server->GetSessionById(player_session_id))
-                send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::KickedByGm, 0);// leave room ack
-
-            for (const auto& room_player_session_id : players_ids)
-            {
-                if (room_player_session_id == player_session_id) continue;
-                if (auto player_session = main_server->GetSessionById(room_player_session_id))
-                    send_msg(player_session.get(), 422, 0, 0, player_slot_id, reinterpret_cast<uint8_t*>(&player_unique_id), sizeof(player_unique_id));
-            }
-
-            if (player_room->neutralteam_session_ids.empty() && player_room->redteam_session_ids.empty() && player_room->blueteam_session_ids.empty())
-            {
-                if (!player_room->observers_session_ids.empty())
-                {
-                    for (const auto& observer_id : player_room->observers_session_ids)
-                    {
-                        auto observer_cache = main_server->GetAccCacheUniqueBySessionId(observer_id);
-                        if (observer_cache->acc_info.Index == -1 || !observer_cache->in_room || observer_cache->room_id != player_room->room_id) continue;
-                        observer_cache->in_room = false;
-                        observer_cache->slot_id = 0xFF;
-                        observer_cache->playing = false;
-                        observer_cache->state = PlayerInfo::State::Waiting;
-                        auto observer_cache_team_id = observer_cache->team_id;
-                        observer_cache.unlock();
-                        main_server->RemoveRoomPlayerCache(player_room, observer_id, observer_cache_team_id);
-                        //main_server->RoomPlayersSlotReorder(player_room);
-                        if (auto observer_session = main_server->GetSessionById(observer_id))
-                            send_msg(observer_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
-                    }
-                }
-                main_server->RemoveRoomCache(player_room->room_id);
-                main_server->SetRoomIdAvailable(player_room->room_id);
-            }
-            */
         }
 
         static void Break(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
-
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
             auto myself_in_room = acc_cache->in_room;
             auto myself_room_id = acc_cache->room_id;
            
             if(args.size() != 1 && args.size() != 2)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /break or /break room_id", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /break or /break room_id", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
             uint16_t target_room_id = 0;
@@ -452,7 +307,7 @@ namespace Game
             {
                 if (!myself_in_room)
                 {
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, you are not in a room. Use /break room_id instead.", acc_cache->acc_info.Nickname.c_str()).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, you are not in a room. Use /break room_id instead.", acc_cache->acc_info.Nickname.c_str()).c_str());
                     return;
                 }
                 target_room_id = myself_room_id;
@@ -465,18 +320,18 @@ namespace Game
                 }
                 catch (const std::exception&)
                 {
-                    main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, invalid room ID. Please provide a valid room ID.", acc_cache->acc_info.Nickname.c_str()).c_str());
+                    main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, invalid room ID. Please provide a valid room ID.", acc_cache->acc_info.Nickname.c_str()).c_str());
                     return;
                 }
             }
 
             if (!main_server->IsRoomAlready(target_room_id))
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, the specified room ID does not exist.", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, the specified room ID does not exist.", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
 
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, room ID {} has been successfully broken.", acc_cache->acc_info.Nickname.c_str(), target_room_id).c_str());
+            main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, room ID {} has been successfully broken.", acc_cache->acc_info.Nickname.c_str(), target_room_id).c_str());
             acc_cache.unlock();
 
             
@@ -501,8 +356,8 @@ namespace Game
 
                     if (auto player_session = main_server->GetSessionById(player_id))
                     {
-                        send_msg(player_session.get(), 407, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // show gm break popup
-                        send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // Leave room ack
+                        player_session->SendMsg(407, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // show gm break popup
+                        player_session->SendMsg(141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // Leave room ack
                        
                     }
                         
@@ -514,21 +369,12 @@ namespace Game
         static void BreakAll(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
 
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-
             if (args.size() != 1)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /breakall", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /breakall", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, successfully broke all rooms.", acc_cache->acc_info.Nickname.c_str()).c_str());
+            main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, successfully broke all rooms.", acc_cache->acc_info.Nickname.c_str()).c_str());
             acc_cache.unlock();
 
             std::vector<uint16_t> room_ids;
@@ -562,8 +408,8 @@ namespace Game
 
                         if (auto player_session = main_server->GetSessionById(player_id))
                         {
-                            send_msg(player_session.get(), 407, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // show gm break popup
-                            send_msg(player_session.get(), 141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // Leave room ack
+                            player_session->SendMsg(407, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // show gm break popup
+                            player_session->SendMsg(141, 0, NetEngine::Room::Leave::Ack::Result::ClosedByGm, 0); // Leave room ack
                         }
                             
                     }
@@ -577,13 +423,13 @@ namespace Game
         {
             if (args.size() != 2)
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /createclan name (15 chars max)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /createclan name (15 chars max)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
 
             if (!Utility::IsDigitsOnly(args[1]))
             {
-                main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {}, command usage: /createclan name (15 chars max)", acc_cache->acc_info.Nickname.c_str()).c_str());
+                main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {}, command usage: /createclan name (15 chars max)", acc_cache->acc_info.Nickname.c_str()).c_str());
                 return;
             }
         }
@@ -593,7 +439,7 @@ namespace Game
             auto gachapon_sales = BaseLib::Database->GetGachaponSalesInfo();
             main_server->AddGachaponSaleCache(gachapon_sales);
 
-            main_server->SendServerMessage(callback.session, fmt::format("[MegaVolts Online] {} gachapon sales info reloaded", gachapon_sales.size()).c_str());
+            main_server->SendServerMessage(callback.session.get(), fmt::format("[MegaVolts Online] {} gachapon sales info reloaded", gachapon_sales.size()).c_str());
         }
         static void CastProcessInfo(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
@@ -612,7 +458,7 @@ namespace Game
                 static_cast<uint32_t>(mem_usage),
                 static_cast<double>(cpu_usage));
 
-            main_server->SendServerMessage(callback.session, msg.c_str());
+            main_server->SendServerMessage(callback.session.get(), msg.c_str());
             //main_server->SendServerMessage(callback.session,
             //    std::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {.2f}",
             //        sessions_count, mem_usage, cpu_usage).c_str());
@@ -635,24 +481,9 @@ namespace Game
                 kicked_cnt++;
             }
             
-            /*
-            auto my_session_id = acc_cache->session_id;
-            uint32_t kicked_cnt = 0;
-            acc_cache.unlock();
-            std::shared_lock lock(main_server->GetAccountsCacheMutex());
-            for (const auto& acc : accounts_cache)
-            {
-                const auto& account = acc.second;
-                const auto& id = account.session_id;
-                const auto& auth_key = account.acc_info.AuthKey;
-                if (id == my_session_id) continue;
-                main_server->DisconnectPlayer(main_server, id, auth_key, Disconnect::Deny);
-                kicked_cnt++;
-            }
-            */
             auto msg = fmt::format("success. all {} player was kick for prepare maintanance.", kicked_cnt);
 
-            main_server->SendServerMessage(callback.session, msg.c_str());
+            main_server->SendServerMessage(callback.session.get(), msg.c_str());
         }
         static void Init()
         {
@@ -783,10 +614,10 @@ namespace Game
         this->On(84, std::bind(&Game::Handlers::LobbyUserList, std::placeholders::_1, this));//lobby user list
         this->On(85, std::bind(&Game::Handlers::LobbyUserDetails, std::placeholders::_1, this));//lobby user details
         this->On(86, std::bind(&Game::Handlers::PlayerEnergy, std::placeholders::_1, this));//player energy
-        this->On(87, std::bind(&Game::Handlers::BuyItem, std::placeholders::_1, this));//shop buy item
+        this->On(87, std::bind(&Game::Handlers::NormalShop, std::placeholders::_1, this));//shop buy item
         this->On(88, std::bind(&Game::Handlers::EquipItem, std::placeholders::_1, this));//character equip update
         this->On(89, std::bind(&Game::Handlers::DeleteItem, std::placeholders::_1, this));//delete item
-        this->On(91, std::bind(&Game::Handlers::BuyItem, std::placeholders::_1, this));//shop coupon buy item
+        this->On(91, std::bind(&Game::Handlers::CouponShop, std::placeholders::_1, this));//shop coupon buy item
         this->On(92, std::bind(&Game::Handlers::GachaponSpin, std::placeholders::_1, this));//gachapon spin
         this->On(96, std::bind(&Game::Handlers::PlayerPickupDrop, std::placeholders::_1, this));//gachapon spin
         this->On(98, std::bind(&Game::Handlers::RepairItem, std::placeholders::_1, this));//repair item

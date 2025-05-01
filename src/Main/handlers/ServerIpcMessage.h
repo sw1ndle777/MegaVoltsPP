@@ -14,13 +14,6 @@ namespace Game
 
             switch (msg_id)
             {
-                /*
-                case PacketIds::Ipc::FrontToMainDisconnectPlayer:
-                {
-                    auto auth_key = Utility::FromVector<uint64_t>(payload);
-                    DisconnectPlayerMultipleLogin(auth_key, main_server);
-                    break;
-                }*/
                 case PacketIds::Ipc::CastToMainAckServerInfo:
                 {
                     struct ServerInfo

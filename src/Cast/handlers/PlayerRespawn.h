@@ -9,15 +9,19 @@ namespace Game
     {
         inline void PlayerRespawn(SCallbackData& callback, CCastServer* cast_server)
         {
-            std::shared_lock lock(callback.session->GetMutex());
-            //check player positions from this struct to prevent crash exploit
-            CSession* session = callback.session;
-            CServer* server = callback.server;
-            auto host_session_id = callback.message->GetSession();
-            auto self_session_id = session->GetSessionId();
+            auto session = callback.session;
             auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
+
+            CServer* server = callback.server;
+            auto host_session_id = message->GetSession();
+            auto self_session_id = session->GetSessionId();
+
             message->SetEncryptMethod(SendOption::EncryptionMethod::None);
             message->SetSession(self_session_id);
+
             if (auto forwarded_session = server->GetSessionById(host_session_id))
             {
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) forward packet to host session id: ({})", self_session_id, host_session_id);

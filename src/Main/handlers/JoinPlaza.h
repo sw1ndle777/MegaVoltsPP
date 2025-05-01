@@ -77,27 +77,22 @@ namespace Game
 
         inline void JoinPlaza(SCallbackData& callback, CMainServer* main_server)
         {
-            auto send_msg = [&](CSession* session, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0)
-            {
-                CMessage message(session->GetEncryptionKey());
-                message.SetSession(session->GetSessionId());
-                message.SetCommand(order, mission, extra, option);
-                if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-                session->Send(message);
-            };
-            std::shared_lock lock(callback.session->GetMutex());
-            CSession* session = callback.session;
+            auto session = callback.session;
+            auto message = callback.message;
+            if (!session || !message) return;
+
+            std::shared_lock lock(session->GetMutex());
             CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             if (acc_cache->acc_info.Index == -1) return;
-            auto joinPlazaReq = reinterpret_cast<MainJoinPlazaReq*>(callback.message->GetData());
+            auto joinPlazaReq = reinterpret_cast<MainJoinPlazaReq*>(message->GetData());
             auto plaza_id = joinPlazaReq->plaza_id;
             auto channel_id = joinPlazaReq->channel_id;
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join plaza attempt -> plaza id: ({}), plaza server/channel id: ({}), mission: ({}),  extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), plaza_id, channel_id, callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join plaza attempt -> plaza id: ({}), plaza server/channel id: ({}), mission: ({}),  extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), plaza_id, channel_id, message->GetMission(), message->GetExtra(), message->GetOption());
             auto old_plaza_id = acc_cache->plaza_id;
 
-            auto removeOldPlazaPlayer = [&](uint32_t plaza_id)
+            static auto removeOldPlazaPlayer = [&](uint32_t plaza_id)
             {
                 auto old_plaza = main_server->GetPlazaCacheUnique(plaza_id);
                 auto& session_ids = old_plaza->session_ids;
@@ -110,7 +105,7 @@ namespace Game
                         {
                             if (plaza_player_session_id == session_id) continue;
                             if (auto player_session = server->GetSessionById(plaza_player_session_id))
-                                send_msg(player_session.get(), 425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // disconnect
+                                player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id)); // disconnect
                         }
                     }
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) left plaza id: ({})", session_id, plaza_id);
@@ -120,7 +115,7 @@ namespace Game
                 old_plaza.unlock();
             };
 
-            auto updatePlayerEquipInfo = [&](PlazaCacheResource& plaza)
+            static auto updatePlayerEquipInfo = [&](PlazaCacheResource& plaza)
             {
                 if (main_server->IsPlazaBroadcastable(plaza))
                 {
@@ -137,19 +132,19 @@ namespace Game
                         if (plaza_player_session_id == session_id) continue;
                         if (auto player_session = server->GetSessionById(plaza_player_session_id))
                         {
-                            send_msg(player_session.get(), 424, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
-                            send_msg(player_session.get(), 314, 0, 0, my_voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
-                            //send_msg(player_session.get(), 403, 0, 0, my_pcroom_tier, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            player_session->SendMsg(424, 0, 0, 1, reinterpret_cast<uint8_t*>(playerEnterInfoData.data()), playerEnterInfoData.size());
+                            player_session->SendMsg(314, 0, 0, my_voice_id, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
+                            //player_session->SendMsg(403, 0, 0, my_pcroom_tier, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
 
                             auto other_player_equipped_data = get_equipped_data(main_server, plaza_player_session_id);
-                            send_msg(session, 424, 0, 0, 1, reinterpret_cast<uint8_t*>(other_player_equipped_data.data()), other_player_equipped_data.size());
+                            session->SendMsg(424, 0, 0, 1, reinterpret_cast<uint8_t*>(other_player_equipped_data.data()), other_player_equipped_data.size());
 
                             auto player_cache = main_server->GetAccCacheSharedBySessionId(plaza_player_session_id);
                             auto other_unique_id = NetEngine::Packets::Core::UniqueId(plaza_player_session_id, 1).data;
                             auto other_voice_id = player_cache->voice_id;
                             auto other_pcroom_tier = player_cache->acc_info.PCRoom;
-                            send_msg(session, 314, 0, 0, other_voice_id, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
-                            //send_msg(session, 403, 0, 0, other_pcroom_tier, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
+                            session->SendMsg(314, 0, 0, other_voice_id, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
+                            //session->SendMsg(403, 0, 0, other_pcroom_tier, reinterpret_cast<uint8_t*>(&other_unique_id), sizeof(other_unique_id));
                             player_cache.unlock();
                         }
                     }
@@ -164,7 +159,7 @@ namespace Game
                     if (main_server->IsPlazaFull(plaza_id_0))
                     {
                         plaza_id_0.unlock();
-                        //send_msg(session, 173, 0, PlazaJoin::Result::Full, 0);
+                        //session->SendMsg(173, 0, PlazaJoin::Result::Full, 0);
                         auto best_plaza_id = main_server->FindFirstNonFullPlaza();
                         if (best_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);
                         auto current_plaza = main_server->GetPlazaCacheUnique(best_plaza_id);
@@ -172,7 +167,7 @@ namespace Game
                         acc_cache->in_plaza = true;
                         current_plaza->session_ids.push_back(session_id);
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join first plaza -> plaza id: ({}) already exists, connecting player there", acc_cache->acc_info.Nickname.c_str(), best_plaza_id);
-                        send_msg(session, 173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&best_plaza_id), sizeof(best_plaza_id));
+                        session->SendMsg(173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&best_plaza_id), sizeof(best_plaza_id));
                         acc_cache.unlock();
                         updatePlayerEquipInfo(current_plaza);
                         current_plaza.unlock();
@@ -188,7 +183,7 @@ namespace Game
                         acc_cache->in_plaza = true;
                         current_plaza->session_ids.push_back(session_id);
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join first plaza -> plaza id: ({}) already exists, connecting player there", acc_cache->acc_info.Nickname.c_str(), plaza_id);
-                        send_msg(session, 173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&plaza_id), sizeof(plaza_id)); // join plaza success
+                        session->SendMsg(173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&plaza_id), sizeof(plaza_id)); // join plaza success
                         acc_cache.unlock();
                         updatePlayerEquipInfo(current_plaza);
                         current_plaza.unlock();
@@ -206,7 +201,7 @@ namespace Game
                     new_plaza.session_ids.push_back(session_id);
                     main_server->AddPlazaCache(current_plaza_id, new_plaza);
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join first plaza -> plaza id: ({}) doesn't exists, creating plaza then connecting player there", acc_cache->acc_info.Nickname.c_str(), plaza_id);
-                    send_msg(session, 173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&current_plaza_id), sizeof(current_plaza_id)); // join plaza success
+                    session->SendMsg(173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&current_plaza_id), sizeof(current_plaza_id)); // join plaza success
                     auto current_plaza = main_server->GetPlazaCacheUnique(current_plaza_id);
                     acc_cache.unlock();
                     updatePlayerEquipInfo(current_plaza);
@@ -227,7 +222,7 @@ namespace Game
                     {
                         if (main_server->IsPlazaFull(plaza))
                         {
-                            send_msg(session, 173, 0, PlazaJoin::Result::Full, 0);
+                            session->SendMsg(173, 0, PlazaJoin::Result::Full, 0);
                             plaza.unlock();
                             auto best_plaza_id = main_server->FindFirstNonFullPlaza();
                             if (best_plaza_id != old_plaza_id && main_server->IsPlazaAlready(old_plaza_id)) removeOldPlazaPlayer(old_plaza_id);
@@ -236,7 +231,7 @@ namespace Game
                             acc_cache->in_plaza = true;
                             current_plaza->session_ids.push_back(session_id);
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join first plaza -> plaza id: ({}) already exists, connecting player there", acc_cache->acc_info.Nickname.c_str(), best_plaza_id);
-                            send_msg(session, 173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&best_plaza_id), sizeof(best_plaza_id));
+                            session->SendMsg(173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&best_plaza_id), sizeof(best_plaza_id));
                             acc_cache.unlock();
                             updatePlayerEquipInfo(current_plaza);
                             current_plaza.unlock();
@@ -248,7 +243,7 @@ namespace Game
                             acc_cache->in_plaza = true;
                             plaza->session_ids.push_back(session_id);
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join plaza -> plaza id: ({}) already exists, connecting player there", acc_cache->acc_info.Nickname.c_str(), plaza_id);
-                            send_msg(session, 173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&plaza_id), sizeof(plaza_id)); // join plaza success
+                            session->SendMsg(173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&plaza_id), sizeof(plaza_id)); // join plaza success
                             acc_cache.unlock();
                             updatePlayerEquipInfo(plaza);
                         }
@@ -266,7 +261,7 @@ namespace Game
                     new_plaza.session_ids.push_back(session_id);
                     main_server->AddPlazaCache(current_plaza_id, new_plaza);
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) join plaza -> plaza id: ({}) doesn't exists, creating plaza then connecting player there", acc_cache->acc_info.Nickname.c_str(), plaza_id);
-                    send_msg(session, 173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&current_plaza_id), sizeof(current_plaza_id)); // join plaza success
+                    session->SendMsg(173, 0, PlazaJoin::Result::Success, 0, reinterpret_cast<uint8_t*>(&current_plaza_id), sizeof(current_plaza_id)); // join plaza success
                     auto current_plaza = main_server->GetPlazaCacheUnique(current_plaza_id);
                     acc_cache.unlock();
                     updatePlayerEquipInfo(current_plaza);
