@@ -35,9 +35,8 @@ namespace NetEngine
 
     struct SCallbackData
     {
-        std::shared_ptr<CSession> session;
-        std::shared_ptr<CMessage> message;
-
+        CSession* session;
+        CMessage* message;
         CServer* server;
     };
 

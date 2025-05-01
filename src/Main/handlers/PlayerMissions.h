@@ -111,7 +111,7 @@ namespace Game
                         if (daily_mission_info->rewardItem)
                         {
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player get reward item: ({})", daily_mission_info->rewardItem);
-                            main_server->SendInventoryItem(session.get(), acc_cache, {daily_mission_info->rewardItem});
+                            main_server->SendInventoryItem(session, acc_cache, {daily_mission_info->rewardItem});
                         }
                         session->SendMsg(168, 0, 2, 0, reinterpret_cast<uint8_t*>(&mission_data->id), sizeof(mission_data->id));
                     }

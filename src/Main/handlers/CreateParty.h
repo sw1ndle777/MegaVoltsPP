@@ -1190,14 +1190,14 @@ namespace Game
 
                 SCallbackData callback;
                 callback.server = main_server;
-                callback.session = main_server->GetSessionById(target_host_id);
-                auto msg = std::make_shared<CMessage>();
-                msg->SetSession(callback.session->GetSessionId());
+                callback.session = main_server->GetSessionById(target_host_id).get();
+                auto msg = CMessage();
+                msg.SetSession(callback.session->GetSessionId());
                 //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-                msg->SetData(reinterpret_cast<uint8_t*>(&clan_room_req), sizeof(clan_room_req));
-                msg->SetExtra(score_limit);
+                msg.SetData(reinterpret_cast<uint8_t*>(&clan_room_req), sizeof(clan_room_req));
+                msg.SetExtra(score_limit);
 
-                callback.message = msg;
+                callback.message = &msg;
                 lock.unlock();
                 CreateRoom(callback, main_server);
 
@@ -1228,12 +1228,12 @@ namespace Game
                         {
                             SCallbackData callback;
                             callback.server = main_server;
-                            callback.session = player_session;
-                            auto msg = std::make_shared<CMessage>();
-                            msg->SetSession(callback.session->GetSessionId());
+                            callback.session = player_session.get();
+                            auto msg = CMessage();
+                            msg.SetSession(callback.session->GetSessionId());
                             //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-                            msg->SetData(reinterpret_cast<uint8_t*>(&clan_room_join_req), sizeof(clan_room_join_req));
-                            callback.message = msg;
+                            msg.SetData(reinterpret_cast<uint8_t*>(&clan_room_join_req), sizeof(clan_room_join_req));
+                            callback.message = &msg;
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now call join room");
                             JoinRoom(callback, main_server);
                             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "now done join room");
@@ -1415,11 +1415,11 @@ namespace Game
                     };
                     info_req new_req;
                     new_req.targetPartyId = match_party_id;
-                    auto msg = std::make_shared<CMessage>();
-                    msg->SetSession(callback.session->GetSessionId());
+                    auto msg = CMessage();
+                    msg.SetSession(callback.session->GetSessionId());
                     //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());
-                    msg->SetData(reinterpret_cast<uint8_t*>(&new_req), sizeof(new_req));
-                    callback.message = msg;
+                    msg.SetData(reinterpret_cast<uint8_t*>(&new_req), sizeof(new_req));
+                    callback.message = &msg;
                     acc_cache.unlock();
                     lock.unlock();
                     BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "will join battle with party id: ({})", match_party_id);

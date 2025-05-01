@@ -10,10 +10,10 @@ namespace Game
         inline void PlayerDeleteMailbox(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            if (!session) return;
 
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -22,7 +22,7 @@ namespace Game
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
 
-                const auto& mailboxReq = reinterpret_cast<MailBoxUpdateReq*>(callback.message->GetData());
+                const auto& mailboxReq = reinterpret_cast<MailBoxUpdateReq*>(message.GetData());
                 std::vector<uint32_t> mail_ids_sender;
                 std::vector<uint32_t> mail_ids_received;
                 for (uint32_t i = 0; i < mailboxReq->mail_count; i++)
@@ -64,10 +64,10 @@ namespace Game
         inline void PlayerSendMailbox(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            if (!session) return;
 
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -76,9 +76,9 @@ namespace Game
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
 
-                const auto& mailboxReq = reinterpret_cast<MainMailboxSendReq*>(message->GetData());
+                const auto& mailboxReq = reinterpret_cast<MainMailboxSendReq*>(message.GetData());
                 const auto& mailbox_target_name = Utility::ReadMicrovoltsString(mailboxReq->nickname, 16);
-                auto msg_size = message->GetDataSize() - 16;
+                auto msg_size = message.GetDataSize() - 16;
                 uint32_t target_index = 0;
                 if (!BaseLib::Database->NicknameExists(mailbox_target_name.c_str(), target_index))
                 {
@@ -162,7 +162,11 @@ namespace Game
                 mailbox_data->is_new = false;
                 mail_ids.push_back(mail_id);
             }
-            BaseLib::Database->UpdateMailboxIsNew(mail_ids, false);
+            BaseLib::DbPool->submit_task([main_server, new_mail_ids = std::move(mail_ids)]() mutable
+            {
+                BaseLib::Database->UpdateMailboxIsNew(new_mail_ids, false);
+            });
+            
         }
         inline void PlayerOpenMailbox(SCallbackData& callback, CMainServer* main_server)
         {
@@ -384,7 +388,7 @@ namespace Game
                 BaseLib::Database->UpdateOrDeleteMailboxForReceiver(mail_ids_received);
 
             if (gift_item_ids.size() > 0)
-                main_server->SendInventoryItem(session.get(), acc_cache, gift_item_ids);
+                main_server->SendInventoryItem(session, acc_cache, gift_item_ids);
 
             
 

@@ -72,24 +72,7 @@ namespace NetEngine
                     }));
             });
     }
-    void CSession::SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data, uint16_t data_size, SendOption::EncryptionMethod encryptMethod)
-    {
-        CMessage message(this->GetEncryptionKey());
-        message.SetSession(this->GetSessionId());
-        message.SetCommand(order, mission, extra, option);
-		message.SetEncryptMethod(encryptMethod);
-        if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-        this->Send(message);
-    }
-    void CSession::ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data, uint16_t data_size, SendOption::EncryptionMethod encryptMethod)
-    {
-        CMessage message(this->GetEncryptionKey());
-        message.SetSession(session_id);
-        message.SetCommand(order, mission, extra, option);
-        message.SetEncryptMethod(encryptMethod);
-        if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
-        this->Send(message);
-    }
+
     void CSession::SetEncryptionKey(int32_t key)
     {
         m_encryptionKey = key;
@@ -114,69 +97,70 @@ namespace NetEngine
     {
 
         int32_t encryptionKey = m_useEncryption ? m_encryptionKey : -1;
-        //CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data.data()), static_cast<uint16_t>(data.size()), encryptionKey);
-        auto packetMessage = std::make_shared<CMessage>(
+        CMessage packetMessage = CMessage(reinterpret_cast<uint8_t*>(data.data()), static_cast<uint16_t>(data.size()), encryptionKey);
+        
+        /*auto packetMessage = std::make_shared<CMessage>(
             reinterpret_cast<uint8_t*>(data.data()),
             static_cast<uint16_t>(data.size()),
             encryptionKey
         );
-        auto order = packetMessage->GetOrder();
+        */
+        auto order = packetMessage.GetOrder();
         if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), packetMessage, m_sessionId);
 
-        if (!packetMessage->GetOrder()) return;
-        if (m_callbacks.count(packetMessage->GetOrder()) == 0)
+        if (!packetMessage.GetOrder()) return;
+        if (m_callbacks.count(packetMessage.GetOrder()) == 0)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no callback for packet order: ({})", packetMessage->GetOrder());
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no callback for packet order: ({})", packetMessage.GetOrder());
             return;
         }
 
         SCallbackData callbackData;
-
-        callbackData.session = shared_from_this();
-        callbackData.message = packetMessage;
+        callbackData.session = this;
+        callbackData.message = &packetMessage;
         callbackData.server = this->m_server;
-        m_server->logExecution(m_sessionId, packetMessage->GetOrder());
+        m_server->logExecution(m_sessionId, order);
 
         try
         {
             // Execute the callback
-            m_callbacks[packetMessage->GetOrder()](callbackData);
+            m_callbacks[order](callbackData);
         }
         catch (const std::system_error& e)
         {
             // Handle system errors (e.g., mutex lock failures)
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "System error in callback for packet order {}: {} (code: {})",
-                packetMessage->GetOrder(), e.what(), e.code().value());
+                                     order, e.what(), e.code().value());
         }
         catch (const std::runtime_error& e)
         {
             // Handle runtime errors
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "Runtime error in callback for packet order {}: {}",
-                packetMessage->GetOrder(), e.what());
+                                     order, e.what());
         }
         catch (const std::logic_error& e)
         {
             // Handle logic errors
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "Logic error in callback for packet order {}: {}",
-                packetMessage->GetOrder(), e.what());
+                                     order, e.what());
         }
         catch (const std::exception& e)
         {
             // Catch other standard exceptions
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
                 "Exception in callback for packet order {}: {}",
-                packetMessage->GetOrder(), e.what());
+                                     order, e.what());
         }
         catch (...)
         {
             // Catch non-standard exceptions
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
-                "Unknown exception in callback for packet order {}", packetMessage->GetOrder());
+                "Unknown exception in callback for packet order {}", order);
         }
-        m_server->clearExecution(m_sessionId, packetMessage->GetOrder());
+        m_server->clearExecution(m_sessionId, order);
     }
     void CSession::DoRead()
     {

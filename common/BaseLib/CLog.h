@@ -73,6 +73,7 @@ namespace BaseLib
         template <typename... Args>
         void Debug(std::source_location source_location, fmt::color color, std::string_view format, Args&&... args)
         {
+            
             const auto file_name = extractFileName(source_location.file_name());
             std::string function_name = extractFunctionName(source_location.function_name());
             std::string source_debug_info = fmt::format("({}:{}) {}() ", file_name, source_location.line(), function_name);
@@ -121,6 +122,7 @@ namespace BaseLib
 					}
 				},BS::pr::low);
 			}
+            
         }
 		/*
         void ProcessQueue()

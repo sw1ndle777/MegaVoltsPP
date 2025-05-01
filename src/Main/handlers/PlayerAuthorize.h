@@ -30,20 +30,21 @@ namespace Game
         inline void PlayerAuthorize(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
-            
-            BaseLib::DbPool->submit_task([=]() mutable
+            CServer* server = callback.server;
+            if (!session) return;
+
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([server, main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
 
-                const auto& versionCheckReq = reinterpret_cast<MainVersionCheckReq*>(message->GetData());
+                const auto& versionCheckReq = reinterpret_cast<MainVersionCheckReq*>(message.GetData());
 
                 auto auth_key = versionCheckReq->authKey;
 
                 auto session_id = session->GetSessionId();
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "session id: ({}) connected with auth key ({})", session_id, auth_key);
-                CServer* server = callback.server;
+               
 
 
                 BaseLib::FrontAccount frontAccount;
@@ -263,8 +264,8 @@ namespace Game
                 });
 
 
-                main_server->SendServerMessage(session.get(), fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
-                main_server->SendServerMessage(session.get(), fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+                main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
+                main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
 
 
                 boost::unordered_flat_map<uint32_t, uint32_t> accountToSessionMap;

@@ -45,8 +45,27 @@ namespace NetEngine
 
         void Disconnect();
         void Send(CMessage& message);
-        void SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User);
-        void ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User);
+        //void SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User);
+        //void ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User);
+
+        __forceinline void SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User)
+        {
+            CMessage message(this->GetEncryptionKey());
+            message.SetSession(this->GetSessionId());
+            message.SetCommand(order, mission, extra, option);
+            message.SetEncryptMethod(encryptMethod);
+            if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+            this->Send(message);
+        }
+        __forceinline void ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User)
+        {
+            CMessage message(this->GetEncryptionKey());
+            message.SetSession(session_id);
+            message.SetCommand(order, mission, extra, option);
+            message.SetEncryptMethod(encryptMethod);
+            if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+            this->Send(message);
+        }
         void DoSend();
         void SetEncryptionKey(int32_t key);
         void SetSessionId(uint16_t id);

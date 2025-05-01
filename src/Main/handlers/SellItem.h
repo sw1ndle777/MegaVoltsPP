@@ -40,5 +40,4 @@ namespace Game
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "player ({}) sold item: ({})", acc_cache->acc_info.Nickname.c_str(), item_info->Id);
         }
     }
-    
 }

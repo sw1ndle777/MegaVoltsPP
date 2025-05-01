@@ -2311,10 +2311,11 @@ namespace BaseLib
 
             // Prepare and execute update statement
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "UPDATE accounts SET Energy = ? WHERE AuthKey = ? LIMIT 1"
+                "UPDATE accounts SET Energy = ? WHERE AuthKey = ?  AND ? <= MaxEnergy LIMIT 1"
             ));
             pstmt->setInt(1, static_cast<int>(energy));
             pstmt->setUInt64(2, authKey);
+            pstmt->setInt(3, static_cast<int>(energy));
 
             int affectedRows = pstmt->executeUpdate();
 

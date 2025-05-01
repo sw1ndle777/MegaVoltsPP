@@ -289,7 +289,7 @@ namespace Game
                 {
                     case 1: SingleWaveEasy(playtime_seconds, endmatch_sw, acc_cache);  break;
                     case 2:  SingleWaveHard(playtime_seconds, endmatch_sw, acc_cache); break;
-                    default: Tutorial(main_server, session.get(), acc_cache);   break;
+                    default: Tutorial(main_server, session, acc_cache);   break;
                 }
                 return;
             }

@@ -10,10 +10,10 @@ namespace Game
         inline void PlayerBlock(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            if (!session) return;
 
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -22,7 +22,7 @@ namespace Game
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
 
-                const auto& blockedAddReq = reinterpret_cast<MainPlayerBlockedAddReq*>(message->GetData());
+                const auto& blockedAddReq = reinterpret_cast<MainPlayerBlockedAddReq*>(message.GetData());
                 const auto& target_nickname = Utility::ReadMicrovoltsString(blockedAddReq->nickname, sizeof(blockedAddReq->nickname));
                 auto target_acc_cache = main_server->GetAccCacheUniqueByNickname(target_nickname.c_str());
 
@@ -79,10 +79,10 @@ namespace Game
         inline void PlayerUnblock(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            if (!session) return;
 
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -91,7 +91,7 @@ namespace Game
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
                 auto blockeds = main_server->GetBlockedsList(session_id);
-                auto blockedRemoveReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(message->GetData());
+                auto blockedRemoveReq = reinterpret_cast<MainPlayerBlockedRemoveReq*>(message.GetData());
                 if (!main_server->IsBlockedAlready(blockeds, blockedRemoveReq->player_id)) return;
                 blockeds.unlock();
                 main_server->RemovePlayerBlockedsAdded(acc_cache, blockedRemoveReq->player_id);
@@ -167,18 +167,19 @@ namespace Game
         inline void PlayerAddFriend(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            CServer* server = callback.server;
+            if (!session) return;
 
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([server, main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
-                CServer* server = callback.server;
+                
                 auto session_id = session->GetSessionId();
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
            
                 auto acc_index = acc_cache->acc_info.Index;
-                auto request_type = message->GetExtra();
+                auto request_type = message.GetExtra();
                 if (acc_index != -1)
                 {
 
@@ -200,7 +201,7 @@ namespace Game
                             session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
                             return;
                         }
-                        const auto& friendAddSendReq = reinterpret_cast<MainPlayerFriendAddSendReq*>(message->GetData());
+                        const auto& friendAddSendReq = reinterpret_cast<MainPlayerFriendAddSendReq*>(message.GetData());
                         const auto& target_nickname = Utility::ReadMicrovoltsString(friendAddSendReq->nickname, sizeof(friendAddSendReq->nickname));
                         const auto& my_nickname = acc_cache->acc_info.Nickname;
                         if (strcmp(acc_cache->acc_info.Nickname.c_str(), target_nickname.c_str()) == 0)
@@ -281,7 +282,7 @@ namespace Game
                             session->SendMsg(61, 0, Userlist::Friends::AddResult::ListFull, Userlist::Friends::ListState::YourListIsFull);
                             return;
                         }
-                        const auto& friendAddRecvReq = reinterpret_cast<MainPlayerFriendAddRecvReq*>(callback.message->GetData());
+                        const auto& friendAddRecvReq = reinterpret_cast<MainPlayerFriendAddRecvReq*>(message.GetData());
                         auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(friendAddRecvReq->unique_id);
                         auto sender_acc = main_server->GetAccCacheUniqueBySessionId(sender_uniqueId.session);
                         const auto& my_nickname = acc_cache->acc_info.Nickname;
@@ -350,10 +351,10 @@ namespace Game
         inline void PlayerRemoveFriend(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            if (!session) return;
 
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -362,7 +363,7 @@ namespace Game
             
                 if (acc_index != -1)
                 {
-                    auto friendRemoveReq = reinterpret_cast<MainPlayerFriendRemoveReq*>(callback.message->GetData());
+                    auto friendRemoveReq = reinterpret_cast<MainPlayerFriendRemoveReq*>(message.GetData());
 
                     FriendInfo delFriendInfo = { acc_index,static_cast<int32_t>(friendRemoveReq->player_id) };
                     FriendInfo delFriendInfo2 = { static_cast<int32_t>(friendRemoveReq->player_id) , acc_index};

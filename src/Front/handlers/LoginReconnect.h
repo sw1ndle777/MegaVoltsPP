@@ -10,14 +10,13 @@ namespace Game
         inline void LoginReconnect(SCallbackData& callback, CFrontServer* front_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
+            if (!session) return;
 
-            
-            BaseLib::DbPool->submit_task([=]() mutable
+            CMessage msgCopy = *callback.message;
+            BaseLib::DbPool->submit_task([session = std::move(callback.session), message = std::move(msgCopy)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
-                auto loginReconnectReq = reinterpret_cast<FrontLoginReconnectReq*>(message->GetData());
+                auto loginReconnectReq = reinterpret_cast<FrontLoginReconnectReq*>(message.GetData());
                 auto auth_key = loginReconnectReq->authKey;
                 EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "authorize reconnect request auth key: ({})", auth_key);
                 BaseLib::FrontAccount frontAccount;
@@ -46,7 +45,7 @@ namespace Game
                     };
                     FrontLoginAuthorizeAck authorizeData = FrontLoginAuthorizeAck(frontAccount.AuthKey, accountInfo);
 
-                    session->SendMsg(22, 0, frontAccount.IsOnline ? FrontAuthorize::Type::Busy : FrontAuthorize::Type::Success, 0, reinterpret_cast<uint8_t*>(&authorizeData), sizeof(FrontLoginAuthorizeAck));
+                    session->SendMsg(22, 0, FrontAuthorize::Type::Success, 0, reinterpret_cast<uint8_t*>(&authorizeData), sizeof(FrontLoginAuthorizeAck));
                 }
             }, BS::pr::highest);
         }
