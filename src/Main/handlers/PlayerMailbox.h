@@ -11,9 +11,7 @@ namespace Game
         {
             auto session = callback.session;
             if (!session) return;
-
-            CMessage msgCopy = *callback.message;
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -66,8 +64,7 @@ namespace Game
             auto session = callback.session;
             if (!session) return;
 
-            CMessage msgCopy = *callback.message;
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -171,9 +168,8 @@ namespace Game
         inline void PlayerOpenMailbox(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            auto message = callback.message;
-            if (!session || !message) return;
-            BaseLib::DbPool->submit_task([=]() mutable
+            if (!session) return;
+            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -181,7 +177,7 @@ namespace Game
 
                 auto acc_index = acc_cache->acc_info.Index;
                 if (acc_index == -1) return;
-                auto mailbox_tab = message->GetMission();
+                auto mailbox_tab = message.GetMission();
 
                 if (mailbox_tab == 0) // receiver
                 {

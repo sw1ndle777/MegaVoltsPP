@@ -940,6 +940,124 @@ namespace BaseLib
             return false;
         }
     }
+    bool CDatabase::InsertInventoryitemsMicroTransactions(const uint32_t& acc_id, const std::vector<Item>& inv_items, const uint32_t mp, const uint32_t rt, const uint32_t coupons)
+    {
+        if (inv_items.empty()) return false;
+
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+            
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            try
+            {
+
+                std::unique_ptr<sql::PreparedStatement> checkTransactionsStmt(conn->prepareStatement(
+                    "UPDATE accounts SET "
+                    "RockTokens = RockTokens - ?, "
+                    "MicroPoints = MicroPoints - ?, "
+                    "Coupons = Coupons - ? "
+                    "WHERE Id = ? "
+                    "AND RockTokens >= ? "
+                    "AND MicroPoints >= ? "
+                    "AND Coupons >= ?"
+                ));
+
+                checkTransactionsStmt->setUInt(1, rt);         // amount to subtract
+                checkTransactionsStmt->setUInt(2, mp);
+                checkTransactionsStmt->setUInt(3, coupons);
+                checkTransactionsStmt->setUInt(4, acc_id);     // account id
+                checkTransactionsStmt->setUInt(5, rt);         // check: must have enough
+                checkTransactionsStmt->setUInt(6, mp);
+                checkTransactionsStmt->setUInt(7, coupons);
+
+                int rows = checkTransactionsStmt->executeUpdate();
+
+                if (rows == 0) return false;
+
+
+                std::string query = "INSERT INTO player_items (PlayerId, SerialInfo, ItemId, ItemType, ExpirationDate, Repair, Energy, IsSealed, SealLevel, EnhanceExp, EnhanceLevel, Stock, IsEquipped, CharacterId) VALUES ";
+                std::string placeholders;
+                std::string valuePlaceholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                for (size_t i = 0; i < inv_items.size(); ++i) {
+                    placeholders += (i == 0 ? "" : ", ") + valuePlaceholder;
+                }
+                query += placeholders;
+
+                std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(query));
+
+                int paramIndex = 1;
+                for (const auto& item : inv_items)
+                {
+                #if defined(RELEASE_1_0_3)
+                    pstmt->setUInt(paramIndex++, acc_id);
+                    pstmt->setUInt64(paramIndex++, item.item_info.serial_info.data);
+                    pstmt->setUInt(paramIndex++, item.item_info.item_number.item_id);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, item.item_info.expire_date);
+                    pstmt->setUInt(paramIndex++, item.item_info.repair);
+                    pstmt->setUInt(paramIndex++, item.item_info.energy);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, item.stock);
+                    pstmt->setUInt(paramIndex++, item.is_equipped);
+                    pstmt->setUInt(paramIndex++, item.character_id);
+                #else
+                    pstmt->setUInt(paramIndex++, acc_id);
+                    pstmt->setUInt64(paramIndex++, item.item_info.serial_info.data);
+                    pstmt->setUInt(paramIndex++, item.item_info.item_number.item_id);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, item.item_info.expire_date);
+                    pstmt->setUInt(paramIndex++, item.item_info.repair);
+                    pstmt->setUInt(paramIndex++, item.item_info.energy);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, 0);
+                    pstmt->setUInt(paramIndex++, item.stock);
+                    pstmt->setUInt(paramIndex++, item.is_equipped);
+                    pstmt->setUInt(paramIndex++, item.character_id);
+                #endif
+                }
+
+                int affected = pstmt->executeUpdate();
+                if (affected != static_cast<int>(inv_items.size())) {
+                    stmt->execute("ROLLBACK");
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                                             "InsertInventoryItems: Expected {} inserts but got {}", inv_items.size(), affected);
+                    return false;
+                }
+                stmt->execute("COMMIT");
+                return true;
+
+            }
+            catch (sql::SQLException& inner)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Inner SQL error in SetAccountOffline: ({})", inner.what());
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+
+            
+            return true;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
     bool CDatabase::DeleteInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items)
     {
         if (inv_items.empty()) return false;
