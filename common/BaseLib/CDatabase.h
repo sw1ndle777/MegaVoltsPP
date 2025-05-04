@@ -421,6 +421,7 @@ namespace BaseLib
         bool InsertInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items);
         bool InsertInventoryitemsMicroTransactions(const uint32_t& acc_id, const std::vector<Item>& inv_items, const uint32_t mp, const uint32_t rt, const uint32_t coupons);
         bool DeleteInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items);
+        bool NewDeleteInventoryItems(const uint32_t& acc_id, const std::vector<NetEngine::Packets::Main::ItemSerialInfo>& del_items);
         bool GetPlayerFriends(const int32_t& acc_id, std::vector<FriendInfo>& friends);
         bool GetPlayerBlockeds(const int32_t& acc_id, std::vector<BlockedInfo>& blockeds);
         bool InsertPlayerFriends(const std::vector<FriendInfo>& friends);

@@ -777,6 +777,15 @@ namespace BaseLib
             return false;
         }
     }
+    std::string generateQuestionMarks(int n) {
+        if (n <= 0) return "";
+
+        std::string result = "?";
+        for (int i = 1; i < n; ++i) {
+            result += ", ?";
+        }
+        return result;
+    }
     bool CDatabase::UpdateInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items)
     {
         if (inv_items.empty()) return false;
@@ -1050,6 +1059,63 @@ namespace BaseLib
             }
 
             
+            return true;
+        }
+        catch (sql::SQLException& e)
+        {
+            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "exception: ({})", e.what());
+            return false;
+        }
+    }
+    bool CDatabase::NewDeleteInventoryItems(const uint32_t& acc_id, const std::vector<NetEngine::Packets::Main::ItemSerialInfo>& del_items)
+    {
+        if (del_items.empty()) return false;
+
+        try
+        {
+            if (!conn || !conn->isValid())
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::yellow, "Reconnecting to the database...");
+                conn = driver->connect(this->properties);
+                if (conn)
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Successfully reconnected to database");
+            }
+
+
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            try
+            {
+                std::unique_ptr<sql::PreparedStatement> deleteStmt(conn->prepareStatement(
+                    "DELETE FROM player_items WHERE SerialInfo in (" + generateQuestionMarks(del_items.size()) + ") AND PlayerId = ?"
+                ));
+                auto last_idx = del_items.size() + 1;
+                for (int i = 1; i < last_idx; i++)
+                {
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "delete item serial ({})", del_items[i - 1].data);
+                    deleteStmt->setUInt64(i, del_items[i - 1].data);
+                }
+                deleteStmt->setUInt(last_idx, acc_id);
+                int affected = deleteStmt->executeUpdate();
+                if (affected != static_cast<int>(del_items.size())) {
+                    stmt->execute("ROLLBACK");
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+                        "NewDeleteInventoryItems: Expected {} delets but got {}", del_items.size(), affected);
+                    return false;
+                }
+                stmt->execute("COMMIT");
+                return true;
+
+            }
+            catch (sql::SQLException& inner)
+            {
+                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Inner SQL error: ({})", inner.what());
+                stmt->execute("ROLLBACK");
+                return false;
+            }
+
+
             return true;
         }
         catch (sql::SQLException& e)
