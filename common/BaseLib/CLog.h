@@ -56,12 +56,6 @@ namespace BaseLib
         {
             stopLogging = true;
             cv.notify_all();
-            /*
-            if (logThread.has_value() && logThread->joinable())
-            {
-                logThread->join();
-            }
-            */
         }
         ~CLog()
         {

@@ -30,12 +30,12 @@ namespace Game
         inline void PlayerAuthorize(SCallbackData& callback, CMainServer* main_server)
         {
             auto session = callback.session;
-            CServer* server = callback.server;
             if (!session) return;
 
-            CMessage msgCopy = *callback.message;
-            BaseLib::DbPool->submit_task([server, main_server, session = std::move(callback.session), message = std::move(msgCopy)]() mutable
+            BaseLib::DbPool->submit_task([server = std::move(callback.server), main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
+                if (!session) return;
+
                 std::shared_lock lock(session->GetMutex());
 
                 const auto& versionCheckReq = reinterpret_cast<MainVersionCheckReq*>(message.GetData());

@@ -824,12 +824,7 @@ namespace NetEngine
                 uint32_t Unknown1;//44
                 uint32_t PlayTime;//48
                 uint32_t ClanId;//4c
-            #if defined(RELEASE_1_1_1)
                 std::array<uint64_t, 4> Achievements;//50
-            #else
-                std::array<uint64_t, 4> Achievements;//50
-                //char achivements[28]{};
-            #endif
                
                 uint32_t ZombieKillPoints;//70
                 uint32_t Infections;//74

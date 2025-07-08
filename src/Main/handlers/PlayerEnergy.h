@@ -14,7 +14,7 @@ namespace Game
             if (!session || !message) return;
 
             std::shared_lock lock(session->GetMutex());
-            CServer* server = callback.server;
+            //CServer* server = callback.server;
             
             const auto& getEnergyReq = reinterpret_cast<MainGetEnergyInGameReq*>(message->GetData());
             const auto unique_id = NetEngine::Packets::Core::UniqueId(getEnergyReq->uniqueId);
@@ -22,7 +22,7 @@ namespace Game
             
             
 
-            BaseLib::DbPool->submit_task([server, main_server, unique_id]() mutable
+            BaseLib::DbPool->submit_task([server = std::move(callback.server), main_server, unique_id]() mutable
             {
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(unique_id.session);
                 //add check for unique id for what player to get battery

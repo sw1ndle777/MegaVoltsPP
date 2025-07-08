@@ -406,7 +406,7 @@ namespace Game
                         InventoryItemInfo inv_item_info = { {item.ItemId , item_info->Stock} ,ItemExpire::Type::Unused, new_item.serial_info, item_info->Durability, 0 };
                         main_server->AddPlayerItemInventory(acc_cache, { inv_item_info, item_info->Stock, false, 0, false });
                     #else
-                        const InventoryItemInfo& inv_item_info = { item.ItemId ,ItemExpire::Type::Unused, new_item.serial_info, item_info->Durability, 0,0,0,0,0,main_server->AdjustItemType(item_info->Type) };
+                        InventoryItemInfo inv_item_info = { item.ItemId ,ItemExpire::Type::Unused, new_item.serial_info, item_info->Durability, 0,0,0,0,0,main_server->AdjustItemType(item_info->Type) };
                         main_server->AddPlayerItemInventory(acc_cache, { inv_item_info, item_info->Stock, false, 0, false });
                     #endif
                     }
