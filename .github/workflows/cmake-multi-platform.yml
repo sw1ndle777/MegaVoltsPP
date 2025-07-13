@@ -1,0 +1,86 @@
+# This starter workflow is for a CMake project running on multiple platforms.
+# There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: CMake on multiple platforms
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
+        c_compiler: [clang, cl]
+        include:
+          - os: ubuntu-latest
+            c_compiler: clang-19
+            cpp_compiler: clang++-19
+            generator: Ninja
+            install_prefix: out
+          - os: windows-latest
+            c_compiler: clang-cl
+            cpp_compiler: clang-cl
+            generator: 'Visual Studio 17 2022'
+            vs_arch: x64
+            vs_toolset: ClangCL
+            install_prefix: out
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Clang 19 toolchain on Ubuntu
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y wget gnupg lsb-release software-properties-common
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 19
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Configure CMake (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: >
+        cmake -G "${{ matrix.generator }}" -S ${{ github.workspace }} -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }}
+
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: >
+        "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
+        -arch=${{ matrix.vs_arch }} &&
+        cmake -G "${{ matrix.generator }}" -T ${{ matrix.vs_toolset }} -A ${{ matrix.vs_arch }} ^
+          -S "%GITHUB_WORKSPACE%" ^
+          -B "${{ steps.strings.outputs.build-output-dir }}" ^
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} ^
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} ^
+          -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }}
+
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --parallel --config ${{ matrix.build_type }}
+
+    - name: Install
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --parallel --config ${{ matrix.build_type }} --target install
+
