@@ -1,0 +1,21 @@
+[target.asio]
+type = "interface"
+include-directories = ["asio/asio/include"]
+
+[target.boost_unordered]
+type = "interface"
+include-directories = ["boost_unordered"]
+
+[target.thread-pool]
+type = "interface"
+include-directories = ["thread-pool/include"]
+
+[target.rapidjson]
+type = "interface"
+include-directories = ["rapidjson/include"]
+
+[target.monocypher]
+type = "interface"
+include-directories = ["monocypher/src"]
+sources = ["monocypher/src/**.h", "monocypher/src/**.c"]
+

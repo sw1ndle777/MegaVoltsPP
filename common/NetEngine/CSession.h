@@ -16,7 +16,7 @@
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
-#include "../deps/unordered/boost/unordered/unordered_flat_map.hpp"
+#include <boost_unordered.hpp>
 namespace NetEngine
 {
     class CServer;

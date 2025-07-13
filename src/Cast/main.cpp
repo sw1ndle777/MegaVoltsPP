@@ -23,17 +23,12 @@ using namespace NetEngine::Packets::Cast;
 
 
 #define NOMINMAX
-#include <client/crashpad_client.h>
-#include <client/crash_report_database.h>
-#include <client/settings.h>
-#include <client/crashpad_info.h>
-#include <util/file/file_io.h>
-#include <util/misc/paths.h>
 
-#pragma comment(lib,"client/client.lib")
-#pragma comment(lib, "client/common.lib")
-#pragma comment(lib,"util/util.lib")
-#pragma comment(lib, "third_party/mini_chromium/mini_chromium/base/base.lib")
+#include <crashpad/client/crashpad_client.h>
+#include <crashpad/client/crash_report_database.h>
+#include <crashpad/client/settings.h>
+#include <crashpad/client/crashpad_info.h>
+//#pragma comment(lib, "third_party/mini_chromium/mini_chromium/base/base.lib")
 
 #if  defined(__linux__)
 typedef std::string StringType;

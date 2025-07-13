@@ -220,7 +220,7 @@ namespace Game
                         uint32_t level : 7;//24
                         uint32_t clanLogoFrontIdLastBit : 1;//31
                     };
-                    uint32_t data;
+                    uint32_t info_data;
                 };
                 union {
                     struct {
@@ -228,7 +228,7 @@ namespace Game
                         uint32_t clanLogoBackId : 16;
                         uint32_t clanPadding : 1;
                     };
-                    uint32_t data;
+                    uint32_t logo_data;
                 };
                 char clanName[16];
                 char leaderName[16];

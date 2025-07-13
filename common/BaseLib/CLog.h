@@ -9,8 +9,8 @@
 #include <source_location>
 #include <ctime>
 #include <chrono>
-#include "fmt/format.h"
-#include "fmt/color.h"
+#include <fmt/format.h>
+#include <fmt/color.h>
 #include <regex>
 #include <format>
 

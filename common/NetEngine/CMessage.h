@@ -59,11 +59,10 @@ namespace NetEngine
         {
 			m_buffer.resize(minSize() + sizeof(data));
             memcpy_s(m_buffer.data() + dataOffset(), sizeof(data), &data, sizeof(data));
-			m_header.size = minSize() + sizeof(data);
+			m_header->size = minSize() + sizeof(data);
         }
         std::shared_ptr<std::vector<uint8_t>> GenerateMessage();
         void ProcessMessage(uint8_t* data, uint16_t size);
-        bool Created = false;
     private:
         void generateBogus();
 		static constexpr size_t tcp_header_size = sizeof(Protocols::STcpPacketHeader);

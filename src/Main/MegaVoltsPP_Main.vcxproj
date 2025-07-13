@@ -131,19 +131,19 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\include;$(ProjectDir)..\..\deps\mariadb\include;$(ProjectDir)..\..\deps\openssl\include;$(ProjectDir)..\..\deps\fmt\include;$(ProjectDir)..\..\deps\json;$(ProjectDir)..\..\deps\bit7z;$(ProjectDir)..\..\deps\unordered\;$(ProjectDir)..\..\deps\imgui;$(ProjectDir)..\..\deps\StackWalker\;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin_1_1_1\\</OutDir>
     <IntDir>obj_1_1_1</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
-    <LibraryPath>$(ProjectDir)..\..\deps\fmt\lib;$(ProjectDir)..\..\deps\mariadb\lib;$(ProjectDir)..\..\deps\json\lib;$(ProjectDir)..\..\deps\openssl\lib;$(ProjectDir)..\..\deps\bit7z;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\include;$(ProjectDir)..\..\deps\mariadb\include;$(ProjectDir)..\..\deps\openssl\include;$(ProjectDir)..\..\deps\unordered\;$(ProjectDir)..\..\deps\StackWalker\;$(ProjectDir)..\..\deps\;$(ProjectDir)..\..\deps\crashpad\include;$(ProjectDir)..\..\deps\crashpad\include\third_party;$(ProjectDir)..\..\deps\crashpad\include\third_party\mini_chromium\mini_chromium;$(ProjectDir)..\..\deps\crashpad\include\util;$(ProjectDir)..\..\deps\crashpad\include\client;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin\\</OutDir>
     <IntDir>obj</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
-    <LibraryPath>$(ProjectDir)..\..\deps\mariadb\lib;$(ProjectDir)..\..\deps\openssl\lib;$(ProjectDir)..\..\deps\crashpad\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -215,7 +215,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_1_1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_1_1;MARIADB_STATIC_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -228,7 +228,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>fmt.lib;bit7z.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>secur32.lib;crypt32.lib;shlwapi.lib;zlib.lib;mariadbclient.lib;mariadbcpp-static.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
@@ -237,7 +237,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_0_3;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_0_3;MARIADB_STATIC_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -253,7 +253,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>secur32.lib;crypt32.lib;shlwapi.lib;mariadbclient.lib;mariadbcpp-static.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

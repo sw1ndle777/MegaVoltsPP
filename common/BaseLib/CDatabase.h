@@ -1,9 +1,7 @@
 #pragma once
 #include "CLog.h"
-#ifdef _WIN64
-#pragma comment(lib, "mariadbcpp.lib")
-#endif
-#include <conncpp.hpp>
+
+#include <mariadb/conncpp.hpp>
 #include <iostream>
 
 #include "Utility.h"
@@ -48,10 +46,10 @@ namespace BaseLib
         uint32_t ClanKills;
         uint32_t ClanDeaths;
         uint32_t ClanAssists;
-        uint64_t ClanContribution;
-        uint64_t ClanWins;
-        uint64_t ClanLoses;
-        uint64_t ClanDraws;
+        uint32_t ClanContribution;
+        uint32_t ClanWins;
+        uint32_t ClanLoses;
+        uint32_t ClanDraws;
         std::string Nickname;
         uint32_t Level;
         uint32_t Experience;
@@ -255,7 +253,7 @@ namespace BaseLib
         }
     };
     struct PlayerDailyMission {
-        uint32_t player_account_id;
+        int32_t player_account_id;
         uint64_t update_time;
         uint32_t mission1;
         uint32_t mission2;
@@ -361,14 +359,14 @@ namespace BaseLib
         }
     };
     struct EndMatchUpdateDatabaseInfo {
-        uint32_t Id;
+        int32_t Id;
         uint32_t ClanKills;
         uint32_t ClanDeaths;
         uint32_t ClanAssists;
-        uint64_t ClanContribution;
-        uint64_t ClanWins;
-        uint64_t ClanLoses;
-        uint64_t ClanDraws;
+        uint32_t ClanContribution;
+        uint32_t ClanWins;
+        uint32_t ClanLoses;
+        uint32_t ClanDraws;
         uint32_t Level;
         uint32_t Experience;
         uint64_t PlayTime;
@@ -444,7 +442,7 @@ namespace BaseLib
         bool GetPlayerMonthlyDayCount(const uint32_t& acc_id, PlayerMonthlyReward* outMonthlyRewards);
         bool InsertPlayerMonthlyDayCount(const uint32_t& acc_id, const uint8_t& reward_count, const uint64_t& last_update);
         bool UpdatePlayerMonthlyDayCount(const uint32_t& acc_id, const uint8_t& reward_count, const uint64_t& last_update);
-        bool GetPlayerDailyMission(const uint32_t& acc_id, PlayerDailyMission* outDailyMission);
+        bool GetPlayerDailyMission(const int32_t& acc_id, PlayerDailyMission* outDailyMission);
         bool InsertPlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission);
         bool UpdatePlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission);
         std::vector<GachaponSaleInfo> GetGachaponSalesInfo();

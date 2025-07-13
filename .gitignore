@@ -29,3 +29,8 @@ Debug/
 /crash_dumps/
 /build/
 /CMakeFiles
+/deps/asio
+/deps/boost_unordered
+/deps/monocypher
+/deps/rapidjson
+/deps/thread-pool

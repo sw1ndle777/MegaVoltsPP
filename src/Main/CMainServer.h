@@ -14,8 +14,9 @@
 
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
-#include <boost/unordered/unordered_flat_map.hpp>
-#include <boost/unordered/unordered_flat_set.hpp>
+//#include <boost/unordered/unordered_flat_map.hpp>
+//#include <boost/unordered/unordered_flat_set.hpp>
+#include <boost_unordered.hpp>
 #include "BaseLib/CDatabase.h"
 #include "BaseLib/CDBData.h"
 

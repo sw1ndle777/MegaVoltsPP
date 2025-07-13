@@ -1,6 +1,5 @@
 #include "CDatabase.h"
-//#include <fmt/color.h>
-#include "fmt/color.h"
+#include <fmt/color.h>
 namespace BaseLib
 {
     void CDatabase::Initialize(const std::string& database, const std::string& host, const uint16_t& port, const std::string& user, const std::string& password)
@@ -659,10 +658,10 @@ namespace BaseLib
             pstmt->setUInt(index++, front_acc.ClanKills);
             pstmt->setUInt(index++, front_acc.ClanDeaths);
             pstmt->setUInt(index++, front_acc.ClanAssists);
-            pstmt->setUInt64(index++, front_acc.ClanContribution);
-            pstmt->setUInt64(index++, front_acc.ClanWins);
-            pstmt->setUInt64(index++, front_acc.ClanLoses);
-            pstmt->setUInt64(index++, front_acc.ClanDraws);
+            pstmt->setUInt(index++, front_acc.ClanContribution);
+            pstmt->setUInt(index++, front_acc.ClanWins);
+            pstmt->setUInt(index++, front_acc.ClanLoses);
+            pstmt->setUInt(index++, front_acc.ClanDraws);
             pstmt->setString(index++, front_acc.Nickname);
             pstmt->setUInt(index++, front_acc.Level);
             pstmt->setUInt(index++, front_acc.Experience);
@@ -1432,10 +1431,10 @@ namespace BaseLib
                     result->getUInt("ClanKills"),
                     result->getUInt("ClanDeaths"),
                     result->getUInt("ClanAssists"),
-                    result->getUInt64("ClanContribution"),
-                    result->getUInt64("ClanWins"),
-                    result->getUInt64("ClanLoses"),
-                    result->getUInt64("ClanDraws"),
+                    result->getUInt("ClanContribution"),
+                    result->getUInt("ClanWins"),
+                    result->getUInt("ClanLoses"),
+                    result->getUInt("ClanDraws"),
                     result->getString("Nickname").c_str(),
                     result->getUInt("Level"),
                     result->getUInt("Experience"),
@@ -1589,10 +1588,10 @@ namespace BaseLib
                     result->getUInt("ClanKills"),
                     result->getUInt("ClanDeaths"),
                     result->getUInt("ClanAssists"),
-                    result->getUInt64("ClanContribution"),
-                    result->getUInt64("ClanWins"),
-                    result->getUInt64("ClanLoses"),
-                    result->getUInt64("ClanDraws"),
+                    result->getUInt("ClanContribution"),
+                    result->getUInt("ClanWins"),
+                    result->getUInt("ClanLoses"),
+                    result->getUInt("ClanDraws"),
                     result->getString("Nickname").c_str(),
                     result->getUInt("Level"),
                     result->getUInt("Experience"),
@@ -1908,10 +1907,10 @@ namespace BaseLib
                         case 0: pstmt->setUInt(paramIndex++, player.ClanKills); break;
                         case 1: pstmt->setUInt(paramIndex++, player.ClanDeaths); break;
                         case 2: pstmt->setUInt(paramIndex++, player.ClanAssists); break;
-                        case 3: pstmt->setUInt64(paramIndex++, player.ClanContribution); break;
-                        case 4: pstmt->setUInt64(paramIndex++, player.ClanWins); break;
-                        case 5: pstmt->setUInt64(paramIndex++, player.ClanLoses); break;
-                        case 6: pstmt->setUInt64(paramIndex++, player.ClanDraws); break;
+                        case 3: pstmt->setUInt(paramIndex++, player.ClanContribution); break;
+                        case 4: pstmt->setUInt(paramIndex++, player.ClanWins); break;
+                        case 5: pstmt->setUInt(paramIndex++, player.ClanLoses); break;
+                        case 6: pstmt->setUInt(paramIndex++, player.ClanDraws); break;
                         case 7: pstmt->setUInt(paramIndex++, player.Level); break;
                         case 8: pstmt->setUInt(paramIndex++, player.Experience); break;
                         case 9: pstmt->setUInt64(paramIndex++, player.PlayTime); break;
@@ -2006,10 +2005,10 @@ namespace BaseLib
                     result->getUInt("ClanKills"),
                     result->getUInt("ClanDeaths"),
                     result->getUInt("ClanAssists"),
-                    result->getUInt64("ClanContribution"),
-                    result->getUInt64("ClanWins"),
-                    result->getUInt64("ClanLoses"),
-                    result->getUInt64("ClanDraws"),
+                    result->getUInt("ClanContribution"),
+                    result->getUInt("ClanWins"),
+                    result->getUInt("ClanLoses"),
+                    result->getUInt("ClanDraws"),
                     result->getString("Nickname").c_str(),
                     result->getUInt("Level"),
                     result->getUInt("Experience"),
@@ -2116,8 +2115,8 @@ namespace BaseLib
             }
             else
             {
-                std::string stored_hash_str = base64::from_base64(password_str.c_str());
-                std::string stored_salt_str = base64::from_base64(password_salt_str.c_str());
+                std::string stored_hash_str = Utility::Base64::from_base64(password_str.c_str());
+                std::string stored_salt_str = Utility::Base64::from_base64(password_salt_str.c_str());
 
                 if (stored_hash_str.size() != 32 || stored_salt_str.size() != 16)
                 {
@@ -3700,7 +3699,7 @@ namespace BaseLib
     }
 
 
-    bool CDatabase::GetPlayerDailyMission(const uint32_t& acc_id, PlayerDailyMission* outDailyMission)
+    bool CDatabase::GetPlayerDailyMission(const int32_t& acc_id, PlayerDailyMission* outDailyMission)
     {
         try
         {

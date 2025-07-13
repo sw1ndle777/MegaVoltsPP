@@ -11,10 +11,7 @@
 #include "Constants.h"
 #include "CSession.h"
 
-//#include <boost/unordered/concurrent_flat_map.hpp>
-//#include "../deps/unordered/boost/unordered/unordered_flat_map.hpp"
-#include <boost/unordered/unordered_flat_map.hpp>
-#include <boost/unordered/unordered_flat_set.hpp>
+#include <boost_unordered.hpp>
 #include "BaseLib/CSettings.h"
 #include <BaseLib/CThreadPool.h>
 namespace NetEngine

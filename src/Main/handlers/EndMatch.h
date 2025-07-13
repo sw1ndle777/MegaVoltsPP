@@ -130,7 +130,7 @@ namespace Game
                 safe_add_uint32(player_acc_cache->acc_info.ClanKills, kills);
                 safe_add_uint32(player_acc_cache->acc_info.ClanDeaths, deaths);
                 safe_add_uint32(player_acc_cache->acc_info.ClanAssists, assists);
-                safe_add_uint64(player_acc_cache->acc_info.ClanContribution, (static_cast<uint64_t>(kills) * 6 + assists));//TODO: own contribution math
+                safe_add_uint32(player_acc_cache->acc_info.ClanContribution, (static_cast<uint32_t>(kills) * 6 + assists));//TODO: own contribution math
             }
           
             if (player_acc_cache->acc_info.Energy + earnt_battery <= player_acc_cache->acc_info.MaximumEnergy)
@@ -145,7 +145,7 @@ namespace Game
             {
                 safe_add_uint32(player_acc_cache->acc_info.Draws, 1);
                 if (is_clan_match)
-                    safe_add_uint64(player_acc_cache->acc_info.ClanDraws, 1);
+                    safe_add_uint32(player_acc_cache->acc_info.ClanDraws, 1);
             }
             else if (blue_team_win)
             {
@@ -153,13 +153,13 @@ namespace Game
                 {
                     safe_add_uint32(player_acc_cache->acc_info.Wins, 1);
                     if (is_clan_match)
-                        safe_add_uint64(player_acc_cache->acc_info.ClanWins, 1);
+                        safe_add_uint32(player_acc_cache->acc_info.ClanWins, 1);
                 }
                 else
                 {
                     safe_add_uint32(player_acc_cache->acc_info.Loses, 1);
                     if (is_clan_match)
-                        safe_add_uint64(player_acc_cache->acc_info.ClanLoses, 1);
+                        safe_add_uint32(player_acc_cache->acc_info.ClanLoses, 1);
                 }
             }
             else
@@ -168,13 +168,13 @@ namespace Game
                 {
                     safe_add_uint32(player_acc_cache->acc_info.Loses, 1);
                     if (is_clan_match)
-                        safe_add_uint64(player_acc_cache->acc_info.ClanLoses, 1);
+                        safe_add_uint32(player_acc_cache->acc_info.ClanLoses, 1);
                 }
                 else
                 {
                     safe_add_uint32(player_acc_cache->acc_info.Wins, 1);
                     if (is_clan_match)
-                        safe_add_uint64(player_acc_cache->acc_info.ClanWins, 1);
+                        safe_add_uint32(player_acc_cache->acc_info.ClanWins, 1);
                 }
             }
         }
