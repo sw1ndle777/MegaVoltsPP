@@ -14,7 +14,6 @@ namespace Game
             if (!session || !message) return;
 
             std::shared_lock lock(session->GetMutex());
-            CServer* server = callback.server;
             auto host_session_id = message->GetSession();
             auto self_session_id = session->GetSessionId();
 

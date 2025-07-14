@@ -16,10 +16,8 @@
 
 #include "CFrontServer.h"
 #include "BaseLib/Utility.h"
+
 #include <fmt/color.h>
-
-#define NOMINMAX
-
 
 #include <crashpad/client/crashpad_client.h>
 #include <crashpad/client/crash_report_database.h>
@@ -75,7 +73,7 @@ void init_crash_handler()
     if (database == NULL) return;
 
     crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-    bool success = client->StartHandler(
+    client->StartHandler(
         handler,
         db_path,
         metrics_path,

@@ -39,7 +39,7 @@ namespace Game
             acc_cache.unlock();
             if (items_deleted.size() > 0)
             {
-                BaseLib::DbPool->submit_task([main_server,
+				[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server,
                     session = std::move(callback.session),
                     s_id = std::move(session_id),
                     acc_id = std::move(acc_index),

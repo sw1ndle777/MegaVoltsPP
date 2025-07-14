@@ -11,7 +11,7 @@ namespace Game
         {
             auto session = callback.session;
             if (!session) return;
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -64,7 +64,7 @@ namespace Game
             auto session = callback.session;
             if (!session) return;
 
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -159,7 +159,7 @@ namespace Game
                 mailbox_data->is_new = false;
                 mail_ids.push_back(mail_id);
             }
-            BaseLib::DbPool->submit_task([main_server, new_mail_ids = std::move(mail_ids)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([new_mail_ids = std::move(mail_ids)]() mutable
             {
                 BaseLib::Database->UpdateMailboxIsNew(new_mail_ids, false);
             });
@@ -169,7 +169,7 @@ namespace Game
         {
             auto session = callback.session;
             if (!session) return;
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();

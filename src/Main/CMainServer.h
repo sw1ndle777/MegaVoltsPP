@@ -1976,7 +1976,6 @@ namespace Game
                         observer_cache->slot_id = 0xFF;
                         observer_cache->playing = false;
                         observer_cache->state = PlayerInfo::State::Waiting;
-                        auto observer_cache_team_id = observer_cache->team_id;
                         observer_cache.unlock();
                         if (auto observer_session = this->GetSessionById(observer_id))
                             observer_session->SendMsg(141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
@@ -2550,11 +2549,7 @@ namespace Game
         void AddItemInfoCache(const uint32_t& id, BaseLib::ItemInfo item_info)
         {
             auto items_info_locked = LockedResource{ std::unique_lock(items_info_mutex), items_info };
-
             auto [it, inserted] = items_info_locked->emplace(id, std::move(item_info));
-
-            //if (!inserted)
-            //    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a item info with item id: ({}), but it already exists ", item_info.Id);
         }
         void RemoveItemInfoCache(const uint32_t& id)
         {
@@ -3873,7 +3868,7 @@ namespace Game
             for (const auto& [name, command] : cmds)
             {
                 if (grade < command.required_grade) continue;
-                commands.push_back(fmt::format("/{}", name));
+                commands.push_back(std::format("/{}", name));
             }
             return commands;
         }

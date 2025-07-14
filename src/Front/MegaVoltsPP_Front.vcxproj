@@ -71,8 +71,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>ClangCL</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <EnableASAN>false</EnableASAN>
   </PropertyGroup>
@@ -133,7 +133,7 @@
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin_1_1_1\\</OutDir>
-    <IntDir>obj_1_1_1</IntDir>
+    <IntDir>obj_1_1_1\\</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -141,7 +141,7 @@
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin\\</OutDir>
-    <IntDir>obj</IntDir>
+    <IntDir>obj\\</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -215,7 +215,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_1_1;MARIADB_STATIC_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_1_1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -228,7 +228,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>secur32.lib;crypt32.lib;shlwapi.lib;zlib.lib;mariadbclient.lib;mariadbcpp-static.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mariadbcpp.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
@@ -237,7 +237,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_0_3;MARIADB_STATIC_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RELEASE_1_0_3;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -255,7 +255,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>secur32.lib;crypt32.lib;shlwapi.lib;mariadbclient.lib;mariadbcpp-static.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mariadbcpp.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

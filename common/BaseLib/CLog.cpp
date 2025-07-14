@@ -13,7 +13,6 @@ namespace BaseLib
 
         std::filesystem::path logFilePath(Path);
 
-        // Extract the directory part of the file path
         std::filesystem::path logDirectory = logFilePath.parent_path();
 
 
@@ -40,25 +39,6 @@ namespace BaseLib
         {
             throw std::runtime_error("Could not open file: " + Path);
         }
-        /*
-        logThread.emplace([this] 
-        {
-            ProcessQueue();
-        });
-        */
-		/*
-        auto recurringTask = [this]()
-            {
-                if (!stopLogging)
-                {
-                    this->ProcessQueue();
-                    BaseLib::ThreadPool->submit_task([this]() { 
-                        this->ProcessQueue(); 
-                        }, BS::pr::low);
-                }
-            };
-        BaseLib::ThreadPool->submit_task(recurringTask, BS::pr::low);
-		*/
     }
 
     void CLog::Write(const std::string& Text)
@@ -69,9 +49,8 @@ namespace BaseLib
         char buffer[80];
         std::strftime(buffer, sizeof(buffer), "[%d-%m-%Y %H:%M:%S]", std::localtime(&time));
 
-        const std::string Output = fmt::format("{} {}", buffer, Text);
+		const std::string Output = fmt::format("{} {}", buffer, Text);
 
-        //std::scoped_lock lock(WriteMutex);
         File << Output << std::endl;
     }
 
@@ -87,53 +66,6 @@ namespace BaseLib
         Write(buffer);
     }
 
-    void CLog::Info(const char* format, ...)
-    {
-        char buffer[8192] = { 0 };
-        va_list arglist;
-
-        va_start(arglist, format);
-        vsprintf(buffer, format, arglist);
-        va_end(arglist);
-
-        Write(fmt::format("[INFO] {}", buffer));
-    }
-
-    void CLog::Warning(const char* format, ...)
-    {
-        char buffer[8192] = { 0 };
-        va_list arglist;
-
-        va_start(arglist, format);
-        vsprintf(buffer, format, arglist);
-        va_end(arglist);
-
-        Write(fmt::format("[WARNING] {}", buffer));
-    }
-
-    void CLog::Error(const char* format, ...)
-    {
-        char buffer[8192] = { 0 };
-        va_list arglist;
-
-        va_start(arglist, format);
-        vsprintf(buffer, format, arglist);
-        va_end(arglist);
-
-        Write(fmt::format("[ERROR] {}", buffer));
-    }
-
-    void CLog::Verbose(const char* format, ...)
-    {
-        char buffer[8192] = { 0 };
-        va_list arglist;
-
-        va_start(arglist, format);
-        vsprintf(buffer, format, arglist);
-        va_end(arglist);
-
-        Write(fmt::format("[VERBOSE] {}", buffer));
-    }
 
     std::unique_ptr<CLog> EventLog = std::make_unique<CLog>();
 }

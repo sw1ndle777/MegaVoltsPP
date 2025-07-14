@@ -13,7 +13,6 @@ namespace Game
             if (!session) return;
 
             std::shared_lock lock(session->GetMutex());
-            CServer* server = callback.server;
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheUnique(self_session_id);
             if (self_player->in_room)

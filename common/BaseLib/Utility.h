@@ -29,7 +29,6 @@
 //#include <base64/base64.hpp>
 
 #include <monocypher.h>
-
 #include <fmt/format.h>
 #include <fmt/color.h>
 
@@ -38,10 +37,35 @@
 namespace Utility
 {
     constexpr std::string_view allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()-_=+[{]}<.>/?";
-    constexpr std::string_view forbiddenSubstrings[] = { "[gm]", "[mod]", "{gm}", "(gm)", "{mod}", "(mod)", "admin", "administrator", "gamemaster", "moderator", "retard", "jew", "nigger", "nigga", "faggot", "tranny" };
-    bool ContainsForbiddenSubstring(std::string_view str);
-    bool IsValidNickname(char nickname[16]);
-    bool IsValidNickname(const std::string_view nicknameView);
+    constexpr std::string_view forbiddenSubstrings[] = 
+    { 
+        "[gm]", "[mod]", "{gm}", "(gm)", "{mod}", 
+        "(mod)", "admin", "administrator", "gamemaster", "moderator", 
+        "retard", "jew", "nigger", "nigga", "faggot", 
+        "tranny" 
+    };
+
+    template <std::ranges::range R> requires std::same_as<std::ranges::range_value_t<R>, char>
+    [[nodiscard]] inline std::string ToLowercase(R&& r)
+    {
+        std::string s{std::ranges::begin(r), std::ranges::end(r)};
+        std::ranges::transform(s, s.begin(), [](unsigned char c){ return char(std::tolower(c)); });
+        return s;
+    }
+
+    template <std::ranges::range R> requires std::same_as<std::ranges::range_value_t<R>, char>
+    [[nodiscard]] bool IsValidNickname(R&& r)
+    {
+        const std::string nick = ToLowercase(r);
+
+        return std::ranges::all_of(nick, [](char c)
+        { 
+            return allowedChars.contains(c); 
+        }) && std::ranges::none_of(forbiddenSubstrings, [&](std::string_view f)
+        { 
+            return nick.contains(f); 
+        });
+    }
     
     namespace Random
     {
@@ -70,14 +94,8 @@ namespace Utility
     std::string UInt64ToDateTimeString(uint64_t unix_timestamp);
     std::string GetBytesArray(uint8_t* data, uint16_t size);
     uint64_t GenerateAuthKey(const std::string& username, const std::string& password, const uint8_t* salt);
-    std::string ToLowercase(const std::string& str);
-    void ToLowercase(std::string& str);
-    bool IsPasswordValid(const std::string& password, const std::string& hash, const std::string& salt);
     std::string ReadMVString(std::string_view in);
     std::string ReadMicrovoltsString(const char* data, uint32_t size);
-    std::pair<std::string, std::string> Hash(const std::string& password);
-    std::vector<unsigned char> DecodeBase64(const std::string& str);
-    std::string EncodeBase64(const std::vector<unsigned char>& data);
     std::vector<std::string> SplitStrings(std::string_view str, char delimiter);
     bool IsDigitsOnly(const std::string& input);
     uint32_t ExtractNumber(const std::string& input);
@@ -101,6 +119,9 @@ namespace Utility
     std::int64_t GetMemoryUsage(void* m_process_handle);
 
     bool HashPassword(const std::string& password, const uint8_t* salt, uint8_t* out_hash);
+
+
+
 
     namespace Base64 {
 

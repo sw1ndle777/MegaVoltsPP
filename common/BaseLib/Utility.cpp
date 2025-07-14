@@ -76,64 +76,30 @@ namespace Utility
         return std::to_string(bytes) + " B ";
     }
 
+    [[nodiscard]]
     std::string readable_time(uint64_t ns)
     {
-        const uint64_t nanoseconds = 1;
-        const uint64_t microseconds = 1000 * nanoseconds;
-        const uint64_t milliseconds = 1000 * microseconds;
-        const uint64_t seconds = 1000 * milliseconds;
-        const uint64_t minutes = 60 * seconds;
-        const uint64_t hours = 60 * minutes;
-
-        auto format_float = [](float number, int precision = 2) -> std::string
+        using namespace std::chrono;
+        const nanoseconds t{ns};
+        constexpr int prec = 2;
+        struct Unit 
         {
-            std::ostringstream out;
-            out << std::fixed << std::setprecision(precision) << number;
-            return out.str();
+            nanoseconds          factor;
+            std::string_view     name;
         };
+        constexpr std::array<Unit, 6> table{ {
+            { 1h,  "hours"       },
+            { 1min,"minutes"     },
+            { 1s,  "seconds"     },
+            { 1ms, "milliseconds"},
+            { 1us, "microseconds"},
+            { 1ns, "nanoseconds" }
+            } };
 
-        if (ns >= hours) return format_float(static_cast<float>(ns) / hours) + " hours ";
-        if (ns >= minutes) return format_float(static_cast<float>(ns) / minutes) + " minutes ";
-        if (ns >= seconds) return format_float(static_cast<float>(ns) / seconds) + " seconds ";
-        if (ns >= milliseconds) return format_float(static_cast<float>(ns) / milliseconds) + " milliseconds ";
-        if (ns >= microseconds) return format_float(static_cast<float>(ns) / microseconds) + " microseconds ";
-        return std::to_string(ns) + " nanoseconds ";
-    }
-    bool ContainsForbiddenSubstring(std::string_view str)
-    {
-        for (const auto& forbidden : forbiddenSubstrings)
-        {
-            if (str.find(forbidden) != std::string_view::npos)
-                return true;
-        }
-        return false;
-    }
-    bool IsValidNickname(char nickname[16])
-    {
-        std::string nicknameStr{ nickname };
-        ToLowercase(nicknameStr);
-        std::string_view nicknameView{ nicknameStr };
+        const auto it = std::ranges::find_if(table, [t](const Unit& u){ return t >= u.factor; });
 
-        for (char c : nicknameView)
-            if (allowedChars.find(c) == std::string_view::npos)
-                return false;
-
-        if (ContainsForbiddenSubstring(nicknameView)) return false;
-
-        return true;
-    }
-
-    bool IsValidNickname(const std::string_view nicknameView)
-    {
-        std::string lowercaseNickname = ToLowercase(std::string(nicknameView));
-
-        for (char c : lowercaseNickname)
-            if (allowedChars.find(c) == std::string_view::npos)
-                return false;
-
-        if (ContainsForbiddenSubstring(lowercaseNickname)) return false;
-
-        return true;
+        const double value = t / (1.0 * it->factor);
+        return std::format("{:.{}f} {}", value, prec, it->name);
     }
 
     uint32_t GetUnixEpoch()
@@ -246,7 +212,7 @@ namespace Utility
 
         uint64_t minutes = milliseconds / ms_in_a_minute;
 
-        return fmt::format("{} Day(s) {} Hour(s) {} Minute(s)", days, hours, minutes);
+        return std::format("{} Day(s) {} Hour(s) {} Minute(s)", days, hours, minutes);
     }
     uint64_t GetUtcTimeNowInSeconds()
     {
@@ -265,7 +231,7 @@ namespace Utility
         std::time_t truncated_time = std::chrono::system_clock::to_time_t(time_point);
         std::tm tm_time = *std::gmtime(&truncated_time);
 
-        return fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}",
+        return std::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}",
                            tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
                            tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
     }
@@ -314,33 +280,9 @@ namespace Utility
         }
         return ss.str();
     }
-    std::string ToLowercase(const std::string& str)
-    {
-        std::string result = str;
-        std::transform(result.begin(), result.end(), result.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
-        return result;
-    }
-    void ToLowercase(std::string& str)
-    {
-        std::transform(str.begin(), str.end(), str.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
-    }
+
     uint64_t GenerateAuthKey(const std::string& username, const std::string& password, const uint8_t* salt)
     {
-        /*
-        uint64_t auth_key = 0;
-        unsigned char hash[EVP_MAX_MD_SIZE];
-        unsigned int hash_len = 0;
-        std::string data = username + password;
-        const EVP_MD* md = EVP_sha3_256();
-        EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
-        EVP_DigestInit_ex(mdctx, md, NULL);
-        EVP_DigestUpdate(mdctx, data.c_str(), data.length());
-        EVP_DigestFinal_ex(mdctx, hash, &hash_len);
-        EVP_MD_CTX_free(mdctx);
-        std::memcpy(&auth_key, hash, sizeof(auth_key));
-        */
         crypto_argon2_config config = {
             .algorithm  = CRYPTO_ARGON2_ID,  // ID = hybrid variant
             .nb_blocks  = 1000,              // Less intensive for fast auth key
@@ -373,29 +315,7 @@ namespace Utility
         std::memcpy(&auth_key, hash, sizeof(auth_key));
         return auth_key;
     }
-    const int kIterations = 30000;
-    const int kSaltLength = 24;
-    const int kHashLength = 24;
-    bool IsPasswordValid(const std::string& password, const std::string& hash, const std::string& salt)
-    {
-        if (password.empty() || hash.empty() || salt.empty())
-            return false;
 
-        /*
-        std::vector<unsigned char> actualPasswordHash = DecodeBase64(hash);
-        std::vector<unsigned char> actualPasswordSalt = DecodeBase64(salt);
-        std::vector<unsigned char> passwordGuess(kHashLength);
-
-        PKCS5_PBKDF2_HMAC(password.c_str(), password.length(),
-            reinterpret_cast<const unsigned char*>(actualPasswordSalt.data()), actualPasswordSalt.size(),
-            kIterations, EVP_sha256(),
-            kHashLength, passwordGuess.data());
-        */
-
-        //return actualPasswordHash == passwordGuess;
-
-        return password._Equal(hash.c_str());
-    }
     std::string ReadMicrovoltsString(const char* data, uint32_t size)
     {
         if (data == nullptr || size <= 0)
@@ -411,52 +331,7 @@ namespace Utility
         if (pos == in.npos) { return ""; }
         return { in.data(), (size_t)pos };
     }
-    /*
-    std::pair<std::string, std::string> Hash(const std::string& password)
-    {
-
-        std::vector<unsigned char> salt(kSaltLength);
-        RAND_bytes(salt.data(), kSaltLength);
-
-        std::vector<unsigned char> hash(kHashLength);
-        PKCS5_PBKDF2_HMAC(password.c_str(), static_cast<int32_t>(password.length()),
-                          salt.data(), kSaltLength,
-                          kIterations, EVP_sha256(),
-                          kHashLength, hash.data());
-
-        //return { EncodeBase64(hash), EncodeBase64(salt) };
-        return { password,password };
-    }
-
-    std::vector<unsigned char> DecodeBase64(const std::string& str)
-    {
-        BIO* b64 = BIO_new(BIO_f_base64());
-        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-        BIO* bio = BIO_new_mem_buf(str.data(), static_cast<int32_t>(str.length()));
-        bio = BIO_push(b64, bio);
-        std::vector<unsigned char> output(str.length());
-        int len = BIO_read(bio, output.data(), static_cast<int32_t>(output.size()));
-        output.resize(len);
-        BIO_free_all(bio);
-        return output;
-    }
-
-    std::string EncodeBase64(const std::vector<unsigned char>& data)
-    {
-        BIO* b64 = BIO_new(BIO_f_base64());
-        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-        BIO* bio = BIO_new(BIO_s_mem());
-        bio = BIO_push(b64, bio);
-        BIO_write(bio, data.data(), static_cast<int32_t>(data.size()));
-        BIO_flush(bio);
-        char* ptr;
-        long len = BIO_get_mem_data(bio, &ptr);
-        std::string output(ptr, len);
-        BIO_free_all(bio);
-        return output;
-    }
-    */
-
+   
     std::vector<std::string> SplitStrings(std::string_view str, char delimiter)
     {
         std::vector<std::string> result;
@@ -505,14 +380,14 @@ namespace Utility
             data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
 
             for (uint32_t i = 0; i < 4; i++)
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
+                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
 
             for (uint32_t i = 0; i < 4; i++)
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
 
             for (uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
             {
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
+                std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
                 if (i != packetMessage.GetDataSize() - 1)
                     data_buffer += ' ';
             }
@@ -528,14 +403,14 @@ namespace Utility
             data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage->GetDataSize() * 3));
 
             for (uint32_t i = 0; i < 4; i++)
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetHeader().data >> (i * 8)));
+                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetHeader().data >> (i * 8)));
 
             for (uint32_t i = 0; i < 4; i++)
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetCommand().data >> (i * 8)));
+                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetCommand().data >> (i * 8)));
 
             for (uint32_t i = 0; i < packetMessage->GetDataSize(); i++)
             {
-                fmt::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage->GetData()[i]);
+                std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage->GetData()[i]);
                 if (i != packetMessage->GetDataSize() - 1)
                     data_buffer += ' ';
             }

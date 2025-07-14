@@ -12,7 +12,7 @@ namespace Game
             auto session = callback.session;
             if (!session) return;
 
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -79,7 +79,7 @@ namespace Game
         {
             auto session = callback.session;
             if (!session) return;
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
@@ -167,7 +167,7 @@ namespace Game
             CServer* server = callback.server;
             if (!session) return;
 
-            BaseLib::DbPool->submit_task([server, main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([server, main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 
@@ -349,7 +349,7 @@ namespace Game
             auto session = callback.session;
             if (!session) return;
 
-            BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();

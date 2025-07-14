@@ -175,7 +175,7 @@ namespace NetEngine
 
                 if (endpoint_error)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to retrieve remote endpoint: ({})", endpoint_error.message());
+                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to retrieve remote endpoint: ({})", endpoint_error.message().c_str());
                     AcceptIpcSessions(ipc_addresses);
                 }
 
@@ -364,7 +364,7 @@ namespace NetEngine
             asio::ip::tcp::resolver resolver(m_ioContext);
             asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(ip, port);
 
-            asio::async_connect(*socket, endpoints, [socket, this, ipc_id, payload = std::move(payload)](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
+            asio::async_connect(*socket, endpoints, [socket, ipc_id, payload = std::move(payload)](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
             {
                 if (ec)
                 {
@@ -446,7 +446,7 @@ namespace NetEngine
                 }
             });
 
-            asio::async_connect(*socket, endpoints, [socket, this, host, path, request, timer](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
+            asio::async_connect(*socket, endpoints, [socket, host, path, request, timer](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
             {
                 if (ec)
                 {
@@ -547,7 +547,7 @@ namespace NetEngine
 			{
 				if (!ec && !m_watchguard)
 				{
-					BaseLib::LogPool->submit_task([this, interval, timeout]()
+					[[maybe_unused]] auto ignored_result = BaseLib::LogPool->submit_task([this, interval, timeout]()
 					{
 						this->watchdog(interval, timeout);
 					}, BS::pr::lowest);

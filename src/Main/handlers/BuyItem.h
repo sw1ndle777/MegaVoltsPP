@@ -79,7 +79,7 @@ namespace Game
                     if (shop_items.size() > 0 && new_items.size() > 0)
                     {
                         acc_cache.unlock();
-                        BaseLib::DbPool->submit_task([main_server, 
+						[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([main_server, 
                                                      p_order = std::move(order),
                                                      session = std::move(callback.session),
                                                      s_id = std::move(session_id), 

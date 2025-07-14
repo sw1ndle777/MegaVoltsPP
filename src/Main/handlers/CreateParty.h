@@ -272,11 +272,9 @@ namespace Game
             if (!session || !message) return;
 
             std::shared_lock lock(session->GetMutex());
-            CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
-            auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
             if (acc_index == -1) return;
 
             acc_cache->voice_id = message->GetOption();
@@ -290,7 +288,7 @@ namespace Game
             if (!session || !message) return;
 
             std::shared_lock lock(session->GetMutex());
-            CServer* server = callback.server;
+            
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheUniqueBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;
@@ -496,7 +494,7 @@ namespace Game
                     }
                     auto party = main_server->GetPartyCacheUnique(party_id);
                     if (party->is_clan && party->party_host_session_id == member_session_id) {
-                        bool queueState = 0;
+                        uint32_t queueState = 0;
                         if (member_acc_cache->in_room) {
                             queueState = (member_acc_cache->playing ? 2 : 1);
                         }
@@ -825,7 +823,7 @@ namespace Game
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "check party id ({})", party_ids[i]);
                         if (!c_party->is_clan) continue;
                         if (!c_party->is_registered) continue;
-                        if (!c_party->clan_id == my_clan_id) continue;
+                        if (c_party->clan_id != my_clan_id) continue;
                         BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "check passed");
                         auto c_clan = main_server->GetClanCacheUnique(c_party->clan_id);
                         auto c_leader = main_server->GetAccCacheUniqueBySessionId(c_party->party_host_session_id);

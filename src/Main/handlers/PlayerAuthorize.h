@@ -32,7 +32,7 @@ namespace Game
             auto session = callback.session;
             if (!session) return;
 
-            BaseLib::DbPool->submit_task([server = std::move(callback.server), main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([server = std::move(callback.server), main_server, session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 if (!session) return;
 
@@ -264,8 +264,8 @@ namespace Game
                 });
 
 
-                main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
-                main_server->SendServerMessage(session, fmt::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
+                main_server->SendServerMessage(session, std::format("[MegaVolts Online] Welcome, {}", accInfoMsg.Nickname).c_str());
+                main_server->SendServerMessage(session, std::format("[MegaVolts Online] Server's uptime {}", Utility::FormatMilliseconds(server_time).c_str()).c_str());
 
 
                 boost::unordered_flat_map<uint32_t, uint32_t> accountToSessionMap;

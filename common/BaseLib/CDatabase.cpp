@@ -515,7 +515,7 @@ namespace BaseLib
             }
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
-            return !stmt->execute(fmt::format("CREATE DATABASE {0}", name.c_str()));
+            return !stmt->execute(std::format("CREATE DATABASE {0}", name.c_str()));
         }
         catch (sql::SQLException& e)
         {
@@ -816,14 +816,16 @@ namespace BaseLib
             std::string isEquippedCase = "IsEquipped = CASE SerialInfo ";
             std::string characterIdCase = "CharacterId = CASE SerialInfo ";
 
-            auto join = [](const std::vector<std::string>& vec, const std::string& delim) -> std::string {
-                std::string result;
-                for (size_t i = 0; i < vec.size(); ++i) {
-                    if (i != 0) result += delim;
-                    result += vec[i];
-                }
-                return result;
-                };
+            auto join = [](const std::vector<std::string> &vec,
+                           const std::string &delim) -> std::string {
+              std::string result;
+              for (size_t i = 0; i < vec.size(); ++i) {
+                if (i != 0)
+                  result += delim;
+                result += vec[i];
+              }
+              return result;
+            };
 
             for (const auto& item : inv_items) 
             {
@@ -1891,17 +1893,13 @@ namespace BaseLib
                 std::string finalQuery = sql.str();
                 std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(finalQuery));
 
-                // Safe manual field binding
                 int paramIndex = 1;
 
                 for (size_t fieldIndex = 0; fieldIndex < fields.size(); ++fieldIndex)
                 {
-                    const auto& field = fields[fieldIndex];
                     for (const auto& player : updates)
                     {
                         pstmt->setUInt(paramIndex++, player.Id);
-
-                        // Safely access the correct member
                         switch (fieldIndex)
                         {
                         case 0: pstmt->setUInt(paramIndex++, player.ClanKills); break;
@@ -1939,11 +1937,8 @@ namespace BaseLib
                 }
 
 
-                // Bind WHERE Id IN (...)
                 for (const auto& player : updates)
-                {
                     pstmt->setUInt(paramIndex++, player.Id);
-                }
 
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::cyan,
                     "Executing CASE update with {} bound parameters", paramIndex - 1);

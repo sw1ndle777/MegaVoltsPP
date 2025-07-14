@@ -44,6 +44,8 @@ project(MegaVoltsPP
 		CXX
 )
 
+include("cmake/PlatformFlags.cmake")
+
 if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
 	include(FetchContent)
 	# Fix warnings about DOWNLOAD_EXTRACT_TIMESTAMP
@@ -119,36 +121,13 @@ target_compile_definitions(front PRIVATE
 	RELEASE_1_0_3
 	_CRT_SECURE_NO_WARNINGS
 	_WIN32_WINNT=0x0A00
-	MARIADB_STATIC_LINK
 )
 
 target_compile_features(front PRIVATE
 	cxx_std_23
 )
 
-if(MSVC) # msvc
-	target_compile_options(front PRIVATE
-		"/bigobj"
-		"/MP"
-		"/wd4661"
-		"/utf-8"
-	)
-endif()
-
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_compile_options(front PRIVATE
-		-finput-charset=utf-8
-		-fexec-charset=utf-8
-		-Wa,-mbig-obj
-		-Wno-some-warning
-		-stdlib=libc++
-	)
-endif()
-
 target_link_libraries(front PRIVATE
-	secur32
-	crypt32
-	crypt32
 	asio
 	boost_unordered
 	thread-pool
@@ -160,24 +139,19 @@ target_link_libraries(front PRIVATE
 	common
 )
 
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_link_options(front PRIVATE
-		-fuse-ld=lld
-		"-Wl,-L/usr/local/lib/"
-	)
-endif()
-
 target_include_directories(front PRIVATE
 	.
+)
+
+set_target_properties(front PROPERTIES
+	MSVC_RUNTIME_LIBRARY
+		"MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
 if(NOT CMKR_VS_STARTUP_PROJECT)
 	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT front)
 endif()
-
-set(CMKR_TARGET front)
-install(TARGETS front RUNTIME DESTINATION bin)
 
 # Target: main
 set(main_SOURCES
@@ -236,36 +210,13 @@ target_compile_definitions(main PRIVATE
 	RELEASE_1_0_3
 	_CRT_SECURE_NO_WARNINGS
 	_WIN32_WINNT=0x0A00
-	MARIADB_STATIC_LINK
 )
 
 target_compile_features(main PRIVATE
 	cxx_std_23
 )
 
-if(MSVC) # msvc
-	target_compile_options(main PRIVATE
-		"/bigobj"
-		"/MP"
-		"/wd4661"
-		"/utf-8"
-	)
-endif()
-
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_compile_options(main PRIVATE
-		-finput-charset=utf-8
-		-fexec-charset=utf-8
-		-Wa,-mbig-obj
-		-Wno-some-warning
-		-stdlib=libc++
-	)
-endif()
-
 target_link_libraries(main PRIVATE
-	secur32
-	crypt32
-	crypt32
 	asio
 	boost_unordered
 	thread-pool
@@ -277,24 +228,19 @@ target_link_libraries(main PRIVATE
 	common
 )
 
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_link_options(main PRIVATE
-		-fuse-ld=lld
-		"-Wl,-L/usr/local/lib/"
-	)
-endif()
-
 target_include_directories(main PRIVATE
 	.
+)
+
+set_target_properties(main PROPERTIES
+	MSVC_RUNTIME_LIBRARY
+		"MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
 if(NOT CMKR_VS_STARTUP_PROJECT)
 	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main)
 endif()
-
-set(CMKR_TARGET main)
-install(TARGETS main RUNTIME DESTINATION bin)
 
 # Target: cast
 set(cast_SOURCES
@@ -360,36 +306,13 @@ target_compile_definitions(cast PRIVATE
 	RELEASE_1_0_3
 	_CRT_SECURE_NO_WARNINGS
 	_WIN32_WINNT=0x0A00
-	MARIADB_STATIC_LINK
 )
 
 target_compile_features(cast PRIVATE
 	cxx_std_23
 )
 
-if(MSVC) # msvc
-	target_compile_options(cast PRIVATE
-		"/bigobj"
-		"/MP"
-		"/wd4661"
-		"/utf-8"
-	)
-endif()
-
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_compile_options(cast PRIVATE
-		-finput-charset=utf-8
-		-fexec-charset=utf-8
-		-Wa,-mbig-obj
-		-Wno-some-warning
-		-stdlib=libc++
-	)
-endif()
-
 target_link_libraries(cast PRIVATE
-	secur32
-	crypt32
-	crypt32
 	asio
 	boost_unordered
 	thread-pool
@@ -401,15 +324,13 @@ target_link_libraries(cast PRIVATE
 	common
 )
 
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_link_options(cast PRIVATE
-		-fuse-ld=lld
-		"-Wl,-L/usr/local/lib/"
-	)
-endif()
-
 target_include_directories(cast PRIVATE
 	.
+)
+
+set_target_properties(cast PROPERTIES
+	MSVC_RUNTIME_LIBRARY
+		"MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
@@ -417,5 +338,13 @@ if(NOT CMKR_VS_STARTUP_PROJECT)
 	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT cast)
 endif()
 
-set(CMKR_TARGET cast)
-install(TARGETS cast RUNTIME DESTINATION bin)
+install(
+	TARGETS
+		front
+		main
+		cast
+	DESTINATION
+		bin
+	COMPONENT
+		front
+)

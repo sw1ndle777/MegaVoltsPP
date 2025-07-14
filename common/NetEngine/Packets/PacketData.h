@@ -208,9 +208,9 @@ namespace NetEngine
                 };
                 uint32_t data;
 
-                InventoryItemNumber(uint32_t uint32_t = 0)
+                InventoryItemNumber(uint32_t data = 0)
                 {
-                    std::memset(this, 0, sizeof(uint32_t));
+                    std::memset(this, 0, sizeof(data));
                     this->data = data;
                 }
                 InventoryItemNumber(uint32_t new_item_id, uint32_t new_stock)
@@ -230,9 +230,9 @@ namespace NetEngine
                 };
                 uint32_t data;
 
-                EquipItemNumber(uint32_t uint32_t = 0)
+                EquipItemNumber(uint32_t data = 0)
                 {
-                    std::memset(this, 0, sizeof(uint32_t));
+                    std::memset(this, 0, sizeof(data));
                     this->data = data;
                 }
                 EquipItemNumber(uint32_t new_item_id, uint32_t new_type)
@@ -1052,16 +1052,16 @@ namespace NetEngine
                 {
                     if (missionId < 46 || missionId > 57) return;
                     auto bit_pos = static_cast<uint32_t>(missionId - 46);
-                    completed ? data |= (1 << bit_pos) : data &= ~(1 << bit_pos);
+                    completed ? this->data |= (1 << bit_pos) : this->data &= ~(1 << bit_pos);
                 }
                 bool RetrieveMissionStatus(int missionId) const
                 {
                     if (missionId < 46 || missionId > 57) return false;
                     auto bit_pos = static_cast<uint32_t>(missionId - 46);
-                    return (data & (1 << bit_pos)) != 0;
+                    return (this->data & (1 << bit_pos)) != 0;
                 }
-                void Set(uint32_t data) { data = data; }
-                uint32_t Get() const { return data; }
+                void Set(uint32_t data) { this->data = data; }
+                uint32_t Get() const { return this->data; }
             };
 
 #pragma pack(pop)

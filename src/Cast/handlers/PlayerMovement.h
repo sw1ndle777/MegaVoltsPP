@@ -17,7 +17,6 @@ namespace Game
             CServer* server = callback.server;
             auto option = message->GetOption();
             auto extra = message->GetExtra();
-            auto mission = message->GetMission();
             auto self_session_id = session->GetSessionId();
             auto self_player = cast_server->GetPlayerCacheShared(self_session_id);
             auto in_room = self_player->in_room;

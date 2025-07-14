@@ -7,7 +7,6 @@ template <typename T> void serialize(std::vector<uint8_t>& v, const T& obj)
 }
 void serialize_string(std::vector<uint8_t>& v, std::string obj, size_t objSize)
 {
-    auto size = v.size();
     std::vector<uint8_t> vec(obj.begin(), obj.end());
     std::vector<uint8_t> vec2;
     for (int i = 0; i < objSize - vec.size(); i++)

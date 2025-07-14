@@ -84,7 +84,7 @@ namespace Game
                     player_session->SendMsg(414, 0, selected_character, 17, reinterpret_cast<uint8_t*>(&equip_data), sizeof(MainRoomPlayersEquipInfoUpdateRoomAck));
             }
 
-            BaseLib::DbPool->submit_task([selected_character, auth_key]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([selected_character, auth_key]() mutable
             {
                 BaseLib::Database->UpdateSelectedCharacter(static_cast<uint32_t>(selected_character), auth_key);
             });

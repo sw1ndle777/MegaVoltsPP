@@ -607,7 +607,7 @@ namespace NetEngine
                 std::vector<ItemSerialInfo> repair_items;
 
                 MainRepairItemAck(const uint32_t& micropoints, const uint32_t& rocktokens, const std::vector<ItemSerialInfo>& repairItems)
-                    : mp(micropoints), rt(rocktokens), repair_items(repairItems) {}
+                    :  rt(rocktokens), mp(micropoints),repair_items(repairItems) {}
 
                 std::vector<uint8_t> Serialize() const
                 {

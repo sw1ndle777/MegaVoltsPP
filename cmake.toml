@@ -7,9 +7,7 @@ cmkr-include  = "cmake/cmkr.cmake"
 name          = "MegaVoltsPP"
 languages     = ["C", "CXX"]
 msvc-runtime = "static"
-
-
-
+include-after = ["cmake/PlatformFlags.cmake"]
 
 [vcpkg]
 version = "2025.06.13"
@@ -24,42 +22,31 @@ overlay = "vcpkg-overlay"
 [find-package.crashpad]
 [find-package.unofficial-mariadb-connector-cpp]
 
-
 [subdir.deps]
 [subdir.common]
 
-
-# ---------- a template every exe can inherit ----------
 [template.server-executable]
 type                = "executable"
-compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00", "MARIADB_STATIC_LINK"]
+compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00"]
 compile-features = ["cxx_std_23"]
-msvc.compile-options = ["/bigobj", "/MP", "/wd4661", "/utf-8"]
-clang.compile-options = ["-finput-charset=utf-8", "-fexec-charset=utf-8", "-Wa,-mbig-obj", "-Wno-some-warning", "-stdlib=libc++"]
-clang.link-options    = ["-fuse-ld=lld", "-Wl,-L/usr/local/lib/"]
-link-libraries = ["secur32", "crypt32", "crypt32", "asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "common"]
+properties.MSVC_RUNTIME_LIBRARY = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "common"]
 
 [target.front]
 type                = "server-executable"   # inherits template from root
 sources             = ["src/Front/**.cpp", "src/Front/**.h"]
 include-directories = ["."]
-cmake-after = """
-install(TARGETS front RUNTIME DESTINATION bin)
-"""
 
 [target.main]
 type                = "server-executable"   # inherits template from root
 sources             = ["src/Main/**.cpp", "src/Main/**.h"]
 include-directories = ["."]
-cmake-after = """
-install(TARGETS main RUNTIME DESTINATION bin)
-"""
 
 [target.cast]
 type                = "server-executable"   # inherits template from root
 sources             = ["src/Cast/**.cpp", "src/Cast/**.h"]
 include-directories = ["."]
-cmake-after = """
-install(TARGETS cast RUNTIME DESTINATION bin)
-"""
 
+[[install]]
+targets = ["front", "main", "cast"]
+destination = "bin"

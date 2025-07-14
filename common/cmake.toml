@@ -3,16 +3,15 @@ version       = "3.30"
 cmkr-include  = "cmake/cmkr.cmake"
 
 [target.common]
-compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00", "MARIADB_STATIC_LINK"]
+compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00"]
 compile-features = ["cxx_std_23"]
-msvc.compile-options = ["/bigobj", "/MP", "/wd4661", "/utf-8"]
-clang.compile-options = ["-finput-charset=utf-8", "-fexec-charset=utf-8", "-Wa,-mbig-obj", "-Wno-some-warning", "-stdlib=libc++"]
-clang.link-options    = ["-fuse-ld=lld", "-Wl,-L/usr/local/lib/"]
+
 type    = "interface"
 include-directories = [".", "BaseLib", "NetEngine", "NetEngine/Protocols"]
 sources = [
-"BaseLib/**.cpp", 
-"BaseLib/**.h",
-"NetEngine/**.cpp", 
-"NetEngine/**.h"]
+	"BaseLib/**.cpp", 
+	"BaseLib/**.h",
+	"NetEngine/**.cpp", 
+	"NetEngine/**.h"
+]
 

@@ -31,7 +31,7 @@ namespace Game
                     {
                         if (auto player_session = main_server->GetSessionById(player_session_id))
                         {
-                            auto msg = fmt::format("[MegaVolts Online] Cast Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",
+                            auto msg = std::format("[MegaVolts Online] Cast Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",
                                 static_cast<uint16_t>(info.count),
                                 static_cast<uint32_t>(info.mem),
                                 static_cast<double>(info.cpu));
@@ -49,7 +49,7 @@ namespace Game
                     auto info = Utility::FromVector<PlayerAuthorizeCastToMainInfo>(payload);
                     if (auto player_session = main_server->GetSessionById(info.session_id))
                     {
-                        auto msg = fmt::format("[CAST] session id: ({})", static_cast<uint32_t>(info.session_id));
+                        auto msg = std::format("[CAST] session id: ({})", static_cast<uint32_t>(info.session_id));
                         main_server->SendServerMessage(player_session.get(), msg.c_str());
                     }
                     break;

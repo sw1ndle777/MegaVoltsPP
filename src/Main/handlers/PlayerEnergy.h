@@ -22,7 +22,7 @@ namespace Game
             
             
 
-            BaseLib::DbPool->submit_task([server = std::move(callback.server), main_server, unique_id]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([server = std::move(callback.server), main_server, unique_id]() mutable
             {
                 auto acc_cache = main_server->GetAccCacheUniqueBySessionId(unique_id.session);
                 //add check for unique id for what player to get battery

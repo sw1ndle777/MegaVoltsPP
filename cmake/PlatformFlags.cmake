@@ -1,0 +1,25 @@
+message(STATUS "Evaluating platform-specific compiler flags...")
+if (MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(STATUS "Detected: clang-cl (MSVC's Clang)")
+    include(${CMAKE_SOURCE_DIR}/cmake/Flags-ClangCL.cmake)
+
+elseif(MSVC)
+    message(STATUS "Detected: MSVC cl.exe")
+    include(${CMAKE_SOURCE_DIR}/cmake/Flags-MSVC.cmake)
+
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (WIN32)
+        message(STATUS "Detected: Clang on Windows (non-clang-cl)")
+        include(${CMAKE_SOURCE_DIR}/cmake/Flags-Clang-Windows.cmake)
+    else()
+        message(STATUS "Detected: Clang on Linux")
+        include(${CMAKE_SOURCE_DIR}/cmake/Flags-Clang-Linux.cmake)
+    endif()
+
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(STATUS "Detected: GCC")
+    include(${CMAKE_SOURCE_DIR}/cmake/Flags-GCC-Linux.cmake)
+
+else()
+    message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
+endif()

@@ -113,7 +113,7 @@ namespace NetEngine
 			uint32_t logger_threads;
             uint32_t playtime_min_seconds;
             bool useWatchguard;
-            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, uint32_t concurrent_threads, uint32_t database_threads, uint32_t logger_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded), useWatchguard(useWatchguard),  concurrent_threads(concurrent_threads), database_threads(database_threads), logger_threads(logger_threads), playtime_min_seconds(playtime_min_seconds) {}
+            SServerSettings(std::string ip, std::string port, std::string ipc_port, bool logPackets, bool useEncryption, bool useMultithreaded, bool useWatchguard, uint32_t concurrent_threads, uint32_t database_threads, uint32_t logger_threads) : ip(ip), port(port), ipc_port(ipc_port), logPackets(logPackets),  useEncryption(useEncryption), useMultithreaded(useMultithreaded),   concurrent_threads(concurrent_threads), database_threads(database_threads), logger_threads(logger_threads), playtime_min_seconds(60), useWatchguard(useWatchguard) {}
         };
 
     public:

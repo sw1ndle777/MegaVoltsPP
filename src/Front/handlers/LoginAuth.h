@@ -14,7 +14,7 @@ namespace Game
             auto session = callback.session;
             if (!session) return;
             
-            BaseLib::DbPool->submit_task([session = std::move(callback.session), message = std::move(*callback.message)]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([session = std::move(callback.session), message = std::move(*callback.message)]() mutable
             {
                 if (!session) return;
 

@@ -16,8 +16,6 @@ namespace NetEngine
         }
 
         asio::error_code errorCode;
-        auto endPoint = m_socket.remote_endpoint(errorCode);
-
         if (errorCode)
         {
             BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no remote endpoint: ({})", errorCode.message().c_str());

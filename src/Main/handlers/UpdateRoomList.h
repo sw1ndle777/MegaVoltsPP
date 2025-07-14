@@ -14,7 +14,6 @@ namespace Game
             if (!session || !message) return;
             std::shared_lock lock(session->GetMutex());
 
-            CServer* server = callback.server;
             auto session_id = session->GetSessionId();
             auto acc_cache = main_server->GetAccCacheSharedBySessionId(session_id);
             auto acc_index = acc_cache->acc_info.Index;

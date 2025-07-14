@@ -97,7 +97,7 @@ namespace Game
                     struct MainToCastSendPingAssureInfo
                     {
                         uint32_t session_id;
-                    } info;
+                    };
                     auto data = Utility::FromVector<MainToCastSendPingAssureInfo>(payload);
                     if (auto player_session = cast_server->GetSessionByIdNoLock(data.session_id))
                     {

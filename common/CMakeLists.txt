@@ -45,31 +45,11 @@ target_compile_definitions(common INTERFACE
 	RELEASE_1_0_3
 	_CRT_SECURE_NO_WARNINGS
 	_WIN32_WINNT=0x0A00
-	MARIADB_STATIC_LINK
 )
 
 target_compile_features(common INTERFACE
 	cxx_std_23
 )
-
-if(MSVC) # msvc
-	target_compile_options(common INTERFACE
-		"/bigobj"
-		"/MP"
-		"/wd4661"
-		"/utf-8"
-	)
-endif()
-
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_compile_options(common INTERFACE
-		-finput-charset=utf-8
-		-fexec-charset=utf-8
-		-Wa,-mbig-obj
-		-Wno-some-warning
-		-stdlib=libc++
-	)
-endif()
 
 target_include_directories(common INTERFACE
 	.
@@ -77,10 +57,3 @@ target_include_directories(common INTERFACE
 	NetEngine
 	"NetEngine/Protocols"
 )
-
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$")) # clang
-	target_link_options(common INTERFACE
-		-fuse-ld=lld
-		"-Wl,-L/usr/local/lib/"
-	)
-endif()

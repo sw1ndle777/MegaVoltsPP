@@ -13,7 +13,7 @@ namespace Game
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CMainServer* main_server)
         {
             if (!session) return;
-            BaseLib::DbPool->submit_task([=]() mutable
+			[[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([=]() mutable
             {
                 std::shared_lock lock(session->GetMutex());
                 auto session_id = session->GetSessionId();
