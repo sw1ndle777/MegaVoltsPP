@@ -9,5 +9,5 @@
 - [fmt](https://github.com/fmtlib/fmt)
 - [rapidjson](https://github.com/Tencent/rapidjson)
 - [mariadb](https://github.com/mariadb-corporation/mariadb-connector-cpp)
-- [openssl](https://github.com/openssl/openssl)
-- [boost.unordered](https://github.com/boostorg/unordered)
+- [bs::thread-pool](https://github.com/bshoshany/thread-pool)
+- [boost_unordered](https://github.com/MikePopoloski/boost_unordered/)
