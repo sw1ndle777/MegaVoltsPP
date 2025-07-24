@@ -302,7 +302,8 @@ namespace Game
 
             std::vector<uint32_t> playerIds;
             std::vector<BossItem> pve_rewards;
-
+            std::vector<MatchInfoHistoryDatabaseInfo> matchHistoryInfo;
+            auto end_mtch_time_ms = Utility::GetUtcTimeNow64();
             if (is_pve)
             {
                 auto self_session_id = session->GetSessionId();
@@ -343,6 +344,23 @@ namespace Game
                                         auto endmatchinfo_response = MainRoomEndMatchResponseBossBattle(my_mp, my_exp, my_reward_id);
                                         player_session->SendMsg(254, 0, 1, 0, reinterpret_cast<uint8_t*>(&endmatchinfo_response), sizeof(MainRoomEndMatchResponseBossBattle));
                                         main_server->SendInventoryItem(player_session.get(), player_acc_cache, { my_reward_id }, Items::Origin::From_Game);
+                                        MatchInfoHistoryDatabaseInfo match_info = {
+                                            player_acc_cache->acc_info.Index,
+                                            room_cache->host_session_id == id,
+                                            false,false,
+                                            playtime_seconds,
+                                            player_acc_cache->acc_info.Level,
+                                            0,0,0,
+                                            room_cache->room_id,
+                                            0,0,
+                                            NetEngine::Team::IdType::Neutral,
+                                            NetEngine::Room::Mode::Index::BossBattle,
+                                            NetEngine::Room::Map::Index::AcademyInvasion,
+                                            player_acc_cache->acc_info.SelectedCharacter,
+                                            0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                            end_mtch_time_ms
+                                        };
+										matchHistoryInfo.push_back(match_info);
                                     }
                                 }
                                 player_acc_cache->playing = false;
@@ -581,6 +599,41 @@ namespace Game
                                 end_match_infos.insert({ id, rsp });
                                 ProcessUpdatePlayerAccCache(player_acc_cache, draw, blue_team_win, rsp.melee_kills, rsp.rifle_kills, rsp.shotgun_kills, rsp.sniper_kills, rsp.gatling_kills, rsp.bazooka_kills, rsp.grenade_kills,
                                                             rsp.total_kills, rsp.deaths, rsp.headshots, rsp.assists, rsp.killstreak, earnt_battery, rsp.total_xp, rsp.total_mp, playtime_seconds, is_clan_match);
+
+
+								auto is_zombie_mode = (room_cache->ModeIndex == NetEngine::Room::Mode::Index::ZombieMode);
+                                MatchInfoHistoryDatabaseInfo match_info = {
+                                    player_acc_cache->acc_info.Index,
+                                    room_cache->host_session_id == id,
+                                    draw, is_clan_match,
+                                    playtime_seconds,
+                                    player_acc_cache->acc_info.Level,
+                                    exp_earn,earnt_battery,point_earn,
+                                    room_cache->room_id,
+                                    endmatch_score_header->red_score, endmatch_score_header->blue_score,
+                                    player_acc_cache->team_id,
+                                    room_cache->ModeIndex,
+                                    room_cache->MapIndex,
+                                    player_acc_cache->acc_info.SelectedCharacter,
+                                    rsp.total_kills,
+                                    rsp.deaths,
+                                    rsp.assists,
+                                    rsp.headshots,
+                                    is_zombie_mode ? 0 : rsp.killstreak,
+                                    is_zombie_mode ? 0 : rsp.melee_kills,
+                                    rsp.rifle_kills,
+                                    rsp.shotgun_kills,
+                                    rsp.sniper_kills,
+                                    rsp.gatling_kills,
+                                    rsp.bazooka_kills,
+                                    rsp.grenade_kills,
+                                    is_zombie_mode ? rsp.killstreak : 0,
+                                    is_zombie_mode ? rsp.melee_kills : 0,
+                                    end_mtch_time_ms
+                                    
+                                };
+                                matchHistoryInfo.push_back(match_info);
+
                             }
                             ProcessLevelUp(main_server, server, player_acc_cache, id, all_room_players);
                         }

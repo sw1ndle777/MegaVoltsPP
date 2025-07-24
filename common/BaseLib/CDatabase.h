@@ -391,6 +391,39 @@ namespace BaseLib
         uint32_t ZombieKills;
         uint32_t Infections;
     };
+    struct MatchInfoHistoryDatabaseInfo {
+        int32_t Id;
+        bool IsHost;
+        bool IsDraw;
+        bool IsClanMatch;
+        uint32_t PlayTime;
+        uint32_t Level;
+        uint32_t Experience;
+        uint32_t Energy;
+        uint32_t MicroPoints;
+        uint32_t room_index;
+        uint32_t redscore;
+        uint32_t bluescore;
+        uint32_t team_id;
+        uint32_t room_mode;
+        uint32_t room_map;
+        uint32_t SelectedCharacter;
+        uint32_t Kills;
+        uint32_t Deaths;
+        uint32_t Assists;
+        uint32_t Headshots;
+        uint32_t HighestKillStreak;
+        uint32_t MeleeKills;
+        uint32_t RifleKills;
+        uint32_t ShotgunKills;
+        uint32_t SniperKills;
+        uint32_t GatlingKills;
+        uint32_t BazookaKills;
+        uint32_t GrenadeKills;
+        uint32_t ZombieKills;
+        uint32_t Infections;
+        uint64_t MatchEndTime;
+    };
 
     class CDatabase
     {
@@ -399,7 +432,7 @@ namespace BaseLib
         void Initialize(const std::string& database, const std::string& host, const uint16_t& port, const std::string& user, const std::string& password);
         bool CreateTable(const std::string& table_name, const std::string& data_collumns);
         bool CreateDatabase(const std::string& name);
-        bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates);
+        bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates, std::vector<MatchInfoHistoryDatabaseInfo>& matchHistory);
 		bool GetFrontAccount(const std::string& ip, const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
 		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
         bool SetAccountOffline(const std::uint32_t& accountId);

@@ -91,6 +91,43 @@ namespace BaseLib
                     KEY IX_player_sessions_PlayerId (PlayerId),
                     CONSTRAINT FK_player_sessions_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
+                    CreateTable("player_matchhistory", R"(
+                    PlayerId int unsigned NOT NULL,
+                    IsHost bool NOT NULL,
+                    IsDraw bool NOT NULL,
+                    IsClanMatch bool NOT NULL,
+                    PlayTime int unsigned NOT NULL,
+                    Level int unsigned NOT NULL,
+                    Experience int unsigned NOT NULL,
+                    Energy int unsigned NOT NULL,
+                    MicroPoints int unsigned NOT NULL,
+                    RoomIndex int unsigned NOT NULL,
+                    RedScore int unsigned NOT NULL,
+                    BlueScore int unsigned NOT NULL,
+                    TeamId int unsigned NOT NULL,
+                    RoomMode int unsigned NOT NULL,
+                    RoomMap int unsigned NOT NULL,
+                    SelectedCharacter int unsigned NOT NULL,
+                    Kills int unsigned NOT NULL,
+                    Deaths int unsigned NOT NULL,
+                    Assists int unsigned NOT NULL,
+                    Headshots int unsigned NOT NULL,
+                    HighestKillStreak int unsigned NOT NULL,
+                    MeleeKills int unsigned NOT NULL,
+                    RifleKills int unsigned NOT NULL,
+                    ShotgunKills int unsigned NOT NULL,
+                    SniperKills int unsigned NOT NULL,
+                    GatlingKills int unsigned NOT NULL,
+                    BazookaKills int unsigned NOT NULL,
+                    GrenadeKills int unsigned NOT NULL,
+                    ZombieKills int unsigned NOT NULL,
+                    Infections int unsigned NOT NULL,
+                    MatchEndTime bigint unsigned NOT NULL,
+                    KEY IX_player_matchhistory_PlayerId (PlayerId),
+                    CONSTRAINT FK_player_matchhistory_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE
+                    )");
+
+
                     CreateTable("bans", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT, 
                     AccountId int unsigned NOT NULL, 
@@ -1762,7 +1799,7 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& updates)
+    bool CDatabase::UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& updates, std::vector<MatchInfoHistoryDatabaseInfo>& matchHistory)
     {
         if (updates.empty())
         {
@@ -1876,6 +1913,54 @@ namespace BaseLib
                     "Executing CASE update with {} bound parameters", paramIndex - 1);
 
                 pstmt->executeUpdate();
+
+                std::unique_ptr<sql::PreparedStatement> insertStmt(conn->prepareStatement(R"(INSERT INTO player_matchhistory (
+                        PlayerId, IsHost, IsDraw, IsClanMatch, PlayTime, Level, Experience,
+                        Energy, MicroPoints, RoomIndex, RedScore, BlueScore, TeamId,
+                        RoomMode, RoomMap, SelectedCharacter, Kills, Deaths, Assists,
+                        Headshots, HighestKillStreak, MeleeKills, RifleKills, ShotgunKills,
+                        SniperKills, GatlingKills, BazookaKills, GrenadeKills, ZombieKills,
+                        Infections, MatchEndTime
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                )"));
+
+                for (const auto& info : matchHistory)
+                {
+                    int idx = 1;
+                    insertStmt->setInt(idx++, info.Id);
+                    insertStmt->setBoolean(idx++, info.IsHost);
+                    insertStmt->setBoolean(idx++, info.IsDraw);
+                    insertStmt->setBoolean(idx++, info.IsClanMatch);
+                    insertStmt->setUInt(idx++, info.PlayTime);
+                    insertStmt->setUInt(idx++, info.Level);
+                    insertStmt->setUInt(idx++, info.Experience);
+                    insertStmt->setUInt(idx++, info.Energy);
+                    insertStmt->setUInt(idx++, info.MicroPoints);
+                    insertStmt->setUInt(idx++, info.room_index);
+                    insertStmt->setUInt(idx++, info.redscore);
+                    insertStmt->setUInt(idx++, info.bluescore);
+                    insertStmt->setUInt(idx++, info.team_id);
+                    insertStmt->setUInt(idx++, info.room_mode);
+                    insertStmt->setUInt(idx++, info.room_map);
+                    insertStmt->setUInt(idx++, info.SelectedCharacter);
+                    insertStmt->setUInt(idx++, info.Kills);
+                    insertStmt->setUInt(idx++, info.Deaths);
+                    insertStmt->setUInt(idx++, info.Assists);
+                    insertStmt->setUInt(idx++, info.Headshots);
+                    insertStmt->setUInt(idx++, info.HighestKillStreak);
+                    insertStmt->setUInt(idx++, info.MeleeKills);
+                    insertStmt->setUInt(idx++, info.RifleKills);
+                    insertStmt->setUInt(idx++, info.ShotgunKills);
+                    insertStmt->setUInt(idx++, info.SniperKills);
+                    insertStmt->setUInt(idx++, info.GatlingKills);
+                    insertStmt->setUInt(idx++, info.BazookaKills);
+                    insertStmt->setUInt(idx++, info.GrenadeKills);
+                    insertStmt->setUInt(idx++, info.ZombieKills);
+                    insertStmt->setUInt(idx++, info.Infections);
+                    insertStmt->setUInt64(idx++, info.MatchEndTime);
+                    insertStmt->executeUpdate();
+                }
+
                 stmt->execute("COMMIT");
 
                 BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::green,
