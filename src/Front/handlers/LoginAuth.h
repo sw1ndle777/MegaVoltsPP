@@ -7,8 +7,6 @@ namespace Game
 
     namespace Handlers
     {
-
-
         inline void LoginAuth(SCallbackData& callback, CFrontServer* front_server)
         {    
             auto session = callback.session;
@@ -25,7 +23,8 @@ namespace Game
                 EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "authorize request id: ({}), password: ({})", acc_user.c_str(), acc_pass.c_str());
                 BaseLib::FrontAccount frontAccount;
                 BaseLib::ClanInfo clanInfo;
-                auto found = BaseLib::Database->GetFrontAccount(acc_user, acc_pass, &frontAccount, &clanInfo);
+
+                auto found = BaseLib::Database->GetFrontAccount(session->GetIpAddress(), acc_user, acc_pass, &frontAccount, &clanInfo);
 
 
                 if (!found)

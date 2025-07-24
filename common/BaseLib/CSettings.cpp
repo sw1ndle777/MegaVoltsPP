@@ -106,7 +106,7 @@ namespace BaseLib
             try {
                 settings.playtime_min_seconds = obj["playtime_min_seconds"].GetUint();
             }
-            catch (int a) {
+            catch (...) {
                 settings.playtime_min_seconds = 90;
             }
             settings.debug = obj["debug"].GetBool();

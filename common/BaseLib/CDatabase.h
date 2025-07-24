@@ -159,8 +159,8 @@ namespace BaseLib
             const std::string&   username,         const std::string&   password,       const std::string&   salt,               const uint8_t&  grade,
             const uint8_t& pc_room,           const uint64_t& auth_key,       const uint32_t& clan_id,            const uint32_t& clan_kills,
             const uint32_t& clan_deaths,
-            const uint32_t& clan_assists,     const uint64_t& clan_contrib,   const uint64_t& clan_wins,          const uint64_t& clan_loses, 
-            const uint64_t& clan_draws,       const std::string&   nickname,       const uint32_t& level,
+            const uint32_t& clan_assists,     const uint32_t& clan_contrib,   const uint32_t& clan_wins,          const uint32_t& clan_loses, 
+            const uint32_t& clan_draws,       const std::string&   nickname,       const uint32_t& level,
             const uint32_t& experience,       const bool&          tutorial,       const uint32_t& story,              const uint8_t& guide_mission,
             const uint64_t& achievement,      const uint64_t& voice_type,     const uint32_t& vip_exp,
             const uint32_t& max_items,        const uint32_t& max_energy,     const uint32_t& selected_char,      const uint64_t& playtime,
@@ -399,12 +399,9 @@ namespace BaseLib
         void Initialize(const std::string& database, const std::string& host, const uint16_t& port, const std::string& user, const std::string& password);
         bool CreateTable(const std::string& table_name, const std::string& data_collumns);
         bool CreateDatabase(const std::string& name);
-        bool RegisterAccount(const std::string& username, const std::string& password, const uint8_t& grade, const uint32_t& mp, const uint32_t& rt, const uint32_t& coupons = 0, const uint32_t& coins = 0, const uint32_t& energy = 0, const uint32_t& max_items = 1000, const uint32_t& max_battery = 5000, const std::string& nickname = "");
         bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates);
-        bool GetFrontAccount(const std::string& username, FrontAccount* outFrontAccount);
-		bool GetFrontAccount(const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
+		bool GetFrontAccount(const std::string& ip, const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
 		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
-		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount);
         bool SetAccountOffline(const std::uint32_t& accountId);
         bool GetMainFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids);
         bool NicknameExists(const std::string_view& nickname);

@@ -70,7 +70,7 @@ namespace Game
                 forwarded_session->Send(*message);
 
                 message->SetMission(2);
-                message->SetData(reinterpret_cast<uint8_t*>(singleInfoResp.data()), singleInfoResp.size() * sizeof(SinglePlayerJoinInfoResponse));
+                message->SetData(reinterpret_cast<uint8_t*>(singleInfoResp.data()), static_cast<uint16_t>(singleInfoResp.size() * sizeof(SinglePlayerJoinInfoResponse)));
                 forwarded_session->Send(*message);
             }
             else

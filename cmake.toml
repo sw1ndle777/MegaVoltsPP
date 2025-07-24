@@ -15,6 +15,7 @@ packages = [
     "fmt",
     "crashpad",
 	"mariadb-connector-cpp"
+	"libsodium"
 ]
 overlay = "vcpkg-overlay"
 

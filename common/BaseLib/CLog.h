@@ -122,5 +122,3 @@ namespace BaseLib
 
     extern std::unique_ptr<CLog> EventLog;
 }
-
-//#endif

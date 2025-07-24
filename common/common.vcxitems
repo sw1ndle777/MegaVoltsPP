@@ -15,6 +15,8 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBData.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.h" />
@@ -27,13 +29,13 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Constants.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CServer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CSession.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\monocypher.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\optional\monocypher-ed25519.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Packets\PacketData.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Packets\PacketStruct.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Protocols\BaseProtocol.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.c" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CLog.cpp" />
@@ -43,7 +45,5 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CServer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CSession.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\monocypher.c" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\optional\monocypher-ed25519.c" />
   </ItemGroup>
 </Project>

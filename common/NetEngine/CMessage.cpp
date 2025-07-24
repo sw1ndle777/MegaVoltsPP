@@ -91,7 +91,7 @@ namespace NetEngine
     }
     uint32_t CMessage::GetDataSize()
     {
-        return GetFullSize() - minSize();
+        return GetFullSize() - static_cast<uint32_t>(minSize());
     }
     uint32_t CMessage::GetFullSize()
     {

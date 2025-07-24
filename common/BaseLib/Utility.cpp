@@ -58,6 +58,125 @@ namespace Utility
             return custom_dist64(rng64);
         }
     }
+    namespace SecureRandomBlake2b
+    {
+        int64_t Generator::GetNanoTime()
+        {
+            auto now = std::chrono::high_resolution_clock::now();
+            return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+        }
+        void Generator::UInt64ToLE(uint64_t n, uint8_t* bs)
+        {
+            for (auto i = 0; i < 8; ++i)
+                bs[i] = static_cast<uint8_t>(n >> (i * 8));
+        }
+        void Generator::AddCounter(int64_t seedVal)
+        {
+            uint8_t bytes[8];
+            UInt64ToLE(static_cast<uint64_t>(seedVal), bytes);
+            crypto_blake2b_ctx ctx;
+            crypto_blake2b_init(&ctx, DIGEST_SIZE);
+            crypto_blake2b_update(&ctx, bytes, sizeof(bytes));
+            crypto_blake2b_update(&ctx, _seed, DIGEST_SIZE);
+            crypto_blake2b_final(&ctx, _seed);
+        }
+        int64_t Generator::NextCounterValue()
+        {
+            return ++_counter;
+        }
+        void Generator::AddSeedMaterial(const uint8_t* inSeed, size_t length)
+        {
+            crypto_blake2b_ctx ctx;
+            crypto_blake2b_init(&ctx, DIGEST_SIZE);
+            crypto_blake2b_update(&ctx, inSeed, length);
+            crypto_blake2b_update(&ctx, _seed, DIGEST_SIZE);
+            crypto_blake2b_final(&ctx, _seed);
+        }
+        void Generator::AddSeedMaterial(int64_t rSeed)
+        {
+            AddCounter(rSeed);
+            crypto_blake2b_ctx ctx;
+            crypto_blake2b_init(&ctx, DIGEST_SIZE);
+            crypto_blake2b_update(&ctx, _seed, DIGEST_SIZE);
+            crypto_blake2b_final(&ctx, _seed);
+        }
+        void Generator::CycleSeed()
+        {
+            crypto_blake2b_ctx ctx;
+            crypto_blake2b_init(&ctx, DIGEST_SIZE);
+            crypto_blake2b_update(&ctx, _seed, DIGEST_SIZE);
+            AddCounter(_seedCounter++);
+            crypto_blake2b_update(&ctx, _seed, DIGEST_SIZE);
+            crypto_blake2b_final(&ctx, _seed);
+        }
+        void Generator::GenerateState()
+        {
+            AddCounter(_stateCounter++);
+            crypto_blake2b_ctx ctx;
+            crypto_blake2b_init(&ctx, DIGEST_SIZE);
+            crypto_blake2b_update(&ctx, _state, DIGEST_SIZE);
+            crypto_blake2b_update(&ctx, _seed, DIGEST_SIZE);
+            crypto_blake2b_final(&ctx, _state);
+            if ((_stateCounter % _rounds) == 0) CycleSeed();
+        }
+        void Generator::SetSeed(const uint8_t * seed, size_t length)
+        {
+            _seedCounter++;
+            AddSeedMaterial(seed, length);
+        }
+        void Generator::SetSeed(int64_t seed)
+        {
+            _seedCounter++;
+            AddSeedMaterial(seed);
+        }
+        void Generator::NextBytes(uint8_t * bytes, size_t length)
+        {
+            if (_seedCounter == 0) 
+                throw std::runtime_error("_seedCounter == 0");
+
+            size_t stateOff = 0;
+            GenerateState();
+
+            for (size_t i = 0; i < length; ++i) 
+            {
+                if (stateOff == DIGEST_SIZE)
+                {
+                    GenerateState();
+                    stateOff = 0;
+                }
+                bytes[i] = _state[stateOff++];
+            }
+        }
+        uint64_t Generator::NextUInt64()
+        {
+            uint8_t bytes[8];
+            NextBytes(bytes, 8);
+
+            uint64_t result = 0;
+            for (auto i = 7; i >= 0; --i) 
+                result = (result << 8) | bytes[i];
+            return result;
+        }
+        uint32_t Generator::NextUInt32()
+        {
+            uint8_t bytes[4];
+            NextBytes(bytes, 4);
+
+            uint32_t result = 0;
+            for (auto i = 3; i >= 0; --i)  
+                result = (result << 8) | bytes[i];
+            return result;
+        }
+        uint64_t Generator::GenerateAuthKey()
+        {
+            uint64_t key = 0;
+            do 
+            {
+                key = NextUInt64();
+            } while (key == 0);
+            return key;
+        }
+}
     std::string round_float(float var)
     {
         std::ostringstream out;
@@ -536,7 +655,7 @@ namespace Utility
     bool HashPassword(const std::string& password, const uint8_t* salt, uint8_t* out_hash)
     {
         crypto_argon2_config config = {
-            .algorithm = CRYPTO_ARGON2_I,
+            .algorithm = CRYPTO_ARGON2_ID,
             .nb_blocks = 100000,
             .nb_passes = 3,
             .nb_lanes = 1

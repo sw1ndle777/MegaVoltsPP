@@ -567,7 +567,7 @@ namespace NetEngine
 			{
 				if (!ec && !m_watchguard)
 				{
-					BaseLib::LogPool->submit_task([this, interval, timeout]()
+                    [[maybe_unused]] auto ignored_result = BaseLib::LogPool->submit_task([this, interval, timeout]()
 					{
 						this->watchdog(interval, timeout);
 					}, BS::pr::lowest);

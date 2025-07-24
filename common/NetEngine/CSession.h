@@ -17,6 +17,7 @@
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
 #include <boost_unordered.hpp>
+
 namespace NetEngine
 {
     class CServer;
@@ -45,27 +46,27 @@ namespace NetEngine
 
         void Disconnect();
         void Send(CMessage& message);
-        //void SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User);
-        //void ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User);
-
-        __forceinline void SendMsg(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User)
+        template<Any16  Order, Any8  Mission, Any8  Extra, Any8  Option>
+        __forceinline void SendMsg(Order order, Mission mission, Extra extra, Option option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::User)
         {
             CMessage message(this->GetEncryptionKey());
             message.SetSession(this->GetSessionId());
-            message.SetCommand(order, mission, extra, option);
-            message.SetEncryptMethod(encryptMethod);
+            message.SetCommand(to_u(order), to_u(mission), to_u(extra), to_u(option));
+            message.SetEncryptMethod(enc);
             if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
             this->Send(message);
         }
-        __forceinline void ForwardMsg(uint16_t session_id, uint16_t order, uint8_t mission, uint8_t extra, uint8_t option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod encryptMethod =  SendOption::EncryptionMethod::User)
+        template<Any16  Order, Any8  Mission, Any8  Extra, Any8  Option>
+        __forceinline void ForwardMsg(uint16_t session_id, Order order, Mission mission, Extra extra, Option option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::User)
         {
             CMessage message(this->GetEncryptionKey());
             message.SetSession(session_id);
-            message.SetCommand(order, mission, extra, option);
-            message.SetEncryptMethod(encryptMethod);
+            message.SetCommand(to_u(order), to_u(mission), to_u(extra), to_u(option));
+            message.SetEncryptMethod(enc);
             if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
             this->Send(message);
         }
+
         void DoSend();
         void SetEncryptionKey(int32_t key);
         void SetSessionId(uint16_t id);
@@ -83,7 +84,10 @@ namespace NetEngine
         auto& GetStrand() {
             return m_strand;
         }
-
+		std::string GetIpAddress() const
+		{
+			return m_socket.remote_endpoint().address().to_string();
+		}
         static std::shared_ptr<CSession> Create(
             asio::ip::tcp::socket&& socket,
             asio::io_context& ioc,

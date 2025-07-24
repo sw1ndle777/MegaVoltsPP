@@ -30,11 +30,9 @@ std::vector<uint8_t> loadFileCrossPlatform(std::source_location source_location,
     std::filesystem::path filePath = basePath / relativePath;
     auto contents = Utility::load_file(source_location, filePath.string());
     if(contents.empty())
-    {
-        BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "Error loading file ({}): {}", filePath.string().c_str(),"File not found");
-    }
-    else
-        return contents;
+		BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "Error loading file ({}): {}", filePath.string().c_str(),"File not found");
+
+	return contents;
 }
 
 #include <crashpad/client/crashpad_client.h>
@@ -83,16 +81,7 @@ void init_crash_handler()
     if (database == NULL) return;
 
     crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-    client->StartHandler(
-        handler,
-        db_path,
-        metrics_path,
-        "",              // URL for crash reports — leave empty for local only
-        annotations,
-        arguments,
-        true,            // restartable
-        false             // asynchronous start
-    );
+	client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
 }
 
 int main()
@@ -160,7 +149,7 @@ int main()
         new_item_info.IsPandoraUsable = data_fields.at("ii_class_c").GetBool();
         new_item_info.IsChipUsable = data_fields.at("ii_class_d").GetBool();
         new_item_info.IsKnoxUsable = data_fields.at("ii_class_e").GetBool();
-        new_item_info.IsSimonUsable = data_fields.at("ii_class_f").GetBool();
+//        new_item_info.IsSimonUsable = data_fields.at("ii_class_f").GetBool();
         //new_item_info.IsAmeliaUsable = data_fields.at("ii_class_g").GetBool();
         //new_item_info.IsSharkillUsable = data_fields.at("ii_class_h").GetBool();
         //new_item_info.IsSophitiaUsable = data_fields.at("ii_class_i").GetBool();
@@ -190,7 +179,7 @@ int main()
         new_item_info.IsPandoraUsable = data_fields.at("ii_class_c").GetBool();
         new_item_info.IsChipUsable = data_fields.at("ii_class_d").GetBool();
         new_item_info.IsKnoxUsable = data_fields.at("ii_class_e").GetBool();
-        new_item_info.IsSimonUsable = data_fields.at("ii_class_f").GetBool();
+        //new_item_info.IsSimonUsable = data_fields.at("ii_class_f").GetBool();
         //new_item_info.IsAmeliaUsable = data_fields.at("ii_class_g").GetBool();
         //new_item_info.IsSharkillUsable = data_fields.at("ii_class_h").GetBool();
         //new_item_info.IsSophitiaUsable = data_fields.at("ii_class_i").GetBool();
@@ -207,7 +196,7 @@ int main()
         new_item_info.BonusEffectId = data_fields.at("ef_effect_2").GetInt();
         mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
-    //mainServer->RehashItemsInfo();
+
     iteminfo_data.clear();
     iteminfo_data.shrink_to_fit();
     itemweaponsinfo_data.clear();
@@ -222,13 +211,13 @@ int main()
     auto elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     auto elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) items in %s", mainServer->GetItemsInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetItemsInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") items in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     effectinfo_cdb.LoadCDB(buffer_effectinfo);
     auto& effectinfo_data = effectinfo_cdb.GetDataRows();
@@ -250,13 +239,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) effect info in %s", mainServer->GetEffectInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetEffectInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") effect info in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
 
     start_time = std::chrono::system_clock::now();
     collectioninfo_cdb.LoadCDB(buffer_collectioninfo);
@@ -282,13 +271,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) collection info in %s", mainServer->GetCollectionInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetCollectionInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") collection info in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     dailymissioninfo_cdb.LoadCDB(buffer_dailymissioninfo);
     auto& dailymissioninfo_data = dailymissioninfo_cdb.GetDataRows();
@@ -313,13 +302,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) daily mission info in %s", mainServer->GetDailyMissionInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetDailyMissionInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") dailymission info in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     setiteminfo_cdb.LoadCDB(buffer_setiteminfo);
     auto& setiteminfo_data = setiteminfo_cdb.GetDataRows();
@@ -349,13 +338,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) set items in %s", mainServer->GetSetItemsInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetSetItemsInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") set items in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     vendorinfo_cdb.LoadCDB(buffer_vendorinfo);
     auto& vendorinfo_data = vendorinfo_cdb.GetDataRows();
@@ -390,7 +379,7 @@ int main()
         new_vendorinfo.List04_b = data_fields.at("vi_list_04_b").GetInt();
         new_vendorinfo.List04_c = data_fields.at("vi_list_04_c").GetInt();
         new_vendorinfo.List04_d = data_fields.at("vi_list_04_d").GetInt();
-        new_vendorinfo.IsGift = data_fields.at("vi_isgift").GetBool();
+        //new_vendorinfo.IsGift = data_fields.at("vi_isgift").GetBool();
         mainServer->AddVendorInfo(new_vendorinfo);
     }
     vendorinfo_data.clear();
@@ -402,13 +391,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) vendor infos in %s", mainServer->GetVendorInfosCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetVendorInfosCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") vendor infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     upgradeinfo_cdb.LoadCDB(buffer_upgradeinfo);
     auto& upgradeinfo_data = upgradeinfo_cdb.GetDataRows();
@@ -439,19 +428,19 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) upgrade infos in %s", mainServer->GetUpgradeInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetUpgradeInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") upgrade infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     gachaponinfo_cdb.LoadCDB(buffer_gachaponinfo);
     gachaponpackageinfo_cdb.LoadCDB(buffer_gachaponpackageinfo);
     auto& gachaponinfo_data = gachaponinfo_cdb.GetDataRows();
     auto& gachaponpackageinfo_data = gachaponpackageinfo_cdb.GetDataRows();
-    //std::unordered_map<uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
+
     boost::unordered_flat_map<uint32_t, std::vector<BaseLib::GachaponPackageItem>> gachapon_package_items;
     for (uint32_t i = 0; i < gachaponpackageinfo_data.size(); i++)
     {
@@ -497,13 +486,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) gachapon infos in %s", mainServer->GetGachaponsCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetGachaponsCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") gachapon infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     itempackageinfo_cdb.LoadCDB(buffer_itempackageinfo);
     auto& itempackageinfo_data = itempackageinfo_cdb.GetDataRows();
@@ -528,13 +517,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) package infos in %s", mainServer->GetPackagesCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetPackagesCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") package infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     start_time = std::chrono::system_clock::now();
     roomoptioninfo_cdb.LoadCDB(buffer_roomoptioninfo);
     auto& roomoptioninfo_data = roomoptioninfo_cdb.GetDataRows();
@@ -561,13 +550,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) room option infos in %s", mainServer->GetRoomOptionsInfoSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetRoomOptionsInfoSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") room option infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
 
     start_time = std::chrono::system_clock::now();
     gradeinfo_cdb.LoadCDB(buffer_gradeinfo);
@@ -592,13 +581,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) grade infos in %s", mainServer->GetGradesInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetGradesInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") grade infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
 
     start_time = std::chrono::system_clock::now();
     rewardinfo_cdb.LoadCDB(buffer_rewardinfo);
@@ -643,13 +632,13 @@ int main()
     elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
     elapsed_time_str = Utility::readable_time(elapsed_time.count());
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) reward infos in %s", mainServer->GetRewardsInfoCacheSize(), elapsed_time_str.c_str());
-	/*
+	
     fmt::print(fg(fmt::color::purple) | fmt::emphasis::bold, "CDBM::LoadCDB() ");
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, "- loaded (");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{:d}"), mainServer->GetRewardsInfoCacheSize());
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") reward infos in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
-	*/
+	
     auto gachapon_sales = BaseLib::Database->GetGachaponSalesInfo();
     mainServer->AddGachaponSaleCache(gachapon_sales);
     mainServer->Setup(settings, server_settings);

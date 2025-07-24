@@ -136,6 +136,13 @@ namespace NetEngine
         bool SetQueuePartyIdAvailable(const uint16_t& queue_party_id);
         std::shared_ptr<CServer> GetShared() { return shared_from_this(); }
         void On(uint16_t id, std::function<void(SCallbackData&)> callback);
+		/*
+        template<NetEngine::Any16 Order>
+        void On(Order id, std::function<void(SCallbackData&)> cb)
+        {
+            On(to_u(id), std::move(cb));
+        }*/
+
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnSessionDisconnected(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);

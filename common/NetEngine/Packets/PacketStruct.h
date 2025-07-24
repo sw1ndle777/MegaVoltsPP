@@ -79,25 +79,6 @@ namespace NetEngine
                 }
             };
 
-            struct FrontServerInfoAck
-            {
-                FrontServerInfo serverInfos[];
-
-                FrontServerInfoAck(std::vector<FrontServerInfo> serverInfos)
-                {
-                    std::memset(this, 0, serverInfos.size() * sizeof(FrontServerInfo));
-                    std::copy(serverInfos.begin(), serverInfos.end(), this->serverInfos);
-                }
-
-                FrontServerInfoAck(uint8_t* data, size_t size)
-                {
-                    std::memset(this, 0, sizeof(FrontServerInfoAck));
-                    size_t structSize = sizeof(FrontServerInfo);
-                    size_t elementCount = size / sizeof(FrontServerInfo);
-                    for (size_t i = 0; i < elementCount; i++) this->serverInfos[i] = *(FrontServerInfo*)(data + i * structSize);
-                    
-                }
-            };
 
 #pragma pack(pop)
         }
@@ -516,44 +497,6 @@ namespace NetEngine
             };
 
            
-            struct MainShopBuyItemSerialInfoResultAck
-            {
-                ShopSerialInfo shop_items[];
-
-                MainShopBuyItemSerialInfoResultAck(std::vector<ShopSerialInfo> shopItems)
-                {
-                    std::memset(this, 0, shopItems.size() * sizeof(ShopSerialInfo));
-                    std::copy(shopItems.begin(), shopItems.end(), this->shop_items);
-                }
-
-                MainShopBuyItemSerialInfoResultAck(uint8_t* data, size_t size)
-                {
-                    std::memset(this, 0, sizeof(MainShopBuyItemSerialInfoResultAck));
-                    size_t structSize = sizeof(ShopSerialInfo);
-                    size_t elementCount = size / sizeof(ShopSerialInfo);
-                    for (size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopSerialInfo*)(data + i * structSize);
-                }
-            };
-
-            struct MainShopBuyItemIdResultAck
-            {
-                ShopItem shop_items[];
-
-                MainShopBuyItemIdResultAck(std::vector<ShopItem> shopItems)
-                {
-                    std::memset(this, 0, shopItems.size() * sizeof(ShopItem));
-                    std::copy(shopItems.begin(), shopItems.end(), this->shop_items);
-                }
-
-                MainShopBuyItemIdResultAck(uint8_t* data, size_t size)
-                {
-                    std::memset(this, 0, sizeof(MainShopBuyItemIdResultAck));
-                    size_t structSize = sizeof(ShopItem);
-                    size_t elementCount = size / sizeof(ShopItem);
-                    for (size_t i = 0; i < elementCount; i++) this->shop_items[i] = *(ShopItem*)(data + i * structSize);
-                }
-            };
-
 
             class MainGachaponSalesInfoAck
             {

@@ -259,13 +259,11 @@ namespace BaseLib
     struct GachaponInfo
     {
         uint32_t Id;
-        //std::string Name;
         uint32_t Type;
         uint32_t InfoId;
         uint32_t LimitedGrade;
         uint32_t Price;
         uint32_t LuckyPoint;
-        //std::unordered_map<uint32_t, std::vector<GachaponPackageItem>> Gachapons;
         boost::unordered_flat_map<uint32_t, std::vector<GachaponPackageItem>> Gachapons;
         GachaponInfo()
         {
@@ -435,8 +433,5 @@ namespace BaseLib
             this->ClanExpBase = -1;
             this->ClanExpBnus = -1;
         }
-    };
-
-   
+    }; 
 }
-//#endif

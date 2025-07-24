@@ -20,14 +20,6 @@
 #include <bit>  // For std::bit_cast.
 #endif
 
-/*
-#ifdef _WIN64
-#pragma comment(lib, "libcrypto.lib")
-#endif
-*/
-
-//#include <base64/base64.hpp>
-
 #include <monocypher.h>
 #include <fmt/format.h>
 #include <fmt/color.h>
@@ -74,6 +66,57 @@ namespace Utility
         uint32_t CustomGen(const uint32_t min, const uint32_t max);
         uint64_t CustomGen64(const uint64_t min, const uint64_t max);
     }
+    namespace SecureRandomBlake2b
+    {
+        class Generator
+        {
+        private:
+            static constexpr size_t DIGEST_SIZE = 64;
+            static constexpr int DEFAULT_ROUNDS = 10;
+
+            const int _rounds;
+            int64_t _stateCounter;
+            int64_t _seedCounter;
+            uint8_t _state[DIGEST_SIZE];
+            uint8_t _seed[DIGEST_SIZE];
+            int64_t _counter;
+
+            static int64_t GetNanoTime();
+            void UInt64ToLE(uint64_t n, uint8_t* bs);
+            void AddCounter(int64_t seedVal);
+            int64_t NextCounterValue();
+            void AddSeedMaterial(const uint8_t* inSeed, size_t length);
+            void AddSeedMaterial(int64_t rSeed);
+            void CycleSeed();
+            void GenerateState();
+
+        public:
+            explicit Generator(int rounds = DEFAULT_ROUNDS, bool autoSeed = true) : _rounds(rounds), _stateCounter(1), _seedCounter(0), _counter(GetNanoTime()) 
+            {
+                memset(_state, 0, DIGEST_SIZE);
+                memset(_seed, 0, DIGEST_SIZE);
+                if (!autoSeed)  return;
+                _seedCounter = 2;
+                AddSeedMaterial(NextCounterValue());
+                uint8_t entropy[DIGEST_SIZE]{};
+                auto timestamp = GetNanoTime();
+                auto ptr_entropy = reinterpret_cast<uintptr_t>(this);
+                for (size_t i = 0; i < DIGEST_SIZE; i += 8) 
+                {
+                    uint64_t val = (i % 16 == 0) ? static_cast<uint64_t>(timestamp) : static_cast<uint64_t>(ptr_entropy + i);
+                    UInt64ToLE(val, entropy + i);
+                }
+                AddSeedMaterial(entropy, DIGEST_SIZE);
+            }
+            void SetSeed(const uint8_t* seed, size_t length);
+            void SetSeed(int64_t seed);
+            void NextBytes(uint8_t* bytes, size_t length);
+            uint64_t NextUInt64();
+            uint32_t NextUInt32();
+            uint64_t GenerateAuthKey();
+        };
+    }
+
     
     std::string round_float(float var);
     std::string readable_size(uint64_t bytes);
@@ -772,7 +815,8 @@ namespace Utility
         }
 
     }
+
+
+    
+
 }
-
-
-//#endif

@@ -73,16 +73,7 @@ void init_crash_handler()
     if (database == NULL) return;
 
     crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-    client->StartHandler(
-        handler,
-        db_path,
-        metrics_path,
-        "",              // URL for crash reports — leave empty for local only
-        annotations,
-        arguments,
-        true,            // restartable
-        false             // asynchronous start
-    );
+	client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
 }
 
 int main()
@@ -99,6 +90,8 @@ int main()
 
     
     std::srand(static_cast<uint32_t>(std::time(NULL)));
+
+
     BaseLib::DefaultSettings->LoadOptions();
     const auto& server_settings = BaseLib::DefaultSettings->GetServerSettings();
     BaseLib::LogPool = std::make_unique<BS::thread_pool<BS::tp::priority>>(server_settings.front.logger_threads);

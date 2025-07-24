@@ -13,11 +13,11 @@
     <Filter Include="NetEngine\Packets">
       <UniqueIdentifier>{662b431c-be8a-4772-9066-136610e9a928}</UniqueIdentifier>
     </Filter>
-    <Filter Include="NetEngine\monocypher">
-      <UniqueIdentifier>{9becadb3-5b4e-49bd-8552-22391de143a7}</UniqueIdentifier>
+    <Filter Include="monocypher">
+      <UniqueIdentifier>{f5d60f88-b048-46c5-9b63-89da3768cefa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="NetEngine\monocypher\optional">
-      <UniqueIdentifier>{204ab559-3434-45ca-9d4f-146aece3adfe}</UniqueIdentifier>
+    <Filter Include="monocypher\optional">
+      <UniqueIdentifier>{6e9fd8b1-14b1-4e63-b718-63b368529bde}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -66,11 +66,11 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h">
       <Filter>BaseLib</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\monocypher.h">
-      <Filter>NetEngine\monocypher</Filter>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.h">
+      <Filter>monocypher\optional</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\optional\monocypher-ed25519.h">
-      <Filter>NetEngine\monocypher\optional</Filter>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.h">
+      <Filter>monocypher</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -101,11 +101,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.cpp">
       <Filter>BaseLib</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\monocypher.c">
-      <Filter>NetEngine\monocypher</Filter>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.c">
+      <Filter>monocypher</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\monocypher\optional\monocypher-ed25519.c">
-      <Filter>NetEngine\monocypher\optional</Filter>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.c">
+      <Filter>monocypher\optional</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

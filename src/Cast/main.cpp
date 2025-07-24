@@ -1,5 +1,4 @@
 #define ASIO_STANDALONE
-
 #include <time.h>
 #include <iostream>
 #include <ostream>
@@ -66,16 +65,7 @@ void init_crash_handler()
     if (database == NULL) return;
 
     crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-    client->StartHandler(
-        handler,
-        db_path,
-        metrics_path,
-        "",              // URL for crash reports — leave empty for local only
-        annotations,
-        arguments,
-        true,            // restartable
-        false             // asynchronous start
-    );
+    client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
 }
 
 int main()

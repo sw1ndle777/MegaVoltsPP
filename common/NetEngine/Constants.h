@@ -3,8 +3,12 @@
 #include <optional>
 #include <string_view>
 #include <memory>
+#include <type_traits>
+#include <utility>
 namespace NetEngine
 {
+
+
 
     template <typename T1, typename T2>
     struct LockedResource
@@ -39,6 +43,43 @@ namespace NetEngine
         CMessage* message;
         CServer* server;
     };
+
+    template<class T, class U>
+    concept EnumOf = std::is_enum_v<T> && std::same_as<std::underlying_type_t<T>, U>;
+
+    template<class T>
+    concept Any16 = EnumOf<T, uint16_t> || std::integral<T> || std::unsigned_integral<T>;
+
+    template<class T>
+    concept Any8 = EnumOf<T, uint8_t> || std::integral<T> || std::unsigned_integral<T>;
+
+    template<class T>
+    constexpr auto to_u(T v) noexcept
+    {
+        if constexpr (std::is_enum_v<std::remove_cvref_t<T>>)
+            return std::to_underlying(v);
+        else
+            return v;
+    }
+
+    namespace PacketId
+    {
+        namespace Front
+        {
+            enum class GsToCl : uint16_t
+            {
+                Authorize = 22,
+                ChannelInfo = 23,
+                EngineConnectionInit = 401
+            };
+            enum class ClToGs : uint16_t
+            {
+                Authorize = 22,
+                ChannelInfo = 23,
+                Reconnect = 25
+            };
+        }
+    }
 
     namespace PacketIds
     {
