@@ -62,6 +62,21 @@ namespace NetEngine
             return v;
     }
 
+    template <typename Out, typename T>
+    constexpr Out field_cast(T v) 
+    {
+        static_assert(std::is_integral_v<Out>, "Out must be an integral type");
+        if constexpr (std::is_enum_v<std::remove_cvref_t<T>>)
+            return static_cast<Out>(std::to_underlying(v));
+        else
+            return static_cast<Out>(v);
+    }
+
+    template <typename T> constexpr uint8_t  u8_cast(T v) { return field_cast<uint8_t>(v); }
+    template <typename T> constexpr uint16_t u16_cast(T v) { return field_cast<uint16_t>(v); }
+    template <typename T> constexpr uint32_t u32_cast(T v) { return field_cast<uint32_t>(v); }
+
+
     namespace PacketId
     {
         namespace Front
@@ -95,10 +110,26 @@ namespace NetEngine
                 CastToMainAckServerInfo = 6,
                 CastToMainPlayerAuthorizeInfo = 7,
                 MainToCastSendPingAssure = 8,
-                MainToCastSendPacket = 9
+                MainToCastSendPacket = 9,
+                MainToCastAuthorizePlayer = 10,
+				FrontToMainTryLoginPlayer = 11,
+                MainToFrontAcknowledgeAidOnline = 12,
+				MainToFrontAcknowledgeAidDisconnected = 13,
+				CastToMainAcknowledgeAuthPlayer = 14
             };
         }
 
+    }
+    namespace NicknameChange
+    {
+        enum Errors : uint8_t
+        {
+            AVA_CREATE_OVERLAPPEDNAME = 5,
+            ID_CREATE_PLAYER_FULL = 7,
+            ID_CREATE_PLAYER_DONT_EXIST = 13,
+            AVA_CREATE_SHORTNAME = 14,
+            ID_CREATE_NO_PERMISSION = 16
+        };
     }
 
     namespace Cryptography
@@ -147,13 +178,30 @@ namespace NetEngine
     }
     namespace Items
     {
-        enum Origin : uint32_t
+        enum Origin : uint32_t // original origin used inside item serial by old devs
         {
             From_Game = 0,
             From_Event = 4,
             From_Dev_Tool = 5,
             From_Web_Shop = 6,
             From_GM_Spawn = 8
+        };
+
+        enum class OriginLog : uint8_t
+        {
+            DEV_TOOL = 0,
+            WEB_SHOP = 1,
+            WEB_SUPPORT = 2,
+            GM_SPAWN = 3,
+            GAME_SHOP = 4,
+            GAME_GACHA = 5,
+            GAME_PACKAGE = 6,
+            TRADE = 7,
+            EVENT = 8,
+            TOURNAMENT = 9,
+            GIFT = 10,
+            MONTHLY_REWARD = 11,
+            DAILY_MISSION = 12
         };
 
         namespace WeaponItems
@@ -292,18 +340,139 @@ namespace NetEngine
                 Capsule = 0x1A,
                 StaticItems = 0xFF,
 
-                ChangeNicknameFail = 0x04,
-                ChangeNicknameSuccess = 0x35,
+                MSG_NICKNAME_CHANGE_FAIL = 0x04,
+                MSG_NICKNAME_CHANGE_SUCCESS = 0x35,
 
                 DailyGiftError = 0x02,
-                BoxInventoryFull = 0x07,
+                PACKAGE_INVEN_FULL = 0x07,
                 CoinMax = 0x13,
                 Unknown1 = 0x08,
                 Unknown2 = 0x23,
-                VoiceUnlock = 0x9F
+                INITIALIZE_WIN_LOSE_COMPLETE = 0x95,
+                INITIALIZE_KILL_DEATH_COMPLETE = 0x96,
+                MSG_ITEM_VOICE_OPEN = 0x9F
+            };
+
+            enum class CoinItemId : uint32_t 
+            {
+                COIN_1   = 4308001,
+                COIN_2   = 4308002,
+                COIN_3   = 4308003,
+                COIN_4   = 4308004,
+                COIN_5   = 4308005,
+                COIN_6   = 4308006,
+                COIN_7   = 4308007,
+                COIN_8   = 4308008,
+                COIN_9   = 4308009,
+                COIN_10  = 4308010,
+                COIN_20  = 4308011,
+                COIN_30  = 4308012,
+                COIN_40  = 4308013,
+                COIN_50  = 4308014,
+                COIN_60  = 4308015,
+                COIN_70  = 4308016,
+                COIN_80  = 4308017,
+                COIN_90  = 4308018,
+                COIN_100 = 4308019,
+            };
+
+            enum class CouponItemId : uint32_t 
+            {
+                COUPON_1    = 4305019,
+                COUPON_5    = 4305020,
+                COUPON_10   = 4305021,
+                COUPON_15   = 4305022,
+                COUPON_20   = 4305023,
+                COUPON_25   = 4305024,
+                COUPON_30   = 4305025,
+                COUPON_1_1  = 4305026,
+                COUPON_2    = 4305027,
+                COUPON_3    = 4305028,
+                COUPON_4    = 4305029,
+                COUPON_6    = 4305030,
+                COUPON_7    = 4305031,
+                COUPON_8    = 4305032,
+                COUPON_9    = 4305033,
+                COUPON_40   = 4305034,
+                COUPON_50   = 4305035,
+                COUPON_100  = 4305036,
+                COUPON_SLOT = 1000000
+            };
+
+            enum class MicroPointsItemId : uint32_t 
+            {
+                POINTS_100      = 4400001,
+                POINTS_200      = 4400002,
+                POINTS_300      = 4400003,
+                POINTS_400      = 4400004,
+                POINTS_500      = 4400005,
+                POINTS_600      = 4400006,
+                POINTS_700      = 4400007,
+                POINTS_800      = 4400008,
+                POINTS_900      = 4400009,
+                POINTS_1000     = 4400010,
+                POINTS_1100     = 4400011,
+                POINTS_1200     = 4400012,
+                POINTS_1300     = 4400013,
+                POINTS_1400     = 4400014,
+                POINTS_1500     = 4400015,
+                POINTS_1600     = 4400016,
+                POINTS_1700     = 4400017,
+                POINTS_1800     = 4400018,
+                POINTS_1900     = 4400019,
+                POINTS_2000     = 4400020,
+                POINTS_3000     = 4400030,
+                POINTS_3500     = 4400035,
+                POINTS_4000     = 4400040,
+                POINTS_5000     = 4400050,
+                POINTS_6000     = 4400060,
+                POINTS_7000     = 4400070,
+                POINTS_8000     = 4400080,
+                POINTS_9000     = 4400090,
+                POINTS_10000    = 4400100,
+                POINTS_20000    = 4400200,
+                POINTS_30000    = 4400300,
+                POINTS_50000    = 4400500,
+                POINTS_100000   = 4401000,
+                POINTS_150000   = 4401500,
+                POINTS_500000   = 4405000,
+                POINTS_1000000  = 4410000,
+            };
+
+            enum class VoiceItemId : uint32_t 
+            {
+                NAOMI_A   = 4810000,
+                NAOMI_B   = 4810001,
+                NAOMI_C   = 4810002,
+                NAOMI_D   = 4810003,
+                KNOX_A    = 4810004,
+                KNOX_B    = 4810005,
+                KNOX_C    = 4810006,
+                KNOX_D    = 4810007,
+                PANDORA_A = 4810008,
+                PANDORA_B = 4810009,
+                PANDORA_C = 4810010,
+                PANDORA_D = 4810011,
+                CHIP_A    = 4810012,
+                CHIP_B    = 4810013,
+                CHIP_C    = 4810014,
+                CHIP_D    = 4810015,
+            };
+
+            enum class ItemIds : uint32_t
+            {
+                WIN_LOSE_RESET        = 4302000,
+				KILL_DEATH_RESET      = 4303000,
+				INV_EXPAND_10         = 4305000,
+                INV_EXPAND_20         = 4305001,
+                INV_EXPAND_40         = 4305002,
+                INV_EXPAND_80         = 4305003,
+                BATTERY_RECHARGE_500  = 4305005,
+                BATTERY_RECHARGE_1000 = 4305006,
+				BATTERY_EXPAND        = 4305007,
+                COUPON_1_PACKAGE      = 4306001
             };
         }
-
     }
 
     namespace EquipUpdate
@@ -315,7 +484,15 @@ namespace NetEngine
         };
     }
 
-
+    namespace Socials
+    {
+        enum State : uint8_t
+        {
+            Accepted = 0,
+            Pending = 1,
+            Blocked = 2
+        };
+    }
     namespace Userlist
     {
         namespace User
@@ -361,14 +538,14 @@ namespace NetEngine
             };
             enum AddResult : uint8_t
             {
-                SendSingle = 0x1C,
-                SendPending = 0x25,
-                FriendAccepted = 0x01,
-                UpdateList = 0x1E,
+                SendSingle = 28,
+                SendPending = 37,
+                FriendAccepted = 1,
+                UpdateList = 30,
 
-                PlayerBlocked = 0x2A,
-                PlayerNotFound = 0x06,
-                ListFull = 0x07,
+                PlayerBlocked = 42,
+                PlayerNotFound = 6,
+                ListFull = 7,
             };
             enum ListState : uint8_t
             {
@@ -439,6 +616,15 @@ namespace NetEngine
             SendMails2 = 37,
             Confirm = 51
         };
+		enum GiftResult : uint8_t
+		{
+            USER_OFFLINE = 4,
+            MEMO_GIFT_FULL_RECIEVER = 8,
+            NOT_ENOUGH_CASH = 14,
+            MEMO_GIFT_FULL_SENDER = 17,
+            PRESENT_SEND_SUCCESS = 37,
+            BLACKLIST_ERROR_10 = 42
+		};
     }
 
     namespace Team

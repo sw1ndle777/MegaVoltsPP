@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <stdint.h>
 #include <string.h>
+#include "Enums/Protocol/Orders.h"
 namespace NetEngine
 {
     namespace Protocols
@@ -54,6 +55,15 @@ namespace NetEngine
                 memset(this, 0, sizeof(SCommandHeader));
                 this->data = data;
             }
+
+			SCommandHeader(uint32_t order, uint32_t mission, uint32_t extra, uint32_t option)
+			{
+				memset(this, 0, sizeof(SCommandHeader));
+				this->order = order;
+				this->mission = mission;
+				this->extra = extra;
+				this->option = option;
+			}
         };
 
 #pragma pack(pop)

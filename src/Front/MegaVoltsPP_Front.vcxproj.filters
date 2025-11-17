@@ -12,6 +12,18 @@
     <Filter Include="header\handlers">
       <UniqueIdentifier>{5c19a35a-585d-4b9a-aa0b-d2cd1ca3fbd0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="header\handlers\Core">
+      <UniqueIdentifier>{a00cd564-a0e8-4a6e-99e4-5dc46a26146f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player">
+      <UniqueIdentifier>{1c61a44d-e40a-40de-ba8f-f13a477bcc0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player\Core">
+      <UniqueIdentifier>{e91affe3-9a56-4d74-b8e1-befce53fd4e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Ipc">
+      <UniqueIdentifier>{96a11f5c-736a-45ba-a121-f1f52cbb8eb4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -25,23 +37,29 @@
     <ClInclude Include="CFrontServer.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerConnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Core\Ipc\MainAidOnline.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerDisconnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Core\Ipc\MainDisconnect.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LoginAuth.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\Authorize.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LoginReconnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\Channels.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ChannelsInfo.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\Reconnect.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerIpcMessage.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Core\Connect.h">
+      <Filter>header\handlers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Disconnect.h">
+      <Filter>header\handlers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc.h">
+      <Filter>header\handlers\Core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

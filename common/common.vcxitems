@@ -17,13 +17,16 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CCache.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBData.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLocker.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\Utility.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Enums\Protocol\Orders.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CCrypt.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Constants.h" />

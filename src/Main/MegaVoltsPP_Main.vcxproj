@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -38,40 +38,40 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <EnableASAN>false</EnableASAN>
@@ -131,17 +131,17 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\magic_enum;$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin_1_1_1\\</OutDir>
-    <IntDir>obj_1_1_1\\</IntDir>
+    <IntDir>..\\..\\obj_1_1_1\\main\\</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\magic_enum;$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin\\</OutDir>
-    <IntDir>obj\\</IntDir>
+    <IntDir>..\\..\\obj\\main\\</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -219,9 +219,10 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalOptions>/utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -262,46 +263,116 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMainServer.h" />
-    <ClInclude Include="handlers\BossBattleRespawn.h" />
-    <ClInclude Include="handlers\ChangeTeam.h" />
-    <ClInclude Include="handlers\ChannelsInfo.h" />
-    <ClInclude Include="handlers\CreateParty.h" />
-    <ClInclude Include="handlers\CreateRoom.h" />
-    <ClInclude Include="handlers\DeleteItem.h" />
-    <ClInclude Include="handlers\EndMatch.h" />
-    <ClInclude Include="handlers\GachaponSpin.h" />
-    <ClInclude Include="handlers\GameEventMessage.h" />
-    <ClInclude Include="handlers\JoinPlaza.h" />
-    <ClInclude Include="handlers\JoinRoom.h" />
-    <ClInclude Include="handlers\LeaveMatch.h" />
-    <ClInclude Include="handlers\LeaveParty.h" />
-    <ClInclude Include="handlers\LeavePlaza.h" />
-    <ClInclude Include="handlers\LeaveRoom.h" />
-    <ClInclude Include="handlers\LobbyUserDetails.h" />
-    <ClInclude Include="handlers\LobbyUserList.h" />
-    <ClInclude Include="handlers\NextRoundUpdateMatch.h" />
-    <ClInclude Include="handlers\PackageOpen.h" />
-    <ClInclude Include="handlers\PlayerAuthorize.h" />
-    <ClInclude Include="handlers\PlayerChangeCharacter.h" />
-    <ClInclude Include="handlers\EquipItem.h" />
-    <ClInclude Include="handlers\PlayerChat.h" />
-    <ClInclude Include="handlers\PlayerEnergy.h" />
-    <ClInclude Include="handlers\PlayerMailbox.h" />
-    <ClInclude Include="handlers\PlayerMissions.h" />
-    <ClInclude Include="handlers\PlayerNameChange.h" />
-    <ClInclude Include="handlers\PlayerPickupDrop.h" />
-    <ClInclude Include="handlers\PlayerPing.h" />
-    <ClInclude Include="handlers\PlayerSocials.h" />
-    <ClInclude Include="handlers\RepairItem.h" />
-    <ClInclude Include="handlers\SellItem.h" />
-    <ClInclude Include="handlers\ServerConnect.h" />
-    <ClInclude Include="handlers\ServerDisconnect.h" />
-    <ClInclude Include="handlers\BuyItem.h" />
-    <ClInclude Include="handlers\ServerIpcMessage.h" />
-    <ClInclude Include="handlers\StartMatch.h" />
-    <ClInclude Include="handlers\UpdateRoomList.h" />
-    <ClInclude Include="handlers\UpdateRoomSettings.h" />
-    <ClInclude Include="handlers\UpgradeItem.h" />
+    <ClInclude Include="handlers\Core\Cmds.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Core\Help.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Core\Notice.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\CastInfo.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\MainInfo.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\Online.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\RoomInfo.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\Rooms.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\System\Maintenance.h" />
+    <ClInclude Include="handlers\Core\Cmds\Core\System\ReloadGachaSale.h" />
+    <ClInclude Include="handlers\Core\Cmds\Items\ClearInventory.h" />
+    <ClInclude Include="handlers\Core\Cmds\Items\ExaItems.h" />
+    <ClInclude Include="handlers\Core\Cmds\Items\GodItems.h" />
+    <ClInclude Include="handlers\Core\Cmds\Items\Item.h" />
+    <ClInclude Include="handlers\Core\Cmds\Items\ItemsByType.h" />
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Room\Break.h" />
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Room\BreakAll.h" />
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Room\Kick.h" />
+    <ClInclude Include="handlers\Core\Cmds\Player\Level.h" />
+    <ClInclude Include="handlers\Core\Connect.h" />
+    <ClInclude Include="handlers\Core\Disconnect.h" />
+    <ClInclude Include="handlers\Core\Ipc.h" />
+    <ClInclude Include="handlers\Core\Ipc\CastAuthorize.h" />
+    <ClInclude Include="handlers\Core\Ipc\CastMetrics.h" />
+    <ClInclude Include="handlers\Core\Ipc\CastSid.h" />
+    <ClInclude Include="handlers\Core\Ipc\FrontDisconnect.h" />
+    <ClInclude Include="handlers\Core\Ipc\FrontAidOnline.h" />
+    <ClInclude Include="handlers\Items\Core\Delete.h" />
+    <ClInclude Include="handlers\Items\Core\Equip.h" />
+    <ClInclude Include="handlers\Items\Core\Repair.h" />
+    <ClInclude Include="handlers\Items\Core\Sell.h" />
+    <ClInclude Include="handlers\Items\Core\Upgrade.h" />
+    <ClInclude Include="handlers\Items\Gamble\Gachapon.h" />
+    <ClInclude Include="handlers\Items\Gamble\Package.h" />
+    <ClInclude Include="handlers\Items\Shop\Coupon.h" />
+    <ClInclude Include="handlers\Items\Shop\Normal.h" />
+    <ClInclude Include="handlers\Lobby\Users\Profile.h" />
+    <ClInclude Include="handlers\Lobby\Users\View.h" />
+    <ClInclude Include="handlers\Party\Clan\Leave.h" />
+    <ClInclude Include="handlers\Party\Clan\OtherJoin.h" />
+    <ClInclude Include="handlers\Party\Clan\Register.h" />
+    <ClInclude Include="handlers\Party\Clan\View.h" />
+    <ClInclude Include="handlers\Party\Core\Create.h" />
+    <ClInclude Include="handlers\Party\Core\Join.h" />
+    <ClInclude Include="handlers\Party\Core\Kick.h" />
+    <ClInclude Include="handlers\Party\Core\Leave.h" />
+    <ClInclude Include="handlers\Party\Core\Automatch.h" />
+    <ClInclude Include="handlers\Party\Moderation\HostChange.h" />
+    <ClInclude Include="handlers\Party\Moderation\Modinfo.h" />
+    <ClInclude Include="handlers\Party\Moderation\Password.h" />
+    <ClInclude Include="handlers\Party\Moderation\PlayersRule.h" />
+    <ClInclude Include="handlers\Player\Character\CharacterChange.h" />
+    <ClInclude Include="handlers\Player\Character\CurrencyUpdate.h" />
+    <ClInclude Include="handlers\Player\Character\StateUpdate.h" />
+    <ClInclude Include="handlers\Player\Character\VoiceUpdate.h" />
+    <ClInclude Include="handlers\Player\Core\Authorize.h" />
+    <ClInclude Include="handlers\Player\Core\Automatch.h" />
+    <ClInclude Include="handlers\Player\Core\Channels.h" />
+    <ClInclude Include="handlers\Player\Core\Chat.h" />
+    <ClInclude Include="handlers\Player\Core\InviteJoin.h" />
+    <ClInclude Include="handlers\Player\Core\NameChange.h" />
+    <ClInclude Include="handlers\Player\Core\Ping.h" />
+    <ClInclude Include="handlers\Player\Gift\Delete.h" />
+    <ClInclude Include="handlers\Player\Gift\Receive.h" />
+    <ClInclude Include="handlers\Player\Gift\Send.h" />
+    <ClInclude Include="handlers\Player\Gift\View.h" />
+    <ClInclude Include="handlers\Player\Mail\Delete.h" />
+    <ClInclude Include="handlers\Player\Mail\Read.h" />
+    <ClInclude Include="handlers\Player\Mail\Send.h" />
+    <ClInclude Include="handlers\Player\Mail\View.h" />
+    <ClInclude Include="handlers\Player\Milestones\Achievements.h" />
+    <ClInclude Include="handlers\Player\Milestones\Missions.h" />
+    <ClInclude Include="handlers\Plaza\Join.h" />
+    <ClInclude Include="handlers\Plaza\Leave.h" />
+    <ClInclude Include="handlers\Room\Core\Create.h" />
+    <ClInclude Include="handlers\Room\Core\Join.h" />
+    <ClInclude Include="handlers\Room\Core\Leave.h" />
+    <ClInclude Include="handlers\Room\Core\TeamChange.h" />
+    <ClInclude Include="handlers\Room\Core\View.h" />
+    <ClInclude Include="handlers\Room\Gameplay\Battery.h" />
+    <ClInclude Include="handlers\Room\Gameplay\Pickups.h" />
+    <ClInclude Include="handlers\Room\Match\End.h" />
+    <ClInclude Include="handlers\Room\Match\Leave.h" />
+    <ClInclude Include="handlers\Room\Match\PveRespawn.h" />
+    <ClInclude Include="handlers\Room\Match\Rounds\End.h" />
+    <ClInclude Include="handlers\Room\Match\Rounds\Start.h" />
+    <ClInclude Include="handlers\Room\Match\Start.h" />
+    <ClInclude Include="handlers\Room\Moderation\AllowIntruders.h" />
+    <ClInclude Include="handlers\Room\Moderation\AllowKitdrops.h" />
+    <ClInclude Include="handlers\Room\Moderation\AllowObservers.h" />
+    <ClInclude Include="handlers\Room\Moderation\HostChange.h" />
+    <ClInclude Include="handlers\Room\Moderation\MapRule.h" />
+    <ClInclude Include="handlers\Room\Moderation\Modinfo.h" />
+    <ClInclude Include="handlers\Room\Moderation\ModinfoFull.h" />
+    <ClInclude Include="handlers\Room\Moderation\ModinfoPassword.h" />
+    <ClInclude Include="handlers\Room\Moderation\ModinfoTitle.h" />
+    <ClInclude Include="handlers\Room\Moderation\PlayersRule.h" />
+    <ClInclude Include="handlers\Room\Moderation\PointsRule.h" />
+    <ClInclude Include="handlers\Room\Moderation\TimeRule.h" />
+    <ClInclude Include="handlers\Room\Moderation\Votekick\Agree.h" />
+    <ClInclude Include="handlers\Room\Moderation\Votekick\Start.h" />
+    <ClInclude Include="handlers\Room\Moderation\Votekick\Verify.h" />
+    <ClInclude Include="handlers\Socials\Blockeds\Add.h" />
+    <ClInclude Include="handlers\Socials\Blockeds\Remove.h" />
+    <ClInclude Include="handlers\Socials\Blockeds\View.h" />
+    <ClInclude Include="handlers\Socials\Clan\View.h" />
+    <ClInclude Include="handlers\Socials\Friends\Add.h" />
+    <ClInclude Include="handlers\Socials\Friends\Remove.h" />
+    <ClInclude Include="handlers\Socials\Friends\View.h" />
+    <ClInclude Include="handlers\Socials\Party\View.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

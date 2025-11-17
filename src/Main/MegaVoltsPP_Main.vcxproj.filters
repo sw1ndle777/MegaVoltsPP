@@ -12,6 +12,129 @@
     <Filter Include="header\handlers">
       <UniqueIdentifier>{8ce66f68-2010-40a1-8b90-e8d86e4991e3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="header\handlers\Socials">
+      <UniqueIdentifier>{ad1ff0a2-7f8a-4186-a06b-c53a49f28387}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Socials\Blockeds">
+      <UniqueIdentifier>{0bcb1cf0-92df-4542-ab7f-4c75b91ff151}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Socials\Clan">
+      <UniqueIdentifier>{6dd51ec9-e8a2-45a1-a9b8-8935946f6b7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Socials\Friends">
+      <UniqueIdentifier>{cac3490c-f017-4ef4-8a77-059131539e04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Socials\Party">
+      <UniqueIdentifier>{a2acc6ea-9f88-4e89-bd09-9d57966c6352}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Lobby">
+      <UniqueIdentifier>{6014ad04-611c-4e43-8f5d-0c312482033a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room">
+      <UniqueIdentifier>{0c72fd7a-3c1d-46c0-8eb9-23ca0f1eca7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player">
+      <UniqueIdentifier>{41c42c88-f8df-457d-8e47-fe220b815ffa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Lobby\Users">
+      <UniqueIdentifier>{f4c21fc0-c4d8-441d-8c6a-b19c775ef4fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Items">
+      <UniqueIdentifier>{1a5c1dde-df6d-4f35-b0d3-0b14b3cb96e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Items\Core">
+      <UniqueIdentifier>{fd8239f6-f0d8-4b6c-9d98-3d45564448df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Items\Shop">
+      <UniqueIdentifier>{6884ac7e-a496-486b-9c8c-42ef9c510d03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Items\Gamble">
+      <UniqueIdentifier>{9724d55d-eb4c-470a-90b0-2e216f1d048f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player\Core">
+      <UniqueIdentifier>{c1b29156-7ec7-447a-a824-5b3262f83263}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player\Character">
+      <UniqueIdentifier>{dbe90057-ad4b-4eea-878b-e9cbd134cc85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player\Milestones">
+      <UniqueIdentifier>{6370c34e-86e5-4cfb-9240-2641b926c6dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room\Gameplay">
+      <UniqueIdentifier>{88cbd0c5-f0e4-42ba-a5a7-c8cbbbc8706a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room\Match">
+      <UniqueIdentifier>{6b3eb475-844d-4df0-9331-64e65d81fa25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player\Gift">
+      <UniqueIdentifier>{62f8fbb1-5519-44e5-b98f-923b12246e68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Player\Mail">
+      <UniqueIdentifier>{9ae4d845-2fd1-467f-b942-474515288b0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room\Core">
+      <UniqueIdentifier>{5abd5b02-1aea-4e7e-8c09-331b0bee638e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Party">
+      <UniqueIdentifier>{56b9ce4e-afbe-4040-bbbc-bfc9ac6b0540}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Party\Core">
+      <UniqueIdentifier>{327bb43f-6c37-4759-9b66-f6a5076ea7cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Plaza">
+      <UniqueIdentifier>{2f05cd77-0565-4425-8c41-d6573b1c82f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Party\Clan">
+      <UniqueIdentifier>{59647634-e611-41fb-9188-e028377b85ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room\Moderation">
+      <UniqueIdentifier>{c932398b-72be-4802-b5b6-0a1f8d5cf68f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room\Moderation\Votekick">
+      <UniqueIdentifier>{5df0b0d1-65ee-417a-9093-b994d70f9c4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Party\Moderation">
+      <UniqueIdentifier>{22a20e69-1051-4267-8008-5e1cc1c6d2e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core">
+      <UniqueIdentifier>{46755a31-9b9a-44ee-89d3-4c2c50180df2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Ipc">
+      <UniqueIdentifier>{24184e31-501a-4d2e-b8aa-0f464efc4e00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds">
+      <UniqueIdentifier>{bc070742-711b-42c6-b9de-738d95dd4108}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Core">
+      <UniqueIdentifier>{cd84f50b-e9ef-4097-89e1-b30780fb3799}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Items">
+      <UniqueIdentifier>{59d35bcf-b867-4c45-a39b-6974a76ff3a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Moderation">
+      <UniqueIdentifier>{d509f683-47ad-4c90-be9a-b1128ae9dca6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Player">
+      <UniqueIdentifier>{4bacd559-aceb-484f-a337-5a1ccf49a497}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Core\Core">
+      <UniqueIdentifier>{9ce845a8-9819-4b46-94ae-cb41432c8cba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Core\Metrics">
+      <UniqueIdentifier>{49ee35a6-3764-4a24-a8bb-85fda353ee9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Core\System">
+      <UniqueIdentifier>{72682a01-9856-4b44-90bc-152fb0388da0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Moderation\Player">
+      <UniqueIdentifier>{c6ff1873-4e40-4107-9460-ad5f10b06764}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Cmds\Moderation\Room">
+      <UniqueIdentifier>{d503fdcd-1deb-4e60-bf0a-af8c12933d5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room\Match\Rounds">
+      <UniqueIdentifier>{a659953c-16af-43fa-b3d1-0a710b71be95}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -25,125 +148,335 @@
     <ClInclude Include="CMainServer.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerConnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Blockeds\Add.h">
+      <Filter>header\handlers\Socials\Blockeds</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerDisconnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Blockeds\Remove.h">
+      <Filter>header\handlers\Socials\Blockeds</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerPing.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Blockeds\View.h">
+      <Filter>header\handlers\Socials\Blockeds</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerAuthorize.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Friends\Add.h">
+      <Filter>header\handlers\Socials\Friends</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerSocials.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Friends\Remove.h">
+      <Filter>header\handlers\Socials\Friends</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerNameChange.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Friends\View.h">
+      <Filter>header\handlers\Socials\Friends</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\BossBattleRespawn.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Clan\View.h">
+      <Filter>header\handlers\Socials\Clan</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ChangeTeam.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Socials\Party\View.h">
+      <Filter>header\handlers\Socials\Party</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ChannelsInfo.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Lobby\Users\Profile.h">
+      <Filter>header\handlers\Lobby\Users</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\CreateRoom.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Lobby\Users\View.h">
+      <Filter>header\handlers\Lobby\Users</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\DeleteItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\InviteJoin.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\EndMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Character\CharacterChange.h">
+      <Filter>header\handlers\Player\Character</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\GachaponSpin.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Milestones\Achievements.h">
+      <Filter>header\handlers\Player\Milestones</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\GameEventMessage.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Milestones\Missions.h">
+      <Filter>header\handlers\Player\Milestones</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\JoinRoom.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\Authorize.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LeaveMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\Channels.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LeaveRoom.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\NameChange.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LobbyUserDetails.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Core\Ping.h">
+      <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LobbyUserList.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Character\CurrencyUpdate.h">
+      <Filter>header\handlers\Player\Character</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\NextRoundUpdateMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Character\StateUpdate.h">
+      <Filter>header\handlers\Player\Character</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PackageOpen.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Character\VoiceUpdate.h">
+      <Filter>header\handlers\Player\Character</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerChangeCharacter.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Gift\Delete.h">
+      <Filter>header\handlers\Player\Gift</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\EquipItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Gift\Receive.h">
+      <Filter>header\handlers\Player\Gift</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\RepairItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Gift\Send.h">
+      <Filter>header\handlers\Player\Gift</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\SellItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Gift\View.h">
+      <Filter>header\handlers\Player\Gift</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\BuyItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Mail\Delete.h">
+      <Filter>header\handlers\Player\Mail</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\StartMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Mail\Read.h">
+      <Filter>header\handlers\Player\Mail</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\UpdateRoomList.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Mail\Send.h">
+      <Filter>header\handlers\Player\Mail</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\UpdateRoomSettings.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Player\Mail\View.h">
+      <Filter>header\handlers\Player\Mail</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\UpgradeItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Room\Gameplay\Battery.h">
+      <Filter>header\handlers\Room\Gameplay</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerChat.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Room\Gameplay\Pickups.h">
+      <Filter>header\handlers\Room\Gameplay</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LeavePlaza.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Room\Match\PveRespawn.h">
+      <Filter>header\handlers\Room\Match</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\JoinPlaza.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Core\Delete.h">
+      <Filter>header\handlers\Items\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerEnergy.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Core\Equip.h">
+      <Filter>header\handlers\Items\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerIpcMessage.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Core\Repair.h">
+      <Filter>header\handlers\Items\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\CreateParty.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Core\Sell.h">
+      <Filter>header\handlers\Items\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LeaveParty.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Core\Upgrade.h">
+      <Filter>header\handlers\Items\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerPickupDrop.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Gamble\Gachapon.h">
+      <Filter>header\handlers\Items\Gamble</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerMailbox.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Gamble\Package.h">
+      <Filter>header\handlers\Items\Gamble</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerMissions.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Items\Shop\Coupon.h">
+      <Filter>header\handlers\Items\Shop</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Items\Shop\Normal.h">
+      <Filter>header\handlers\Items\Shop</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Match\End.h">
+      <Filter>header\handlers\Room\Match</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Match\Leave.h">
+      <Filter>header\handlers\Room\Match</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Match\Start.h">
+      <Filter>header\handlers\Room\Match</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Core\Create.h">
+      <Filter>header\handlers\Room\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Core\Join.h">
+      <Filter>header\handlers\Room\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Core\Leave.h">
+      <Filter>header\handlers\Room\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Core\TeamChange.h">
+      <Filter>header\handlers\Room\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Core\View.h">
+      <Filter>header\handlers\Room\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Player\Core\Automatch.h">
+      <Filter>header\handlers\Player\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Player\Core\Chat.h">
+      <Filter>header\handlers\Player\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Plaza\Join.h">
+      <Filter>header\handlers\Plaza</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Plaza\Leave.h">
+      <Filter>header\handlers\Plaza</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Core\Create.h">
+      <Filter>header\handlers\Party\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Core\Join.h">
+      <Filter>header\handlers\Party\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Core\Kick.h">
+      <Filter>header\handlers\Party\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Core\Leave.h">
+      <Filter>header\handlers\Party\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Core\Automatch.h">
+      <Filter>header\handlers\Party\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Clan\Leave.h">
+      <Filter>header\handlers\Party\Clan</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Clan\OtherJoin.h">
+      <Filter>header\handlers\Party\Clan</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Clan\Register.h">
+      <Filter>header\handlers\Party\Clan</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Clan\View.h">
+      <Filter>header\handlers\Party\Clan</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\Votekick\Agree.h">
+      <Filter>header\handlers\Room\Moderation\Votekick</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\Votekick\Start.h">
+      <Filter>header\handlers\Room\Moderation\Votekick</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\Votekick\Verify.h">
+      <Filter>header\handlers\Room\Moderation\Votekick</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\AllowIntruders.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\AllowKitdrops.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\AllowObservers.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\HostChange.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\MapRule.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\Modinfo.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\ModinfoFull.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\ModinfoPassword.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\ModinfoTitle.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\PlayersRule.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\PointsRule.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Moderation\TimeRule.h">
+      <Filter>header\handlers\Room\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Moderation\HostChange.h">
+      <Filter>header\handlers\Party\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Moderation\Modinfo.h">
+      <Filter>header\handlers\Party\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Moderation\Password.h">
+      <Filter>header\handlers\Party\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Party\Moderation\PlayersRule.h">
+      <Filter>header\handlers\Party\Moderation</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Connect.h">
+      <Filter>header\handlers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Disconnect.h">
+      <Filter>header\handlers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc.h">
+      <Filter>header\handlers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\CastMetrics.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\CastAuthorize.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\CastSid.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\FrontDisconnect.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\FrontAidOnline.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds.h">
+      <Filter>header\handlers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Core\Help.h">
+      <Filter>header\handlers\Core\Cmds\Core\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Core\Notice.h">
+      <Filter>header\handlers\Core\Cmds\Core\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\CastInfo.h">
+      <Filter>header\handlers\Core\Cmds\Core\Metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\MainInfo.h">
+      <Filter>header\handlers\Core\Cmds\Core\Metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\Online.h">
+      <Filter>header\handlers\Core\Cmds\Core\Metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\RoomInfo.h">
+      <Filter>header\handlers\Core\Cmds\Core\Metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\Metrics\Rooms.h">
+      <Filter>header\handlers\Core\Cmds\Core\Metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\System\Maintenance.h">
+      <Filter>header\handlers\Core\Cmds\Core\System</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\System\ReloadGachaSale.h">
+      <Filter>header\handlers\Core\Cmds\Core\System</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Items\ClearInventory.h">
+      <Filter>header\handlers\Core\Cmds\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Items\ExaItems.h">
+      <Filter>header\handlers\Core\Cmds\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Items\GodItems.h">
+      <Filter>header\handlers\Core\Cmds\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Items\Item.h">
+      <Filter>header\handlers\Core\Cmds\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Items\ItemsByType.h">
+      <Filter>header\handlers\Core\Cmds\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Room\Break.h">
+      <Filter>header\handlers\Core\Cmds\Moderation\Room</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Room\BreakAll.h">
+      <Filter>header\handlers\Core\Cmds\Moderation\Room</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Room\Kick.h">
+      <Filter>header\handlers\Core\Cmds\Moderation\Room</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Player\Level.h">
+      <Filter>header\handlers\Core\Cmds\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Match\Rounds\End.h">
+      <Filter>header\handlers\Room\Match\Rounds</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Room\Match\Rounds\Start.h">
+      <Filter>header\handlers\Room\Match\Rounds</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

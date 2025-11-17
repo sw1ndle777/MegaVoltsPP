@@ -955,68 +955,53 @@ namespace NetEngine
             };
             struct MainRoomEndMatchScoreClientInfo
             {
-                uint32_t red_score : 8;
-                uint32_t blue_score : 8;
-                uint32_t unknown1 : 8;
-                uint32_t unknown2 : 8;
+                uint8_t red_score, blue_score, unknown1, unknown2;
             };
             struct MainRoomEndMatchClientInfo
             {
-                uint32_t melee_kills : 8;
-                uint32_t rifle_kills : 8;
-                uint32_t shotgun_kills : 8;
-                uint32_t sniper_kills : 8;
-                uint32_t gatling_kills : 8;
-                uint32_t bazooka_kills : 8;
-                uint32_t grenade_kills : 8;
-                uint32_t killstreak : 8;
-                uint32_t total_kills : 8;
-                uint32_t deaths : 8;
-                uint32_t headshots : 8;
-                uint32_t assists : 8;
-                uint32_t unknown1 : 8;
-                uint32_t unknown2 : 8;
-                uint32_t unknown3 : 8;
-                uint32_t unknown4 : 8;
+				uint8_t melee_kills, rifle_kills, shotgun_kills, sniper_kills, gatling_kills, bazooka_kills, grenade_kills;
+                uint8_t killstreak, total_kills, deaths, headshots, assists, mission, missionWin, unknown3, unknown4;
                 uint32_t unique_id;
-            };
-
-            struct MainRoomEndMatchScoreClientBossBattleInfo
-            {
-                uint32_t player_count;
             };
             struct MainRoomEndMatchClientBossBattleInfo
-            {
-                
+            {  
                 uint32_t unique_id;
-                uint32_t unknown[17];
+                uint32_t unk1;
+                uint16_t pve007_state;
+                uint16_t unk2;
+                uint32_t unk3[16];
             };
 
 
             // S2C
             struct MainRoomEndMatchResponse
             {
-                uint32_t melee_kills : 8;//0
-                uint32_t rifle_kills : 8;//1
-                uint32_t shotgun_kills : 8;//2
-                uint32_t sniper_kills : 8;//3
-                uint32_t gatling_kills : 8;//4
-                uint32_t bazooka_kills : 8;//5
-                uint32_t grenade_kills : 8;//6
-                uint32_t killstreak : 8;//7
-                uint32_t total_kills : 8;//8
-                uint32_t deaths : 8;//9
-                uint32_t headshots : 8;//10
-                uint32_t assists : 8;//11
-                //uint32_t unknown;//12
-                uint32_t unknown1 : 8;
-                uint32_t unknown2 : 8;
-                uint32_t unknown3 : 8;
-                uint32_t unknown4 : 8;
-                uint32_t total_mp;//16
-                uint32_t total_xp;//20
-                //uint32_t unknown2;//24
+                uint8_t melee_kills, rifle_kills, shotgun_kills, sniper_kills, gatling_kills, bazooka_kills, grenade_kills;
+                uint8_t killstreak, total_kills, deaths, headshots, assists, mission, missionWin, unknown3, unknown4;
+                uint32_t total_mp;
+                uint32_t total_xp;
                 uint32_t unique_id;
+				MainRoomEndMatchResponse() :
+					melee_kills(0),
+					rifle_kills(0),
+					shotgun_kills(0),
+					sniper_kills(0),
+					gatling_kills(0),
+					bazooka_kills(0),
+					grenade_kills(0),
+					killstreak(0),
+					total_kills(0),
+					deaths(0),
+					headshots(0),
+					assists(0),
+                    mission(0),
+                    missionWin(0),
+					unknown3(0),
+					unknown4(0),
+					total_mp(0),
+					total_xp(0),
+					unique_id(0)
+				{}			
             };
             struct MainRoomEndMatchResponseBossBattle
             {
@@ -1117,17 +1102,17 @@ namespace NetEngine
             };
             struct ClientPlayerInfoJump
             {
-                ClientPlayerInfoBasic playerPositionBasic;
+                ClientPlayerInfoBasic player;
                 JumpStruct jumpStruct{};
             };
             struct ClientPlayerInfoBullet
             {
-                ClientPlayerInfoBasic playerPositionBasic;
+                ClientPlayerInfoBasic player;
                 BulletsStruct bulletStruct{};
             };
             struct ClientPlayerInfoComplete
             {
-                ClientPlayerInfoBasic playerPositionBasic;
+                ClientPlayerInfoBasic player;
                 BulletsStruct bulletStruct{};
                 JumpStruct jumpStruct{};
             };

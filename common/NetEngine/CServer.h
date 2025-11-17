@@ -16,6 +16,8 @@
 #include <BaseLib/CThreadPool.h>
 namespace NetEngine
 {
+    using namespace BaseLib;
+    using enum fmt::color;
     class CSession;
     struct SCallbackData;
 
@@ -25,42 +27,7 @@ namespace NetEngine
         uint16_t order;
         std::chrono::time_point<std::chrono::steady_clock> start_time;
     };
-    /*
-    struct IdGenerator
-    {
-        uint16_t m_min;
-        uint16_t m_max;
-        uint16_t m_counter;
-        std::vector<uint16_t> m_freeList;
-
-        IdGenerator(uint16_t minId = 1, uint16_t maxId = 65535)
-            : m_min(minId), m_max(maxId), m_counter(minId)
-        {
-            if (minId > maxId) throw std::invalid_argument("minId must be less than or equal to maxId");
-            m_freeList.reserve(static_cast<size_t>(maxId - minId + 1));
-        }
-        bool getNext(uint16_t& out)
-        {
-            if (!m_freeList.empty())
-            {
-                out = m_freeList.back();
-                m_freeList.pop_back();
-                return true;
-            }
-            if (m_counter < m_max)
-            {
-                out = m_counter;
-                m_counter++;
-                return true;
-            }
-            return false;
-        }
-        void free(uint16_t id)
-        {
-            if (id >= m_min && id <= m_max)
-                m_freeList.emplace_back(id);
-        }
-    };*/
+    
     struct IdGenerator
     {
         uint16_t m_min;
@@ -135,14 +102,20 @@ namespace NetEngine
         bool GetNextAvailableQueuePartyId(uint16_t& outId);
         bool SetQueuePartyIdAvailable(const uint16_t& queue_party_id);
         std::shared_ptr<CServer> GetShared() { return shared_from_this(); }
-        void On(uint16_t id, std::function<void(SCallbackData&)> callback);
-		/*
-        template<NetEngine::Any16 Order>
-        void On(Order id, std::function<void(SCallbackData&)> cb)
+        template <typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+        void On(T order, std::function<void(SCallbackData&)> callback)
         {
-            On(to_u(id), std::move(cb));
-        }*/
-
+			if (m_callbacks.contains(u16_cast(order)))
+            {
+				EOrder o = magic_enum::enum_cast<EOrder>(u16_cast(order)).value_or(EOrder::NONE);
+				auto oName = magic_enum::enum_name(o);
+                DEBUGLOG(red, "packet callback with order: ({}) already exists", oName);
+                throw std::runtime_error("Callback already exists");
+            }
+            m_callbacks[u16_cast(order)] = callback;
+        }
+        //void On(uint16_t id, std::function<void(SCallbackData&)> callback);
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnSessionDisconnected(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);
@@ -154,6 +127,7 @@ namespace NetEngine
         void SendMainIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
         void SendCastIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
         void WebsitePost(const std::string& path, const std::string& data);
+		bool AdoptSid(uint16_t old_sid, uint16_t new_sid, bool evictExisting = false);
       
         std::shared_ptr<CSession> GetSessionById(uint16_t id)
         {
@@ -182,34 +156,25 @@ namespace NetEngine
         void clearExecution(uint16_t session_id, uint16_t order);
     private:
 
-       
-
-
         std::shared_mutex m_sessions_mutex;
         std::shared_mutex m_rooms_mutex;
         std::shared_mutex m_plazas_mutex;
         std::shared_mutex m_queue_party_mutex;
         std::shared_mutex m_server_settings_mutex;
         BaseLib::CSettings::ServerSettings server_settings;
-        //std::map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
         boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
-        //std::unordered_map<uint16_t, std::shared_ptr<CSession>> m_sessions;
         boost::unordered_flat_map<uint16_t, std::shared_ptr<CSession>> m_sessions;
         IdGenerator m_sessionIdGenerator;
         IdGenerator m_roomIdGenerator;
         IdGenerator m_plazaIdGenerator;
         IdGenerator m_queuePartyIdGenerator;
-
-        //std::vector<bool> m_available_session_ids;
-        //std::vector<bool> m_available_room_ids;
-        //std::vector<bool> m_available_plaza_ids;
         std::shared_ptr<asio::ip::tcp::acceptor> m_acceptor;
         std::shared_ptr<asio::ip::tcp::acceptor> m_ipc_acceptor;
         asio::io_context m_ioContext;
-        //std::shared_ptr<asio::thread_pool> m_threadPool;
         std::vector<std::jthread> threads;
         asio::ip::tcp::endpoint m_endpoint;
         asio::ip::tcp::socket m_socket;
+        asio::ip::tcp::socket m_ipcSocket;
         std::string m_ip_address;
         std::string m_port;
         std::string m_ipc_port;

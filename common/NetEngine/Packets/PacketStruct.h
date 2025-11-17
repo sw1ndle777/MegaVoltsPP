@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "PacketData.h"
+
 namespace NetEngine
 {
     namespace Packets
@@ -92,7 +93,7 @@ namespace NetEngine
             struct MainVersionCheckReq
             {
                 uint64_t  authKey;
-                uint32_t  versionCheck;
+                uint32_t  serverId;
                 uint8_t   NetVersion1;
                 uint8_t   NetVersion2;
                 uint8_t   NetVersion3;
@@ -111,6 +112,17 @@ namespace NetEngine
             {
                 uint32_t mail_count;
                 MailboxUpdateInfo mail_info[100];
+            };
+            struct MailGiftSendReq
+            {
+                uint32_t vendor_item_id;
+                char nickname[16];
+                char msg[150];
+            };
+            struct MailBoxSendReq
+            {
+                char nickname[16];
+                char msg[256];
             };
             struct MainBuyItemIdReq
             {
@@ -292,10 +304,10 @@ namespace NetEngine
             };
             struct MainCompleteMissionReq
             {
-                uint32_t collection_id;
-                uint32_t set_index;
-                uint32_t idk1;
-                uint32_t mission_type;//1 for guide mission and 4 for daily mission
+                uint32_t collection_id{ 0 };
+                uint32_t set_index{0};
+                uint32_t idk1{ 0 };
+                uint32_t mission_type{ 0 };//1 for guide mission and 4 for daily mission
             };
             struct MainVoteKickReq
             {
@@ -390,7 +402,7 @@ namespace NetEngine
                         uint32_t OwnedCharacters : 16; // >> 9
                         uint32_t Level : 7; // >> 25
                     };
-                    uint32_t GradeCharacterInfo;//0x98
+                    uint32_t GradeCharacterInfo;//0x9C
                 };
                 union
                 {
@@ -400,8 +412,8 @@ namespace NetEngine
                         uint32_t Energy : 14; // >> 39
                         uint32_t LuckyPoints : 11; // >> 53
                     };
-                    uint32_t CurrencyInfo;//0x9C
-            };
+                    uint32_t CurrencyInfo;
+                };
             #endif
 
       
@@ -437,7 +449,6 @@ namespace NetEngine
             #if defined(RELEASE_1_1_1)
                 uint32_t VIPLevel;//0xC0
             #endif
-                //uint32_t AccountId;//0xC4
                 uint64_t AccountAuthkey;//0xC8
                 char Unused[8];
                 char ClanName[16];//D0
@@ -463,6 +474,7 @@ namespace NetEngine
                 uint32_t ClanKills;
                 uint32_t ClanDeaths;
                 uint32_t ClanAssists;
+                
                 MainAccountInfoAck()
                 {
                     std::memset(this, 0, sizeof(MainAccountInfoAck));
@@ -544,10 +556,10 @@ namespace NetEngine
             class MainRepairItemAck
             {
             public:
-                uint32_t rt;
-                uint32_t mp;
+                uint32_t rt;//0x0
+                uint32_t mp;//0x4
                
-                std::vector<ItemSerialInfo> repair_items;
+                std::vector<ItemSerialInfo> repair_items;//0x8
 
                 MainRepairItemAck(const uint32_t& micropoints, const uint32_t& rocktokens, const std::vector<ItemSerialInfo>& repairItems)
                     :  rt(rocktokens), mp(micropoints),repair_items(repairItems) {}
@@ -841,9 +853,9 @@ namespace NetEngine
             class MainPlayerBlockedAddAck
             {
             public:
-                uint32_t account_id;
+                int32_t account_id;
                 char nickname[16];
-                MainPlayerBlockedAddAck(const uint32_t& account_id, const std::string& new_nickname = "")
+                MainPlayerBlockedAddAck(const int32_t account_id, const std::string& new_nickname = "")
                 {
                     std::memset(this, 0, sizeof(MainPlayerBlockedAddAck));
                     std::memset(this->nickname, 0, sizeof(this->nickname));
@@ -1049,6 +1061,44 @@ namespace NetEngine
 
                 }
             };
+
+            class EquipInfoAck
+            {
+            public:
+                Core::UniqueId unique_id;
+                EquipItemNumber equipped[17];
+               
+                EquipInfoAck(const Core::UniqueId& uniqueId,
+					const std::vector<EquipItemNumber>& equippedItems)
+                {
+                    std::memset(this, 0, sizeof(EquipInfoAck));
+                    this->unique_id.data = uniqueId.data;
+                    for(auto i = 0; i < 17 && i < equippedItems.size(); i++)
+						this->equipped[i] = equippedItems[i];
+
+                }
+            };
+
+            class PartyEquipInfoAck
+            {
+            public:
+                EquipItemNumber equipped[17];
+#if defined(RELEASE_1_1_1)
+                uint32_t EquippedItems2[17] = 0;
+#endif
+                Core::UniqueId unique_id;
+
+                PartyEquipInfoAck(const Core::UniqueId& uniqueId,
+                    const std::vector<EquipItemNumber>& equippedItems)
+                {
+                    std::memset(this, 0, sizeof(PartyEquipInfoAck));
+                    this->unique_id.data = uniqueId.data;
+                    for (auto i = 0; i < 17 && i < equippedItems.size(); i++)
+                        this->equipped[i] = equippedItems[i];
+
+                }
+            };
+
             class MainRoomPlayersEquipInfoAck
             {
             public:
@@ -1068,8 +1118,9 @@ namespace NetEngine
                 uint32_t EquippedShotgunItemId;
                 uint32_t EquippedSniperItemId;
                 uint32_t EquippedGatlingItemId;
-                uint32_t EquippedGrenadeItemId;
                 uint32_t EquippedBazookaItemId;
+                uint32_t EquippedGrenadeItemId;
+               
             #if defined(RELEASE_1_1_1)
                 uint32_t EquippedHairItemId2 = 0;
                 uint32_t EquippedFaceItemId2 = 0;
@@ -1086,8 +1137,9 @@ namespace NetEngine
                 uint32_t EquippedShotgunItemId2 = 0;
                 uint32_t EquippedSniperItemId2 = 0;
                 uint32_t EquippedGatlingItemId2 = 0;
-                uint32_t EquippedGrenadeItemId2 = 0;
                 uint32_t EquippedBazookaItemId2 = 0;
+                uint32_t EquippedGrenadeItemId2 = 0;
+               
             #endif
 
                 Core::UniqueId unique_id;
@@ -1098,7 +1150,7 @@ namespace NetEngine
                     const uint32_t& boots, const uint32_t& glass, const uint32_t& acc_waist,
                     const uint32_t& acc_back, const uint32_t& melee, const uint32_t& rifle, 
                     const uint32_t& shotgun, const uint32_t& sniper, const uint32_t& gatling,
-                    const uint32_t& grenade, const uint32_t& bazooka)
+                    const uint32_t& bazooka, const uint32_t& grenade)
                 {
                     std::memset(this, 0, sizeof(MainRoomPlayersEquipInfoAck));
                     this->unique_id.data = uniqueId.data;
@@ -1117,8 +1169,9 @@ namespace NetEngine
                     this->EquippedShotgunItemId = shotgun;
                     this->EquippedSniperItemId = sniper;
                     this->EquippedGatlingItemId = gatling;
-                    this->EquippedGrenadeItemId = grenade;
                     this->EquippedBazookaItemId = bazooka;
+                    this->EquippedGrenadeItemId = grenade;
+                    
                     
                 }
             };
@@ -1197,6 +1250,39 @@ namespace NetEngine
                 }
             };
 
+
+            class PlazaEquipInfoAck
+            {
+            public:
+                Core::UniqueId unique_id;
+                RoomUserPlayerInfo1 info;//4
+                EquipItemNumber equipped[17];
+#if defined(RELEASE_1_1_1)
+                uint32_t EquippedItems2[17] = 0;
+#endif
+                char nickname[16];//4c
+                RoomUserPlayerInfo2 info2;//5c
+#if defined(RELEASE_1_1_1)
+                uint32_t unknown2;//60
+#endif
+
+                PlazaEquipInfoAck(const std::string& nickname,
+                    const Core::UniqueId& uniqueId,
+                    const std::vector<EquipItemNumber>& equippedItems,
+                    const RoomUserPlayerInfo1& info1, 
+                    const RoomUserPlayerInfo2& info2)
+                {
+                    std::memset(this, 0, sizeof(PlazaEquipInfoAck));
+                    std::memset(this->nickname, 0, sizeof(this->nickname));
+                    std::strcpy(this->nickname, nickname.c_str());
+                    this->unique_id.data = uniqueId.data;
+                    this->info.data = info1.data;
+                    this->info2.data = info2.data;
+                    for (auto i = 0; i < 17 && i < equippedItems.size(); i++)
+                        this->equipped[i] = equippedItems[i];
+                }
+            };
+
             class MainRoomPlayerEnterInfoAck
             {
             public:
@@ -1217,8 +1303,9 @@ namespace NetEngine
                 uint32_t EquippedShotgunItemId;//38
                 uint32_t EquippedSniperItemId;//3c
                 uint32_t EquippedGatlingItemId;//40
-                uint32_t EquippedGrenadeItemId;//44
                 uint32_t EquippedBazookaItemId;//48
+                uint32_t EquippedGrenadeItemId;//44
+                
             #if defined(RELEASE_1_1_1)
                 uint32_t EquippedHairItemId2 = 0;
                 uint32_t EquippedFaceItemId2 = 0;
@@ -1235,8 +1322,9 @@ namespace NetEngine
                 uint32_t EquippedShotgunItemId2 = 0;
                 uint32_t EquippedSniperItemId2 = 0;
                 uint32_t EquippedGatlingItemId2 = 0;
-                uint32_t EquippedGrenadeItemId2 = 0;
                 uint32_t EquippedBazookaItemId2 = 0;
+                uint32_t EquippedGrenadeItemId2 = 0;
+               
             #endif
                 char nickname[16];//4c
                 RoomUserPlayerInfo2 info2;//5c
@@ -1249,7 +1337,7 @@ namespace NetEngine
                     const uint32_t& boots, const uint32_t& glass, const uint32_t& acc_waist,
                     const uint32_t& acc_back, const uint32_t& melee, const uint32_t& rifle,
                     const uint32_t& shotgun, const uint32_t& sniper, const uint32_t& gatling,
-                    const uint32_t& grenade, const uint32_t& bazooka)
+                    const uint32_t& bazooka, const uint32_t& grenade)
                 {
                     std::memset(this, 0, sizeof(MainRoomPlayerEnterInfoAck));
                     std::memset(this->nickname, 0, sizeof(this->nickname));
@@ -1275,8 +1363,9 @@ namespace NetEngine
                     this->EquippedShotgunItemId = shotgun;
                     this->EquippedSniperItemId = sniper;
                     this->EquippedGatlingItemId = gatling;
-                    this->EquippedGrenadeItemId = grenade;
                     this->EquippedBazookaItemId = bazooka;
+                    this->EquippedGrenadeItemId = grenade;
+                   
                 }
                 std::vector<uint8_t> Serialize() const
                 {
@@ -1333,11 +1422,13 @@ namespace NetEngine
                     auto itemGatling_bytes = reinterpret_cast<const uint8_t*>(&EquippedGatlingItemId);
                     data.insert(data.end(), itemGatling_bytes, itemGatling_bytes + sizeof(EquippedGatlingItemId));
 
+                    auto itemBazooka_bytes = reinterpret_cast<const uint8_t*>(&EquippedBazookaItemId);
+                    data.insert(data.end(), itemBazooka_bytes, itemBazooka_bytes + sizeof(EquippedBazookaItemId));
+
                     auto itemGrenade_bytes = reinterpret_cast<const uint8_t*>(&EquippedGrenadeItemId);
                     data.insert(data.end(), itemGrenade_bytes, itemGrenade_bytes + sizeof(EquippedGrenadeItemId));
 
-                    auto itemBazooka_bytes = reinterpret_cast<const uint8_t*>(&EquippedBazookaItemId);
-                    data.insert(data.end(), itemBazooka_bytes, itemBazooka_bytes + sizeof(EquippedBazookaItemId));
+                    
 
                 #if defined(RELEASE_1_1_1)
                     auto itemHair2_bytes = reinterpret_cast<const uint8_t*>(&EquippedHairItemId2);
@@ -1385,11 +1476,13 @@ namespace NetEngine
                     auto itemGatling2_bytes = reinterpret_cast<const uint8_t*>(&EquippedGatlingItemId2);
                     data.insert(data.end(), itemGatling2_bytes, itemGatling2_bytes + sizeof(EquippedGatlingItemId2));
 
+                    auto itemBazooka2_bytes = reinterpret_cast<const uint8_t*>(&EquippedBazookaItemId2);
+                    data.insert(data.end(), itemBazooka2_bytes, itemBazooka2_bytes + sizeof(EquippedBazookaItemId2));
+
                     auto itemGrenade2_bytes = reinterpret_cast<const uint8_t*>(&EquippedGrenadeItemId2);
                     data.insert(data.end(), itemGrenade2_bytes, itemGrenade2_bytes + sizeof(EquippedGrenadeItemId2));
 
-                    auto itemBazooka2_bytes = reinterpret_cast<const uint8_t*>(&EquippedBazookaItemId2);
-                    data.insert(data.end(), itemBazooka2_bytes, itemBazooka2_bytes + sizeof(EquippedBazookaItemId2));
+                    
                 #endif
 
                     auto nickname_bytes = reinterpret_cast<const uint8_t*>(nickname);
@@ -1710,13 +1803,33 @@ namespace NetEngine
                 Core::UniqueId unique_id;
                 uint32_t projectile_id;
             };
+
+            struct KitDropInfo
+            {
+                uint32_t id;//0x0000
+                NetEngine::Packets::Core::UniqueId uid;//0x0004
+                union
+                {
+                    struct
+                    {
+                        uint32_t itemId : 23;
+                        uint32_t itemType : 5;
+                        uint32_t flag : 1;
+                        uint32_t reserved : 3;
+                    };
+                    uint32_t data;//0x0008
+                };
+                float x, y, z;
+                uint32_t dissapear_tick;
+            };
+
             struct RespawnRequest
             {
                 uint16_t x;
                 uint16_t y;
                 uint16_t z;
                 uint16_t rotation;
-                Core::UniqueId target_unique_id;
+                Core::UniqueId uid;
             };
             struct SniperRequestHit
             {

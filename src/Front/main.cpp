@@ -23,10 +23,6 @@
 #include <crashpad/client/crash_report_database.h>
 #include <crashpad/client/settings.h>
 #include <crashpad/client/crashpad_info.h>
-//#include <crashpad/util/file/file_io.h>
-//#include <crashpad/util/misc/paths.h>
-
-//#pragma comment(lib, "third_party/mini_chromium/mini_chromium/base/base.lib")
 
 std::ostream& outputStream = std::cout;
 
@@ -91,7 +87,6 @@ int main()
     
     std::srand(static_cast<uint32_t>(std::time(NULL)));
 
-
     BaseLib::DefaultSettings->LoadOptions();
     const auto& server_settings = BaseLib::DefaultSettings->GetServerSettings();
     BaseLib::LogPool = std::make_unique<BS::thread_pool<BS::tp::priority>>(server_settings.front.logger_threads);
@@ -103,7 +98,10 @@ int main()
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.main.host, std::to_string(server_settings.front.port), std::to_string(server_settings.front.ipc_port), server_settings.front.debug, true, true, server_settings.cast.watchguard, server_settings.front.asio_threads, server_settings.front.database_threads, server_settings.front.logger_threads);
     frontServer->Setup(settings, server_settings);
     frontServer->Run();
+    std::cin.get();
+    delete frontServer;
+    BaseLib::DbPool.reset();
+    BaseLib::LogPool.reset();
 
-    std::cin.ignore();
     return 0;
 }

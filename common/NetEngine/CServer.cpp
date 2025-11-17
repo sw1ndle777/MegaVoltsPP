@@ -1,19 +1,17 @@
 #include "CServer.h"
 #include <fmt/color.h>
 #include <numeric>
+
 namespace NetEngine
 {
-    CServer::CServer() : m_ioContext(), m_socket(m_ioContext)//, m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
+	using namespace BaseLib;
+    using enum fmt::color;
+    CServer::CServer() : m_ioContext(), m_socket(m_ioContext), m_ipcSocket(m_ioContext)//, m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
     { 
         m_sessionIdGenerator = IdGenerator(1, 65535);
         m_roomIdGenerator = IdGenerator(2048, 4096);
         m_plazaIdGenerator = IdGenerator(0, 65535);
         m_queuePartyIdGenerator = IdGenerator(2048, 4096);
-
-        //m_available_session_ids[0] = false; 
-        //m_available_room_ids[0] = false;
-        //for (uint16_t i = 0; i < 2048; i++)
-        //    m_available_room_ids[i] = false;
     }
     CServer::~CServer() {}
     void CServer::Setup(const SServerSettings& settings, const BaseLib::CSettings::ServerSettings& servers_settings)
@@ -38,7 +36,7 @@ namespace NetEngine
 
         if (errorCode)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to resolve endpoint: ({})", errorCode.message().c_str());
+            DEBUGLOG(red, "failed to resolve endpoint: ({})", errorCode.message().c_str());
             return;
         }
         else
@@ -74,11 +72,11 @@ namespace NetEngine
     void CServer::Run()
     {
 
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "running server on: ({}:{})", m_ip_address.c_str(), m_port.c_str());
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "asio threads: ({}) out of ({})", m_concurrentThreads, std::jthread::hardware_concurrency());
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "logger threads: ({}) out of ({})", m_loggerThreads, std::jthread::hardware_concurrency());
-		if(m_databaseThreads)
-			BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "database threads: ({}) out of ({})", m_databaseThreads, std::jthread::hardware_concurrency());
+		DEBUGLOG(dark_cyan, "running server on: ({}:{})", m_ip_address, m_port);
+		DEBUGLOG(dark_cyan, "asio threads: ({}) out of ({})", m_concurrentThreads, std::jthread::hardware_concurrency());
+		DEBUGLOG(dark_cyan, "logger threads: ({}) out of ({})", m_loggerThreads, std::jthread::hardware_concurrency());
+		if (m_databaseThreads)
+			DEBUGLOG(dark_cyan, "database threads: ({}) out of ({})", m_databaseThreads, std::jthread::hardware_concurrency());
 
         this->start_time = Utility::GetUtcTimeNowInMilliseconds();
         static const std::set<std::string> ipc_addresses = { "127.0.0.1", this->server_settings.front.host, this->server_settings.main.host, this->server_settings.cast.host};
@@ -97,19 +95,17 @@ namespace NetEngine
                     try { m_ioContext.run(); }
                     catch (const std::exception& e)
                     {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, e.what());
+                        DEBUGLOG(red, e.what());
                     }
                     catch (...)
                     {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "unknown asio exception type");
+                        DEBUGLOG(red, "unknown asio exception type");
                     }
                 }
             }));
 
             AcceptSessions();
             AcceptIpcSessions(ipc_addresses);
-            //for (auto& t : threads)
-            //    t.join();
         }
         else
         {
@@ -122,9 +118,6 @@ namespace NetEngine
             }
         } 
     }
-
-   
-    
     void CServer::AcceptSessions()
     {
         m_acceptor->async_accept(m_socket, [this](std::error_code ec) 
@@ -140,7 +133,6 @@ namespace NetEngine
 
                 if (GetNextAvailableSessionId(session_id))
                 {
-                    //auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
                     auto session = CSession::Create(std::move(m_socket), m_ioContext, this, settings, session_id);
                     if (m_OnDisconnect) session->SetOnDisconnectCallback(m_OnDisconnect);
                     if (m_OnConnect)  m_OnConnect(session);
@@ -149,33 +141,31 @@ namespace NetEngine
                 }
                 else
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session pool is full");
+                    DEBUGLOG(red, "session pool is full");
                     m_socket.close();
                 }
             }
             else
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to accept session: ({})", ec.message().c_str());
+                DEBUGLOG(red, "failed to accept session: ({})", ec.message().c_str());
                 m_socket.close();
             }
-                
-
             AcceptSessions();
         });
     }
     void CServer::AcceptIpcSessions(const std::set<std::string>& ipc_addresses)
     {
-        m_ipc_acceptor->async_accept(m_socket, [this, ipc_addresses](std::error_code ec)
+        m_ipc_acceptor->async_accept(m_ipcSocket, [this, ipc_addresses](std::error_code ec)
         {
             if (!ec)
             {
 
                 asio::error_code endpoint_error;
-                auto remote_endpoint = m_socket.remote_endpoint(endpoint_error);
+                auto remote_endpoint = m_ipcSocket.remote_endpoint(endpoint_error);
 
                 if (endpoint_error)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to retrieve remote endpoint: ({})", endpoint_error.message().c_str());
+                    DEBUGLOG(red, "Failed to retrieve remote endpoint: ({})", endpoint_error.message().c_str());
                     AcceptIpcSessions(ipc_addresses);
                 }
 
@@ -191,25 +181,21 @@ namespace NetEngine
                     settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
 
                     uint16_t session_id = 0;
-
-                    //auto session = std::make_shared<CSession>(std::move(m_socket), m_ioContext, this, settings, session_id);
-                    auto session = CSession::Create(std::move(m_socket), m_ioContext, this, settings, session_id);
+                    auto session = CSession::Create(std::move(m_ipcSocket), m_ioContext, this, settings, session_id);
                     if (m_OnIpcMessage) session->SetOnIpcMessageCallback(m_OnIpcMessage);
                     session->DoReadIpc();
                 }
                 else
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "non whitelisted IPC connection from: ({})", remote_ip.c_str());
-                    m_socket.close();
+                    DEBUGLOG(red, "non whitelisted IPC connection from: ({})", remote_ip.c_str());
+                    m_ipcSocket.close();
                 }
                    
             }
             else
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to accept session: ({})", ec.message().c_str());
+                DEBUGLOG(red, "failed to accept session: ({})", ec.message().c_str());
             }
-                
-
             AcceptIpcSessions(ipc_addresses);
         });
     }
@@ -218,15 +204,14 @@ namespace NetEngine
     {
         std::unique_lock lock(m_sessions_mutex);
         const auto& id = session->GetSessionId();
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) will be given to player", id);
+        DEBUGLOG(dark_cyan, "added sid=({})", id);
         if (id == 0 || m_sessions.count(id))
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) cannot add", id);
+            DEBUGLOG(red, "can't add sid=({})", id);
             return false;
         }
 
         m_sessions[id] = session;
-        //m_available_session_ids[id] = false; 
         return true;
     }
     void CServer::RemoveSession(uint16_t id)
@@ -236,83 +221,43 @@ namespace NetEngine
         auto it = m_sessions.find(id);
         if (id == 0 || !m_sessions.count(id))
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) could not find", id);
+            DEBUGLOG(red, "could not find sid=({})", id);
             return;
         }
 
         m_sessions.erase(it);
         m_sessionIdGenerator.free(id);
-        //m_available_session_ids[id] = true;
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) got removed and now available", id);
+        DEBUGLOG(dark_cyan, "removed sid=({}) and now it's available", id);
     }
     
     bool CServer::GetNextAvailableSessionId(uint16_t& outId)
     {
         std::unique_lock lock(m_sessions_mutex);
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player request a session id, right now exist: ({}) session ids", m_sessions.size());
         auto ret_status = m_sessionIdGenerator.getNext(outId);
-        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "player request a session id, will give him: ({}) session id", outId);
+        DEBUGLOG(dark_cyan, "assigned new sid=({})", outId);
         return ret_status;
-        /*
-        for (uint16_t id = 1; id < m_available_session_ids.size(); id++) 
-        {
-            if (m_available_session_ids[id]) 
-            {
-                outId = id;
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) available", id);
-                return true;
-            }
-            else
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session id: ({}) not available", id);
-        }
-        return false;
-        */
     }
     
     bool CServer::GetNextAvailableRoomId(uint16_t& outId)
     {
         std::unique_lock lock(m_rooms_mutex);
         return m_roomIdGenerator.getNext(outId);
-        /*
-        for (uint16_t id = 0; id < m_available_room_ids.size(); id++)
-        {
-            if (m_available_room_ids[id])
-            {
-                outId = id;
-                return true;
-            }
-        }
-        return false;
-        */
     }
     bool CServer::SetRoomIdAvailable(const uint16_t& room_id)
     {
         std::unique_lock lock(m_rooms_mutex);
         m_roomIdGenerator.free(room_id);
-        //m_available_room_ids[room_id] = available;
         return true;
     }
     bool CServer::GetNextAvailablePlazaId(uint16_t& outId)
     {
         std::unique_lock lock(m_plazas_mutex);
         return m_plazaIdGenerator.getNext(outId);
-        /*
-        for (uint16_t id = 0; id < m_available_plaza_ids.size(); id++)
-        {
-            if (m_available_plaza_ids[id])
-            {
-                outId = id;
-                return true;
-            }
-        }
-        return false;
-        */
     }
     bool CServer::SetPlazaIdAvailable(const uint16_t& plaza_id)
     {
         std::unique_lock lock(m_plazas_mutex);
         m_plazaIdGenerator.free(plaza_id);
-        //m_available_plaza_ids[plaza_id] = available;
         return true;
     }
 
@@ -327,18 +272,6 @@ namespace NetEngine
         std::unique_lock lock(m_queue_party_mutex);
         m_queuePartyIdGenerator.free(queue_party_id);
         return true;
-    }
-
-  
-    void CServer::On(uint16_t id, std::function<void(SCallbackData&)> callback)
-    {
-        if (m_callbacks.find(id) != m_callbacks.end())
-        {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "packet callback with order: ({}) already exists", id);
-            throw std::runtime_error("Callback already exists");
-        }
-
-        m_callbacks[id] = callback;
     }
     void CServer::OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback)
     {
@@ -368,10 +301,16 @@ namespace NetEngine
             {
                 if (ec)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to connect to IPC target: {}", ec.message().c_str());
+                    DEBUGLOG(red, "Failed to connect to IPC target: {}", ec.message().c_str());
                     return;
                 }
                 
+                asio::error_code optEc;
+                socket->set_option(asio::ip::tcp::no_delay(true), optEc);
+
+                optEc = {};
+                socket->set_option(asio::socket_base::linger(true, 0), optEc);
+
                 uint32_t data_size = static_cast<uint32_t>(payload.size());
                 std::vector<uint8_t>* message = new std::vector<uint8_t>(8 + payload.size());
                 std::memcpy(&(*message)[0], &ipc_id, sizeof(ipc_id));
@@ -383,7 +322,7 @@ namespace NetEngine
                     delete message;
                     if (ec)
                     {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send IPC message: {}", ec.message().c_str());
+                        DEBUGLOG(red, "Failed to send IPC message: {}", ec.message().c_str());
                     }
                     socket->shutdown(asio::ip::tcp::socket::shutdown_both);
                     socket->close();
@@ -392,7 +331,7 @@ namespace NetEngine
         }
         catch (const std::exception& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Exception in SendIpcMessage: {}", e.what());
+            DEBUGLOG(red, "Exception in SendIpcMessage: {}", e.what());
         }
     }
     void CServer::SendFrontIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
@@ -441,7 +380,7 @@ namespace NetEngine
             timer->async_wait([socket, timer](const asio::error_code& ec) {
                 if (!ec)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send post website request due to timeout");
+                    DEBUGLOG(red, "Failed to send post website request due to timeout");
                     socket->close();
                 }
             });
@@ -450,7 +389,7 @@ namespace NetEngine
             {
                 if (ec)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to connect to website: {}", ec.message().c_str());
+                    DEBUGLOG(red, "Failed to connect to website: {}", ec.message().c_str());
                     timer->cancel();
                     return;
                 }
@@ -458,7 +397,7 @@ namespace NetEngine
                 {
                     if (ec)
                     {
-                        BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Failed to send post website request: {}", ec.message().c_str());
+                        DEBUGLOG(red, "Failed to send post website request: {}", ec.message().c_str());
                     }
                     timer->cancel();
                     socket->shutdown(asio::ip::tcp::socket::shutdown_both);
@@ -468,8 +407,66 @@ namespace NetEngine
         }
         catch (const std::exception& e)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "Exception in WebsitePost: {}", e.what());
+            DEBUGLOG(red, "Exception in WebsitePost: {}", e.what());
         }
+    }
+    bool CServer::AdoptSid(uint16_t old_sid, uint16_t new_sid, bool evictExisting)
+    {
+        if (new_sid == 0 || old_sid == 0)
+        {
+            DEBUGLOG(red,
+				"AdoptSessionId: cannot rebind session from ({}) to ({})", old_sid, new_sid);
+            return false;
+        }
+            
+        if (new_sid == old_sid)
+        {
+            DEBUGLOG(dark_cyan,
+				"AdoptSessionId: no need to rebind session from ({}) to ({})", old_sid, new_sid);
+            return true;
+        }
+
+        std::shared_ptr<CSession> moving;
+
+        {
+            std::unique_lock lk(m_sessions_mutex);
+            auto itOld = m_sessions.find(old_sid);
+            if (itOld == m_sessions.end())
+            {
+				DEBUGLOG(red, "AdoptSessionId: cannot find session with id ({}) to rebind to ({})", old_sid, new_sid);
+                return false;
+            }
+            auto itNew = m_sessions.find(new_sid);
+            if (itNew != m_sessions.end())
+            {
+                if (!evictExisting)
+                {
+					DEBUGLOG(red, "AdoptSessionId: session with id ({}) already exists, cannot rebind session from ({}) to ({})", new_sid, old_sid, new_sid);
+                    return false;
+                }
+                auto victim = itNew->second;
+                m_sessions.erase(itNew);
+                lk.unlock();
+                if (victim) victim->Disconnect();
+                lk.lock();
+                itOld = m_sessions.find(old_sid);
+                if (itOld == m_sessions.end())
+                {
+					DEBUGLOG(red, "AdoptSessionId: cannot find session with id ({}) to rebind to ({})", old_sid, new_sid);
+                    return false;
+                }
+            }
+
+            moving = itOld->second;
+            m_sessions.erase(itOld);
+            m_sessions[new_sid] = moving;
+            if (moving) moving->SetSessionId(new_sid);
+            m_sessionIdGenerator.free(old_sid);
+        }
+
+        DEBUGLOG(dark_cyan,
+            "AdoptSessionId: rebound session from ({}) to ({})", old_sid, new_sid);
+        return true;
     }
     void CServer::logExecution(uint16_t session_id, uint16_t order)
     {
@@ -481,8 +478,8 @@ namespace NetEngine
 
             auto time_now = std::chrono::steady_clock::now();
             execution_vector.push_back({ session_id, order, time_now });
-            if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
-                "Handler started: Thread ID: {}, Session ID: {}, Order: {}",
+            if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) DEBUGLOG(dark_green,
+                "Handler started: Thread ID: {}, sid={}, Order: {}",
                 thread_id, session_id, order);
         }
         
@@ -500,26 +497,20 @@ namespace NetEngine
             {
                 if (it->session_id == session_id && it->order == order)
                 {
-                    // Calculate elapsed time
                     auto elapsed_time = std::chrono::duration<double, std::milli>(
                         std::chrono::steady_clock::now() - it->start_time);
 
-                    // Log the elapsed time
-                    if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_green,
-                        "Handler completed: Thread ID: {}, Session ID: {}, Order: {}, Elapsed Time: {:.3f}ms",
+                    if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) DEBUGLOG(dark_green,
+                        "Handler completed: Thread ID: {}, sid={}, Order: {}, Elapsed Time: {:.3f}ms",
                         thread_id, session_id, order, elapsed_time.count());
 
-                    // Remove the entry
                     execution_vector.erase(it);
                     break;
                 }
             }
 
-            // Clean up the thread entry if the vector becomes empty
             if (execution_vector.empty())
-            {
                 m_execution_info.erase(thread_id);
-            }
         }
     }
     void CServer::watchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout)
@@ -534,8 +525,8 @@ namespace NetEngine
                 auto elapsed_time = std::chrono::duration<double, std::milli>(now - info.start_time);
                 if (elapsed_time > timeout)
                 {
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
-                        "[Watchdog] Deadlock detected! Thread ID: {}, Session ID: {}, Order: {}, Elapsed Time: {:.3f}ms",
+                    DEBUGLOG(red,
+                        "[Watchdog] Deadlock detected! Thread ID: {}, sid={}, Order: {}, Elapsed Time: {:.3f}ms",
                         thread_id, info.session_id, info.order, elapsed_time.count());
                 }
             }

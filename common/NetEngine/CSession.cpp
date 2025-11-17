@@ -1,6 +1,8 @@
 #include "CSession.h"
 namespace NetEngine
 {
+    using namespace BaseLib;
+    using enum fmt::color;
     CSession::CSession(asio::ip::tcp::socket&& socket, asio::io_context& ioc, CServer* server, SSessionSettings settings, uint16_t session_id = 0)
         : m_socket(std::move(socket)), m_server(server), m_strand(asio::make_strand(ioc))
     {
@@ -18,7 +20,7 @@ namespace NetEngine
         asio::error_code errorCode;
         if (errorCode)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no remote endpoint: ({})", errorCode.message().c_str());
+            DEBUGLOG(red, "no remote endpoint: ({})", errorCode.message().c_str());
             return;
         }
     }
@@ -30,7 +32,7 @@ namespace NetEngine
 
             asio::error_code errorCode;
             auto endPoint = m_socket.remote_endpoint(errorCode);
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "connection closed from ({}:{})", endPoint.address().to_string().data(), endPoint.port());
+            DEBUGLOG(red, "connection closed from ({}:{})", endPoint.address().to_string().data(), endPoint.port());
 
             m_socket.shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
             m_socket.close(errorCode);
@@ -49,12 +51,13 @@ namespace NetEngine
     void CSession::Send(CMessage& message)
     {
         auto order = message.GetOrder();
-        if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), message, m_sessionId);
+        //if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), message, m_sessionId);
+        if (m_verbose) Utility::LogPackets(std::source_location::current(), ACK, message, m_sessionId);
         auto data_vec = message.GenerateMessage();
-        asio::dispatch(m_strand, [this, self = shared_from_this(), data_vec]() {
+        asio::dispatch(m_strand, [this, order, self = shared_from_this(), data_vec]() {
             if (!m_socket.is_open())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
+                DEBUGLOG(red, "trying to send order ({}), but sid ({}) socket not open", order, m_sessionId);
                 return;
             }
             asio::async_write(m_socket,
@@ -64,7 +67,7 @@ namespace NetEngine
                     {
                         if (ec)
                         {
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to send data: ({})", ec.message().c_str());
+                            DEBUGLOG(red, "failed to send data: ({})", ec.message().c_str());
                             self->Disconnect();
                         }
                     }));
@@ -85,6 +88,7 @@ namespace NetEngine
     }
     uint16_t CSession::GetSessionId()
     {
+		std::shared_lock lock(mutex);
         return m_sessionId;
     }
     CServer* CSession::GetServer()
@@ -104,12 +108,13 @@ namespace NetEngine
         );
         */
         auto order = packetMessage.GetOrder();
-        if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), packetMessage, m_sessionId);
+        //if (m_verbose && order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) Utility::LogPackets(std::source_location::current(), packetMessage, m_sessionId);
+        if(m_verbose) Utility::LogPackets(std::source_location::current(), REQ, packetMessage, m_sessionId);
 
         if (!packetMessage.GetOrder()) return;
         if (m_callbacks.count(packetMessage.GetOrder()) == 0)
         {
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "no callback for packet order: ({})", packetMessage.GetOrder());
+            DEBUGLOG(red, "no callback for packet order: ({})", packetMessage.GetOrder());
             return;
         }
 
@@ -127,35 +132,35 @@ namespace NetEngine
         catch (const std::system_error& e)
         {
             // Handle system errors (e.g., mutex lock failures)
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+            DEBUGLOG(red,
                 "System error in callback for packet order {}: {} (code: {})",
                                      order, e.what(), e.code().value());
         }
         catch (const std::runtime_error& e)
         {
             // Handle runtime errors
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+            DEBUGLOG(red,
                 "Runtime error in callback for packet order {}: {}",
                                      order, e.what());
         }
         catch (const std::logic_error& e)
         {
             // Handle logic errors
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+            DEBUGLOG(red,
                 "Logic error in callback for packet order {}: {}",
                                      order, e.what());
         }
         catch (const std::exception& e)
         {
             // Catch other standard exceptions
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+            DEBUGLOG(red,
                 "Exception in callback for packet order {}: {}",
                                      order, e.what());
         }
         catch (...)
         {
             // Catch non-standard exceptions
-            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red,
+            DEBUGLOG(red,
                 "Unknown exception in callback for packet order {}", order);
         }
         m_server->clearExecution(m_sessionId, order);
@@ -165,7 +170,7 @@ namespace NetEngine
         asio::dispatch(m_strand, [this, self = shared_from_this()]() {
             if (!m_socket.is_open())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
+                DEBUGLOG(red, "socket not open");
                 return;
             }
             asio::error_code errorCode;
@@ -175,9 +180,9 @@ namespace NetEngine
                     if (errorCode || bytesTransferred < 0)
                     {
                         if (errorCode == asio::error::eof)
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session closed unexpectedly: ({})", errorCode.message().c_str());
+                            DEBUGLOG(red, "session closed unexpectedly: ({})", errorCode.message().c_str());
                         else
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to read data: ({})", errorCode.message().c_str());
+                            DEBUGLOG(red, "failed to read data: ({})", errorCode.message().c_str());
                         Disconnect();
                         return;
                     }
@@ -185,14 +190,14 @@ namespace NetEngine
                     const constexpr int headerSize = sizeof(Protocols::STcpPacketHeader);
                     m_reader.insert(m_reader.end(), m_buffer.begin(), m_buffer.begin() + bytesTransferred);
 
-                    Cryptography::CCrypt cryptography;
                     Protocols::STcpPacketHeader header;
 
                     while (m_reader.size() > headerSize)
                     {
                         if (m_useEncryption)
                         {
-                            cryptography.RC5Decrypt32(reinterpret_cast<uint32_t*>(m_reader.data()), &header, headerSize);
+							CCrypt crypt(CCrypt::CRYPT_TYPE::CRYPT_RC5, 0);
+                            crypt.Decrypt(reinterpret_cast<uint32_t*>(m_reader.data()), &header, headerSize);
                         }
                         else
                         {
@@ -201,7 +206,7 @@ namespace NetEngine
 
                         if (header.size >= 2047) // Manage unencrypted packet with wrong size
                         {
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "invalid packet size: ({})", static_cast<uint32_t>(header.size));
+                            DEBUGLOG(red, "invalid packet size: ({})", static_cast<uint32_t>(header.size));
                             Disconnect();
                             return;
                         }
@@ -230,7 +235,7 @@ namespace NetEngine
         asio::dispatch(m_strand, [this, self = shared_from_this()]() {
             if (!m_socket.is_open())
             {
-                BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "socket not open");
+                DEBUGLOG(red, "socket not open");
                 return;
             }
             asio::error_code errorCode;
@@ -240,9 +245,9 @@ namespace NetEngine
                     if (errorCode || bytesTransferred < 0)
                     {
                         if (errorCode == asio::error::eof)
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "session closed unexpectedly: ({})", errorCode.message().c_str());
+                            DEBUGLOG(red, "session closed unexpectedly: ({})", errorCode.message().c_str());
                         else
-                            BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::red, "failed to read data: ({})", errorCode.message().c_str());
+                            DEBUGLOG(red, "failed to read data: ({})", errorCode.message().c_str());
                         Disconnect();
                         return;
                     }

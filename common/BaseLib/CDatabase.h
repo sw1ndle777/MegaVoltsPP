@@ -3,9 +3,10 @@
 
 #include <mariadb/conncpp.hpp>
 #include <iostream>
-
+#include <type_traits>
 #include "Utility.h"
 #include <array>
+#include <expected>
 #include <NetEngine/Packets/PacketData.h>
 namespace BaseLib
 {
@@ -32,16 +33,23 @@ namespace BaseLib
         }
     };
 #pragma pack(pop)
+    struct PlazaAuth
+    {
+        int32_t Index;
+        uint32_t ServerId;
+        uint8_t Grade;
+        uint64_t AuthKey{ 0 };
+    };
     struct FrontAccount
     {
         int32_t Index;
-		bool IsOnline;
+        uint32_t ServerId;
         std::string Username;
         std::string Password;
         std::string Salt;
         uint8_t Grade;
         uint8_t PCRoom;
-        uint64_t AuthKey;
+        uint64_t AuthKey{ 0 };
         uint32_t ClanId;
         uint32_t ClanKills;
         uint32_t ClanDeaths;
@@ -95,7 +103,7 @@ namespace BaseLib
         FrontAccount()
         {
             this->Index = -1;
-			this->IsOnline = false;
+			this->ServerId = 0;
             this->Username = "";
             this->Password = "";
             this->Salt = "";
@@ -154,27 +162,67 @@ namespace BaseLib
             this->SingleWaveLastUpdate = -1;
         }
         FrontAccount(
-            const uint32_t& index,
-			const bool& is_online,
-            const std::string&   username,         const std::string&   password,       const std::string&   salt,               const uint8_t&  grade,
-            const uint8_t& pc_room,           const uint64_t& auth_key,       const uint32_t& clan_id,            const uint32_t& clan_kills,
-            const uint32_t& clan_deaths,
-            const uint32_t& clan_assists,     const uint32_t& clan_contrib,   const uint32_t& clan_wins,          const uint32_t& clan_loses, 
-            const uint32_t& clan_draws,       const std::string&   nickname,       const uint32_t& level,
-            const uint32_t& experience,       const bool&          tutorial,       const uint32_t& story,              const uint8_t& guide_mission,
-            const uint64_t& achievement,      const uint64_t& voice_type,     const uint32_t& vip_exp,
-            const uint32_t& max_items,        const uint32_t& max_energy,     const uint32_t& selected_char,      const uint64_t& playtime,
-            const uint64_t& muteduntil,       const uint32_t& coins,          const uint32_t& energy,             const uint32_t& luckypoints,
-            const uint32_t& micropoints,      const uint32_t& rocktokens,     const uint32_t& coupons,            const uint32_t& wins,
-            const uint32_t& loses,            const uint32_t& draws,          const uint32_t& kills,              const uint32_t& deaths,
-            const uint32_t& assists,          const uint32_t& headshots,      const uint32_t& highest_killstreak, const uint32_t& melee_kills,
-            const uint32_t& rifle_kills,      const uint32_t& shotgun_kills,  const uint32_t& sniper_kills,       const uint32_t& gatling_kills,
-            const uint32_t& bazooka_kills,    const uint32_t& grenade_kills,  const uint32_t& zombie_kills,       const uint32_t& infections, 
-            const uint32_t& sw_dailyattempts, const uint32_t& sw_highestwave, const uint32_t& sw_highscore,       const uint64_t& sw_lastupdate
+            const uint32_t index,
+			const uint32_t server_id,
+            const std::string& username,
+            const std::string& password,      
+            const std::string& salt, 
+            const uint8_t grade,
+            const uint8_t pc_room,       
+            const uint64_t auth_key,     
+            const uint32_t clan_id,         
+            const uint32_t clan_kills,
+            const uint32_t clan_deaths,
+            const uint32_t clan_assists,  
+            const uint32_t clan_contrib,  
+            const uint32_t clan_wins,     
+            const uint32_t clan_loses, 
+            const uint32_t clan_draws,   
+            const std::string& nickname, 
+            const uint32_t level,
+            const uint32_t experience,   
+            const bool tutorial,
+            const uint32_t story, 
+            const uint8_t guide_mission,
+            const uint64_t achievement,   
+            const uint64_t voice_type,   
+            const uint32_t vip_exp,
+            const uint32_t max_items,    
+            const uint32_t max_energy,  
+            const uint32_t selected_char,   
+            const uint64_t playtime,
+            const uint64_t muteduntil,    
+            const uint32_t coins,        
+            const uint32_t energy,      
+            const uint32_t luckypoints,
+            const uint32_t micropoints,  
+            const uint32_t rocktokens,    
+            const uint32_t coupons,      
+            const uint32_t wins,
+            const uint32_t loses,        
+            const uint32_t draws,        
+            const uint32_t kills,        
+            const uint32_t deaths,
+            const uint32_t assists,      
+            const uint32_t headshots,    
+            const uint32_t highest_killstreak,
+            const uint32_t melee_kills,
+            const uint32_t rifle_kills,   
+            const uint32_t shotgun_kills,  
+            const uint32_t sniper_kills,     
+            const uint32_t gatling_kills,
+            const uint32_t bazooka_kills,   
+            const uint32_t grenade_kills, 
+            const uint32_t zombie_kills,    
+            const uint32_t infections, 
+            const uint32_t sw_dailyattempts,
+            const uint32_t sw_highestwave, 
+            const uint32_t sw_highscore,     
+            const uint64_t sw_lastupdate
         )
         {
             this->Index = index;
-			this->IsOnline = is_online;
+			this->ServerId = server_id;
             this->Username = username;
             this->Password = password;
             this->Salt = salt;
@@ -264,14 +312,15 @@ namespace BaseLib
     };
     struct ClanInfo
     {
-        uint32_t id;
-        uint32_t owner_id;
-        std::string name;
-        uint32_t logo_front;
-        uint32_t logo_back;
+        uint32_t id{ 0 };
+        uint32_t owner_id{ 0 };
+        std::string name = "";
+        uint32_t logo_front{ 0 };
+        uint32_t logo_back{ 0 };
         std::vector<uint16_t> online_members;
         ClanInfo(const uint32_t& id = 0, const uint32_t& owner_id = 0, const std::string& name = "", const uint32_t& logo_front = 0, const uint32_t& logo_back = 0) :
             id(id), owner_id(owner_id), name(name), logo_front(logo_front), logo_back(logo_back) {}
+		
     };
     struct Item
     {
@@ -293,6 +342,17 @@ namespace BaseLib
             in_database(inDb)
         {
         }
+    };
+    struct SocialInfo
+    {
+        int32_t Aid{};
+        int32_t targetAid{};
+        uint8_t State{};
+        std::string TargetNickname{};
+        SocialInfo(const int32_t& Aid = 0, const int32_t& targetAid = 0, const uint8_t& State = 0, const std::string& TargetNickname = "") :
+            Aid(Aid), targetAid(targetAid), State(State), TargetNickname(TargetNickname) { }
+
+        SocialInfo() {}
     };
     struct FriendInfo
     {
@@ -391,8 +451,10 @@ namespace BaseLib
         uint32_t ZombieKills;
         uint32_t Infections;
     };
-    struct MatchInfoHistoryDatabaseInfo {
-        int32_t Id;
+    struct MatchInfoHistoryAdd 
+    {
+        uint16_t Sid;
+        int32_t Aid;
         bool IsHost;
         bool IsDraw;
         bool IsClanMatch;
@@ -423,31 +485,363 @@ namespace BaseLib
         uint32_t ZombieKills;
         uint32_t Infections;
         uint64_t MatchEndTime;
+        uint32_t Hair, Face, Upper, Under, Skirt, Gloves, Boots;
+        uint32_t HeadAcc, WaistAcc, BackAcc;
+        uint32_t Melee, Rifle, Shotgun, Sniper, Gatling, Bazooka, Grenade;
+        bool IsItemReward;
+        uint32_t reward_item;
+        bool IsMvp;
+        bool IsEntryFragger;
+        bool IsBullseye;
+        bool IsSupport;
+        bool IsBomba;
     };
+
+    enum class ItemUpdateCtxType 
+    {
+        Equip,
+        Repair,
+        Energy,
+        Upgrade,
+        ExpireDate
+    };
+    enum class ItemUpdateCtxError 
+    {
+        ItemNotFound
+    };
+    struct ItemUpdateCtx 
+    {
+        ItemUpdateCtxType change_type;
+        std::optional<NetEngine::Packets::Main::ItemSerialInfo> serial_info;
+        std::optional<uint32_t> item_type;
+        std::optional<bool> is_equipped;
+        std::optional<uint8_t> character_id;
+        std::optional<uint32_t> repair;
+        std::optional<uint32_t> energy;
+        std::optional<uint32_t> new_item_id;
+        std::optional<uint32_t> expire_date;
+    };
+
+    enum class DbUpdateError 
+    {
+        ItemNotFound,
+        NotEnoughSerialInfos,
+		InventoryFull,
+        InsufficientMP,
+        InsufficientRT,
+        InsufficientCOUPONS,
+        InsufficientENERGY,
+		MpFull,
+		RtFull,
+		CouponsFull,
+        EnergyFull,
+        MaxEnergyReachedAlready,
+		MaxInventoryItemsReachedAlready,
+        InvalidOp,
+        InvalidAid,
+		InvalidTargetAid,
+        InvalidMailId,
+        InvalidMailInserts,
+        InvalidMailSenderNick,
+        InvalidMailReceiverAid,
+        InvalidMailReceiverNick,
+        InvalidMailMsg,
+        SelfFriend,
+        SelfBlock,
+        SqlError,
+        AVA_CREATE_OVERLAPPEDNAME, // already exists
+        AVA_CREATE_SHORTNAME, // doesn't meet length requirements
+        AVA_CREATE_BANNAME,
+        MEMO_MAIL_NOT_FOUND,
+        MEMO_MAIL_SEND_MYSELF,
+        MEMO_MAIL_FULL_SENDER,
+        MEMO_MAIL_FULL_RECEIVER,
+        MEMO_MAIL_BLOCKEDBY_SENDER,
+        MEMO_MAIL_BLOCKEDBY_RECEIVER,
+        MEMO_GIFT_FULL_SENDER,
+        MEMO_GIFT_FULL_RECEIVER
+    };
+    struct ItemSelector 
+    {
+        std::optional<NetEngine::Packets::Main::ItemSerialInfo> serial;
+        std::optional<uint32_t> item_type;
+        std::optional<uint8_t>  character_id;
+    };
+    struct ItemPatchCtx 
+    {
+        ItemSelector sel;
+        std::optional<bool> is_equipped;
+        std::optional<uint8_t> character_id;
+        std::optional<uint32_t> repair;
+        std::optional<uint32_t> energy;
+        std::optional<uint32_t> new_item_id;
+        std::optional<uint32_t> expire_date;
+    };
+    struct ItemAddCtx
+    {
+        std::vector<Item> items;
+    };
+    struct ItemDeleteCtx 
+    {
+        std::vector<NetEngine::Packets::Main::ItemSerialInfo> serials;
+    };
+    enum class CurrencyType { MP, RT, COUPONS, ENERGY };
+    struct AccountCurrencyDelta 
+    {
+        CurrencyType type;
+        uint32_t value;
+        bool is_reward{true}; // for costs; rewards can ignore
+    };
+    struct AccountInfoPatch
+    {
+        std::optional<uint32_t> server_id;
+		std::optional<uint32_t> sw_daily_attempts;
+        std::optional<uint32_t> sw_high_score;
+		std::optional<uint32_t> sw_highest_wave;
+        std::optional<uint64_t> sw_last_update;
+		std::optional<uint32_t> clan_kills;
+		std::optional<uint32_t> clan_deaths;
+		std::optional<uint32_t> clan_assists;
+		std::optional<uint32_t> clan_contribution;
+		std::optional<uint32_t> clan_wins;
+		std::optional<uint32_t> clan_loses;
+		std::optional<uint32_t> clan_draws;
+		std::optional<uint32_t> selected_character;
+		std::optional<uint64_t> play_time;
+        std::optional<uint8_t> story;
+        std::optional<uint64_t> achievement_tier1;
+        std::optional<uint8_t> guide_mission;
+		std::optional<uint64_t> voice_type;
+        std::optional<bool> bTutorial;
+		std::optional<uint32_t> maximum_items;
+		std::optional<uint32_t> maximum_energy;
+        std::optional<uint32_t> experience;
+        std::optional<uint32_t> level;
+		std::optional<uint32_t> lucky_points;
+		std::optional<uint32_t> wins;
+		std::optional<uint32_t> loses;
+		std::optional<uint32_t> draws;
+		std::optional<uint32_t> kills;
+		std::optional<uint32_t> deaths;
+		std::optional<uint32_t> assists;
+		std::optional<uint32_t> headshots;
+		std::optional<uint32_t> highest_kill_streak;
+		std::optional<uint32_t> melee_kills;
+		std::optional<uint32_t> rifle_kills;
+		std::optional<uint32_t> shotgun_kills;
+		std::optional<uint32_t> sniper_kills;
+		std::optional<uint32_t> gatling_kills;
+		std::optional<uint32_t> bazooka_kills;
+		std::optional<uint32_t> grenade_kills;
+		std::optional<uint32_t> zombie_kills;
+		std::optional<uint32_t> infections;
+        std::optional<std::string> nickname;
+    };
+    struct PlayerMissionsPatch
+    {
+
+        std::optional<uint32_t> mission1, mission2, mission3;
+        std::optional<uint32_t> goal1, goal2, goal3;
+        std::optional<uint64_t> update_time;
+    };
+    struct PlayerMonthlyRewardPatch
+    {
+        std::optional<uint32_t> day_count;
+        std::optional<uint64_t> last_time_update;
+    };
+
+    enum class MailSide : uint8_t { Sender, Receiver };
+    struct MailInsert 
+    {
+        std::optional<uint32_t> receiver_id;
+        std::optional<std::string> sender_nickname;
+        std::optional<std::string> receiver_nickname;
+        std::string message;
+        uint32_t gift_item_id{0};
+        bool is_new{true};
+    };
+    struct MailboxPatch 
+    {
+        enum class Op : uint8_t { MarkRead, Delete, Insert } op{Op::MarkRead};
+        uint32_t mail_id{ 0 };
+        std::optional<bool> read;
+        std::optional<MailSide> side;
+        std::optional<MailInsert> insert;
+    };
+
+    struct PlayerSessionsPatch 
+    {
+        enum class Op : uint8_t { Delete, Insert } op{Op::Delete};
+        int32_t aid{ 0 };
+        uint64_t key{ 0 };
+    };
+
+    struct PlayerSocialPatch
+    {
+        enum class Op : uint8_t { Delete, InsertOrUpdate } op{ Op::Delete };
+        int32_t aid{ 0 };
+        int32_t targetAid{ 0 };
+        std::optional<uint8_t> State;
+        std::optional<std::string> TargetNickname;
+    };
+
+    using DbOp = std::variant<
+        ItemPatchCtx, 
+        ItemAddCtx, 
+        ItemDeleteCtx, 
+        AccountCurrencyDelta, 
+        AccountInfoPatch, 
+        PlayerMissionsPatch, 
+        PlayerMonthlyRewardPatch,
+        MailboxPatch,
+        MatchInfoHistoryAdd,
+		PlayerSessionsPatch,
+        PlayerSocialPatch
+    >;
+
+    struct DatabaseUpdateCtx 
+    {
+        uint32_t sid;
+        int32_t aid;
+        std::vector<DbOp> ops;
+    };
+
+    struct ResolvedItemPatch 
+    {
+        uint64_t serial;
+        ItemPatchCtx patch;
+    };
+
+    struct ValidatedDbUpdates 
+    {
+        uint32_t sid;
+        int32_t aid;
+        std::vector<ResolvedItemPatch> items_patches;
+        std::vector<Item> items_added;
+        std::vector<NetEngine::Packets::Main::ItemSerialInfo> items_deleted;
+        std::vector<AccountCurrencyDelta> currency_updates;
+		std::vector<AccountInfoPatch> acc_info_patches;
+		std::vector<PlayerMissionsPatch> player_missions_patches;
+		std::vector<PlayerMonthlyRewardPatch> player_monthly_reward_patches;
+		std::vector<MailboxPatch> mailbox_patches;
+		std::vector<MatchInfoHistoryAdd> match_history_adds;
+		std::vector<PlayerSessionsPatch> player_sessions_patches;
+        std::vector<PlayerSocialPatch> player_social_patches;
+    };
+
+    struct ApplyCacheUpdateResult 
+    {
+        std::vector<uint64_t> patched_serials;
+        std::vector<uint64_t> deleted_serials;
+        std::vector<uint64_t> added_serials;
+        uint32_t new_mp{ 0 }, new_rt{ 0 }, new_coupons{ 0 }, new_energy{ 0 };
+    };
+
+    struct ResultLevelUpInfo
+    {
+        uint32_t sid{ 0 };
+		bool level_up{ false };
+        uint32_t new_level{ 0 };
+        std::optional<NetEngine::Packets::Main::ShopItem> reward_item;
+    };
+    struct ResultDbUpdateInfo 
+    {
+        std::vector<uint64_t> patched_serials;
+		int32_t patched_rows_count{0};
+        std::vector<uint64_t> deleted_serials;
+        int32_t deleted_rows_count{0};
+        std::vector<uint64_t> added_serials;
+        int32_t added_rows_count{0};
+		bool target_not_found{ false };
+		bool target_blocked{ false };
+		bool player_blocked{ false };
+    };
+
+
+    struct DbError 
+    {
+        enum class Type 
+        {
+            None,
+            ConnectionLost,
+            DuplicateNickname,
+            ConstraintViolation,
+            NoRowsAffected,
+            NicknameNotFound,
+            MailboxFull,
+            BlockedByReceiver,
+            SqlException,
+            Unknown
+        };
+        Type type{Type::None};
+        int error_code{ 0 };
+        std::string sql_state;
+        std::string message; 
+
+        static DbError FromSQLException(sql::SQLException& e) 
+        {
+            DbError err;
+            err.type = (e.getErrorCode() == 1062) ? Type::DuplicateNickname : Type::SqlException;
+            err.error_code = e.getErrorCode();
+            err.sql_state = e.getSQLState();
+            err.message = e.what();
+            return err;
+        }
+    };
+
 
     class CDatabase
     {
-
     public:
+        CDatabase() = default;
+        ~CDatabase() = default;
+       
         void Initialize(const std::string& database, const std::string& host, const uint16_t& port, const std::string& user, const std::string& password);
         bool CreateTable(const std::string& table_name, const std::string& data_collumns);
         bool CreateDatabase(const std::string& name);
-        bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates, std::vector<MatchInfoHistoryDatabaseInfo>& matchHistory);
+        [[nodiscard]] std::string GenerateQuestionMarks(size_t n);
+        [[nodiscard]] std::string GenerateQuestionMarks(size_t rows, size_t cols);
+        [[nodiscard]] std::string GenerateInTuples(size_t rows, size_t cols);
+        [[nodiscard]] std::string GenerateJoinedString(const std::vector<std::string>& vec, const std::string& delim);
+        //bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates, std::vector<MatchInfoHistoryDatabaseInfo>& matchHistory);
 		bool GetFrontAccount(const std::string& ip, const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
-		bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
+		bool GetFrontAccount(const uint64_t authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
+        bool GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids);
+		bool GetPlazaAuthKey(const std::string& ip, const std::string& username, const std::string& password, PlazaAuth* outPlazaAuth);
+        bool GetPlazaAuthKey(const std::string& ip, const uint64_t authKey, PlazaAuth* outPlazaAuth);
+        /*
         bool SetAccountOffline(const std::uint32_t& accountId);
-        bool GetMainFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids);
         bool NicknameExists(const std::string_view& nickname);
         bool NicknameExists(const std::string_view& nickname, uint32_t& account_id);;
-        bool UpdateNickname(const std::string_view& nickname, const uint64_t& authKey);
-        bool UpdateSelectedCharacter(const uint32_t& character, const uint64_t& authKey);
-        bool UpdateEnergy(const uint32_t& energy, const uint64_t& authKey);
+        bool UpdateNickname(const std::string_view& nickname, const uint64_t authKey);
+        bool UpdateSelectedCharacter(const uint32_t character, const uint64_t authKey);
+        bool UpdateEnergy(const uint32_t energy, const uint64_t authKey);
         //bool GetFrontAccount(const uint64_t& authKey, FrontAccount* outFrontAccount);
         bool UpdateFrontAccount(const FrontAccount& front_acc);
-        bool GetInventoryItems(const uint32_t& acc_id, std::vector<Item>& inv_items);
-        bool UpdateInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items);
+        bool GetInventoryItems(const uint32_t acc_id, std::vector<Item>& inv_items);
+        */
+
+        [[nodiscard]] std::expected<void, DbError> EnsureConnected();
+        [[nodiscard]] std::expected<void, DbError> PersistCurrenciesPatches(ValidatedDbUpdates& v);
+        [[nodiscard]] std::expected<void, DbError> PersistAccountInfoPatches(ValidatedDbUpdates& v);
+        [[nodiscard]] std::expected<void, DbError> PersistItemDeletes(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
+        [[nodiscard]] std::expected<void, DbError> PersistItemPatches(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
+        [[nodiscard]] std::expected<void, DbError> PersistItemAdds(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
+        [[nodiscard]] std::expected<void, DbError> PersistMissionsPatches(ValidatedDbUpdates& v);
+        [[nodiscard]] std::expected<void, DbError> PersistMonthlyRewardsPatches(ValidatedDbUpdates& v);
+		[[nodiscard]] std::expected<void, DbError> PersistMailboxPatches(ValidatedDbUpdates& v);
+        [[nodiscard]] std::expected<void, DbError> PersistMatchHistoryAdds(ValidatedDbUpdates& v);
+        [[nodiscard]] std::expected<void, DbError> PersistPlayerSessionsPatches(ValidatedDbUpdates& v);
+        [[nodiscard]] std::expected<void, DbError> PersistPlayerSocialsPatches(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
+        [[nodiscard]] std::expected<void, DbError> UpdateAccount(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
+        [[nodiscard]] std::expected<void, DbError> UpdateAccounts(std::vector<ValidatedDbUpdates>& batch, std::vector<ResultDbUpdateInfo>& results);
+
+        /*
+        bool UpdateInventoryItems(const uint32_t acc_id, const std::vector<Item>& inv_items);
+        bool UpdateInventoryItems(const uint32_t acc_id, const std::vector<ItemUpdateCtx>& changes, std::optional<uint32_t> mp_cost = std::nullopt);
         bool InsertInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items);
-        bool InsertInventoryitemsMicroTransactions(const uint32_t& acc_id, const std::vector<Item>& inv_items, const uint32_t mp, const uint32_t rt, const uint32_t coupons);
+        bool InsertInventoryitemsMicroTransactions(const uint32_t acc_id, const std::vector<Item>& inv_items, const uint32_t mp, const uint32_t rt, const uint32_t coupons);
+        bool DeleteInventoryItemsAndRewardMP(const uint32_t acc_id, const std::vector<NetEngine::Packets::Main::ItemSerialInfo>& del_items, const uint32_t mp_reward);
         bool DeleteInventoryItems(const uint32_t& acc_id, const std::vector<Item>& inv_items);
         bool NewDeleteInventoryItems(const uint32_t& acc_id, const std::vector<NetEngine::Packets::Main::ItemSerialInfo>& del_items);
         bool GetPlayerFriends(const int32_t& acc_id, std::vector<FriendInfo>& friends);
@@ -475,11 +869,11 @@ namespace BaseLib
         bool GetPlayerDailyMission(const int32_t& acc_id, PlayerDailyMission* outDailyMission);
         bool InsertPlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission);
         bool UpdatePlayerDailyMission(const uint32_t& acc_id, const PlayerDailyMission& dailyMission);
+        */
         std::vector<GachaponSaleInfo> GetGachaponSalesInfo();
         bool DeleteGachaponSaleInfo(const uint32_t& gachapon_id);
         std::string GetDatabaseName();
-        CDatabase() {};
-        ~CDatabase() {};
+      
 
     private:
         std::string database_name;

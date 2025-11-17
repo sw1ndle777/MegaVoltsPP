@@ -12,6 +12,75 @@
     <Filter Include="header\handlers">
       <UniqueIdentifier>{a3fd05ee-dc5a-427f-8780-6d54120863be}</UniqueIdentifier>
     </Filter>
+    <Filter Include="header\handlers\Core">
+      <UniqueIdentifier>{a09a2086-160d-4f9b-a485-1ac59892e762}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Core\Ipc">
+      <UniqueIdentifier>{f384dba5-a0bb-438c-bf76-64603ea0ca7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay">
+      <UniqueIdentifier>{1c4bd9ba-e1a0-4a8e-8baf-5eab63041ebe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Room">
+      <UniqueIdentifier>{8a86e333-1bed-4b81-93ac-9a70b944f2b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Plaza">
+      <UniqueIdentifier>{ea98b423-0c4a-46b8-bb85-101f35d80031}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Core">
+      <UniqueIdentifier>{e683abdc-d4c2-47df-af78-72ba2b9de747}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Core\Node">
+      <UniqueIdentifier>{92a625ad-e4f6-4ca5-9e25-a707eb1437ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host">
+      <UniqueIdentifier>{dfbecc1d-8db8-4b13-ab5f-65f4058c1dbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User">
+      <UniqueIdentifier>{8cc5642e-db03-4e3f-9b17-9fccac652d0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User\Core">
+      <UniqueIdentifier>{8cdac2ae-b688-408a-b45b-25cddfd9906e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Core">
+      <UniqueIdentifier>{97c02763-db82-4815-9e9a-3421fa62aa5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Npc">
+      <UniqueIdentifier>{c396a022-96da-4f53-a4f5-7186440c306d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User\Item">
+      <UniqueIdentifier>{cf3ed2a7-b24a-453f-b788-39aa8fd4b90d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User\Mod">
+      <UniqueIdentifier>{1c08368d-8082-4451-a0c5-ab21a077a0ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User\Mod\Bomb">
+      <UniqueIdentifier>{7e5421f2-ae02-4bc4-aba8-9aaaba79d305}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User\Item\Kitdrop">
+      <UniqueIdentifier>{72ec9c75-5c90-4314-b4fc-4f84c9d59b24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\User\Weapon">
+      <UniqueIdentifier>{e592e012-a109-4502-b209-90c071c4967d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Item">
+      <UniqueIdentifier>{67713a94-9fd6-4f97-b37b-a365d12d0062}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Mod">
+      <UniqueIdentifier>{01e11330-f5eb-480a-824d-2be6cbb9d97a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Weapon">
+      <UniqueIdentifier>{974958ed-8429-4231-b842-dd9f9a4fe1b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Mod\Bomb">
+      <UniqueIdentifier>{ec6dec05-9e44-478f-976c-4cd0c716b4e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Mod\Match">
+      <UniqueIdentifier>{20d7262f-804f-4930-a9b7-08d7a083b8c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="header\handlers\Gameplay\Host\Item\Kitdrop">
+      <UniqueIdentifier>{99120a45-6f48-49ea-9870-286ed2739974}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -25,146 +94,194 @@
     <ClInclude Include="CCastServer.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PingPong.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Core\Connect.h">
+      <Filter>header\handlers\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerConnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Core\Disconnect.h">
+      <Filter>header\handlers\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerDisconnect.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Core\Ipc.h">
+      <Filter>header\handlers\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ConnectionAuth.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Core\Ping.h">
+      <Filter>header\handlers\Gameplay\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\CreateRoom.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Core\Node\Authorize.h">
+      <Filter>header\handlers\Gameplay\Core\Node</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostAbility.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Core\Node\CastQuit.h">
+      <Filter>header\handlers\Gameplay\Core\Node</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostExplosives.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Core\EffectBehaviour.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostExplosivesDamage.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Core\Nickname.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostPickupItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Core\TickRequest.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostRespawn.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Core\Modinfo.h">
+      <Filter>header\handlers\Gameplay\Host\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostWeaponAttack.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Core\Status.h">
+      <Filter>header\handlers\Gameplay\Host\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\LeaveRoom.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Core\TickUpdate.h">
+      <Filter>header\handlers\Gameplay\Host\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\NpcsAttack.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Npc\Attack.h">
+      <Filter>header\handlers\Gameplay\Host\Npc</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\NpcsMovement.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Npc\Movement.h">
+      <Filter>header\handlers\Gameplay\Host\Npc</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\NpcsProjectiles.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Npc\Projectile.h">
+      <Filter>header\handlers\Gameplay\Host\Npc</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\NpcsSpawn.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Npc\Spawn.h">
+      <Filter>header\handlers\Gameplay\Host\Npc</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerAbility.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Mod\Bomb\Drop.h">
+      <Filter>header\handlers\Gameplay\User\Mod\Bomb</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerCrash.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Mod\Bomb\Idk.h">
+      <Filter>header\handlers\Gameplay\User\Mod\Bomb</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerEndMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Mod\Bomb\State.h">
+      <Filter>header\handlers\Gameplay\User\Mod\Bomb</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerJoinRoom.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Item\Use.h">
+      <Filter>header\handlers\Gameplay\User\Item</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerLeaveMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Item\Kitdrop\Get.h">
+      <Filter>header\handlers\Gameplay\User\Item\Kitdrop</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerLoadMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Item\Kitdrop\Pickup.h">
+      <Filter>header\handlers\Gameplay\User\Item\Kitdrop</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerMovement.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\AttackGatling.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerNicknames.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\AttackMelee.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerPickupItem.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\AttackProjectile.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerReload.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\AttackRifle.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerRespawn.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\AttackShotgun.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerScoreMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\AttackSniper.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerStartMatch.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Weapon\WarmupGatling.h">
+      <Filter>header\handlers\Gameplay\User\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerSyncTick.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Room\Create.h">
+      <Filter>header\handlers\Room</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown1.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Room\Join.h">
+      <Filter>header\handlers\Room</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown2.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Room\Leave.h">
+      <Filter>header\handlers\Room</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown3.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Plaza\Join.h">
+      <Filter>header\handlers\Plaza</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown4.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Plaza\Leave.h">
+      <Filter>header\handlers\Plaza</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown5.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Mod\Match\End.h">
+      <Filter>header\handlers\Gameplay\Host\Mod\Match</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown6.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Mod\Match\Leave.h">
+      <Filter>header\handlers\Gameplay\Host\Mod\Match</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown7.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Mod\Match\Load.h">
+      <Filter>header\handlers\Gameplay\Host\Mod\Match</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerUnknown8.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Mod\Match\Score.h">
+      <Filter>header\handlers\Gameplay\Host\Mod\Match</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostUpdateTick.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Mod\Match\Start.h">
+      <Filter>header\handlers\Gameplay\Host\Mod\Match</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerWeaponAttack.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Mod\Bomb\State.h">
+      <Filter>header\handlers\Gameplay\Host\Mod\Bomb</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostSpawnAmmo.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Item\Kitdrop\Pickup.h">
+      <Filter>header\handlers\Gameplay\Host\Item\Kitdrop</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostTurnZombie.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Item\Kitdrop\Spawn.h">
+      <Filter>header\handlers\Gameplay\Host\Item\Kitdrop</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\HostSyncTick.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Core\Respawn.h">
+      <Filter>header\handlers\Gameplay\Host\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerJoinPlaza.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Core\GiveWeapon.h">
+      <Filter>header\handlers\Gameplay\Host\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerLeavePlaza.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\Host\Item\Kitdrop\Info.h">
+      <Filter>header\handlers\Gameplay\Host\Item\Kitdrop</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\PlayerSpawnBomb.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Core\Reload.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
     </ClInclude>
-    <ClInclude Include="handlers\ServerIpcMessage.h">
-      <Filter>header\handlers</Filter>
+    <ClInclude Include="handlers\Gameplay\User\Core\Respawn.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\User\Core\Movement.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Item\Use.h">
+      <Filter>header\handlers\Gameplay\Host\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackGatling.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackProjectile.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackRifle.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackShotgun.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackSniper.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\ImpactProjectile.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\WarmupGatling.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackMelee.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Gameplay\User\Core\Radio.h">
+      <Filter>header\handlers\Gameplay\User\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainAuthorize.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainDisconnect.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainHostChange.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainPingAssure.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainServerInfo.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

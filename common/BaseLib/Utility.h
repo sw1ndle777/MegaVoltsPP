@@ -23,7 +23,7 @@
 #include <monocypher.h>
 #include <fmt/format.h>
 #include <fmt/color.h>
-
+#include "CLog.h"
 #include <NetEngine/CMessage.h>
 #include <source_location>
 namespace Utility
@@ -58,13 +58,37 @@ namespace Utility
             return nick.contains(f); 
         });
     }
+
+    template <std::integral T, typename Str>
+    constexpr std::expected<T, std::string_view> ParseNumber(const Str& s)
+        requires std::convertible_to<Str, std::string_view>
+    {
+        std::string_view str = s;
+        if (str.empty())
+            return std::unexpected("empty input");
+
+        T value{};
+        auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+
+        if (ec == std::errc::invalid_argument)
+            return std::unexpected("not a number");
+        if (ec == std::errc::result_out_of_range)
+            return std::unexpected("number out of range");
+        if (ptr != str.data() + str.size())
+            return std::unexpected("contains non-digit characters");
+
+        return value;
+    }
+
     
     namespace Random
     {
-        uint32_t Gen();
-        uint64_t Gen64();
-        uint32_t CustomGen(const uint32_t min, const uint32_t max);
-        uint64_t CustomGen64(const uint64_t min, const uint64_t max);
+        void Init();
+        void SetSeed(std::uint64_t seed) noexcept;
+        [[nodiscard]] std::uint32_t CustomGen(std::uint32_t min, std::uint32_t max) noexcept;
+        [[nodiscard]] std::uint64_t CustomGen64(std::uint64_t min, std::uint64_t max) noexcept;
+        [[nodiscard]] std::uint32_t Gen() noexcept;
+        [[nodiscard]] std::uint64_t Gen64() noexcept;
     }
     namespace SecureRandomBlake2b
     {
@@ -117,6 +141,80 @@ namespace Utility
         };
     }
 
+    template<class T>
+    [[nodiscard]] inline std::string ReadStringSafe(T&& in, std::size_t max_size) 
+    {
+        using U = std::remove_cvref_t<T>;
+        if constexpr (std::same_as<U, std::string>) 
+        {
+            if (in.size() <= max_size) return std::move(in);
+            return in.substr(0, max_size);
+        }
+        else if constexpr (std::same_as<U, std::string_view>) 
+        {
+            const std::size_t n = std::min<std::size_t>(in.size(), max_size);
+            return std::string(in.data(), n);
+        }
+        else if constexpr (std::same_as<U, const char*> || std::same_as<U, char*>) 
+        {
+            const char* p = in;
+            if (!p || max_size == 0) return {};
+            if (const void* end = std::memchr(p, '\0', max_size))
+                return std::string(p, static_cast<const char*>(end));
+            return std::string(p, max_size);
+        }
+        else if constexpr (std::is_array_v<U> && std::same_as<std::remove_all_extents_t<U>, char>) 
+        {
+            constexpr std::size_t N = std::extent_v<U>;
+            const char* a = &in[0];
+            const std::size_t n = std::min<std::size_t>(N, max_size);
+            if (n == 0) return {};
+            if (const void* end = std::memchr(a, '\0', n))
+                return std::string(a, static_cast<const char*>(end));
+            return std::string(a, n);
+        }
+        else 
+            static_assert(std::same_as<U, void>, "ReadStringSafe: unsupported type (std::string, std::string_view, char*, const char*, or char[N])");
+    }
+
+    template<class T>
+    [[nodiscard]] inline std::string_view ReadMVView(T&& in, std::size_t max_size) noexcept 
+    {
+        using U = std::remove_cvref_t<T>;
+        const char* p = nullptr;
+        std::size_t n = 0;
+        if constexpr (std::is_same_v<U, std::string_view>)
+        {
+            p = in.data();
+            n = std::min(in.size(), max_size);
+        } else if constexpr (std::is_same_v<U, std::string>) 
+        {
+            p = in.data();
+            n = std::min(in.size(), max_size);
+        } else if constexpr (std::is_same_v<U, const char*> || std::is_same_v<U, char*>) 
+        {
+            p = in;
+            n = max_size;
+        } else if constexpr (std::is_array_v<U> && std::is_same_v<std::remove_all_extents_t<U>, char>) 
+        {
+            p = &in[0];
+            n = std::min<std::size_t>(std::extent_v<U>, max_size);
+        } else
+            static_assert(std::is_same_v<U, void>,
+                            "ReadMVView: unsupported type (use std::string_view, std::string, char*, const char*, or char[N])");
+
+        if (!p || n == 0) return {};
+        if (const void* end = std::memchr(p, '\0', n))
+            return { p, static_cast<const char*>(end) - p };
+        return { p, n };
+    }
+    template<class T>
+    [[nodiscard]] inline std::string ReadMVOwn(T&& in, std::size_t max_size) 
+    {
+        const auto sv = ReadMVView(std::forward<T>(in), max_size);
+        return std::string(sv.data(), sv.size());
+    }
+
     
     std::string round_float(float var);
     std::string readable_size(uint64_t bytes);
@@ -155,16 +253,21 @@ namespace Utility
         std::memcpy(&object, bytes.data(), sizeof(T));
         return object;
     }
-    void LogPackets(std::source_location source_location, std::shared_ptr<NetEngine::CMessage>& packetMessage, uint16_t m_sessionId);
-    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, uint16_t m_sessionId);
+    
+    void LogPackets(std::source_location source_location, BaseLib::PacketDir dir, NetEngine::CMessage& packetMessage, uint16_t m_sessionId);
     std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath);
     double GetCpuUsage(void* m_process_handle);
     std::int64_t GetMemoryUsage(void* m_process_handle);
 
     bool HashPassword(const std::string& password, const uint8_t* salt, uint8_t* out_hash);
-
-
-
+    inline auto AsBuffer(const std::vector<uint8_t>& v) 
+    {
+        return std::pair
+        {
+            v.empty() ? nullptr : reinterpret_cast<const uint8_t*>(v.data()),
+            v.size()
+        };
+    }
 
     namespace Base64 {
 
@@ -816,7 +919,90 @@ namespace Utility
 
     }
 
+    namespace CPacketTask
+    {
 
-    
 
+        enum class PriorityLevel : uint8_t  
+        {
+            Highest = 0,
+            High    = 1,
+            Normal  = 2,
+            Low     = 3,
+            Lowest  = 4,
+        };
+        inline constexpr std::size_t PriorityCount = static_cast<std::size_t>(PriorityLevel::Lowest) + 1;
+
+        constexpr std::size_t to_index(PriorityLevel lvl) noexcept { return static_cast<std::size_t>(lvl);}
+
+        struct QueuedPacket
+        {
+            uint32_t sid{};
+            NetEngine::Protocols::SCommandHeader cmd{};
+            std::vector<uint8_t> data{};
+            PriorityLevel priority{ PriorityLevel::Normal }; // 0 = highest; then 1, 2, ...
+        };
+        
+        template <class T> requires(std::is_trivially_copyable_v<T>)
+        std::vector<uint8_t> toVec(const T& v)
+        {
+            std::vector<uint8_t> out(sizeof(T));
+            std::memcpy(out.data(), std::addressof(v), sizeof(T));
+            return out;
+        }
+        inline std::vector<uint8_t> toVec(const void* p, size_t n)
+        {
+            std::vector<uint8_t> out(n);
+            if (n) std::memcpy(out.data(), p, n);
+            return out;
+        }
+        class BucketQueue
+        {
+        public:
+            std::array<std::vector<QueuedPacket>, PriorityCount> buckets_;
+            [[nodiscard]] bool empty() const
+            {
+                for (auto const& b : buckets_)
+                    if (!b.empty()) return false;
+                return true;
+            }
+            void clear() { for (auto& b : buckets_) b.clear(); }
+            void reserve(PriorityLevel prio, std::size_t count)
+            {
+                auto p = to_index(prio);
+                buckets_[p].reserve(buckets_[p].size() + count);
+            }
+            void enqueue(uint32_t sid, const NetEngine::Protocols::SCommandHeader& cmd, PriorityLevel prio = PriorityLevel::Normal)
+            {
+                auto p = to_index(prio);
+                buckets_[p].push_back(QueuedPacket{ sid, cmd, {}, prio });
+            }
+            template <class T> requires (std::is_trivially_copyable_v<T>)
+            void enqueue(uint32_t sid, const NetEngine::Protocols::SCommandHeader& cmd, const T& payload, PriorityLevel prio = PriorityLevel::Normal)
+            {
+                auto p = to_index(prio);
+                buckets_[p].push_back(QueuedPacket{ sid, cmd, toVec(payload), prio });
+            }
+            void enqueue(uint32_t sid, const NetEngine::Protocols::SCommandHeader& cmd, const void* pData, std::size_t n, PriorityLevel prio = PriorityLevel::Normal)
+            {
+                auto p = to_index(prio);
+                buckets_[p].push_back(QueuedPacket{ sid, cmd, toVec(pData, n), prio });
+            }
+            [[nodiscard]] std::vector<QueuedPacket> consume_flattened()
+            {
+                std::size_t total = 0;
+                for (auto& b : buckets_) total += b.size();
+
+                std::vector<QueuedPacket> out;
+                out.reserve(total);
+
+                for (auto& b : buckets_) 
+                {
+					std::move(b.begin(), b.end(), std::back_inserter(out)); // preserve fifo order (first in, first out)
+                    b.clear();
+                }
+                return out;
+            }
+        };
+    }
 }

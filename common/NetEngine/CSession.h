@@ -22,9 +22,6 @@ namespace NetEngine
 {
     class CServer;
     class CMessage;
-
-    
-
     struct SCallbackData;
     class CSession : public std::enable_shared_from_this<CSession>
     {
@@ -33,8 +30,6 @@ namespace NetEngine
         {
             bool verbose;
             bool useEncryption;
-            
-            //std::map<uint16_t, std::function<void(SCallbackData&)>> callbacks;
             boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> callbacks;
         };
 
@@ -46,16 +41,33 @@ namespace NetEngine
 
         void Disconnect();
         void Send(CMessage& message);
-        template<Any16  Order, Any8  Mission, Any8  Extra, Any8  Option>
-        __forceinline void SendMsg(Order order, Mission mission, Extra extra, Option option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::User)
+
+        template <typename O, typename M, typename E, typename P>
+            requires (
+        (std::integral<std::remove_cvref_t<O>> || std::is_enum_v<std::remove_cvref_t<O>>) &&
+            (std::integral<std::remove_cvref_t<M>> || std::is_enum_v<std::remove_cvref_t<M>>) &&
+            (std::integral<std::remove_cvref_t<E>> || std::is_enum_v<std::remove_cvref_t<E>>) &&
+            (std::integral<std::remove_cvref_t<P>> || std::is_enum_v<std::remove_cvref_t<P>>)
+            )
+        __forceinline void SendMsg(O order, M mission, E extra, P option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::User)
         {
             CMessage message(this->GetEncryptionKey());
             message.SetSession(this->GetSessionId());
-            message.SetCommand(to_u(order), to_u(mission), to_u(extra), to_u(option));
+            message.SetCommand(order, mission, extra, option);
             message.SetEncryptMethod(enc);
             if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
             this->Send(message);
         }
+        __forceinline void SendMsg(NetEngine::Protocols::SCommandHeader cmd, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::User)
+        {
+            CMessage message(this->GetEncryptionKey());
+            message.SetSession(this->GetSessionId());
+            message.SetCommand(cmd.order, cmd.mission, cmd.extra, cmd.option);
+            message.SetEncryptMethod(enc);
+            if (data_size > 0 && data != nullptr) message.SetData(data, data_size);
+            this->Send(message);
+        }
+
         template<Any16  Order, Any8  Mission, Any8  Extra, Any8  Option>
         __forceinline void ForwardMsg(uint16_t session_id, Order order, Mission mission, Extra extra, Option option, uint8_t* data = nullptr, uint16_t data_size = 0, SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::User)
         {
@@ -105,7 +117,6 @@ namespace NetEngine
         void onPacket(Protocols::STcpPacketHeader& header, std::vector<uint8_t>& data);
 
     private:
-        //std::map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
         boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
         std::deque<std::shared_ptr<std::vector<uint8_t>>> m_SendQueue;
         std::shared_mutex mutex;

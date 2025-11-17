@@ -1,5 +1,5 @@
 #pragma once
-
+#include <ranges>
 #include <string>
 #include <functional>
 
@@ -11,6 +11,9 @@
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
 #include <boost_unordered.hpp>
+
+#include "BaseLib/CCache.h"
+
 namespace Game
 {
     using namespace BaseLib;
@@ -35,7 +38,6 @@ namespace Game
     {
         std::shared_mutex mutex;
         uint16_t session_id;
-        uint16_t host_session_id;
         uint16_t room_id;
         uint16_t plaza_id;
         uint16_t server_id;
@@ -45,6 +47,7 @@ namespace Game
         bool in_plaza;
         bool is_dead;
         uint64_t auth_key;
+		std::string nickname;
 
         Player(const uint16_t& sessionId = 0,
             const uint16_t& hostSessionId = 0,
@@ -54,40 +57,73 @@ namespace Game
             const uint16_t& stateId = 0,
             const bool& inRoom = false,
             const bool& inPlaza = false,
-            const uint64_t& authKey = 0)
-            : session_id(sessionId), host_session_id(hostSessionId), room_id(roomId), plaza_id(plazaId), server_id(severId), state_id(stateId), in_room(inRoom), in_plaza(inPlaza), auth_key(authKey) {
+            const uint64_t& authKey = 0,
+            const std::string& nickname = "")
+            : session_id(sessionId), room_id(roomId), plaza_id(plazaId), server_id(severId), state_id(stateId), in_room(inRoom), in_plaza(inPlaza), auth_key(authKey), nickname(nickname) {
                 is_dead = false;
                 health = 0;
         }
-
         Player(const Player& other)
+            : session_id(other.session_id),
+            room_id(other.room_id),
+            plaza_id(other.plaza_id),
+            server_id(other.server_id),
+            state_id(other.state_id),
+            health(other.health),
+            in_room(other.in_room),
+            in_plaza(other.in_plaza),
+            is_dead(other.is_dead),
+            auth_key(other.auth_key),
+            nickname(other.nickname)
         {
-            session_id = other.session_id;
-            host_session_id = other.host_session_id;
-            room_id = other.room_id;
-            plaza_id = other.plaza_id;
-            server_id = other.server_id;
-            state_id = other.state_id;
-            in_room = other.in_room;
-            in_plaza = other.in_plaza;
-            auth_key = other.auth_key;
-            is_dead = other.is_dead;
-            health = other.health;
         }
+
         Player& operator=(const Player& other)
         {
             if (this == &other) return *this;
             session_id = other.session_id;
-            host_session_id = other.host_session_id;
             room_id = other.room_id;
             plaza_id = other.plaza_id;
             server_id = other.server_id;
             state_id = other.state_id;
+            health = other.health;
             in_room = other.in_room;
             in_plaza = other.in_plaza;
-            auth_key = other.auth_key;
             is_dead = other.is_dead;
+            auth_key = other.auth_key;
+            nickname = other.nickname;
+            return *this;
+        }
+
+        Player(Player&& other) noexcept
+            : session_id(other.session_id),
+            room_id(other.room_id),
+            plaza_id(other.plaza_id),
+            server_id(other.server_id),
+            state_id(other.state_id),
+            health(other.health),
+            in_room(other.in_room),
+            in_plaza(other.in_plaza),
+            is_dead(other.is_dead),
+            auth_key(other.auth_key),
+            nickname(std::move(other.nickname))
+        {
+        }
+
+        Player& operator=(Player&& other) noexcept
+        {
+            if (this == &other) return *this;
+            session_id = other.session_id;
+            room_id = other.room_id;
+            plaza_id = other.plaza_id;
+            server_id = other.server_id;
+            state_id = other.state_id;
             health = other.health;
+            in_room = other.in_room;
+            in_plaza = other.in_plaza;
+            is_dead = other.is_dead;
+            auth_key = other.auth_key;
+            nickname = std::move(other.nickname);
             return *this;
         }
     };
@@ -143,26 +179,14 @@ namespace Game
         }
     };
 
-    //extern asio::strand<asio::io_context::executor_type> global_strand;
-    //extern asio::strand<asio::io_context::executor_type> rooms_strand;
-    //extern asio::strand<asio::io_context::executor_type> plazas_strand;
+    extern CCache<boost::unordered_flat_map<uint16_t, Player>> CAccount;
+    extern CCache<boost::unordered_flat_map<uint16_t, Room>> CRoom;
+    extern CCache<boost::unordered_flat_map<uint16_t, Plaza>> CPlaza;
+    extern CCache<boost::unordered_flat_map<uint64_t, uint16_t>> CAuthKey;
 
+    extern CCache<std::vector<uint16_t>> CRoomId;
+    extern CCache<std::vector<uint16_t>> CPartyId;
 
-    extern std::shared_mutex players_cache_mutex;
-    extern std::shared_mutex rooms_cache_mutex;
-    extern std::shared_mutex plaza_cache_mutex;
-    extern std::shared_mutex room_ids_mutex;
-    extern std::shared_mutex plaza_ids_mutex;
-    /*
-    extern std::unordered_map<uint16_t, Player> players_cache;
-    extern std::unordered_map<uint16_t, Room> rooms_cache;
-    extern std::unordered_map<uint16_t, Plaza> plaza_cache;
-    */
-    extern boost::unordered_flat_map<uint16_t, Player> players_cache;
-    extern boost::unordered_flat_map<uint16_t, Room> rooms_cache;
-    extern boost::unordered_flat_map<uint16_t, Plaza> plaza_cache;
-    extern std::vector<uint32_t> room_ids;
-    extern std::vector<uint32_t> plaza_ids;
     using RoomCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Room>;
     using PlazaCacheResource = LockedResource<std::unique_lock<std::shared_mutex>, Plaza>;
     class CCastServer : public NetEngine::CServer
@@ -170,223 +194,46 @@ namespace Game
     public:
         CCastServer();
         ~CCastServer();
-        auto IsSessionIdAlready(const uint16_t& session_id, const std::vector<uint16_t>& session_ids)
+        using enum fmt::color;
+        auto Broadcast(const std::vector<uint16_t>& ids, 
+            CMessage& msg, 
+            std::optional<uint16_t> exclude_sid = std::nullopt,
+            SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::None,
+            std::source_location loc = std::source_location::current())
         {
-            auto findit = std::find(session_ids.begin(), session_ids.end(), session_id);
-            return findit != session_ids.end();
+            auto filtered = ids | std::views::filter([&](uint16_t id) { return !exclude_sid || id != *exclude_sid; });
+            std::ranges::for_each(filtered, [&](uint16_t id) {
+                msg.SetEncryptMethod(enc);
+                msg.SetSession(id);
+                if (auto pss = this->GetSessionById(id))
+                    pss->Send(msg);
+                else
+                {
+                    EOrder o = magic_enum::enum_cast<EOrder>(u16_cast(msg.GetOrder())).value_or(EOrder::NONE);
+                    BaseLib::EventLog->Debug(loc, ACK, o, red,
+                        "couldn't broadcast packet to sid=({})", id);
+                }
+                });
         }
-        
-        auto IsPlayerAlready(const uint16_t& session_id)
+        auto Forward(uint16_t to_sid,
+            uint16_t from_sid,
+            CMessage& msg,
+            SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::None,
+            std::source_location loc = std::source_location::current())
         {
-            std::shared_lock lock(players_cache_mutex);
-            if (auto findit = players_cache.find(session_id); findit != players_cache.end())
+            msg.SetEncryptMethod(enc);
+            msg.SetSession(from_sid);
+
+            if (auto pss = this->GetSessionById(to_sid))
+            {
+                pss->Send(msg);
                 return true;
-            else
-                return false;
-        }
-       
-        auto GetPlayerCacheShared(const uint16_t& session_id)
-        {
-            std::shared_lock lock(players_cache_mutex);
-            auto it = players_cache.find(session_id);
-            if (it != players_cache.end())
-                return LockedResource{ std::shared_lock(it->second.mutex), it->second };
-            else
-            {
-                static thread_local std::shared_mutex null_player_mutex;
-                static thread_local Player null_player;
-                
-                return LockedResource{ std::shared_lock(null_player_mutex), null_player };
             }
-        }
-        auto GetPlayerCacheUnique(const uint16_t& session_id)
-        {
-            std::shared_lock lock(players_cache_mutex);
-            auto it = players_cache.find(session_id);
-            if (it != players_cache.end())
-                return LockedResource{ std::unique_lock(it->second.mutex), it->second };
-            else
-            {
-                static thread_local std::shared_mutex null_player_mutex;
-                static thread_local Player null_player;
 
-                return LockedResource{ std::unique_lock(null_player_mutex), null_player };
-            }
-        }
-
-        auto GetPlayerCacheSharedByAuthKey(const uint64_t& auth_key)
-        {
-            std::shared_lock lock(players_cache_mutex);
-
-            auto findit = players_cache.begin();
-            findit = std::find_if(players_cache.begin(), players_cache.end(),
-                [&](const auto& pair) { return pair.second.auth_key == auth_key; });
-
-            if (findit != players_cache.end())
-                return LockedResource{ std::shared_lock(findit->second.mutex), findit->second };
-            else
-            {
-                static thread_local std::shared_mutex null_player_mutex;
-                static thread_local Player null_player;
-                return LockedResource{ std::shared_lock(null_player_mutex), null_player };
-            }
-        }
-
-        auto GetPlayerCacheUniqueByAuthKey(const uint64_t& auth_key)
-        {
-            std::shared_lock lock(players_cache_mutex);
-
-            auto findit = players_cache.begin();
-            findit = std::find_if(players_cache.begin(), players_cache.end(),
-                [&](const auto& pair) { return pair.second.auth_key == auth_key; });
-
-            if (findit != players_cache.end())
-                return LockedResource{ std::unique_lock(findit->second.mutex), findit->second };
-            else
-            {
-                static thread_local std::shared_mutex null_player_mutex;
-                static thread_local Player null_player;
-                return LockedResource{ std::unique_lock(null_player_mutex), null_player };
-            }
-        }
-
-        void AddPlayerCache(const uint32_t& session_id, const Player& new_player)
-        {
-            if (!IsPlayerAlready(session_id))
-            {
-                auto players_cache_locked = LockedResource{ std::unique_lock(players_cache_mutex), players_cache };
-                auto [it, inserted] = players_cache_locked->emplace(session_id, std::move(new_player));
-                if (!inserted)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a player with id: ({}), but it already exists ", session_id);
-            }
-        }
-        
-
-        void RemovePlayerCache(const uint32_t& session_id)
-        {
-            if (IsPlayerAlready(session_id))
-            {
-                auto players_cache_locked = LockedResource{ std::unique_lock(players_cache_mutex), players_cache };
-                players_cache_locked->erase(session_id);
-            }
-        }
-        
-        auto IsRoomAlready(const uint16_t& room_id)
-        {
-            std::shared_lock lock(rooms_cache_mutex);
-            if (auto findit = rooms_cache.find(room_id); findit != rooms_cache.end())
-                return true;
-            else
-                return false;
-        }
-        auto GetRoomCacheShared(const uint16_t& room_id)
-        {
-            std::shared_lock lock(rooms_cache_mutex);
-            auto it = rooms_cache.find(room_id);
-            if (it != rooms_cache.end())
-                return LockedResource{ std::shared_lock(it->second.mutex), it->second };
-            else
-            {
-                static thread_local std::shared_mutex null_room_mutex;
-                static thread_local Room null_room;
-                null_room.room_id = 0;
-                return LockedResource{ std::shared_lock(null_room_mutex), null_room };
-            }
-        }
-        auto GetRoomCacheUnique(const uint16_t& room_id)
-        {
-            std::shared_lock lock(rooms_cache_mutex);
-            auto it = rooms_cache.find(room_id);
-            if (it != rooms_cache.end())
-                return LockedResource{ std::unique_lock(it->second.mutex), it->second };
-            else
-            {
-                static thread_local std::shared_mutex null_room_mutex;
-                static thread_local Room null_room;
-                null_room.room_id = 0;
-                return LockedResource{ std::unique_lock(null_room_mutex), null_room };
-            }
-        }
-        void AddRoomCache(const uint32_t& room_id, const Room& new_room)
-        {
-            if (!IsRoomAlready(room_id))
-            {
-                auto rooms_cache_locked = LockedResource{ std::unique_lock(rooms_cache_mutex), rooms_cache };
-                auto rooms_ids_locked = LockedResource{ std::unique_lock(room_ids_mutex), room_ids };
-
-                auto [it, inserted] = rooms_cache_locked->emplace(room_id, std::move(new_room));
-                rooms_ids_locked->push_back(room_id);
-
-                if (!inserted)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a room with id: ({}), but it already exists ", room_id);
-
-            }
-        }
-        void RemoveRoomCache(const uint32_t& room_id)
-        {
-            if (IsRoomAlready(room_id))
-            {
-                auto rooms_cache_locked = LockedResource{ std::unique_lock(rooms_cache_mutex), rooms_cache };
-                auto rooms_ids_locked = LockedResource{ std::unique_lock(room_ids_mutex), room_ids };
-
-                rooms_cache_locked->erase(room_id);
-                rooms_ids_locked->erase(std::remove(rooms_ids_locked->begin(), rooms_ids_locked->end(), room_id), rooms_ids_locked->end());
-            }
-        }
-
-        auto IsPlazaAlready(const uint16_t& plaza_id)
-        {
-            std::shared_lock lock(plaza_cache_mutex);
-            if (auto findit = plaza_cache.find(plaza_id); findit != plaza_cache.end())
-                return true;
-            else
-                return false;
-        }
-        auto GetPlazaCacheShared(const uint16_t& plaza_id)
-        {
-            std::shared_lock lock(plaza_cache_mutex);
-            auto it = plaza_cache.find(plaza_id);
-            if (it != plaza_cache.end())
-                return LockedResource{ std::shared_lock(it->second.mutex), it->second };
-            else
-            {
-                static thread_local std::shared_mutex null_plaza_mutex;
-                static thread_local Plaza null_plaza;
-                return LockedResource{ std::shared_lock(null_plaza_mutex), null_plaza };
-            }
-        }
-        auto GetPlazaCacheUnique(const uint16_t& plaza_id)
-        {
-            std::shared_lock lock(plaza_cache_mutex);
-            auto it = plaza_cache.find(plaza_id);
-            if (it != plaza_cache.end())
-                return LockedResource{ std::unique_lock(it->second.mutex), it->second };
-            else
-            {
-                static thread_local std::shared_mutex null_plaza_mutex;
-                static thread_local Plaza null_plaza;
-                return LockedResource{ std::unique_lock(null_plaza_mutex), null_plaza };
-            }
-        }
-        void AddPlazaCache(const uint16_t& plaza_id, const Plaza& new_plaza)
-        {
-            if (!IsPlazaAlready(plaza_id))
-            {
-                auto locked_plaza_cache = LockedResource{ std::unique_lock(plaza_cache_mutex), plaza_cache };
-                auto plaza_ids_locked = LockedResource{ std::unique_lock(plaza_ids_mutex), plaza_ids };
-                locked_plaza_cache->emplace(plaza_id, std::move(new_plaza));
-                plaza_ids_locked->push_back(plaza_id);
-            }
-        }
-        void RemovePlazaCache(const uint16_t& plaza_id)
-        {
-            if (IsPlazaAlready(plaza_id))
-            {
-                auto locked_plaza_cache = LockedResource{ std::unique_lock(plaza_cache_mutex), plaza_cache };
-                auto plaza_ids_locked = LockedResource{ std::unique_lock(plaza_ids_mutex), plaza_ids };
-                locked_plaza_cache->erase(plaza_id);
-                plaza_ids_locked->erase(std::remove(plaza_ids_locked->begin(), plaza_ids_locked->end(), plaza_id), plaza_ids_locked->end());
-            }
-        }
+            EOrder o = magic_enum::enum_cast<EOrder>(u16_cast(msg.GetOrder())).value_or(EOrder::NONE);
+            BaseLib::EventLog->Debug(loc, ACK, o, red,
+                "couldn't forward packet from sid=({}) to sid=({})", from_sid, to_sid);
+            return false;
+        }   
     };
 }

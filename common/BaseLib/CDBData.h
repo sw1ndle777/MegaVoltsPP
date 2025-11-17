@@ -24,6 +24,7 @@ namespace BaseLib
         bool IsUpgradable;
         uint32_t LimitedTime;
         uint32_t Durability;
+        uint32_t DurabilityFactor;
         uint32_t CouponPrice;
         uint32_t CashPrice;
         uint32_t PointPrice;
@@ -50,6 +51,7 @@ namespace BaseLib
             this->IsUpgradable = false;
             this->LimitedTime = -1;
             this->Durability = 0;
+            this->DurabilityFactor = 0;
             this->CouponPrice = 0;
             this->CashPrice = 0;
             this->PointPrice = 0;

@@ -23,7 +23,6 @@ using namespace NetEngine::Packets::Cast;
 #include <crashpad/client/crash_report_database.h>
 #include <crashpad/client/settings.h>
 #include <crashpad/client/crashpad_info.h>
-//#pragma comment(lib, "third_party/mini_chromium/mini_chromium/base/base.lib")
 
 #if  defined(__linux__)
 typedef std::string StringType;
@@ -68,6 +67,7 @@ void init_crash_handler()
     client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
 }
 
+
 int main()
 {
     init_crash_handler();
@@ -93,10 +93,13 @@ int main()
     //BaseLib::Database->Initialize(server_settings.database.db_name.c_str(), server_settings.database.host.c_str(), server_settings.database.port, server_settings.database.user.c_str(), server_settings.database.password.c_str());
 
     Game::CCastServer* castServer = new Game::CCastServer();
+
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.cast.host.c_str(), std::to_string(server_settings.cast.port).c_str(), std::to_string(server_settings.cast.ipc_port).c_str(), server_settings.cast.debug, false, true, server_settings.cast.watchguard, server_settings.cast.asio_threads, 0, server_settings.cast.logger_threads);
     castServer->Setup(settings, server_settings);
     castServer->Run();
-    
-    std::cin.ignore();
+    std::cin.get();
+    delete castServer;
+    BaseLib::DbPool.reset();
+    BaseLib::LogPool.reset();
     return 0;
 }

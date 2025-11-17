@@ -1,6 +1,7 @@
 #include "CMessage.h"
 #include <stdexcept>
 #include <format>
+#include "../BaseLib/Utility.h"
 namespace NetEngine
 {
     CMessage::CMessage(int32_t crypt_key)
@@ -20,16 +21,8 @@ namespace NetEngine
         m_encrypt_method = SendOption::EncryptionMethod::User;
         this->ProcessMessage(data, size);
     }
-    CMessage::~CMessage()
-    {
-    }
-    void CMessage::SetCommand(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option)
-    {
-        m_command->order = order;
-        m_command->mission = mission;
-        m_command->extra = extra;
-        m_command->option = option;
-    }
+    CMessage::~CMessage(){}
+
     void CMessage::SetEncryptMethod(SendOption::EncryptionMethod method)
     {
         m_encrypt_method = method;
@@ -38,28 +31,12 @@ namespace NetEngine
     {
         m_header->sessionId = session;
     }
-    void CMessage::SetMission(uint8_t mission)
-    {
-        m_command->mission = mission;
-    }
-    void CMessage::SetOrder(uint16_t order)
-    {
-        m_command->order = order;
-    }
-    void CMessage::SetExtra(uint8_t extra)
-    {
-        m_command->extra = extra;
-    }
-    void CMessage::SetOption(uint8_t option)
-    {
-        m_command->option = option;
-    }
     void CMessage::SetData(uint8_t* data, uint16_t size)
     {
 	   m_buffer.resize(minSize() + size);
        m_header = (Protocols::STcpPacketHeader*)m_buffer.data();
        m_command = (Protocols::SCommandHeader*)(m_header + 1);
-       memcpy(m_buffer.data() + dataOffset(), data, size);
+       std::memcpy(m_buffer.data() + dataOffset(), data, size);
     }
     uint16_t CMessage::GetSession()
     {
@@ -100,124 +77,78 @@ namespace NetEngine
     void CMessage::ProcessMessage(uint8_t* data, uint16_t size)
     {
         if (size < tcp_header_size)  return;
-
-        Cryptography::CCrypt crypt;
         m_buffer.resize(minSize() + size);
         m_header = (Protocols::STcpPacketHeader*)m_buffer.data();
         m_command = (Protocols::SCommandHeader*)(m_header + 1);
-
-        if (m_crypt < 0)
-        {
-            memcpy(m_header, data, tcp_header_size);
-            //m_header.data = crypt.decrypt_tcp_header(m_header.data);
-        }
+		using enum CCrypt::CRYPT_TYPE;
+        if (m_crypt < 0) std::memcpy(m_header, data, tcp_header_size);
         else
         {
-            crypt.KeySetup(0);
-            crypt.RC5Decrypt32(data, m_header, tcp_header_size);
-            //m_header.data = crypt.decrypt_tcp_header(m_header.data);
+			CCrypt crypt(CRYPT_RC5, 0);
+            crypt.Decrypt(data, m_header, tcp_header_size);
         }
         const auto messageSize = static_cast<uint16_t>(m_header->size - tcp_header_size);
         if (messageSize <= 0) return;
 
         thread_local std::vector<std::uint8_t> decrypted_data;
 		decrypted_data.resize(messageSize);
-		
-        switch (m_header->crypt)
-        {
-        case Cryptography::EncryptionType::NO_ENCRYPTION:
-            memcpy(decrypted_data.data(), data + tcp_header_size, messageSize);
-            break;
-        case Cryptography::EncryptionType::DEFAULT_ENCRYPTION:
-            crypt.KeySetup(0);
-            crypt.RC5Decrypt64(data + tcp_header_size, decrypted_data.data(), messageSize);
-            break;
-        case Cryptography::EncryptionType::USER_ENCRYPTION:
-            crypt.KeySetup(m_crypt);
-            crypt.RC5Decrypt64(data + tcp_header_size, decrypted_data.data(), messageSize);
-            break;
-        case Cryptography::EncryptionType::DEFAULT_LARGE_ENCRYPTION:
-            crypt.KeySetup(0);
-            crypt.RC6Decrypt128(data + tcp_header_size, decrypted_data.data(), messageSize);
-            break;
-        case Cryptography::EncryptionType::USER_LARGE_ENCRYPTION:
-            crypt.KeySetup(m_crypt);
-            crypt.RC6Decrypt128(data + tcp_header_size, decrypted_data.data(), messageSize);
-            break;
-        default:
-            break;
-        }
-#pragma warning(suppress : 6385)
-        memcpy(m_command, decrypted_data.data(), tcp_header_size);
+        const auto crypt_type = static_cast<CCrypt::CRYPT_TYPE>(m_header->crypt);
 
-        if (messageSize > command_header_size)
+        if (crypt_type != CRYPT_NONE)
         {
-            SetData(decrypted_data.data() + command_header_size, messageSize - command_header_size);
+            const auto key = (crypt_type == CRYPT_RC5_SERIAL || crypt_type == CRYPT_RC6_SERIAL) ? m_crypt : 0;
+            CCrypt crypt(crypt_type, key);
+            crypt.Decrypt(data + tcp_header_size, decrypted_data.data(), messageSize);
         }
         else
-        {
+            std::memcpy(decrypted_data.data(), data + tcp_header_size, messageSize);
+
+        std::memcpy(m_command, decrypted_data.data(), tcp_header_size);
+        if (messageSize > command_header_size)
+            SetData(decrypted_data.data() + command_header_size, messageSize - command_header_size);
+        else
             SetData(nullptr, 0);
-        }
     }
     void CMessage::generateBogus()
     {
-        m_header->bogus = std::rand() % 262143 + 1;
-		m_command->bogus = std::rand() % 262143 + 1;
+        m_header->bogus = Utility::Random::CustomGen(1, 255) & 0xF;
+		m_command->bogus = Utility::Random::CustomGen(1, 255) & 0xF;
     }
     std::shared_ptr<std::vector<uint8_t>> CMessage::GenerateMessage()
     {
         const auto data_size = dataSize();
         const auto partial_size = data_size + command_header_size;
+        using enum CCrypt::CRYPT_TYPE;
+        using enum SendOption::EncryptionMethod;
         if (m_crypt < 0)
-            m_header->crypt = Cryptography::EncryptionType::NO_ENCRYPTION;
+            m_header->crypt = to_u(CRYPT_NONE);
         else
         {
-            if (partial_size < 16 && m_encrypt_method == SendOption::EncryptionMethod::Default)
-                m_header->crypt = Cryptography::EncryptionType::DEFAULT_ENCRYPTION;
-            else if (partial_size < 16 && m_encrypt_method == SendOption::EncryptionMethod::User)
-                m_header->crypt = Cryptography::EncryptionType::USER_ENCRYPTION;
-            else if (partial_size >= 16 && m_encrypt_method == SendOption::EncryptionMethod::Default)
-                m_header->crypt = Cryptography::EncryptionType::DEFAULT_LARGE_ENCRYPTION;
-            else if (partial_size >= 16 && m_encrypt_method == SendOption::EncryptionMethod::User)
-                m_header->crypt = Cryptography::EncryptionType::USER_LARGE_ENCRYPTION;
+            if (partial_size < 16 && m_encrypt_method == Default)
+                m_header->crypt = to_u(CRYPT_RC5);
+            else if (partial_size < 16 && m_encrypt_method == User)
+                m_header->crypt = to_u(CRYPT_RC5_SERIAL);
+            else if (partial_size >= 16 && m_encrypt_method == Default)
+                m_header->crypt = to_u(CRYPT_RC6);
+            else if (partial_size >= 16 && m_encrypt_method == User)
+                m_header->crypt = to_u(CRYPT_RC6_SERIAL); 
         }
         m_header->size = partial_size + tcp_header_size;
 
         auto* partial_data = m_buffer.data() + tcp_header_size;
-
-        Cryptography::CCrypt crypt;
-
-        switch (m_header->crypt)
+		const auto crypt_type = static_cast<CCrypt::CRYPT_TYPE>(m_header->crypt);
+        if (crypt_type != CRYPT_NONE)
         {
-        case Cryptography::EncryptionType::NO_ENCRYPTION:
-            break;
-        case Cryptography::EncryptionType::DEFAULT_ENCRYPTION:
-            crypt.KeySetup(0);
-            crypt.RC5Encrypt64(partial_data, partial_data, partial_size);
-            break;
-        case Cryptography::EncryptionType::USER_ENCRYPTION:
-            crypt.KeySetup(m_crypt);
-            crypt.RC5Encrypt64(partial_data, partial_data, partial_size);
-            break;
-        case Cryptography::EncryptionType::DEFAULT_LARGE_ENCRYPTION:
-            crypt.KeySetup(0);
-            crypt.RC6Encrypt128(partial_data, partial_data, partial_size);
-            break;
-        case Cryptography::EncryptionType::USER_LARGE_ENCRYPTION:
-            crypt.KeySetup(m_crypt);
-            crypt.RC6Encrypt128(partial_data, partial_data, partial_size);
-            break;
-        default:
-            break;
+            const auto key = (crypt_type == CRYPT_RC5_SERIAL || crypt_type == CRYPT_RC6_SERIAL) ? m_crypt : 0;
+            CCrypt crypt(crypt_type, key);
+            crypt.Encrypt(partial_data, partial_data, partial_size);
         }
-
         if (m_crypt >= 0)
         {
-            crypt.KeySetup(0);
-            m_header->data = crypt.encrypt_tcp_header(m_header->data);
-            crypt.RC5Encrypt32(m_buffer.data(), m_buffer.data(), tcp_header_size);
+            m_header->data = encrypt_tcp_header(m_header->data);
+            CCrypt crypt(CRYPT_RC5, 0);
+            crypt.Encrypt(m_buffer.data(), m_buffer.data(), tcp_header_size);
         }
-        
         return std::make_shared<std::vector<uint8_t>>(m_buffer);
         //return m_buffer;
     }

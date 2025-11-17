@@ -24,13 +24,52 @@ namespace NetEngine
 
         ~CMessage();
 
-        void SetCommand(uint16_t order, uint8_t mission, uint8_t extra, uint8_t option);
+       
         void SetEncryptMethod(SendOption::EncryptionMethod method);
         void SetSession(uint16_t session);
-        void SetMission(uint8_t mission);
-        void SetOrder(uint16_t order);
-        void SetExtra(uint8_t extra);
-        void SetOption(uint8_t option);
+
+        template <typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+        void SetMission(T mission)
+        {
+            m_command->mission = u32_cast(mission);
+        }
+
+        template <typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+		void SetOrder(T order)
+        {
+            m_command->order = u32_cast(order);
+        }
+
+        template <typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+        void SetExtra(T extra)
+        {
+            m_command->extra = u32_cast(extra);
+        }
+
+        template <typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+        void SetOption(T option)
+        {
+            m_command->option = u32_cast(option);
+        }
+
+        template <typename O, typename M, typename E, typename P>
+            requires (
+            (std::integral<std::remove_cvref_t<O>> || std::is_enum_v<std::remove_cvref_t<O>>) &&
+            (std::integral<std::remove_cvref_t<M>> || std::is_enum_v<std::remove_cvref_t<M>>) &&
+            (std::integral<std::remove_cvref_t<E>> || std::is_enum_v<std::remove_cvref_t<E>>) &&
+            (std::integral<std::remove_cvref_t<P>> || std::is_enum_v<std::remove_cvref_t<P>>)
+                )
+        void SetCommand(O order, M mission, E extra, P option)
+        {
+            SetOrder(order);
+            SetMission(mission);
+            SetExtra(extra);
+            SetOption(option);
+        }
 
         uint16_t GetSession();
         uint8_t GetMission();

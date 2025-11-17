@@ -7,8 +7,10 @@
 #include "NetEngine/CSession.h"
 #include "NetEngine/Constants.h"
 
-
-
+#include "NetEngine/Packets/PacketStruct.h"
+#include "NetEngine/Packets/PacketData.h"
+#include "BaseLib/CDatabase.h"
+#include "BaseLib/CCache.h"
 namespace Game
 {
     using namespace BaseLib;
@@ -41,43 +43,61 @@ namespace Game
     struct Player
     {
         std::shared_mutex mutex;
-        uint64_t auth_key = 0;
-        bool forcefully_logged_out = false;
-
-        Player(const uint64_t& authKey = 0, const bool& forcefullyLoggedOut = false) : auth_key(authKey), forcefully_logged_out(forcefullyLoggedOut){}
+        uint32_t sid{ 0 };
+        BaseLib::PlazaAuth plazaAuth{};
+        BaseLib::FrontAccount frontAccount{};
+        BaseLib::ClanInfo clanInfo{};
+        Player() {}
         Player(const Player& other)
         {
-            auth_key = other.auth_key;
-            forcefully_logged_out = other.forcefully_logged_out;
+			sid = other.sid;
+			plazaAuth = other.plazaAuth;
+            frontAccount = other.frontAccount;
+			clanInfo = other.clanInfo;
         }
         Player& operator=(const Player& other)
         {
             if (this == &other) return *this;
-            auth_key = other.auth_key;
-            forcefully_logged_out = other.forcefully_logged_out;
+			sid = other.sid;
+            plazaAuth = other.plazaAuth;
+            frontAccount = other.frontAccount;
+            clanInfo = other.clanInfo;
             return *this;
         }
     };
-    extern std::shared_mutex players_cache_mutex;
-    extern boost::unordered_flat_map<uint64_t, Player> players_cache;
+    extern CCache<boost::unordered_flat_map<int32_t, Player>> CAccount;
+    extern CCache<boost::unordered_flat_set<uint64_t>> CAuthKeys;
+    //extern std::shared_mutex players_cache_mutex;
+    //extern boost::unordered_flat_map<int32_t, Player> players_cache;
     class CFrontServer : public NetEngine::CServer
     {
     public:
         CFrontServer();
         ~CFrontServer();
-
-        auto IsPlayerAlready(const uint64_t& auth_key)
+        /*
+        auto IsPlayerAlready(int32_t aid)
         {
             std::shared_lock lock(players_cache_mutex);
-            if (auto findit = players_cache.find(auth_key); findit != players_cache.end())
+            if (auto findit = players_cache.find(aid); findit != players_cache.end())
                 return true;
             else
                 return false;
         }
-        auto GetPlayerCacheShared(const uint64_t& auth_key)
+        auto isPlayerAlreadyByAuthKey(uint64_t key)
         {
             std::shared_lock lock(players_cache_mutex);
-            auto it = players_cache.find(auth_key);
+            for (auto& [aid, player] : players_cache)
+            {
+                std::shared_lock player_lock(player.mutex);
+                if (player.plazaAuth.AuthKey == key || player.frontAccount.AuthKey == key)
+                    return true;
+            }
+			return false;
+        }
+        auto GetPlayerCacheShared(int32_t aid)
+        {
+            std::shared_lock lock(players_cache_mutex);
+            auto it = players_cache.find(aid);
             if (it != players_cache.end())
                 return LockedResource{ std::shared_lock(it->second.mutex), it->second };
             else
@@ -88,40 +108,58 @@ namespace Game
                 return LockedResource{ std::shared_lock(null_player_mutex), null_player };
             }
         }
-        auto GetPlayerCacheUnique(const uint64_t& auth_key)
+        auto GetPlayerCacheUnique(int32_t aid)
         {
             std::shared_lock lock(players_cache_mutex);
-            auto it = players_cache.find(auth_key);
+            auto it = players_cache.find(aid);
             if (it != players_cache.end())
                 return LockedResource{ std::unique_lock(it->second.mutex), it->second };
             else
             {
                 static thread_local std::shared_mutex null_player_mutex;
                 static thread_local Player null_player;
-
                 return LockedResource{ std::unique_lock(null_player_mutex), null_player };
             }
         }
-        void AddPlayerCache(const uint64_t& auth_key, const Player& new_player)
+        void AddPlayerCache(int32_t aid, Player& new_player)
         {
-            if (!IsPlayerAlready(auth_key))
+            if (!IsPlayerAlready(aid))
             {
+				DEBUGLOG(dark_cyan, "Adding player to cache with aid: ({}), key: ({})", aid, new_player.plazaAuth.AuthKey);
                 auto players_cache_locked = LockedResource{ std::unique_lock(players_cache_mutex), players_cache };
-                auto [it, inserted] = players_cache_locked->emplace(auth_key, std::move(new_player));
+                auto [it, inserted] = players_cache_locked->emplace(aid, new_player);
                 if (!inserted)
-                    BaseLib::EventLog->Debug(std::source_location::current(), fmt::color::dark_cyan, "Attempted to add a player with auth key: ({}), but it already exists ", auth_key);
+                    DEBUGLOG(dark_cyan, "Attempted to add a player with aid: ({}), but it already exists ", aid);
             }
+            else
+                DEBUGLOG(dark_cyan, "Attempted to add a player with aid: ({}), but it already exists ", aid);
         }
-        bool RemovePlayerCache(const uint64_t& auth_key)
+        bool RemovePlayerCache(int32_t aid)
         {
-            if (IsPlayerAlready(auth_key))
+            if (IsPlayerAlready(aid))
             {
                 auto players_cache_locked = LockedResource{ std::unique_lock(players_cache_mutex), players_cache };
-                players_cache_locked->erase(auth_key);
+                players_cache_locked->erase(aid);
                 return true;
             }
             return false;
         }
+        bool RemovePlayerCacheBySid(uint32_t sid)
+        {
+            auto players_cache_locked = LockedResource{ std::unique_lock(players_cache_mutex), players_cache };
+            for (auto it = players_cache_locked->begin(); it != players_cache_locked->end(); ++it)
+            {
+                auto& player = it->second;
+                std::shared_lock player_lock(player.mutex);
+                if (player.sid == sid)
+                {
+                    players_cache_locked->erase(it);
+                    return true;
+                }
+            }
+            return false;
+		}
+        */
     private:
     };
 }

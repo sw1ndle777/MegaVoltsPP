@@ -38,40 +38,40 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <EnableASAN>false</EnableASAN>
@@ -131,17 +131,17 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.1.1|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\magic_enum;$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin_1_1_1\\</OutDir>
-    <IntDir>obj_1_1_1\\</IntDir>
+    <IntDir>..\\..\\obj_1_1_1\\front\\</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\deps\magic_enum;$(ProjectDir)..\..\deps\asio\asio\include;$(ProjectDir)..\..\deps\boost_unordered\;$(ProjectDir)..\..\deps\thread-pool\include;$(ProjectDir)..\..\deps\monocypher\src;$(ProjectDir)..\..\deps\rapidjson\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\base;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\client;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\build;$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\include\crashpad\util;$(IncludePath)</IncludePath>
     <OutDir>..\\..\\out\\bin\\</OutDir>
-    <IntDir>obj\\</IntDir>
+    <IntDir>..\\..\\obj\\front\\</IntDir>
     <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
     <LibraryPath>$(ProjectDir)..\..\build\vcpkg_installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -219,9 +219,10 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -264,12 +265,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CFrontServer.h" />
-    <ClInclude Include="handlers\ServerConnect.h" />
-    <ClInclude Include="handlers\ServerDisconnect.h" />
-    <ClInclude Include="handlers\LoginAuth.h" />
-    <ClInclude Include="handlers\LoginReconnect.h" />
-    <ClInclude Include="handlers\ChannelsInfo.h" />
-    <ClInclude Include="handlers\ServerIpcMessage.h" />
+    <ClInclude Include="handlers\Core\Connect.h" />
+    <ClInclude Include="handlers\Core\Disconnect.h" />
+    <ClInclude Include="handlers\Core\Ipc.h" />
+    <ClInclude Include="handlers\Core\Ipc\MainAidOnline.h" />
+    <ClInclude Include="handlers\Core\Ipc\MainDisconnect.h" />
+    <ClInclude Include="handlers\Player\Core\Authorize.h" />
+    <ClInclude Include="handlers\Player\Core\Channels.h" />
+    <ClInclude Include="handlers\Player\Core\Reconnect.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

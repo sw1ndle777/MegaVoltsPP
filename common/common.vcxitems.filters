@@ -19,6 +19,12 @@
     <Filter Include="monocypher\optional">
       <UniqueIdentifier>{6e9fd8b1-14b1-4e63-b718-63b368529bde}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Enums">
+      <UniqueIdentifier>{8b4d8b45-0ec6-4acd-b762-1e46e615f606}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Enums\Protocol">
+      <UniqueIdentifier>{5f99d987-5f85-43dc-8d9a-e5ffc30613d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Packets\PacketData.h">
@@ -71,6 +77,15 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.h">
       <Filter>monocypher</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CCache.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLocker.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Enums\Protocol\Orders.h">
+      <Filter>Enums\Protocol</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

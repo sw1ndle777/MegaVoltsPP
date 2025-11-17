@@ -1,4 +1,3 @@
-#include "CLog.h"
 #include "Utility.h"
 #ifdef _WIN64
 #define WIN32_LEAN_AND_MEAN
@@ -10,9 +9,25 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #endif
+#include <boost_unordered.hpp>
 
 namespace Utility
 {
+    using enum fmt::color;
+    using enum EOrder;
+    boost::unordered_flat_set<EOrder> blacklist_orders =
+    {
+        NONE,
+        ID_PING,
+        ID_PONG,
+        INFO_INVENTORY,
+        USER_MOVE,
+        HOST_NPC_MOVE,
+        INFO_OTHER_USER_MOVE,
+        USER_NICKNAME,
+        ROOM_LIST
+    };
+
     std::map<std::string, std::string> time_zones = {
        {"UTC", "UTC"},
        {"EST", "UTC-5"},
@@ -32,30 +47,58 @@ namespace Utility
        {"GMT+11", "UTC-11"},
        {"GMT+12", "UTC-12"}
     };
+    static const boost::unordered_flat_map<std::string, int> kTzOffsets = {
+    {"UTC", 0}, {"GMT", 0},
+    {"EST", -5}, {"CST", -6}, {"MST", -7}, {"PST", -8},
+    {"EET", +2}, {"EEST", +3},
+    {"CET", +1}, {"CEST", +2},
+    {"GMT-12",-12},{"GMT-11",-11},{"GMT-10",-10},{"GMT-9",-9},{"GMT-8",-8},
+    {"GMT-7",-7},{"GMT-6",-6},{"GMT-5",-5},{"GMT-4",-4},{"GMT-3",-3},
+    {"GMT-2",-2},{"GMT-1",-1},{"GMT+0",0},{"GMT+1",+1},{"GMT+2",+2},
+    {"GMT+3",+3},{"GMT+4",+4},{"GMT+5",+5},{"GMT+6",+6},{"GMT+7",+7},
+    {"GMT+8",+8},{"GMT+9",+9},{"GMT+10",+10},{"GMT+11",+11},{"GMT+12",+12}
+    };
+
     namespace Random
     {
-        std::random_device rd;
-        std::mt19937 rng(rd());
-        std::mt19937_64 rng64(rd());
-        std::uniform_int_distribution<uint32_t> dist;
-        std::uniform_int_distribution<uint64_t> dist64;
-        uint32_t Gen()
+        thread_local std::mt19937_64 g_eng{};
+        thread_local bool g_seeded = false;
+        void Init()
         {
-            return dist(rng);
+            if (g_seeded) return;
+            std::random_device rd{};
+            std::array<std::uint32_t, 8> seed_data{
+                rd(), rd(), rd(), rd(),
+                rd(), rd(), rd(), rd()
+            };
+            std::seed_seq seq(seed_data.begin(), seed_data.end());
+            g_eng.seed(seq);
+            g_seeded = true;
         }
-        uint64_t Gen64()
+        void SetSeed(std::uint64_t seed) noexcept
         {
-            return dist64(rng64);
+            g_eng.seed(static_cast<std::mt19937::result_type>(seed));
+            g_seeded = true;
         }
-        uint32_t CustomGen(const uint32_t min, const uint32_t max)
+        std::uint32_t CustomGen(std::uint32_t min, std::uint32_t max) noexcept
         {
-            std::uniform_int_distribution<uint32_t> custom_dist(min, max);
-            return custom_dist(rng);
+            Init();
+            std::uniform_int_distribution<std::uint32_t> dist(min, max);
+            return dist(g_eng);
         }
-        uint64_t CustomGen64(const uint64_t min, const uint64_t max)
+        std::uint64_t CustomGen64(std::uint64_t min, std::uint64_t max) noexcept
         {
-            std::uniform_int_distribution<uint64_t> custom_dist64(min, max);
-            return custom_dist64(rng64);
+            Init();
+            std::uniform_int_distribution<std::uint64_t> dist(min, max);
+            return dist(g_eng);
+        }
+        std::uint32_t Gen() noexcept
+        {
+            return CustomGen(0, UINT32_MAX);
+        }
+        std::uint64_t Gen64() noexcept
+        {
+            return CustomGen64(0, UINT64_MAX);
         }
     }
     namespace SecureRandomBlake2b
@@ -207,12 +250,12 @@ namespace Utility
             std::string_view     name;
         };
         constexpr std::array<Unit, 6> table{ {
-            { 1h,  "hours"       },
-            { 1min,"minutes"     },
-            { 1s,  "seconds"     },
-            { 1ms, "milliseconds"},
-            { 1us, "microseconds"},
-            { 1ns, "nanoseconds" }
+            { 1h,  "h"       },
+            { 1min,"min"     },
+            { 1s,  "s"     },
+            { 1ms, "ms"},
+            { 1us, "us"},
+            { 1ns, "ns" }
             } };
 
         const auto it = std::ranges::find_if(table, [t](const Unit& u){ return t >= u.factor; });
@@ -340,19 +383,41 @@ namespace Utility
         auto millis = duration_cast<std::chrono::seconds>(durationSinceEpoch).count();
         return static_cast<uint64_t>(millis);
     }
+    int ParseOffsetHours(std::string_view tz) {
+        if (auto it = kTzOffsets.find(std::string(tz)); it != kTzOffsets.end())
+            return it->second;
+
+		if (tz.starts_with("GMT") || tz.starts_with("UTC")) {
+            if (tz.size() == 3) return 0;
+            if (tz.size() >= 5 && (tz[3] == '+' || tz[3] == '-')) {
+                return std::stoi(std::string(tz.substr(3)));
+            }
+        }
+        throw std::invalid_argument("Unknown time zone key: " + std::string(tz));
+    }
+
     std::string GetReadableTime(uint32_t time, std::string time_zone)
     {
-        auto& time_offset = time_zones[time_zone];
-        auto offset = std::stoi(time_offset.substr(4));
-        auto time_point = std::chrono::system_clock::from_time_t(time);
+        const int offset_h = ParseOffsetHours(time_zone);
 
-        time_point += std::chrono::hours(offset + 1);
-        std::time_t truncated_time = std::chrono::system_clock::to_time_t(time_point);
-        std::tm tm_time = *std::gmtime(&truncated_time);
+        using namespace std::chrono;
+        auto tp = system_clock::time_point{ seconds{time} } + hours{ offset_h };
 
-        return std::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}",
-                           tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
-                           tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
+        std::time_t tt = system_clock::to_time_t(tp);
+        std::tm tm = *std::gmtime(&tt);
+
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            tp.time_since_epoch()) % std::chrono::milliseconds(1000);
+
+        return fmt::format("{:02}-{:02}-{:04} {:02}:{:02}:{:02}.{:03}",
+            tm.tm_mday,
+            tm.tm_mon + 1,
+            tm.tm_year + 1900,
+            tm.tm_hour,
+            tm.tm_min,
+            tm.tm_sec,
+            static_cast<int>(ms.count())
+        );
     }
     uint64_t DateTimeToUInt64(const std::string& formatted_datetime)
     {
@@ -435,6 +500,9 @@ namespace Utility
         return auth_key;
     }
 
+
+    
+
     std::string ReadMicrovoltsString(const char* data, uint32_t size)
     {
         if (data == nullptr || size <= 0)
@@ -491,56 +559,29 @@ namespace Utility
         GetSystemInfo(&info);
         return info.dwNumberOfProcessors;
     }();
-    void LogPackets(std::source_location source_location, NetEngine::CMessage& packetMessage, uint16_t m_sessionId)
+   
+    void LogPackets(std::source_location source_location, BaseLib::PacketDir dir, NetEngine::CMessage& packetMessage, uint16_t m_sessionId)
     {
-        if (packetMessage.GetOrder() != 71 || packetMessage.GetOrder() != 72)
+		auto order = magic_enum::enum_cast<EOrder>(NetEngine::u16_cast(packetMessage.GetOrder())).value_or(EOrder::NONE);
+        if (blacklist_orders.contains(order)) return;
+        std::string data_buffer;
+        data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
+
+        for (uint32_t i = 0; i < 4; i++)
+            std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
+
+        for (uint32_t i = 0; i < 4; i++)
+            std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
+
+        for (uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
         {
-            std::string data_buffer;
-            data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage.GetDataSize() * 3));
-
-            for (uint32_t i = 0; i < 4; i++)
-                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetHeader().data >> (i * 8)));
-
-            for (uint32_t i = 0; i < 4; i++)
-                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage.GetCommand().data >> (i * 8)));
-
-            for (uint32_t i = 0; i < packetMessage.GetDataSize(); i++)
-            {
-                std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
-                if (i != packetMessage.GetDataSize() - 1)
-                    data_buffer += ' ';
-            }
-
-            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetOrder(), packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
+            std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage.GetData()[i]);
+            if (i != packetMessage.GetDataSize() - 1)
+                data_buffer += ' ';
         }
+        BaseLib::EventLog->Debug(source_location, dir, order, dark_cyan, "size=({:d}) msgSid=({}) sid=({}) mission=({}) extra=({}) option=({})\n{:s}", packetMessage.GetDataSize() + 8, packetMessage.GetSession(), m_sessionId, packetMessage.GetMission(), packetMessage.GetExtra(), packetMessage.GetOption(), data_buffer);
     }
-    void LogPackets(std::source_location source_location, std::shared_ptr<NetEngine::CMessage>& packetMessage, uint16_t m_sessionId)
-    {
-        if (packetMessage->GetOrder() != 71 || packetMessage->GetOrder() != 72)
-        {
-            std::string data_buffer;
-            data_buffer.reserve(static_cast<size_t>(4 + 4 + packetMessage->GetDataSize() * 3));
 
-            for (uint32_t i = 0; i < 4; i++)
-                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetHeader().data >> (i * 8)));
-
-            for (uint32_t i = 0; i < 4; i++)
-                std::format_to(std::back_inserter(data_buffer), "{:02X} ", (unsigned char)(packetMessage->GetCommand().data >> (i * 8)));
-
-            for (uint32_t i = 0; i < packetMessage->GetDataSize(); i++)
-            {
-                std::format_to(std::back_inserter(data_buffer), "{:02X}", (unsigned char)packetMessage->GetData()[i]);
-                if (i != packetMessage->GetDataSize() - 1)
-                    data_buffer += ' ';
-            }
-            /*
-            if (packetMessage.GetOrder() == 142 || packetMessage.GetOrder() == 71) {
-                return;
-            }
-            */
-            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "({:d} bytes) MsgSessionId: {}, CSessionId: {}, Order: ({}), Mission: ({}), Extra: ({}), Option: ({})\n{:s}", packetMessage->GetDataSize() + 8, packetMessage->GetSession(), m_sessionId, packetMessage->GetOrder(), packetMessage->GetMission(), packetMessage->GetExtra(), packetMessage->GetOption(), data_buffer);
-        }
-    }
     std::vector<uint8_t> load_file(std::source_location source_location, const std::string& filepath)
     {
         try
@@ -561,8 +602,8 @@ namespace Utility
             return buffer;
         }
         catch (const std::exception& e)
-        {
-            BaseLib::EventLog->Debug(source_location, fmt::color::dark_cyan, "Error loading file ({}): {}", filepath.c_str(), e.what());
+        { 
+            BaseLib::EventLog->Debug(source_location, BaseLib::PacketDir::DEBUG, EOrder::NONE, dark_cyan, "Error loading file ({}): {}", filepath.c_str(), e.what());
             return {};
         }
     }

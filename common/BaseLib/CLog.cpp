@@ -43,13 +43,28 @@ namespace BaseLib
 
     void CLog::Write(const std::string& Text)
     {
-        auto now = std::chrono::system_clock::now();
-        auto time = std::chrono::system_clock::to_time_t(now);
+        const auto now = std::chrono::system_clock::now();
+        auto tt = std::chrono::system_clock::to_time_t(now);
 
-        char buffer[80];
-        std::strftime(buffer, sizeof(buffer), "[%d-%m-%Y %H:%M:%S]", std::localtime(&time));
+        std::tm tm_buf;
+#if defined(_WIN64)
+        localtime_s(&tm_buf, &tt);
+#else
+        localtime_r(&tt, &tm_buf);
+#endif
 
-		const std::string Output = fmt::format("{} {}", buffer, Text);
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()) % std::chrono::milliseconds(1000);
+
+        const auto Output = fmt::format("{:02}-{:02}-{:04} {:02}:{:02}:{:02}.{:03} {}",
+            tm_buf.tm_mday, 
+            tm_buf.tm_mon + 1, 
+            tm_buf.tm_year + 1900, 
+            tm_buf.tm_hour, 
+            tm_buf.tm_min, 
+            tm_buf.tm_sec, 
+            static_cast<int>(ms.count()), 
+            Text);
 
         File << Output << std::endl;
     }
