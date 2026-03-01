@@ -37,12 +37,13 @@ jobs:
             vcpkg_target_triplet: x64-linux-dynamic
 
           - os: windows-latest
-            name: windows-clangcl20-vs2026
+            name: windows-clang20
             build_type: Release
-            generator: Visual Studio 18 2026
-            platform: x64
-            toolset: ClangCL
-            output_tag: windows-clangcl
+            c_compiler: clang
+            cpp_compiler: clang++
+            generator: Ninja
+            output_tag: windows-clang
+            vcpkg_target_triplet: x64-windows-static
 
     steps:
     - uses: actions/checkout@v4
@@ -61,6 +62,17 @@ jobs:
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
 
+    - name: Install LLVM Clang + Ninja (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install -y llvm ninja --no-progress
+        $llvmBin = 'C:\Program Files\LLVM\bin'
+        if (-not (Test-Path (Join-Path $llvmBin 'clang++.exe'))) {
+          throw "clang++.exe not found in $llvmBin"
+        }
+        "$llvmBin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
     - name: Set reusable strings
       id: strings
       shell: bash
@@ -77,55 +89,25 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_target_triplet }}
 
-    - name: Configure (Windows - VS + ClangCL 20)
+    - name: Configure (Windows - LLVM Clang + Ninja)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-        if (-not (Test-Path $vswhere)) {
-          throw "vswhere.exe not found at $vswhere"
+        $llvmBin = 'C:\Program Files\LLVM\bin'
+        $clang = Join-Path $llvmBin 'clang.exe'
+        $clangxx = Join-Path $llvmBin 'clang++.exe'
+
+        if (-not (Test-Path $clang) -or -not (Test-Path $clangxx)) {
+          throw "LLVM clang binaries not found at $llvmBin"
         }
 
-        $vsInstall = & $vswhere -latest -products * -version "[18.0,19.0)" -property installationPath | Select-Object -First 1
-        $generator = "Visual Studio 18 2026"
-
-        if (-not $vsInstall) {
-          Write-Warning "Visual Studio 2026 not found on this runner. Falling back to VS 2022."
-          $vsInstall = & $vswhere -latest -products * -version "[17.0,18.0)" -property installationPath | Select-Object -First 1
-          $generator = "Visual Studio 17 2022"
-        }
-
-        if (-not $vsInstall) {
-          throw "No supported Visual Studio installation found (expected VS 2026 or VS 2022)."
-        }
-
-        $vsDevCmd = Join-Path $vsInstall "Common7\Tools\VsDevCmd.bat"
-        if (-not (Test-Path $vsDevCmd)) {
-          throw "VsDevCmd.bat not found at $vsDevCmd"
-        }
-
-        $llvmDir = Join-Path $vsInstall "VC\Tools\Llvm\x64"
-        if (-not (Test-Path $llvmDir)) {
-          throw "LLVM directory not found at $llvmDir"
-        }
-
-        $cmdScript = @"
-        @echo off
-        call "$vsDevCmd" -arch=${{ matrix.platform }} -host_arch=x64
-        cmake -G "$generator" ^
-          -T ${{ matrix.toolset }} ^
-          -A ${{ matrix.platform }} ^
-          -S "%GITHUB_WORKSPACE%" ^
-          -B "${{ steps.strings.outputs.build-output-dir }}" ^
-          "-DCMAKE_VS_GLOBALS=LLVMInstallDir=$llvmDir;LLVMToolsVersion=20"
-        "@
-
-        $scriptPath = Join-Path $env:RUNNER_TEMP "configure-vs-clangcl.cmd"
-        Set-Content -Path $scriptPath -Value $cmdScript -Encoding Ascii
-        cmd /d /c "`"$scriptPath`""
-        if ($LASTEXITCODE -ne 0) {
-          exit $LASTEXITCODE
-        }
+        cmake -G "${{ matrix.generator }}" `
+          -S "${{ github.workspace }}" `
+          -B "${{ steps.strings.outputs.build-output-dir }}" `
+          -DCMAKE_C_COMPILER="$clang" `
+          -DCMAKE_CXX_COMPILER="$clangxx" `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_target_triplet }}
 
     - name: Build
       shell: bash
