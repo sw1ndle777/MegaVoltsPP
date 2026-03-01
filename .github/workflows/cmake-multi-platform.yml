@@ -25,6 +25,16 @@ jobs:
             cpp_compiler: clang++-20
             generator: Ninja
             output_tag: linux-clang
+            vcpkg_target_triplet: x64-linux-dynamic
+
+          - os: ubuntu-latest
+            name: linux-gcc
+            build_type: Release
+            c_compiler: gcc
+            cpp_compiler: g++
+            generator: Ninja
+            output_tag: linux-gcc
+            vcpkg_target_triplet: x64-linux-dynamic
 
           - os: windows-latest
             name: windows-clangcl20-vs2026
@@ -65,15 +75,20 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_target_triplet }}
 
     - name: Configure (Windows - VS 2026 + ClangCL 20)
       if: runner.os == 'Windows'
       shell: cmd
-      run: >
-        for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version [18.0,19.0) -property installationPath`) do set "VSINSTALL=%%i" &&
-        if not defined VSINSTALL (echo Visual Studio 2026 not found on runner & exit /b 1) &&
-        call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.platform }} -host_arch=x64 &&
-        set "LLVM_DIR=%VSINSTALL%\VC\Tools\Llvm\x64" &&
+      run: |
+        @echo off
+        for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version "[18.0,19.0)" -property installationPath`) do set "VSINSTALL=%%i"
+        if not defined VSINSTALL (
+          echo Visual Studio 2026 not found on runner
+          exit /b 1
+        )
+        call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.platform }} -host_arch=x64
+        set "LLVM_DIR=%VSINSTALL%\VC\Tools\Llvm\x64"
         cmake -G "${{ matrix.generator }}" ^
           -T ${{ matrix.toolset }} ^
           -A ${{ matrix.platform }} ^

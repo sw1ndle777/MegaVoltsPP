@@ -34,3 +34,5 @@ Debug/
 /deps/monocypher
 /deps/rapidjson
 /deps/thread-pool
+/out-wsl-gcc
+/scripts
