@@ -36,4 +36,3 @@ Debug/
 /deps/thread-pool
 /out-wsl-gcc
 /scripts
-/out-docker-clang/vcpkg/buildtrees

@@ -4,11 +4,6 @@
 #include <ostream>
 #include <filesystem>
 
-#ifdef _WIN32
-#include <Windows.h>
-#include <cwchar>
-#endif
-
 #include <BaseLib/CThreadPool.h>
 #include "BaseLib/CLog.h"
 #include "BaseLib/CSettings.h"
@@ -29,46 +24,32 @@ using namespace NetEngine::Packets::Cast;
 #include <crashpad/client/settings.h>
 #include <crashpad/client/crashpad_info.h>
 
-#ifdef _WIN32
-using StringType = std::wstring;
-#else
-using StringType = std::string;
+#if  defined(__linux__)
+typedef std::string StringType;
+#elif defined(_MSC_VER)
+typedef std::wstring StringType;
 #endif
 
 StringType getExecutableDir() 
 {
-#ifdef _WIN32
     HMODULE hModule = GetModuleHandleW(NULL);
     WCHAR path[MAX_PATH];
     DWORD retVal = GetModuleFileNameW(hModule, path, MAX_PATH);
     if (retVal == 0) return L"";
 
-    wchar_t* lastBackslash = wcsrchr(path, L'\\');
+    wchar_t *lastBackslash = wcsrchr(path, '\\');
     if (lastBackslash == NULL) return L"";
     *lastBackslash = 0;
 
     return path;
-#else
-    std::error_code ec;
-    auto cwd = std::filesystem::current_path(ec);
-    if (ec) return "..";
-    return cwd.string();
-#endif
 }
 
 void init_crash_handler()
 {
-#ifdef _WIN32
     StringType exeDir = L"..";
     base::FilePath handler(exeDir + L"\\crash_dumps\\crashpad_handler.exe");
     base::FilePath db_path(exeDir + L"\\crash_dumps\\cast\\");
     base::FilePath metrics_path(exeDir + L"\\crash_dumps\\cast\\metrics\\");
-#else
-    StringType exeDir = "..";
-    base::FilePath handler(exeDir + "/crash_dumps/crashpad_handler");
-    base::FilePath db_path(exeDir + "/crash_dumps/cast/");
-    base::FilePath metrics_path(exeDir + "/crash_dumps/cast/metrics/");
-#endif
 
     std::map<std::string, std::string> annotations;
     annotations["format"] = "minidump";           // Required: Crashpad setting to save crash as a minidump
@@ -94,13 +75,11 @@ int main()
     //Utility::GetCpuUsage(m_process_handle);
     //CloseHandle(m_process_handle);
     //CrashHandler::Init("../crash_dumps/MegaVoltsPP_cast.dmp");
-#ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
     GetConsoleMode(hOut, &dwMode);
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(hOut, dwMode);//enable colors
-#endif
 
     std::srand(static_cast<uint32_t>(std::time(NULL)));
     BaseLib::DefaultSettings->LoadOptions();

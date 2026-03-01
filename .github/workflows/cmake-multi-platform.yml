@@ -86,7 +86,6 @@ jobs:
         -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_target_triplet }}
 
@@ -107,7 +106,6 @@ jobs:
           -B "${{ steps.strings.outputs.build-output-dir }}" `
           -DCMAKE_C_COMPILER="$clang" `
           -DCMAKE_CXX_COMPILER="$clangxx" `
-          -DCMAKE_CXX_SCAN_FOR_MODULES=OFF `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
           -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_target_triplet }}
 

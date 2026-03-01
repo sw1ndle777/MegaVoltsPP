@@ -3,11 +3,7 @@ version       = "3.30"
 cmkr-include  = "cmake/cmkr.cmake"
 
 [target.common]
-compile-definitions = [
-    "RELEASE_1_0_3",
-    "$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>",
-    "$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
-]
+compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00"]
 compile-features = ["cxx_std_23"]
 
 type    = "interface"

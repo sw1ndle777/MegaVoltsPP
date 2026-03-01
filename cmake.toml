@@ -32,11 +32,7 @@ overlay = "vcpkg-overlay"
 
 [template.server-executable]
 type                = "executable"
-compile-definitions = [
-    "RELEASE_1_0_3",
-    "$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>",
-    "$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
-]
+compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00"]
 compile-features = ["cxx_std_23"]
 properties.MSVC_RUNTIME_LIBRARY = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "magic_enum", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "OpenSSL::Crypto", "common"]
@@ -49,7 +45,7 @@ include-directories = ["."]
 [target.main]
 type                = "server-executable"   # inherits template from root
 sources             = ["src/Main/**.cpp", "src/Main/**.h"]
-include-directories = [".", "src/Main"]
+include-directories = ["."]
 
 [target.cast]
 type                = "server-executable"   # inherits template from root

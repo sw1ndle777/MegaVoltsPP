@@ -52,8 +52,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${common_SOURCES})
 
 target_compile_definitions(common INTERFACE
 	RELEASE_1_0_3
-	"$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>"
-	"$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
+	_CRT_SECURE_NO_WARNINGS
+	_WIN32_WINNT=0x0A00
 )
 
 target_compile_features(common INTERFACE

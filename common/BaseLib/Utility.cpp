@@ -567,14 +567,9 @@ namespace Utility
 
     uint32_t num_processors = []
     {
-#ifdef _WIN64
         SYSTEM_INFO info;
         GetSystemInfo(&info);
         return info.dwNumberOfProcessors;
-#else
-        const long n = sysconf(_SC_NPROCESSORS_ONLN);
-        return n > 0 ? static_cast<uint32_t>(n) : 1u;
-#endif
     }();
    
     void LogPackets(std::source_location source_location, BaseLib::PacketDir dir, NetEngine::CMessage& packetMessage, uint16_t m_sessionId)

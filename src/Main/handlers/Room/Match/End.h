@@ -452,11 +452,10 @@ namespace Game::Handlers
             auto em_i = reinterpret_cast<MainRoomEndMatchClientInfo*>(ctx.data + sizeof(MainRoomEndMatchClientInfo) * i + sizeof(MainRoomEndMatchScoreClientInfo));
             auto uuid = is_bossbattle ? boss_i->unique_id : em_i->unique_id;
             auto cu_i = NetEngine::Packets::Core::UniqueId(uuid);
-            const auto cu_session = static_cast<uint16_t>(cu_i.session);
-            if (ctx.cli.find(cu_session) != ctx.cli.end()) continue;
-            ctx.cli.insert({ cu_session, ClientInfo{.unique_id = uuid, .info = is_bossbattle ? ClientInfoVariant{*boss_i} : ClientInfoVariant{*em_i} } });
+            if (ctx.cli.find(cu_i.session) != ctx.cli.end()) continue;
+            ctx.cli.insert({ cu_i.session, ClientInfo{.unique_id = uuid, .info = is_bossbattle ? ClientInfoVariant{*boss_i} : ClientInfoVariant{*em_i} } });
             if (cu_i.session == room->host_session_id) continue;
-            ctx.packets.enqueue(cu_session, NetEngine::Protocols::SCommandHeader(ctx.order, 0, 0, ctx.option), ctx.data, ctx.dataSize, PriorityLevel::High);
+            ctx.packets.enqueue(cu_i.session, NetEngine::Protocols::SCommandHeader(ctx.order, 0, 0, ctx.option), ctx.data, ctx.dataSize, PriorityLevel::High);
         }
 
         if (!is_bossbattle)

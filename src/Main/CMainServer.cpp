@@ -396,7 +396,7 @@ namespace Game
         static void ExavoltsItems(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
             DatabaseUpdateCtx dctx{ .sid = callback.session->GetSessionId(), .aid = acc_cache->acc_info.Index };
-            std::vector<uint32_t> spawn_ids(kExaVoltsWeapons.begin(), kExaVoltsWeapons.end());
+            std::vector<uint32_t> spawn_ids(std::from_range, kExaVoltsWeapons);
 
             auto crafted_item = main_server->CraftInventoryItems(acc_cache, std::move(spawn_ids), NetEngine::Items::Origin::From_GM_Spawn);
             if (!crafted_item.has_value())
@@ -465,7 +465,7 @@ namespace Game
         static void GodsItems(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
             DatabaseUpdateCtx dctx{ .sid = callback.session->GetSessionId(), .aid = acc_cache->acc_info.Index };
-            std::vector<uint32_t> spawn_ids(kGodWeapons.begin(), kGodWeapons.end());
+            std::vector<uint32_t> spawn_ids(std::from_range, kGodWeapons);
 
             auto crafted_item = main_server->CraftInventoryItems(acc_cache, std::move(spawn_ids), NetEngine::Items::Origin::From_GM_Spawn);
             if (!crafted_item.has_value())

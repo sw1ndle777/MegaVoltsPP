@@ -12,9 +12,6 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
-#include <expected>
-#include <charconv>
-#include <cerrno>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
@@ -208,7 +205,7 @@ namespace Utility
 
         if (!p || n == 0) return {};
         if (const void* end = std::memchr(p, '\0', n))
-            return { p, static_cast<std::string_view::size_type>(static_cast<const char*>(end) - p) };
+            return { p, static_cast<const char*>(end) - p };
         return { p, n };
     }
     template<class T>
