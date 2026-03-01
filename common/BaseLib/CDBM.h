@@ -14,6 +14,21 @@
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 
+#ifndef _WIN32
+inline int strcpy_s(char* dest, size_t destsz, const char* src)
+{
+    if (!dest || !src || destsz == 0) return 22;
+    const size_t len = std::strlen(src);
+    if (len + 1 > destsz)
+    {
+        dest[0] = '\0';
+        return 34;
+    }
+    std::memcpy(dest, src, len + 1);
+    return 0;
+}
+#endif
+
 constexpr uint32_t iDB_FIELD_NAME_LEN = 30;
 
 enum FIELD_TYPE : uint32_t

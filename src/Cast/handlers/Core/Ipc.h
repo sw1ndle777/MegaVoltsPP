@@ -1,4 +1,7 @@
 #pragma once
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 namespace Game
 {
     using namespace BaseLib;
@@ -35,10 +38,16 @@ namespace Game
 
         inline void CastServerInfo(uint64_t auth_key, CCastServer* cast_server)
         {
+
+#ifdef _WIN32
             HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
             auto cpu_usage = Utility::GetCpuUsage(m_process_handle);
             auto mem_usage = static_cast<uint32_t>(Utility::GetMemoryUsage(m_process_handle));
             CloseHandle(m_process_handle);
+#else
+            auto cpu_usage = 0.0;
+            auto mem_usage = uint32_t(0);
+#endif
 			auto sessions_list = cast_server->GetSessions();
            
 

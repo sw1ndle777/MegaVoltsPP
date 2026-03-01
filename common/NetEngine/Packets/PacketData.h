@@ -3,7 +3,61 @@
 #include <string.h>
 
 #include "BaseLib/Utility.h"
+#ifdef _WIN32
 #include <DirectXPackedVector.h>
+#else
+#include <bit>
+namespace DirectX::PackedVector
+{
+    using HALF = uint16_t;
+    struct XMHALF4
+    {
+        HALF x{};
+        HALF y{};
+        HALF z{};
+        HALF w{};
+    };
+
+    inline float XMConvertHalfToFloat(HALF h)
+    {
+        const uint32_t sign = (static_cast<uint32_t>(h) & 0x8000u) << 16;
+        uint32_t exp = (static_cast<uint32_t>(h) >> 10) & 0x1Fu;
+        uint32_t mant = static_cast<uint32_t>(h) & 0x03FFu;
+
+        uint32_t out;
+        if (exp == 0)
+        {
+            if (mant == 0)
+            {
+                out = sign;
+            }
+            else
+            {
+                int e = -14;
+                while ((mant & 0x0400u) == 0)
+                {
+                    mant <<= 1;
+                    --e;
+                }
+                mant &= ~0x0400u;
+                const uint32_t exp32 = static_cast<uint32_t>(e + 127);
+                out = sign | (exp32 << 23) | (mant << 13);
+            }
+        }
+        else if (exp == 31)
+        {
+            out = sign | 0x7F800000u | (mant << 13);
+        }
+        else
+        {
+            exp = exp + (127u - 15u);
+            out = sign | (exp << 23) | (mant << 13);
+        }
+
+        return std::bit_cast<float>(out);
+    }
+}
+#endif
 namespace NetEngine
 {
     namespace Packets

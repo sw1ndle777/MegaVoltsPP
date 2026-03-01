@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <stdexcept>
 #include <expected>
+#include <cstring>
 #pragma warning(disable: 28020) // The expression '_Param_(1)<26' is not true at this call.
 
 namespace NetEngine

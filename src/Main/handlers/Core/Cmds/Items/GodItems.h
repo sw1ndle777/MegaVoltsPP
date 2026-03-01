@@ -9,7 +9,7 @@ namespace Game::Commands
         static void Run(std::span<const std::string_view> args, CommandContext& ctx)
         {
             DatabaseUpdateCtx dctx{ .sid = ctx.callback.session->GetSessionId(), .aid = ctx.acc_cache->acc_info.Index };
-            std::vector<uint32_t> spawn_ids(std::from_range, kGodWeapons);
+            std::vector<uint32_t> spawn_ids(kGodWeapons.begin(), kGodWeapons.end());
 
             auto crafted_item = ctx.server->CraftInventoryItems(ctx.acc_cache, std::move(spawn_ids), NetEngine::Items::Origin::From_GM_Spawn);
             if (!crafted_item.has_value())

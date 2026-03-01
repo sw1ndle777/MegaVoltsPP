@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <vector>
+#include <cstring>
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "Constants.h"
 #include "CCrypt.h"
@@ -97,7 +98,11 @@ namespace NetEngine
         void SetData(T data)
         {
 			m_buffer.resize(minSize() + sizeof(data));
+#ifdef _WIN32
             memcpy_s(m_buffer.data() + dataOffset(), sizeof(data), &data, sizeof(data));
+#else
+            std::memcpy(m_buffer.data() + dataOffset(), &data, sizeof(data));
+#endif
 			m_header->size = minSize() + sizeof(data);
         }
         std::shared_ptr<std::vector<uint8_t>> GenerateMessage();
