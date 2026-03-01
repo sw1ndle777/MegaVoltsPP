@@ -16,8 +16,45 @@
 #include "NetEngine/CServer.h"
 #include "CMainServer.h"
 #include "BaseLib/Utility.h"
+#include <monocypher.h>
+#include "secure_channel.hpp"
 
 std::ostream& outputStream = std::cout;
+
+void GenerateSigningKeypair()
+{
+    using namespace Game::Anticheat;
+    Utility::SecureRandomBlake2b::Generator rng;
+
+    uint8_t seed[kKeySize];
+    rng.NextBytes(seed, kKeySize);
+
+    uint8_t secret[kSignSkSize]; // 64
+    uint8_t pubkey[kKeySize];   // 32
+    crypto_eddsa_key_pair(secret, pubkey, seed);
+    crypto_wipe(seed, kKeySize);
+
+    auto printArray = [](const char* name, const char* sizeConst,
+                         const uint8_t* data, size_t len)
+    {
+        fmt::print("static const uint8_t {}[{}] = {{\n", name, sizeConst);
+        for (size_t i = 0; i < len; ++i)
+        {
+            if (i % 8 == 0) fmt::print("    ");
+            fmt::print("0x{:02x}", data[i]);
+            if (i + 1 < len) fmt::print(", ");
+            if (i % 8 == 7 || i + 1 == len) fmt::print("\n");
+        }
+        fmt::print("}};\n\n");
+    };
+
+    fmt::print("\n========== Ed25519 SIGNING KEYPAIR ==========\n\n");
+    printArray("kServerSignSecret", "kSignSkSize", secret, kSignSkSize);
+    printArray("kServerSignPubkey", "kKeySize", pubkey, kKeySize);
+    fmt::print("==============================================\n\n");
+
+    crypto_wipe(secret, kSignSkSize);
+}
 
 using namespace NetEngine::Packets::Main;
 std::vector<uint8_t> loadFileCrossPlatform(std::source_location source_location, const std::string& relativePath)
@@ -98,6 +135,9 @@ int main()
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(hOut, dwMode);//enable colors
     std::srand(static_cast<uint32_t>(std::time(NULL)));
+
+    //GenerateSigningKeypair();
+
     BaseLib::DefaultSettings->LoadOptions();
     const auto& server_settings = BaseLib::DefaultSettings->GetServerSettings();
     BaseLib::LogPool = std::make_unique<BS::thread_pool<BS::tp::priority>>(server_settings.main.logger_threads);
@@ -498,17 +538,20 @@ int main()
             no_upgrade_it->second.push_back(new_upgradeinfo);
         }
     }
+    end_time = std::chrono::system_clock::now();
+    elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+
+    elapsed_time_str = Utility::readable_time(elapsed_time.count());
+    DEBUGLOG(dark_cyan, "loaded ({}) upgrade info in ({})", upgradeinfo_data.size(), elapsed_time_str.c_str());
+
     upgrades.unlock();
     upgradeinfo_data.clear();
     upgradeinfo_data.shrink_to_fit();
     upgradeinfo_cdb.Clear();
     buffer_upgradeinfo.clear();
     buffer_upgradeinfo.shrink_to_fit();
-    end_time = std::chrono::system_clock::now();
-    elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
-    elapsed_time_str = Utility::readable_time(elapsed_time.count());
 
-    DEBUGLOG(dark_cyan, "loaded ({}) upgrade info in ({})", upgradeinfo_data.size(), elapsed_time_str.c_str());
+   
     /*
     BaseLib::EventLog->Add("CDBM::LoadCDB() - loaded (%d) upgrade infos in %s", upgradeinfo_data.size(), elapsed_time_str.c_str());
 	
@@ -538,6 +581,7 @@ int main()
         new_gachaponpackageitem.ItemId = data_fields.at("gi_itemid").GetInt();
         gachapon_package_items[new_gachaponpackageitem.InfoId].push_back(new_gachaponpackageitem);
     }
+    
     for (uint32_t i = 0; i < gachaponinfo_data.size(); i++)
     {
         BaseLib::GachaponInfo new_gachaponinfo;
@@ -555,6 +599,7 @@ int main()
 
 		Game::CGachaponsInfo.insert(new_gachaponinfo.Id, new_gachaponinfo);
     }
+    
     gachaponinfo_data.clear();
     gachaponinfo_data.shrink_to_fit();
     gachaponinfo_cdb.Clear();
@@ -762,9 +807,10 @@ int main()
 
 	DEBUGLOG(dark_cyan, "loaded ({}) gachapon sale info in ({})", Game::CGachaponSaleInfo.size(), elapsed_time_str.c_str());
 
+	Game::Anticheat::g_fileIntegrityConfig = Game::Anticheat::FileIntegrityConfig::Load();
 
-    mainServer->Setup(settings, server_settings);
-    mainServer->Run();
+	mainServer->Setup(settings, server_settings);
+	mainServer->Run();
     std::cin.get();
     delete mainServer;
     BaseLib::DbPool.reset();

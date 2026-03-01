@@ -23,8 +23,12 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLocker.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLog.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLogging.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\cotp.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_factory.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_uri.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\Utility.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Enums\Protocol\Orders.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\CCrypt.h" />
@@ -44,6 +48,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CLog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CThreadPool.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\cotp.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_factory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_uri.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\Utility.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CServer.cpp" />

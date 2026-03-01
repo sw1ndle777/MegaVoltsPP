@@ -72,9 +72,10 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <EnableASAN>false</EnableASAN>
+    <UseDynamicDebugging>false</UseDynamicDebugging>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -186,6 +187,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -229,7 +231,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mariadbcpp.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mariadbcpp.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;crypt32.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
@@ -246,23 +248,27 @@
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <SuppressStartupBanner>false</SuppressStartupBanner>
-      <AdditionalOptions>/utf-8
+      <AdditionalOptions>/utf-8 /bigobj
  %(AdditionalOptions)</AdditionalOptions>
+      <UseDynamicDebugging>false</UseDynamicDebugging>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mariadbcpp.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mariadbcpp.lib;fmt.lib;vcpkg_crashpad_base.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;crypt32.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CMainServer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="secure_channel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMainServer.h" />
+    <ClInclude Include="handlers\Core\AnticheatHeartbeat.h" />
     <ClInclude Include="handlers\Core\Cmds.h" />
     <ClInclude Include="handlers\Core\Cmds\Core\Core\Help.h" />
     <ClInclude Include="handlers\Core\Cmds\Core\Core\Notice.h" />
@@ -278,6 +284,7 @@
     <ClInclude Include="handlers\Core\Cmds\Items\GodItems.h" />
     <ClInclude Include="handlers\Core\Cmds\Items\Item.h" />
     <ClInclude Include="handlers\Core\Cmds\Items\ItemsByType.h" />
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Player\Register.h" />
     <ClInclude Include="handlers\Core\Cmds\Moderation\Room\Break.h" />
     <ClInclude Include="handlers\Core\Cmds\Moderation\Room\BreakAll.h" />
     <ClInclude Include="handlers\Core\Cmds\Moderation\Room\Kick.h" />
@@ -296,6 +303,7 @@
     <ClInclude Include="handlers\Items\Core\Sell.h" />
     <ClInclude Include="handlers\Items\Core\Upgrade.h" />
     <ClInclude Include="handlers\Items\Gamble\Gachapon.h" />
+    <ClInclude Include="handlers\Items\Gamble\GachaponPity.h" />
     <ClInclude Include="handlers\Items\Gamble\Package.h" />
     <ClInclude Include="handlers\Items\Shop\Coupon.h" />
     <ClInclude Include="handlers\Items\Shop\Normal.h" />
@@ -373,6 +381,10 @@
     <ClInclude Include="handlers\Socials\Friends\Remove.h" />
     <ClInclude Include="handlers\Socials\Friends\View.h" />
     <ClInclude Include="handlers\Socials\Party\View.h" />
+    <ClInclude Include="secure_channel.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="file_integrity.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -37,6 +37,7 @@ namespace BaseLib
                 obj.AddMember("playtime_min_seconds", 0, allocator);
                 obj.AddMember("debug", debug, allocator);
                 obj.AddMember("watchguard", false, allocator);
+                obj.AddMember("gacha_pity_enabled", false, allocator);
                 servers.AddMember(rapidjson::Value(name, allocator), obj, allocator);
             };
 
@@ -111,6 +112,8 @@ namespace BaseLib
             }
             settings.debug = obj["debug"].GetBool();
             settings.watchguard = obj["watchguard"].GetBool();
+            try { settings.gacha_pity_enabled = obj["gacha_pity_enabled"].GetBool(); }
+            catch (...) { settings.gacha_pity_enabled = false; }
         };
 
         getHostSettings("front", serverSettings.front);

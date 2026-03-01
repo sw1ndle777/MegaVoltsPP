@@ -32,11 +32,14 @@ namespace Game::Handlers
         auto pos_y = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_y);
         auto pos_z = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_z);
 
+        PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}) victimsCount=({})", host->room_id, host->nickname, hostSid, cnt);
+        host.unlock();
         for (uint8_t i = 0; i < cnt; i++)
         {
-            auto data = reinterpret_cast<PlayerVictimDataReq*>(message->GetData() + sizeof(AddProjectileReq) + i * sizeof(PlayerVictimDataReq));
+            auto data = reinterpret_cast<PlayerVictimDataReq*>(message->GetData() + sizeof(AddProjectileReq) + i * sizeof(PlayerVictimDataReq));  
             auto victim_acc = CAccount.get<unique_t>(static_cast<uint16_t>(data->victim_unique_id.session));
-            victim_acc->health = (uint32_t)data->player_info.health;
+            if (victim_acc)
+                victim_acc->health = data->player_info.health;
         }
 
         server->Broadcast(room->players_session_id, *message);

@@ -27,6 +27,7 @@ namespace BaseLib
             uint32_t playtime_min_seconds;
             bool debug;
             bool watchguard;
+            bool gacha_pity_enabled;
         };
         struct DatabaseSettings
         {

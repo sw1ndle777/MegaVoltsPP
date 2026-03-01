@@ -41,6 +41,7 @@ namespace Game::Handlers
         DatabaseUpdateCtx dctx{ .sid = session_id, .aid = acc_cache->acc_info.Index };
 
         dctx.ops.push_back(AccountInfoPatch{ .achievement_tier1 = achievement_done });
+        uint32_t rewardMp = current_coll->rewardPoint;
         if (current_coll->rewardPoint > 0)
         {
             using enum CurrencyType;
@@ -54,7 +55,12 @@ namespace Game::Handlers
             return;
         }
         acc_cache.unlock();
-        [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session), s_id = session_id, v = std::move(validated.value())]() mutable
+        [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server, 
+            session = std::move(callback.session), 
+            s_id = session_id, 
+            v = std::move(validated.value()),
+            rewardMp = rewardMp
+        ]() mutable
             {
                 if (!session) return;
                 ResultDbUpdateInfo dbres;
@@ -66,6 +72,16 @@ namespace Game::Handlers
                     DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
                     return;
                 }
+                LogContext log_ctx;
+                CurrencyLogEntry currency_log;
+                currency_log.aid = new_acc_cache->acc_info.Index;
+                currency_log.currency_type = CurrencyLog::Type::MP;
+                currency_log.amount = static_cast<int32_t>(rewardMp);
+                currency_log.before_value = new_acc_cache->acc_info.MicroPoints - rewardMp;
+                currency_log.after_value = new_acc_cache->acc_info.MicroPoints;
+                currency_log.source_type = CurrencyLog::SourceType::Achievement;
+                currency_log.related_item_id = 0;
+
             });
     }
 }

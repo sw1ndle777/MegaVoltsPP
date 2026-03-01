@@ -1,20 +1,23 @@
 #pragma once
+#include <BaseLib/CLogging.h>
+
 namespace Game::Handlers
 {
     using namespace BaseLib;
     using namespace NetEngine;
     using namespace NetEngine::Packets::Main;
+    
     boost::unordered_flat_set<uint32_t> drop_item_ids =
     {
         4510015, // mistery capsule
-        4510019 // golden mistery capsule
+        4510019  // golden mistery capsule
     };
+    
     inline void Pickups(SCallbackData& callback, CMainServer* main_server)
     {
         auto session = callback.session;
         auto message = callback.message;
         if (!session || !message) return;
-        //std::shared_lock lock(session->GetMutex());
 
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
@@ -51,36 +54,65 @@ namespace Game::Handlers
         }
         acc_cache.unlock();
 
-        [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server, session = std::move(callback.session),
+        [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
+            session = std::move(callback.session),
             s_id = session_id,
+            acc_index = acc_index,
+            drop_item_id = drop_item_id,
             v = std::move(validated.value())
         ]() mutable
+        {
+            if (!session) return;
+            
+            ResultDbUpdateInfo dbres;
+            if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
+            
+            auto new_acc_cache = CAccount.get<unique_t>(s_id);
+            auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, v);
+            if (!applied.has_value())
             {
-                if (!session) return;
-                ResultDbUpdateInfo dbres;
-                if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
-                auto new_acc_cache = CAccount.get<unique_t>(s_id);
-                auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, v);
-                if (!applied.has_value())
+                DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
+                return;
+            }
+
+            LogContext log_ctx;
+
+            if (!v.items_added.empty())
+            {
+                std::vector<ShopItem> shop_items;
+                for (const auto& item : v.items_added)
                 {
-                    DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
-                    return;
+                    auto item_info = CItemsInfo.get<shared_t>(item.item_info.item_number.item_id);
+                    ShopItem new_item = { {item.item_info.item_number.item_id, item_info->Stock}, ItemExpire::Type::Unused, item.item_info.serial_info };
+                    shop_items.push_back(new_item);
+                    
+                    ItemLogEntry item_log;
+                    item_log.aid = acc_index;
+                    item_log.action_type = ItemLog::ActionType::Added;
+                    item_log.item_id = item.item_info.item_number.item_id;
+                    item_log.serial_info = item.item_info.serial_info.data;
+                    item_log.origin_type = ItemLog::OriginType::Pickup;
+                    item_log.item_type = static_cast<ItemLog::ItemType>(item.item_type);
+                    log_ctx.item_logs.push_back(item_log);
+                    
+                    DEBUGLOG(dark_cyan, "player ({}) picked up drop item ({})", new_acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
+                    main_server->SendServerMessage(session, "Mystery Capsule Snatched!");
                 }
 
-                if (!v.items_added.empty())
+                if (!log_ctx.empty())
                 {
-                    std::vector<ShopItem> shop_items;
-                    for (const auto& item : v.items_added)
+                    auto log_result = BaseLib::Database->PersistLogs(log_ctx);
+                    if (!log_result.has_value())
                     {
-                        auto item_info = CItemsInfo.get<shared_t>(item.item_info.item_number.item_id);
-                        ShopItem new_item = { {item.item_info.item_number.item_id , item_info->Stock} , ItemExpire::Type::Unused,  item.item_info.serial_info };
-                        shop_items.push_back(new_item);
-                        DEBUGLOG(dark_cyan, "player ({}) picked up drop item ({})", new_acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
-                        main_server->SendServerMessage(session, "Mystery Capsule Snatched!");
+                        DEBUGLOG(red, "Failed to persist pickup logs for player [{}]: {}",
+                            new_acc_cache->acc_info.Nickname.c_str(),
+                            log_result.error().message);
                     }
-                    if (!shop_items.empty())
-                        session->SendMsg(99, 0, 37, static_cast<uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), static_cast<uint16_t>(shop_items.size() * sizeof(ShopItem)));
                 }
-            });
+                
+                if (!shop_items.empty())
+                    session->SendMsg(99, 0, 37, static_cast<uint8_t>(shop_items.size()), reinterpret_cast<uint8_t*>(shop_items.data()), static_cast<uint16_t>(shop_items.size() * sizeof(ShopItem)));
+            }
+        });
     }
 }

@@ -23,6 +23,8 @@ namespace Game::Handlers
                 "acc_index == -1");
             return;
         }
+
+		auto server_id = acc_cache->server_id;
         if (!acc_cache->in_room)
         {
             DEBUGLOG(dark_cyan,
@@ -117,5 +119,17 @@ namespace Game::Handlers
 
         player.unlock();
         main_server->NewRemoveRoomPlayer(room_cache, player_session_id, player_team_id, NetEngine::Room::Leave::Ack::Result::KickedByKickVote, true);
+
+        RoomLogEntry room_log;
+        room_log.aid = acc_index; // Initiator
+        room_log.target_aid = target_acc_index;
+        room_log.event_type = getting_kicked ? RoomLog::EventType::VoteKickSucceeded : RoomLog::EventType::VoteKickFailed;
+        room_log.server_id = server_id;
+        room_log.room_id = room_id;
+
+        [[maybe_unused]] auto log_ignored = BaseLib::DbPool->submit_task([room_log]() mutable
+            {
+                BaseLib::Database->PersistRoomLogs({ room_log });
+            });
     }
 }

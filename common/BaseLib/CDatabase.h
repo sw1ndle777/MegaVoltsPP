@@ -8,6 +8,7 @@
 #include <array>
 #include <expected>
 #include <NetEngine/Packets/PacketData.h>
+#include <Baselib/CLogging.h>
 namespace BaseLib
 {
 #pragma pack(push, 1)
@@ -38,7 +39,12 @@ namespace BaseLib
         int32_t Index;
         uint32_t ServerId;
         uint8_t Grade;
+        bool emailVerified;
+        bool has2fa;
+        std::string secret2fa;
         uint64_t AuthKey{ 0 };
+        bool isVerified2fa;
+
     };
     struct FrontAccount
     {
@@ -290,14 +296,15 @@ namespace BaseLib
     };
     struct SystemMonthlyRewards
     {
-        uint32_t month;
-        std::array<uint32_t, 31> rewards;
-        SystemMonthlyRewards(uint32_t m, std::array<uint32_t, 31> r)
-            : month(m), rewards(r) {
+        uint32_t year{};
+        uint32_t month{};
+        std::array<uint32_t, 31> rewards{};
+        SystemMonthlyRewards(uint32_t y, uint32_t m, std::array<uint32_t, 31> r)
+            : year(y), month(m), rewards(r) {
         }
 
         SystemMonthlyRewards()
-            : month(0), rewards{} {
+            : year(0), month(0), rewards{} {
         }
     };
     struct PlayerDailyMission {
@@ -329,6 +336,7 @@ namespace BaseLib
         uint8_t is_equipped;
         uint8_t character_id;
         uint8_t in_database;
+        uint8_t item_type;
         Item(
             const NetEngine::Packets::Main::InventoryItemInfo& itemInfo = NetEngine::Packets::Main::InventoryItemInfo(),
             const uint32_t& stockVal = 0,
@@ -339,7 +347,8 @@ namespace BaseLib
             stock(stockVal),
             is_equipped(equippedVal),
             character_id(charIdVal),
-            in_database(inDb)
+            in_database(inDb),
+            item_type(0)
         {
         }
     };
@@ -407,6 +416,16 @@ namespace BaseLib
             deleted_from_sender = false;
             deleted_from_receiver = false;
         }
+    };
+    struct GachaPityEntry
+    {
+        uint32_t gacha_id{ 0 };
+        uint32_t lucky_points{ 0 };
+    };
+    struct GachaPityPatch
+    {
+        uint32_t gacha_id{ 0 };
+        uint32_t lucky_points{ 0 };
     };
     struct GachaponSaleInfo
     {
@@ -696,7 +715,8 @@ namespace BaseLib
         MailboxPatch,
         MatchInfoHistoryAdd,
 		PlayerSessionsPatch,
-        PlayerSocialPatch
+        PlayerSocialPatch,
+        GachaPityPatch
     >;
 
     struct DatabaseUpdateCtx 
@@ -727,6 +747,7 @@ namespace BaseLib
 		std::vector<MatchInfoHistoryAdd> match_history_adds;
 		std::vector<PlayerSessionsPatch> player_sessions_patches;
         std::vector<PlayerSocialPatch> player_social_patches;
+        std::vector<GachaPityPatch> gacha_pity_patches;
     };
 
     struct ApplyCacheUpdateResult 
@@ -742,6 +763,7 @@ namespace BaseLib
         uint32_t sid{ 0 };
 		bool level_up{ false };
         uint32_t new_level{ 0 };
+		std::optional<uint32_t> reward_mp;
         std::optional<NetEngine::Packets::Main::ShopItem> reward_item;
     };
     struct ResultDbUpdateInfo 
@@ -806,7 +828,10 @@ namespace BaseLib
         //bool UpdateEndMatchInfo(std::vector<EndMatchUpdateDatabaseInfo>& playerUpdates, std::vector<MatchInfoHistoryDatabaseInfo>& matchHistory);
 		bool GetFrontAccount(const std::string& ip, const std::string& username, const std::string& password, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
 		bool GetFrontAccount(const uint64_t authKey, FrontAccount* outFrontAccount, ClanInfo* outClanInfo);
-        bool GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids);
+        bool GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward);
+        bool GetSystemMonthlyRewards(uint32_t year, uint32_t month, SystemMonthlyRewards* out);
+        bool GetPlayerMonthlyReward(uint32_t player_id, PlayerMonthlyReward* out);
+        bool ClaimMonthlyReward(uint32_t player_id, uint8_t new_day_count, uint64_t now, const Item& reward_item);
 		bool GetPlazaAuthKey(const std::string& ip, const std::string& username, const std::string& password, PlazaAuth* outPlazaAuth);
         bool GetPlazaAuthKey(const std::string& ip, const uint64_t authKey, PlazaAuth* outPlazaAuth);
         /*
@@ -833,8 +858,18 @@ namespace BaseLib
         [[nodiscard]] std::expected<void, DbError> PersistMatchHistoryAdds(ValidatedDbUpdates& v);
         [[nodiscard]] std::expected<void, DbError> PersistPlayerSessionsPatches(ValidatedDbUpdates& v);
         [[nodiscard]] std::expected<void, DbError> PersistPlayerSocialsPatches(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
+        [[nodiscard]] std::expected<void, DbError> PersistGachaPityPatches(ValidatedDbUpdates& v);
         [[nodiscard]] std::expected<void, DbError> UpdateAccount(ValidatedDbUpdates& v, ResultDbUpdateInfo& out);
         [[nodiscard]] std::expected<void, DbError> UpdateAccounts(std::vector<ValidatedDbUpdates>& batch, std::vector<ResultDbUpdateInfo>& results);
+        [[nodiscard]] std::expected<void, DbError> InsertAccount(const std::string& username, const std::string& password_hash, const std::string& salt, const std::string& nickname);
+
+        [[nodiscard]] std::expected<void, DbError> PersistChatLogs(const std::vector<ChatLogEntry>& logs);
+        [[nodiscard]] std::expected<void, DbError> PersistItemLogs(const std::vector<ItemLogEntry>& logs);
+        [[nodiscard]] std::expected<void, DbError> PersistCurrencyLogs(const std::vector<CurrencyLogEntry>& logs);
+        [[nodiscard]] std::expected<void, DbError> PersistRoomLogs(const std::vector<RoomLogEntry>& logs);
+        [[nodiscard]] std::expected<void, DbError> PersistAcDetectionLogs(const std::vector<AcDetectionLogEntry>& logs);
+        [[nodiscard]] std::expected<void, DbError> PersistAuthHistory(const AuthHistoryLogEntry& entry);
+        [[nodiscard]] std::expected<void, DbError> PersistLogs(const LogContext& ctx);
 
         /*
         bool UpdateInventoryItems(const uint32_t acc_id, const std::vector<Item>& inv_items);

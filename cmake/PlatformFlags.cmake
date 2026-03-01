@@ -1,4 +1,36 @@
 message(STATUS "Evaluating platform-specific compiler flags...")
+
+# Platform/compiler-specific output folders (e.g. out/windows-msvc, out/linux-clang)
+set(MVPP_PLATFORM_TAG "${CMAKE_SYSTEM_NAME}")
+string(TOLOWER "${MVPP_PLATFORM_TAG}" MVPP_PLATFORM_TAG)
+
+if(MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(MVPP_COMPILER_TAG "clangcl")
+elseif(MSVC)
+    set(MVPP_COMPILER_TAG "msvc")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(MVPP_COMPILER_TAG "clang")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(MVPP_COMPILER_TAG "gcc")
+else()
+    set(MVPP_COMPILER_TAG "${CMAKE_CXX_COMPILER_ID}")
+    string(TOLOWER "${MVPP_COMPILER_TAG}" MVPP_COMPILER_TAG)
+endif()
+
+set(MVPP_OUT_DIR "${CMAKE_SOURCE_DIR}/out/${MVPP_PLATFORM_TAG}-${MVPP_COMPILER_TAG}")
+message(STATUS "Output root: ${MVPP_OUT_DIR}")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MVPP_OUT_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${MVPP_OUT_DIR}/lib")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${MVPP_OUT_DIR}/lib")
+
+foreach(cfg Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER "${cfg}" cfg_u)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${cfg_u} "${MVPP_OUT_DIR}/bin/${cfg}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${cfg_u} "${MVPP_OUT_DIR}/lib/${cfg}")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${cfg_u} "${MVPP_OUT_DIR}/lib/${cfg}")
+endforeach()
+
 if (MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Detected: clang-cl (MSVC's Clang)")
     include(${CMAKE_SOURCE_DIR}/cmake/Flags-ClangCL.cmake)

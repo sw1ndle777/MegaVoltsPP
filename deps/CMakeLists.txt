@@ -27,6 +27,13 @@ target_include_directories(thread-pool INTERFACE
 	"thread-pool/include"
 )
 
+# Target: magic_enum
+add_library(magic_enum INTERFACE)
+
+target_include_directories(magic_enum INTERFACE
+	magic_enum
+)
+
 # Target: rapidjson
 add_library(rapidjson INTERFACE)
 

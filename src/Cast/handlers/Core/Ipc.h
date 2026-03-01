@@ -93,10 +93,18 @@ namespace Game
         }
         inline void ChangeNewHost(uint64_t auth_key, uint16_t room_id, CCastServer* cast_server)
         {
-            if (!CRoom.contains(room_id)) return;
+            if (!CRoom.contains(room_id))
+            {
+				DEBUGLOG(red, "ipc change host failed, roomId=({}) not found", room_id);
+                return;
+            }
 			auto sid = *CAuthKey.get<shared_t>(auth_key);
             auto room = CRoom.get<unique_t>(room_id);
-            if (!std::ranges::contains(room->players_session_id, sid)) return;
+            if (!std::ranges::contains(room->players_session_id, sid))
+            {
+				DEBUGLOG(red, "ipc change host failed, roomId=({}) sid=({}) not in room", room_id, sid);
+                return;
+            }
             room->host_session_id = sid;
             DEBUGLOG(dark_cyan, "roomId=({}) new host sid=({})", room_id, sid);
         }

@@ -149,7 +149,7 @@ namespace Game::Handlers
 
             acc_cache.unlock();
 
-            static auto join_clan_room = [&](std::vector<uint16_t> players)
+            auto join_clan_room = [&](std::vector<uint16_t> players)
                 {
                     MainJoinRoomReq clan_room_join_req;
                     clan_room_join_req.channel_id = 1;

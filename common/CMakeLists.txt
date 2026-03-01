@@ -8,19 +8,28 @@ endif()
 
 # Target: common
 set(common_SOURCES
+	"BaseLib/CCache.h"
 	"BaseLib/CDBData.h"
 	"BaseLib/CDBM.cpp"
 	"BaseLib/CDBM.h"
 	"BaseLib/CDatabase.cpp"
 	"BaseLib/CDatabase.h"
+	"BaseLib/CLocker.h"
 	"BaseLib/CLog.cpp"
 	"BaseLib/CLog.h"
+	"BaseLib/CLogging.h"
 	"BaseLib/CSettings.cpp"
 	"BaseLib/CSettings.h"
 	"BaseLib/CThreadPool.cpp"
 	"BaseLib/CThreadPool.h"
 	"BaseLib/Utility.cpp"
 	"BaseLib/Utility.h"
+	"BaseLib/otp/cotp.cpp"
+	"BaseLib/otp/cotp.cpp"
+	"BaseLib/otp/otp_factory.cpp"
+	"BaseLib/otp/otp_factory.cpp"
+	"BaseLib/otp/otp_uri.cpp"
+	"BaseLib/otp/otp_uri.cpp"
 	"NetEngine/CCrypt.h"
 	"NetEngine/CMessage.cpp"
 	"NetEngine/CMessage.h"
@@ -53,6 +62,7 @@ target_compile_features(common INTERFACE
 
 target_include_directories(common INTERFACE
 	.
+	"BaseLib/otp"
 	BaseLib
 	NetEngine
 	"NetEngine/Protocols"

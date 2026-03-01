@@ -1,4 +1,6 @@
 #pragma once
+#include <BaseLib/CLogging.h>
+
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -267,8 +269,6 @@ namespace Game::Handlers
         auto message = callback.message;
         if (!session || !message) return;
 
-        //std::shared_lock lock(session->GetMutex());
-
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
         auto acc_index = acc_cache->acc_info.Index;
@@ -286,7 +286,6 @@ namespace Game::Handlers
 
         auto item = ItemSerialInfo(*reinterpret_cast<uint64_t*>(message->GetData()));
         const auto& item_inv = main_server->GetPlayerItemInventory(acc_cache, item);
-
         if (!item_inv.has_value()) return;
 
         const auto& used_item = item_inv.value();
@@ -296,16 +295,23 @@ namespace Game::Handlers
         const auto is_hammer_package = mission == 3 && extra == 26;
         const auto item_id = used_item.item_info.item_number.item_id;
 
-        DatabaseUpdateCtx dctx{ .sid = session_id,.aid = acc_index };
-        using enum CurrencyType;
+        auto mp_before = acc_cache->acc_info.MicroPoints;
+        auto coupon_before = acc_cache->acc_info.Coupons;
+        auto energy_before = acc_cache->acc_info.Energy;
 
+        DatabaseUpdateCtx dctx{ .sid = session_id, .aid = acc_index };
+        using enum CurrencyType;
 
         std::vector<ShopItem> items_to_send;
         std::vector<Item> new_items;
         std::vector<ItemSerialInfo> serials_to_delete;
         serials_to_delete.push_back(item);
+        
+        std::vector<uint32_t> won_item_ids;
+        uint32_t mp_reward = 0, coupon_reward = 0, energy_reward = 0;
         uint32_t currency_item_id = 0;
         uint64_t unlocked_voices = 0;
+        
         bool is_vc_item = false,
             is_kd_reset_item = false,
             is_record_reset_item = false,
@@ -314,6 +320,7 @@ namespace Game::Handlers
             is_inv_expand_item = false,
             is_mp_item = false,
             is_coupon_item = false;
+            
         if (is_normal_package)
         {
             const auto& req = reinterpret_cast<MainUsePackageItemReq*>(message->GetData());
@@ -331,45 +338,58 @@ namespace Game::Handlers
                     dctx.ops.emplace_back(AccountInfoPatch{ .voice_type = unlocked_voices });
                 }
             }
-            else if (IsKillDeathResetItem(item_id, is_kd_reset_item)) // Kill-Death reset
+            else if (IsKillDeathResetItem(item_id, is_kd_reset_item))
                 dctx.ops.emplace_back(AccountInfoPatch{ .kills = 0, .deaths = 0, .assists = 0 });
-            else if (IsRecordResetItem(item_id, is_record_reset_item)) // Record reset
+            else if (IsRecordResetItem(item_id, is_record_reset_item))
                 dctx.ops.emplace_back(AccountInfoPatch{ .wins = 0, .loses = 0, .draws = 0 });
-            else if (IsBatteryRechargeItem(item_id, is_battery_recharge_item)) // Battery recharge
-                dctx.ops.emplace_back(AccountCurrencyDelta{ .type = ENERGY, .value = GetBatteryRechargeAmount(item_id), .is_reward = true });
-            else if (IsBatteryExpansionItem(item_id, is_battery_expansion_item)) // Battery expansion
+            else if (IsBatteryRechargeItem(item_id, is_battery_recharge_item))
+            {
+                energy_reward = GetBatteryRechargeAmount(item_id);
+                dctx.ops.emplace_back(AccountCurrencyDelta{ .type = ENERGY, .value = energy_reward, .is_reward = true });
+            }
+            else if (IsBatteryExpansionItem(item_id, is_battery_expansion_item))
                 dctx.ops.emplace_back(AccountInfoPatch{ .maximum_energy = acc_cache->acc_info.MaximumEnergy + 1000 });
-            else if (IsInvExpandItem(item_id, is_inv_expand_item)) // Inventory expansion
+            else if (IsInvExpandItem(item_id, is_inv_expand_item))
                 dctx.ops.emplace_back(AccountInfoPatch{ .maximum_items = acc_cache->acc_info.MaximumItems + GetInvExpandSize(item_id) });
             else
             {
                 auto package = CPackagesInfo.get<shared_t>(used_item.item_info.item_number.item_id);
                 if (!package->size()) return;
+                
                 const auto& items_won = main_server->ExtractPackageItemsWon(package);
                 const auto item_count = items_won.size();
-                if (IsMicroPointsItem(items_won[0].ItemId, is_mp_item) && item_count == 1) // MicroPoints reward
-                    dctx.ops.emplace_back(AccountCurrencyDelta{ .type = MP, .value = GetMicroPointsReward(items_won[0].ItemId), .is_reward = true });
-                else if (IsCouponItem(items_won[0].ItemId, is_coupon_item) && item_count == 1) // Coupon reward
-                    dctx.ops.emplace_back(AccountCurrencyDelta{ .type = COUPONS, .value = GetCouponReward(items_won[0].ItemId), .is_reward = true });
+                
+                if (IsMicroPointsItem(items_won[0].ItemId, is_mp_item) && item_count == 1)
+                {
+                    mp_reward = GetMicroPointsReward(items_won[0].ItemId);
+                    dctx.ops.emplace_back(AccountCurrencyDelta{ .type = MP, .value = mp_reward, .is_reward = true });
+                }
+                else if (IsCouponItem(items_won[0].ItemId, is_coupon_item) && item_count == 1)
+                {
+                    coupon_reward = GetCouponReward(items_won[0].ItemId);
+                    dctx.ops.emplace_back(AccountCurrencyDelta{ .type = COUPONS, .value = coupon_reward, .is_reward = true });
+                }
                 else
                 {
                     auto serials = main_server->FindLowestAvailableSerialIds(acc_cache->inventory_items, item_count);
                     if (serials.size() < item_count)
                     {
-                        DEBUGLOG(red,
-                            "Not enough unique serial IDs available. Requested: {}, got: {}",
-                            item_count, serials.size());
+                        DEBUGLOG(red, "Not enough unique serial IDs available. Requested: {}, got: {}", item_count, serials.size());
                         return;
                     }
                     new_items.reserve(item_count);
                     items_to_send.reserve(item_count);
                     ProcessItemsWon(main_server, items_won, serials, items_to_send, new_items);
+                    
+                    for (const auto& won : items_won)
+                        won_item_ids.push_back(won.ItemId);
                 }
+                
                 if (is_mp_item || is_coupon_item) currency_item_id = items_won[0].ItemId;
                 if (is_mp_item)
-                    DEBUGLOG(dark_cyan, "player ({}) used package ({}) and won {} micro points", acc_cache->acc_info.Nickname.c_str(), item_used_info->Id, GetMicroPointsReward(items_won[0].ItemId));
+                    DEBUGLOG(dark_cyan, "player ({}) used package ({}) and won {} micro points", acc_cache->acc_info.Nickname.c_str(), item_used_info->Id, mp_reward);
                 if (is_coupon_item)
-                    DEBUGLOG(dark_cyan, "player ({}) used package ({}) and won {} coupons", acc_cache->acc_info.Nickname.c_str(), item_used_info->Id, GetCouponReward(items_won[0].ItemId));
+                    DEBUGLOG(dark_cyan, "player ({}) used package ({}) and won {} coupons", acc_cache->acc_info.Nickname.c_str(), item_used_info->Id, coupon_reward);
             }
         }
         else if (is_hammer_package)
@@ -381,19 +401,21 @@ namespace Game::Handlers
 
             auto package = CPackagesInfo.get<shared_t>(used_item.item_info.item_number.item_id);
             if (!package->size()) return;
+            
             const auto& items_won = main_server->ExtractPackageItemsWon(package);
             const auto item_count = items_won.size();
             auto serials = main_server->FindLowestAvailableSerialIds(acc_cache->inventory_items, item_count);
             if (serials.size() < item_count)
             {
-                DEBUGLOG(red,
-                    "Not enough unique serial IDs available. Requested: {}, got: {}",
-                    item_count, serials.size());
+                DEBUGLOG(red, "Not enough unique serial IDs available. Requested: {}, got: {}", item_count, serials.size());
                 return;
             }
             new_items.reserve(item_count);
             items_to_send.reserve(item_count);
             ProcessItemsWon(main_server, items_won, serials, items_to_send, new_items);
+            
+            for (const auto& won : items_won)
+                won_item_ids.push_back(won.ItemId);
         }
         else if (is_nickname_change)
         {
@@ -408,7 +430,6 @@ namespace Game::Handlers
         if (is_unknown_package)
         {
             auto serial_info = used_item.item_info.serial_info;
-
             DEBUGLOG(red, "Unknown package or item used by player [{}]: {} serial [{}]",
                 acc_cache->acc_info.Nickname.c_str(), is_unknown_package ? "package" : "item", serial_info.data);
             session->SendMsg(102, 1, Items::Package::Result::Unknown1, 0, reinterpret_cast<uint8_t*>(&serial_info), sizeof(ItemSerialInfo));
@@ -438,16 +459,26 @@ namespace Game::Handlers
             return;
         }
         acc_cache.unlock();
+        
         [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
             session = std::move(callback.session),
             s_id = session_id,
+            acc_index = acc_index,
             items_to_send = std::move(items_to_send),
+            won_item_ids = std::move(won_item_ids),
             serials_to_delete = std::move(serials_to_delete),
+            package_id = item_id,
             is_normal_package = is_normal_package,
             is_nickname_change = is_nickname_change,
             is_hammer_package = is_hammer_package,
             used_item = used_item,
             unlocked_voices = unlocked_voices,
+            mp_reward = mp_reward,
+            coupon_reward = coupon_reward,
+            energy_reward = energy_reward,
+            mp_before = mp_before,
+            coupon_before = coupon_before,
+            energy_before = energy_before,
             currency_item_id = currency_item_id,
             is_vc_item = is_vc_item,
             is_kd_reset_item = is_kd_reset_item,
@@ -461,6 +492,7 @@ namespace Game::Handlers
         ]() mutable
         {
             if (!session) return;
+            
             ResultDbUpdateInfo dbres;
             auto db_res = BaseLib::Database->UpdateAccount(v, dbres);
             if (!db_res)
@@ -472,9 +504,9 @@ namespace Game::Handlers
                     session->SendMsg(102, 1, Items::Package::Result::MSG_NICKNAME_CHANGE_FAIL, 0);
                     session->SendMsg(69, NicknameChange::Errors::AVA_CREATE_OVERLAPPEDNAME, 0, 0);
                 }
-
                 return;
             }
+            
             auto new_acc_cache = CAccount.get<unique_t>(s_id);
             auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, v);
             if (!applied.has_value())
@@ -482,6 +514,81 @@ namespace Game::Handlers
                 DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
                 return;
             }
+
+            LogContext log_ctx;
+
+            ItemLogEntry package_log;
+            package_log.aid = acc_index;
+            package_log.action_type = ItemLog::ActionType::Deleted;
+            package_log.item_id = package_id;
+            package_log.serial_info = used_item.item_info.serial_info.data;
+            package_log.origin_type = ItemLog::OriginType::Package;
+            log_ctx.item_logs.push_back(package_log);
+
+
+            for (size_t i = 0; i < won_item_ids.size() && i < v.items_added.size(); ++i)
+            {
+                ItemLogEntry item_log;
+                item_log.aid = acc_index;
+                item_log.action_type = ItemLog::ActionType::Added;
+                item_log.item_id = won_item_ids[i];
+                item_log.serial_info = v.items_added[i].item_info.serial_info.data;
+                item_log.origin_type = ItemLog::OriginType::Package;
+                item_log.item_type = static_cast<ItemLog::ItemType>(v.items_added[i].item_type);
+                
+                log_ctx.item_logs.push_back(item_log);
+            }
+
+            if (mp_reward > 0)
+            {
+                CurrencyLogEntry mp_log;
+                mp_log.aid = acc_index;
+                mp_log.currency_type = CurrencyLog::Type::MP;
+                mp_log.amount = static_cast<int32_t>(mp_reward);
+                mp_log.before_value = mp_before;
+                mp_log.after_value = new_acc_cache->acc_info.MicroPoints;
+                mp_log.source_type = CurrencyLog::SourceType::Package;
+                mp_log.related_item_id = package_id;
+                log_ctx.currency_logs.push_back(mp_log);
+            }
+
+            if (coupon_reward > 0)
+            {
+                CurrencyLogEntry coupon_log;
+                coupon_log.aid = acc_index;
+                coupon_log.currency_type = CurrencyLog::Type::Coupons;
+                coupon_log.amount = static_cast<int32_t>(coupon_reward);
+                coupon_log.before_value = coupon_before;
+                coupon_log.after_value = new_acc_cache->acc_info.Coupons;
+                coupon_log.source_type = CurrencyLog::SourceType::Package;
+                coupon_log.related_item_id = package_id;
+                log_ctx.currency_logs.push_back(coupon_log);
+            }
+
+            if (energy_reward > 0)
+            {
+                CurrencyLogEntry energy_log;
+                energy_log.aid = acc_index;
+                energy_log.currency_type = CurrencyLog::Type::Energy;
+                energy_log.amount = static_cast<int32_t>(energy_reward);
+                energy_log.before_value = energy_before;
+                energy_log.after_value = new_acc_cache->acc_info.Energy;
+                energy_log.source_type = CurrencyLog::SourceType::Package;
+                energy_log.related_item_id = package_id;
+                log_ctx.currency_logs.push_back(energy_log);
+            }
+
+            if (!log_ctx.empty())
+            {
+                auto log_result = BaseLib::Database->PersistLogs(log_ctx);
+                if (!log_result.has_value())
+                {
+                    DEBUGLOG(red, "Failed to persist package logs for player [{}]: {}",
+                        new_acc_cache->acc_info.Nickname.c_str(),
+                        log_result.error().message);
+                }
+            }
+
             auto serial_info = used_item.item_info.serial_info;
 
             if (is_normal_package)
@@ -497,18 +604,13 @@ namespace Game::Handlers
                 }
                 if (is_kd_reset_item)
                     session->SendMsg(102, 1, Items::Package::Result::INITIALIZE_KILL_DEATH_COMPLETE, 0, reinterpret_cast<uint8_t*>(&serial_info), sizeof(ItemSerialInfo));
-
                 if (is_record_reset_item)
                     session->SendMsg(102, 1, Items::Package::Result::INITIALIZE_WIN_LOSE_COMPLETE, 0, reinterpret_cast<uint8_t*>(&serial_info), sizeof(ItemSerialInfo));
-
-                if (is_battery_recharge_item ||
-                    is_battery_expansion_item ||
-                    is_inv_expand_item)
+                if (is_battery_recharge_item || is_battery_expansion_item || is_inv_expand_item)
                     session->SendMsg(102, 1, Items::Package::Result::StaticItems, 0, reinterpret_cast<uint8_t*>(&serial_info), sizeof(ItemSerialInfo));
-
                 if (is_mp_item || is_coupon_item)
                 {
-                    InventoryItemNumber _inv = is_coupon_item ? InventoryItemNumber{ to_u(COUPON_SLOT), GetCouponReward(currency_item_id) } : currency_item_id;
+                    InventoryItemNumber _inv = is_coupon_item ? InventoryItemNumber{ to_u(COUPON_SLOT), coupon_reward } : currency_item_id;
                     ShopItem new_item = { _inv, ItemExpire::Type::Unused, ItemSerialInfo(0, 0, 0, 0, 0) };
                     session->SendMsg(102, 1, Items::Package::Result::Package, is_coupon_item ? 1 : 2, reinterpret_cast<uint8_t*>(&new_item), sizeof(ShopItem));
                 }
@@ -517,11 +619,10 @@ namespace Game::Handlers
             }
             if (is_hammer_package)
                 session->SendMsg(102, 1, Items::Package::Result::Capsule, items_to_send.size(), reinterpret_cast<uint8_t*>(items_to_send.data()), items_to_send.size() * sizeof(ShopItem));
-
             if (is_nickname_change)
             {
                 auto itemPackageOpenData = MainUsePackageItemAck(serial_info, new_acc_cache->acc_info.Nickname.c_str()).Serialize(Items::Package::Result::MSG_NICKNAME_CHANGE_SUCCESS);
-                session->SendMsg(102, 1, Items::Package::Result::MSG_NICKNAME_CHANGE_SUCCESS, 0, reinterpret_cast<uint8_t*>(itemPackageOpenData.data(), itemPackageOpenData.size()));
+                session->SendMsg(102, 1, Items::Package::Result::MSG_NICKNAME_CHANGE_SUCCESS, 0, reinterpret_cast<uint8_t*>(itemPackageOpenData.data()), itemPackageOpenData.size());
                 auto clan_id = new_acc_cache->acc_info.ClanId;
                 auto has_clan = CClan.contains(clan_id);
                 std::string clan_name = "";

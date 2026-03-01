@@ -1,4 +1,5 @@
 #pragma once
+#include "secure_channel.hpp"
 
 namespace Game::Handlers
 {
@@ -13,6 +14,8 @@ namespace Game::Handlers
 
         //std::shared_lock lock(session->GetMutex());
         auto sid = session->GetSessionId();
+        Game::Anticheat::g_secureChannels.remove(sid);
+        Game::Anticheat::g_heartbeatManager.stopSession(sid);
         auto acc = CAccount.get<unique_t>(sid);
         auto aid = acc->acc_info.Index;
         if (aid == -1)

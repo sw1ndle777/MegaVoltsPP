@@ -30,7 +30,14 @@ namespace Game
             DEBUGLOG(dark_cyan, "main server disconnect aid=({}) key=({}), you can reconnect now", data.aid, key);
 #if defined(RELEASE_1_0_3)
             if (auto ss = front_server->GetSessionById(data.sid))
-                ss->SendMsg(22, 0, FrontAuthorize::Type::Success, player->plazaAuth.Grade, reinterpret_cast<uint8_t*>(&key), sizeof(key));
+            {
+                if (player->plazaAuth.has2fa && !player->plazaAuth.isVerified2fa)
+                    ss->SendMsg(AUTH_AUTHORIZE, 0, FrontAuthorize::Type::EmailNotVerified, 0);
+                else
+                    ss->SendMsg(AUTH_AUTHORIZE, 0, FrontAuthorize::Type::Success, player->plazaAuth.Grade, reinterpret_cast<uint8_t*>(&key), sizeof(key));
+                    
+            }
+                
 #else
             FrontUserAccountInfo  accountInfo =
             {

@@ -1,4 +1,5 @@
 #pragma once
+#include <BaseLib/CLogging.h>
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -128,6 +129,20 @@ namespace Game::Handlers
         auto create_ack = MainRoomCreateAck(room_id, 1);
 
         ctx.session->SendMsg(138, 0, NetEngine::Room::Create::Result::Success, 0, reinterpret_cast<uint8_t*>(&create_ack), sizeof(MainRoomCreateAck));
+
+        RoomLogEntry room_log;
+        room_log.aid = ctx.acc->acc_info.Index;
+        room_log.event_type = RoomLog::EventType::RoomCreated;
+        room_log.server_id = ctx.acc->server_id;
+        room_log.room_id = room_id;
+        room_log.host_aid = ctx.acc->acc_info.Index;
+        room_log.team_id = static_cast<uint8_t>(ctx.acc->team_id);
+
+        [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([room_log]() mutable
+            {
+                BaseLib::Database->PersistRoomLogs({ room_log });
+            });
+
     }
     inline void RoomCreate(SCallbackData& callback, CMainServer* main_server)
     {

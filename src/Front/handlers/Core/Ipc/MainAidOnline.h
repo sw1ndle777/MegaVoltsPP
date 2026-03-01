@@ -17,14 +17,43 @@ namespace Game
         {
             auto data = Utility::FromVector<AcknowledgeAidOnline>(payload);
             auto player = CAccount.get<unique_t>(data.aid);
-
+            auto isOnline = data.isOnline;
+			auto has2fa = player->plazaAuth.has2fa;
             DEBUGLOG(dark_cyan, "ipc acknowledge aid: ({}), isOnline: ({})", data.aid, data.isOnline);
 
 #if defined(RELEASE_1_0_3)
             if (auto ss = front_server->GetSessionById(data.sid))
-                ss->SendMsg(22, 0, data.isOnline ? FrontAuthorize::Type::Busy : FrontAuthorize::Type::Success, player->plazaAuth.Grade, reinterpret_cast<uint8_t*>(&player->plazaAuth.AuthKey), sizeof(player->plazaAuth.AuthKey));
+            {
+                if (isOnline && !has2fa)
+                {
+                    struct ReqDisconnectAid
+                    {
+                        uint32_t sid;
+                        int32_t aid;
+                    } req{ data.sid, data.aid };
+                    front_server->SendMainIpc(PacketIds::Ipc::FrontToMainDisconnectPlayer, Utility::ToVector(req));
+					DEBUGLOG(dark_cyan, "Player with aid=({}) is online without 2FA, sending disconnect request to main server", data.aid);
+                }
+                else if (!isOnline && !has2fa)
+                {
+                    ss->SendMsg(22, 0, FrontAuthorize::Type::Success, player->plazaAuth.Grade, reinterpret_cast<uint8_t*>(&player->plazaAuth.AuthKey), sizeof(player->plazaAuth.AuthKey));
+					DEBUGLOG(dark_cyan, "Player with aid=({}) is offline without 2FA, sending success response to front server", data.aid);
+                    
+                    
+                }
+                else
+                {
+                    ss->SendMsg(22, 0, FrontAuthorize::Type::Busy, player->plazaAuth.Grade, reinterpret_cast<uint8_t*>(&player->plazaAuth.AuthKey), sizeof(player->plazaAuth.AuthKey));
+					DEBUGLOG(dark_cyan, "Player with aid=({}) has 2FA enabled, sending busy response to front server", data.aid);
+                    CAuthKeys.erase(player->plazaAuth.AuthKey);
+                    player.unlock();
+                    CAccount.erase(data.aid);
 
-            CAuthKeys.erase(player->plazaAuth.AuthKey);
+                } 
+            }
+                
+            
+           
 #else
             FrontUserAccountInfo  accountInfo =
             {
@@ -53,8 +82,7 @@ namespace Game
             CAuthKeys.erase(player->frontAccount.AuthKey);
 #endif
 			
-            player.unlock();
-			CAccount.erase(data.aid);
+
             //front_server->RemovePlayerCache(data.aid);
         }
     }

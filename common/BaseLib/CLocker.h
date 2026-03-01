@@ -31,7 +31,7 @@ namespace BaseLib
         bool try_lock() { return m_lock.try_lock(); }
         [[nodiscard]] bool owns_lock() const noexcept { return m_lock.owns_lock(); }
 
-        [[nodiscard]] explicit operator bool() const noexcept { return m_ptr != nullptr; }
+        [[nodiscard]] explicit operator bool() const noexcept { return !m_is_null; }
         [[nodiscard]] bool is_null() const noexcept { return m_is_null; }
 
     private:

@@ -10,6 +10,10 @@ include-directories = ["boost_unordered"]
 type = "interface"
 include-directories = ["thread-pool/include"]
 
+[target.magic_enum]
+type = "interface"
+include-directories = ["magic_enum"]
+
 [target.rapidjson]
 type = "interface"
 include-directories = ["rapidjson/include"]

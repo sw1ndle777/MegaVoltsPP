@@ -1,55 +1,55 @@
-name: CMake on multiple platforms
+name: CMake multi-platform (Clang 20)
 
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - "v*"
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
+    name: build-${{ matrix.name }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
-
         include:
           - os: ubuntu-latest
+            name: linux-clang20
             build_type: Release
-            c_compiler: clang-19
-            cpp_compiler: clang++-19
+            c_compiler: clang-20
+            cpp_compiler: clang++-20
             generator: Ninja
-            install_prefix: out
-
+            output_tag: linux-clang
 
           - os: windows-latest
+            name: windows-clangcl20-vs2026
             build_type: Release
-            c_compiler: clang-cl
-            cpp_compiler: clang-cl
-            generator: Visual Studio 17 2022
+            generator: Visual Studio 18 2026
             platform: x64
             toolset: ClangCL
-            install_prefix: out
+            output_tag: windows-clangcl
 
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
 
-    - name: Install Clang 19 toolchain (Ubuntu)
+    - name: Install Clang 20 toolchain (Ubuntu)
       if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget gnupg lsb-release software-properties-common
+        sudo apt-get install -y wget gnupg lsb-release software-properties-common ninja-build
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 19
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+        sudo ./llvm.sh 20
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
 
     - name: Set reusable strings
       id: strings
@@ -65,26 +65,51 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }}
 
-    - name: Configure (Windows – ClangCL)
+    - name: Configure (Windows - VS 2026 + ClangCL 20)
       if: runner.os == 'Windows'
       shell: cmd
       run: >
-        "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
-        -arch=${{ matrix.platform }} &&
+        for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version [18.0,19.0) -property installationPath`) do set "VSINSTALL=%%i" &&
+        if not defined VSINSTALL (echo Visual Studio 2026 not found on runner & exit /b 1) &&
+        call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.platform }} -host_arch=x64 &&
+        set "LLVM_DIR=%VSINSTALL%\VC\Tools\Llvm\x64" &&
         cmake -G "${{ matrix.generator }}" ^
           -T ${{ matrix.toolset }} ^
           -A ${{ matrix.platform }} ^
           -S "%GITHUB_WORKSPACE%" ^
           -B "${{ steps.strings.outputs.build-output-dir }}" ^
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} ^
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} ^
-          -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }}
+          "-DCMAKE_VS_GLOBALS=LLVMInstallDir=%LLVM_DIR%;LLVMToolsVersion=20"
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --parallel --config ${{ matrix.build_type }}
+      shell: bash
+      run: cmake --build "${{ steps.strings.outputs.build-output-dir }}" --parallel --config "${{ matrix.build_type }}" --target cast main front
 
-    - name: Install
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --parallel --config ${{ matrix.build_type }} --target install
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}
+        path: out/${{ matrix.output_tag }}/bin/Release/**
+        if-no-files-found: error
+
+  release:
+    name: release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release-assets
+
+    - name: Publish GitHub Release and attach binaries
+      uses: softprops/action-gh-release@v2
+      with:
+        generate_release_notes: true
+        files: |
+          release-assets/**/*
 

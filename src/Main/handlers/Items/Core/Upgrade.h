@@ -30,6 +30,28 @@ namespace Game::Handlers
         using enum CurrencyType;
         if (energyInjectItemReq->energy > 0) dctx.ops.emplace_back(AccountCurrencyDelta{ .type = ENERGY, .value = energyInjectItemReq->energy, .is_reward = false });
 
+        LogContext log_ctx;
+
+        ItemLogEntry item_log;
+        item_log.aid = acc_index;
+        item_log.action_type = ItemLog::ActionType::EnergyInjected;
+        item_log.item_id = item_inv.value().item_info.item_number.item_id;
+        item_log.serial_info = energyInjectItemReq->item.data;
+        item_log.origin_type = ItemLog::OriginType::Unknown;
+        item_log.mp_delta = 0;
+
+        CurrencyLogEntry currency_log;
+        currency_log.aid = acc_index;
+        currency_log.currency_type = CurrencyLog::Type::Energy;
+        currency_log.amount = static_cast<int32_t>(energyInjectItemReq->energy);
+        currency_log.before_value = acc_cache->acc_info.Energy;
+        currency_log.after_value = acc_cache->acc_info.Energy - energyInjectItemReq->energy;
+        currency_log.source_type = CurrencyLog::SourceType::ItemSell;
+        currency_log.related_item_id = item_inv.value().item_info.item_number.item_id;
+
+        log_ctx.item_logs.push_back(item_log);
+        log_ctx.currency_logs.push_back(currency_log);
+
         ItemPatchCtx p
         {
             .sel = ItemSelector{.serial = item_inv.value().item_info.serial_info},
@@ -50,6 +72,7 @@ namespace Game::Handlers
             p_option = option,
             inject_item = energyInjectItemReq->item,
             injected_energy = energyInjectItemReq->energy,
+			logContext = std::move(log_ctx),
             v = std::move(validated.value())
         ]() mutable
             {
@@ -68,6 +91,8 @@ namespace Game::Handlers
                 }
                 MainInjectEnergyAck injectEnergyData = MainInjectEnergyAck(inject_item, injected_energy);
                 session->SendMsg(101, 0, static_cast<uint8_t>(Items::Upgrade::Result::EnergyInjection), p_option, reinterpret_cast<uint8_t*>(&injectEnergyData), sizeof(MainInjectEnergyAck));
+
+                BaseLib::Database->PersistLogs(logContext);
             });
 
     }
@@ -80,6 +105,8 @@ namespace Game::Handlers
 
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
+		auto aid = acc_cache->acc_info.Index;
+        if (!aid) return;
         const auto& upgradeResetItemReq = reinterpret_cast<MainUpgradeResetReq*>(message->GetData());
         const auto& item_inv = main_server->GetPlayerItemInventory(acc_cache, upgradeResetItemReq->item);
         if (!item_inv.has_value()) return;
@@ -105,17 +132,43 @@ namespace Game::Handlers
         const ShopItem& shop_item = { {item_info->Id , item_info->Stock }, item_inv.value().item_info.expire_date, item_inv.value().item_info.serial_info.data };
         MainResetUpgradeItemAck resetUpgradeItemData = MainResetUpgradeItemAck(shop_item, item_inv.value().item_info.serial_info, upgrade_reset_item.value().item_info.serial_info);
 
+       
+
+        
+
+
         auto validated = main_server->ValidateDatabaseUpdates(acc_cache, dctx);
         if (!validated.has_value())
         {
             DEBUGLOG(red, "ValidateDatabaseUpdates failed for [{}] [{}]: {}", acc_cache->acc_info.Index, acc_cache->acc_info.Nickname.c_str(), static_cast<int>(validated.error()));
             return;
         }
+
+        LogContext log_ctx;
+
+        ItemLogEntry item_log;
+        item_log.aid = aid;
+        item_log.action_type = ItemLog::ActionType::Reset;
+        item_log.item_id = item_inv.value().item_info.item_number.item_id;
+        item_log.serial_info = upgradeResetItemReq->item.data;
+        item_log.origin_type = ItemLog::OriginType::Unknown;
+        item_log.mp_delta = 0;
+
+        CurrencyLogEntry currency_log;
+        currency_log.aid = aid;
+        currency_log.currency_type = CurrencyLog::Type::MP;
+        currency_log.amount = 0;
+        currency_log.before_value = acc_cache->acc_info.MicroPoints;
+        currency_log.after_value = acc_cache->acc_info.MicroPoints;
+        currency_log.source_type = CurrencyLog::SourceType::ItemSell;
+        currency_log.related_item_id = item_inv.value().item_info.item_number.item_id;
+
         acc_cache.unlock();
         [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
             session = std::move(callback.session),
             resetUpgradeItemData = std::move(resetUpgradeItemData),
-            v = std::move(validated.value())
+            v = std::move(validated.value()),
+			logContext = std::move(log_ctx)
         ]() mutable
             {
                 if (!session) return;
@@ -132,6 +185,8 @@ namespace Game::Handlers
                     return;
                 }
                 session->SendMsg(101, 0, static_cast<uint8_t>(Items::Upgrade::Result::UpgradeReset), 0, reinterpret_cast<uint8_t*>(&resetUpgradeItemData), sizeof(MainResetUpgradeItemAck));
+
+                BaseLib::Database->PersistLogs(logContext);
             });
     }
     inline void Upgrade(SCallbackData& callback, CMainServer* main_server)
@@ -150,6 +205,8 @@ namespace Game::Handlers
         auto upgrade_type = message->GetMission();
         bool have_booster_item = false, have_energy_refund_item = false, have_protection_item = false;
         ItemSerialInfo booster_item = ItemSerialInfo(0, 0, 0, 0, 0), energy_refund_item = ItemSerialInfo(0, 0, 0, 0, 0), protection_item = ItemSerialInfo(0, 0, 0, 0, 0);
+
+       
 
         if (upgrade_info == 1)
         {
@@ -365,12 +422,56 @@ namespace Game::Handlers
         if (next_upgrade.BuyCash > 0) dctx.ops.emplace_back(AccountCurrencyDelta{ .type = RT, .value = next_upgrade.BuyCash, .is_reward = false });
         if (next_upgrade.BuyPoint > 0) dctx.ops.emplace_back(AccountCurrencyDelta{ .type = MP, .value = next_upgrade.BuyPoint, .is_reward = false });
 
+        if (!item_deletes.empty())
+            dctx.ops.push_back(ItemDeleteCtx{ .serials = item_deletes });
+
         auto validated = main_server->ValidateDatabaseUpdates(acc_cache, dctx);
         if (!validated.has_value())
         {
             DEBUGLOG(red, "ValidateDatabaseUpdates failed for [{}] [{}]: {}", acc_cache->acc_info.Index, acc_cache->acc_info.Nickname.c_str(), static_cast<int>(validated.error()));
             return;
         }
+
+        LogContext log_ctx;
+        if(!item_deletes.empty())
+        {
+			for (auto& serial : item_deletes)
+            {
+
+                const auto& item_deleted = main_server->GetPlayerItemInventory(acc_cache, serial);
+                if (!item_deleted.has_value()) continue;
+
+
+                ItemLogEntry item_log;
+                item_log.aid = acc_index;
+                item_log.action_type = ItemLog::ActionType::Deleted;
+                item_log.item_id = item_deleted.value().item_info.item_number.item_id;
+                item_log.serial_info = serial.data;
+                item_log.origin_type = ItemLog::OriginType::Unknown;
+                item_log.mp_delta = 0;
+                log_ctx.item_logs.push_back(item_log);
+            }
+        }
+        ItemLogEntry item_log;
+        item_log.aid = acc_index;
+        item_log.action_type = ItemLog::ActionType::Upgraded;
+        item_log.item_id = item_inv.value().item_info.item_number.item_id;
+        item_log.serial_info = upgradeItemReq->item[0].data;
+        item_log.origin_type = ItemLog::OriginType::Unknown;
+        item_log.mp_delta = static_cast<int32_t>(next_upgrade.BuyPoint);
+
+        CurrencyLogEntry currency_log;
+        currency_log.aid = acc_index;
+        currency_log.currency_type = CurrencyLog::Type::MP;
+        currency_log.amount = static_cast<int32_t>(next_upgrade.BuyPoint);
+        currency_log.before_value = acc_cache->acc_info.MicroPoints;
+        currency_log.after_value = acc_cache->acc_info.MicroPoints - static_cast<int32_t>(next_upgrade.BuyPoint);
+        currency_log.source_type = CurrencyLog::SourceType::ItemUpgrade;
+        currency_log.related_item_id = item_inv.value().item_info.item_number.item_id;
+        log_ctx.item_logs.push_back(item_log);
+        log_ctx.currency_logs.push_back(currency_log);
+
+
         acc_cache.unlock();
         [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
             session = std::move(callback.session),
@@ -379,7 +480,8 @@ namespace Game::Handlers
             is_upgrade_successful = is_upgrade_successful,
             no_downgrade = no_downgrade,
             upgradeItemAckData = std::move(upgradeItemAckData),
-            v = std::move(validated.value())
+            v = std::move(validated.value()),
+			logContext = std::move(log_ctx)
         ]() mutable
             {
                 if (!session) return;
@@ -411,6 +513,7 @@ namespace Game::Handlers
                         : static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailHigh));
 
                 session->SendMsg(101, type_param, result_param, upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
+                BaseLib::Database->PersistLogs(logContext);
             });
     }
 

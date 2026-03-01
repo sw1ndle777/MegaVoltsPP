@@ -34,5 +34,14 @@ namespace Game::Handlers
                 DEBUGLOG(red, "ipc disconnect player request sid=({}) is null", player_session_id);
             }
         }
+        else
+        {
+            struct ReqDisconnectAid
+            {
+                uint32_t sid;
+                int32_t aid;
+            }data{ req.sid, req.aid };
+            main_server->SendFrontIpc(PacketIds::Ipc::MainToFrontAcknowledgeAidDisconnected, Utility::ToVector(data));
+        }
     }
 }

@@ -7,8 +7,10 @@ compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT
 compile-features = ["cxx_std_23"]
 
 type    = "interface"
-include-directories = [".", "BaseLib", "NetEngine", "NetEngine/Protocols"]
+include-directories = [".", "BaseLib/otp", "BaseLib", "NetEngine", "NetEngine/Protocols"]
 sources = [
+    "BaseLib/otp/**.cpp", 
+	"BaseLib/otp/**.h",
 	"BaseLib/**.cpp", 
 	"BaseLib/**.h",
 	"NetEngine/**.cpp", 

@@ -1,5 +1,6 @@
 #include "CDatabase.h"
 #include <fmt/color.h>
+#include <boost_unordered.hpp>
 namespace BaseLib
 {
 	using enum fmt::color;
@@ -18,69 +19,91 @@ namespace BaseLib
             {
 				DEBUGLOG(dark_cyan, "connected to ({}:{})", host, port);
                 if (CreateDatabase(database))
-                {
-					DEBUGLOG(dark_cyan, "created database ({})", database);
-                    conn->setSchema(database);
-                    CreateTable("accounts", R"(
+                    DEBUGLOG(dark_cyan, "created database ({})", database);
+
+                conn->setSchema(database);
+
+                CreateTable("accounts", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT,
-					ServerId int unsigned NOT NULL DEFAULT 0, 
+                    Email varchar(255) NOT NULL DEFAULT '',
+                    IsEmailVerified tinyint(1) DEFAULT 0,
+                    ServerId int unsigned NOT NULL DEFAULT 0,
                     Username varchar(16) NOT NULL, 
                     Password varchar(127) NOT NULL, 
                     Salt varchar(127) NOT NULL, 
-                    Grade tinyint unsigned NOT NULL,
-                    PCRoom tinyint unsigned NOT NULL,
+                    Grade tinyint unsigned NOT NULL DEFAULT 0,
+                    PCRoom tinyint unsigned NOT NULL DEFAULT 0,
+                    AuthKey bigint unsigned NOT NULL DEFAULT 0,
                     ClanId int unsigned DEFAULT NULL,
-					ClanKills int unsigned DEFAULT NULL,
-					ClanDeaths int unsigned DEFAULT NULL,
-					ClanAssists int unsigned DEFAULT NULL,
-					ClanContribution int unsigned DEFAULT NULL,
-					ClanWins int unsigned DEFAULT NULL,
-					ClanLoses int unsigned DEFAULT NULL,
-					ClanDraws int unsigned DEFAULT NULL,
+                    ClanKills int unsigned DEFAULT 0,
+                    ClanDeaths int unsigned DEFAULT 0,
+                    ClanAssists int unsigned DEFAULT 0,
+                    ClanContribution int unsigned DEFAULT 0,
+                    ClanWins int unsigned DEFAULT 0,
+                    ClanLoses int unsigned DEFAULT 0,
+                    ClanDraws int unsigned DEFAULT 0,
                     Nickname varchar(16) NOT NULL, 
-                    Level int unsigned NOT NULL, 
-                    Experience int unsigned NOT NULL, 
-                    Tutorial bit(1) NOT NULL, 
-                    Story int unsigned NOT NULL,
-                    GuideMission tinyint unsigned NOT NULL,
-                    Achievement bigint unsigned NOT NULL,
-                    VoiceType bigint unsigned NOT NULL,
-                    VIPExperience int unsigned NOT NULL, 
-                    MaximumItems int unsigned NOT NULL, 
-                    MaximumEnergy int unsigned NOT NULL, 
-                    SelectedCharacter int unsigned NOT NULL, 
-                    PlayTime bigint unsigned NOT NULL, 
-                    MutedUntil bigint unsigned NOT NULL, 
-                    Coins int unsigned NOT NULL,
-                    Energy int unsigned NOT NULL,
-                    LuckyPoints int unsigned NOT NULL,
-                    MicroPoints bigint unsigned NOT NULL,
-                    RockTokens bigint unsigned NOT NULL,
-                    Coupons int unsigned NOT NULL,
-                    Wins int unsigned NOT NULL,
-                    Loses int unsigned NOT NULL,
-                    Draws int unsigned NOT NULL,
-                    Kills int unsigned NOT NULL,
-                    Deaths int unsigned NOT NULL,
-                    Assists int unsigned NOT NULL,
-                    Headshots int unsigned NOT NULL,
-                    HighestKillStreak int unsigned NOT NULL,
-                    MeleeKills int unsigned NOT NULL,
-                    RifleKills int unsigned NOT NULL,
-                    ShotgunKills int unsigned NOT NULL,
-                    SniperKills int unsigned NOT NULL,
-                    GatlingKills int unsigned NOT NULL,
-                    BazookaKills int unsigned NOT NULL,
-                    GrenadeKills int unsigned NOT NULL,
-                    ZombieKills int unsigned NOT NULL,
-                    Infections int unsigned NOT NULL,
-                    SingleWaveDailyAttempts int unsigned NOT NULL,
-                    SingleWaveHighestWave int unsigned NOT NULL,
-                    SingleWaveHighScore int unsigned NOT NULL,
-                    SingleWaveLastUpdate bigint unsigned NOT NULL,
+                    Level int unsigned NOT NULL DEFAULT 0, 
+                    Experience int unsigned NOT NULL DEFAULT 0, 
+                    Tutorial bit(1) NOT NULL DEFAULT b'0', 
+                    Story int unsigned NOT NULL DEFAULT 0,
+                    GuideMission tinyint unsigned NOT NULL DEFAULT 0,
+                    Achievement bigint unsigned NOT NULL DEFAULT 0,
+                    VoiceType bigint unsigned NOT NULL DEFAULT 0,
+                    VIPExperience int unsigned NOT NULL DEFAULT 0, 
+                    MaximumItems int unsigned NOT NULL DEFAULT 100, 
+                    MaximumEnergy int unsigned NOT NULL DEFAULT 100, 
+                    SelectedCharacter int unsigned NOT NULL DEFAULT 0, 
+                    PlayTime bigint unsigned NOT NULL DEFAULT 0, 
+                    MutedUntil bigint unsigned NOT NULL DEFAULT 0, 
+                    Coins int unsigned NOT NULL DEFAULT 1000,
+                    Energy int unsigned NOT NULL DEFAULT 100,
+                    LuckyPoints int unsigned NOT NULL DEFAULT 0,
+                    MicroPoints bigint unsigned NOT NULL DEFAULT 0,
+                    RockTokens bigint unsigned NOT NULL DEFAULT 0,
+                    Coupons int unsigned NOT NULL DEFAULT 0,
+                    Wins int unsigned NOT NULL DEFAULT 0,
+                    Loses int unsigned NOT NULL DEFAULT 0,
+                    Draws int unsigned NOT NULL DEFAULT 0,
+                    Kills int unsigned NOT NULL DEFAULT 0,
+                    Deaths int unsigned NOT NULL DEFAULT 0,
+                    Assists int unsigned NOT NULL DEFAULT 0,
+                    Headshots int unsigned NOT NULL DEFAULT 0,
+                    HighestKillStreak int unsigned NOT NULL DEFAULT 0,
+                    MeleeKills int unsigned NOT NULL DEFAULT 0,
+                    RifleKills int unsigned NOT NULL DEFAULT 0,
+                    ShotgunKills int unsigned NOT NULL DEFAULT 0,
+                    SniperKills int unsigned NOT NULL DEFAULT 0,
+                    GatlingKills int unsigned NOT NULL DEFAULT 0,
+                    BazookaKills int unsigned NOT NULL DEFAULT 0,
+                    GrenadeKills int unsigned NOT NULL DEFAULT 0,
+                    ZombieKills int unsigned NOT NULL DEFAULT 0,
+                    Infections int unsigned NOT NULL DEFAULT 0,
+                    SingleWaveDailyAttempts int unsigned NOT NULL DEFAULT 0,
+                    SingleWaveHighestWave int unsigned NOT NULL DEFAULT 0,
+                    SingleWaveHighScore int unsigned NOT NULL DEFAULT 0,
+                    SingleWaveLastUpdate bigint unsigned NOT NULL DEFAULT 0,
+                    LawfulPoint int unsigned NOT NULL DEFAULT 0,
+                    ChaoticPoint int unsigned NOT NULL DEFAULT 0,
+                    IsAdmin bit(1) NOT NULL DEFAULT b'0',
+                    TwoFactorSecret varchar(255) DEFAULT NULL,
+                    TwoFactorEnabled tinyint(1) DEFAULT 0,
                     PRIMARY KEY(Id))");
 
-                    CreateTable("player_sessions", R"(
+                CreateTable("game_titles", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    TitleName varchar(50) NOT NULL,
+                    PRIMARY KEY (Id))");
+
+                CreateTable("account_titles", R"(
+                    AccountId int unsigned NOT NULL,
+                    TitleId int unsigned NOT NULL,
+                    PRIMARY KEY (AccountId, TitleId),
+                    KEY fk_acctitle_title (TitleId),
+                    CONSTRAINT fk_acctitle_account FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT fk_acctitle_title FOREIGN KEY (TitleId) REFERENCES game_titles (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_sessions", R"(
                     PlayerId int unsigned NOT NULL,
                     AuthKey bigint unsigned NOT NULL,
                     IssuedAt DATETIME NOT NULL,
@@ -91,7 +114,7 @@ namespace BaseLib
                     KEY ix_expires (ExpiresAt),
                     CONSTRAINT FK_player_sessions_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("player_matchhistory", R"(
+                CreateTable("player_matchhistory", R"(
                     Id bigint unsigned NOT NULL AUTO_INCREMENT,
                     AccountId int unsigned NOT NULL,
                     IsHost bool NOT NULL,
@@ -152,7 +175,7 @@ namespace BaseLib
                     CONSTRAINT FK_player_matchhistory_accounts_AccountId FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
 
-                    CreateTable("bans", R"(
+                CreateTable("bans", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT, 
                     AccountId int unsigned NOT NULL, 
                     UnbanDate datetime(6) NOT NULL, 
@@ -161,7 +184,7 @@ namespace BaseLib
                     KEY IX_bans_AccountId (AccountId), 
                     CONSTRAINT FK_bans_accounts_AccountId FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("login_history", R"(
+                CreateTable("login_history", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT, 
                     AccountId int unsigned NOT NULL, 
                     LoginDate datetime(6) NOT NULL,
@@ -170,24 +193,75 @@ namespace BaseLib
                     KEY IX_login_history_AccountId (AccountId), 
                     CONSTRAINT FK_login_history_accounts_AccountId FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("clans", R"(
+                CreateTable("clans", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT, 
                     OwnerId int unsigned DEFAULT NULL, 
                     ClanName varchar(16) NOT NULL, 
-                    ClanLogoFront smallint unsigned NOT NULL, 
-                    ClanLogoBack smallint unsigned NOT NULL, 
-                    ClanContribution int unsigned NOT NULL, 
-                    ClanWin int unsigned NOT NULL, 
-                    ClanLose int unsigned NOT NULL, 
-                    ClanDraw int unsigned NOT NULL, 
-                    Kills int unsigned NOT NULL, 
-                    Deaths int unsigned NOT NULL, 
-                    Assists int unsigned NOT NULL, 
+                    ClanLogoFront smallint unsigned NOT NULL DEFAULT 0, 
+                    ClanLogoBack smallint unsigned NOT NULL DEFAULT 0, 
+                    ClanContribution int unsigned NOT NULL DEFAULT 0, 
+                    ClanWin int unsigned NOT NULL DEFAULT 0, 
+                    ClanLose int unsigned NOT NULL DEFAULT 0, 
+                    ClanDraw int unsigned NOT NULL DEFAULT 0, 
+                    Kills int unsigned NOT NULL DEFAULT 0, 
+                    Deaths int unsigned NOT NULL DEFAULT 0, 
+                    Assists int unsigned NOT NULL DEFAULT 0,
+                    Lawful int unsigned NOT NULL DEFAULT 0,
+                    Chaotic int unsigned NOT NULL DEFAULT 0,
+                    Description varchar(255) NOT NULL DEFAULT 'Welcome to our clan page.',
+                    Title varchar(50) NOT NULL DEFAULT 'Rookie Clan',
+                    TeamACaptainId int unsigned DEFAULT NULL,
+                    TeamBCaptainId int unsigned DEFAULT NULL,
                     PRIMARY KEY(Id), 
-                    KEY IX_clans_OwnerId (OwnerId), 
+                    KEY IX_clans_OwnerId (OwnerId),
+                    KEY FK_Clans_CaptainA (TeamACaptainId),
+                    KEY FK_Clans_CaptainB (TeamBCaptainId),
+                    CONSTRAINT FK_Clans_CaptainA FOREIGN KEY (TeamACaptainId) REFERENCES accounts (Id) ON DELETE SET NULL,
+                    CONSTRAINT FK_Clans_CaptainB FOREIGN KEY (TeamBCaptainId) REFERENCES accounts (Id) ON DELETE SET NULL,
                     CONSTRAINT FK_clans_accounts_OwnerId FOREIGN KEY (OwnerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("player_socials", R"(
+                CreateTable("clan_member_roles", R"(
+                    AccountId int unsigned NOT NULL,
+                    ClanId int unsigned NOT NULL,
+                    Role enum('TeamA','TeamB','Reserves') NOT NULL DEFAULT 'Reserves',
+                    PRIMARY KEY (AccountId),
+                    KEY FK_roles_clans (ClanId),
+                    CONSTRAINT FK_roles_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_roles_clans FOREIGN KEY (ClanId) REFERENCES clans (Id) ON DELETE CASCADE)");
+
+                CreateTable("clan_messages", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    ClanId int unsigned NOT NULL,
+                    SenderId int unsigned NOT NULL,
+                    Message varchar(255) NOT NULL,
+                    SentDate datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY FK_clan_messages_clans (ClanId),
+                    KEY FK_clan_messages_accounts (SenderId),
+                    CONSTRAINT FK_clan_messages_accounts FOREIGN KEY (SenderId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_clan_messages_clans FOREIGN KEY (ClanId) REFERENCES clans (Id) ON DELETE CASCADE)");
+
+                CreateTable("clan_requests", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    ClanId int unsigned NOT NULL,
+                    AccountId int unsigned NOT NULL,
+                    RequestDate datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    UNIQUE KEY IX_Request (ClanId, AccountId),
+                    KEY FK_requests_accounts (AccountId),
+                    CONSTRAINT FK_requests_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_requests_clans FOREIGN KEY (ClanId) REFERENCES clans (Id) ON DELETE CASCADE)");
+
+                CreateTable("clan_votes", R"(
+                    ClanId int unsigned NOT NULL,
+                    AccountId int unsigned NOT NULL,
+                    VoteType enum('lawful','chaotic') NOT NULL,
+                    PRIMARY KEY (ClanId, AccountId),
+                    KEY FK_clan_votes_accounts (AccountId),
+                    CONSTRAINT FK_clan_votes_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_clan_votes_clans FOREIGN KEY (ClanId) REFERENCES clans (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_socials", R"(
                     Aid int unsigned NOT NULL,
                     TargetAid int unsigned NOT NULL,
                     State tinyint unsigned NOT NULL,
@@ -197,7 +271,7 @@ namespace BaseLib
                     CONSTRAINT FK_player_socials_accounts_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE,
                     CONSTRAINT FK_player_socials_accounts_TargetAid FOREIGN KEY (TargetAid) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("player_items", R"(
+                CreateTable("player_items", R"(
                     SerialInfo bigint unsigned NOT NULL,
                     PlayerId int unsigned NOT NULL,
                     ItemId int unsigned NOT NULL,
@@ -213,11 +287,11 @@ namespace BaseLib
                     IsEquipped tinyint unsigned NOT NULL,
                     CharacterId tinyint unsigned NOT NULL,
                     PRIMARY KEY (PlayerId, SerialInfo),
-                    KEY IX_player_items_SerialInfo (SerialInfo)
+                    KEY IX_player_items_SerialInfo (SerialInfo),
                     KEY IX_player_items_PlayerId (PlayerId),
                     CONSTRAINT FK_player_items_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("player_mailbox", R"(
+                CreateTable("player_mailbox", R"(
                     Id int unsigned NOT NULL AUTO_INCREMENT,
                     SenderId int unsigned NOT NULL,
                     SenderNickname varchar(16) NOT NULL,
@@ -235,7 +309,7 @@ namespace BaseLib
                     CONSTRAINT FK_player_mailbox_accounts_ReceiverId FOREIGN KEY (ReceiverId) REFERENCES accounts (Id) ON DELETE CASCADE,
                     CONSTRAINT FK_player_mailbox_accounts_SenderId FOREIGN KEY (SenderId) REFERENCES accounts (Id))");
 
-                    CreateTable("player_monthly_rewards", R"(
+                CreateTable("player_monthly_rewards", R"(
                     ID int unsigned NOT NULL AUTO_INCREMENT,
                     PlayerId int unsigned NOT NULL,
                     RewardCount tinyint unsigned NOT NULL,
@@ -244,27 +318,59 @@ namespace BaseLib
                     KEY IX_player_monthly_rewards_PlayerId (PlayerId),
                     CONSTRAINT FK_player_monthly_rewards_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
-                    CreateTable("system_gachapon_machine", R"(
+                CreateTable("player_profiles", R"(
+                    AccountId int unsigned NOT NULL,
+                    Description varchar(140) NOT NULL DEFAULT '',
+                    SelectedTitleId int unsigned NOT NULL DEFAULT 1,
+                    AvatarUrl varchar(255) DEFAULT NULL,
+                    PRIMARY KEY (AccountId),
+                    CONSTRAINT fk_profile_account FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_messages", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    TargetId int unsigned NOT NULL,
+                    SenderId int unsigned NOT NULL,
+                    Message varchar(255) NOT NULL,
+                    SentDate datetime DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY fk_player_msg_target (TargetId),
+                    KEY fk_player_msg_sender (SenderId),
+                    CONSTRAINT fk_player_msg_sender FOREIGN KEY (SenderId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT fk_player_msg_target FOREIGN KEY (TargetId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_votes", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    TargetId int unsigned NOT NULL,
+                    VoterId int unsigned NOT NULL,
+                    VoteType enum('lawful','chaotic') NOT NULL,
+                    PRIMARY KEY (Id),
+                    UNIQUE KEY unique_player_vote (TargetId, VoterId),
+                    KEY fk_player_vote_voter (VoterId),
+                    CONSTRAINT fk_player_vote_target FOREIGN KEY (TargetId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT fk_player_vote_voter FOREIGN KEY (VoterId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("system_gachapon_machine", R"(
                     GachaponId int unsigned DEFAULT NULL,
                     SalePrice int unsigned NOT NULL,
                     EventStartDate DATETIME NOT NULL,
                     EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (GachaponId))");
 
-                    CreateTable("system_event_mod", R"(
+                CreateTable("system_event_mod", R"(
                     ModId int unsigned DEFAULT NULL,
                     EventStartDate DATETIME NOT NULL,
                     EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (ModId))");
 
-                    CreateTable("system_event_map", R"(
+                CreateTable("system_event_map", R"(
                     MapId int unsigned DEFAULT NULL,
                     EventStartDate DATETIME NOT NULL,
                     EventEndDate DATETIME NOT NULL,
                     PRIMARY KEY (MapId))");
 
-                    CreateTable("system_monthly_rewards", R"(
-                    Month int unsigned NOT NULL AUTO_INCREMENT,
+                CreateTable("system_monthly_rewards", R"(
+                    Year smallint unsigned NOT NULL,
+                    Month tinyint unsigned NOT NULL,
                     Day1 int unsigned NOT NULL,
                     Day2 int unsigned NOT NULL,
                     Day3 int unsigned NOT NULL,
@@ -296,9 +402,9 @@ namespace BaseLib
                     Day29 int unsigned NOT NULL,
                     Day30 int unsigned NOT NULL,
                     Day31 int unsigned NOT NULL,
-                    PRIMARY KEY (Month))");
+                    PRIMARY KEY (Year, Month))");
 
-                    CreateTable("player_daily_mission", R"(
+                CreateTable("player_daily_mission", R"(
                     PlayerId int unsigned NOT NULL,
                     UpdateTime BIGINT UNSIGNED NOT NULL DEFAULT 0,
                     Mission1 int unsigned NOT NULL DEFAULT 0,
@@ -309,11 +415,251 @@ namespace BaseLib
                     GoalMission3 int unsigned NOT NULL DEFAULT 0,
                     UNIQUE KEY IX_player_daily_mission_PlayerId (PlayerId),
                     CONSTRAINT FK_player_daily_mission_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
-                }
-                else
+
+                CreateTable("news_posts", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    Title varchar(255) NOT NULL,
+                    Category enum('announcements','events','patchnotes','promotions') NOT NULL,
+                    Content text NOT NULL,
+                    BannerUrl varchar(512) DEFAULT NULL,
+                    Author varchar(50) NOT NULL,
+                    CreatedAt datetime DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY idx_category (Category),
+                    KEY idx_date (CreatedAt))");
+
+                CreateTable("otp_codes", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    AccountId int unsigned NOT NULL,
+                    Code varchar(6) NOT NULL,
+                    ExpiresAt datetime NOT NULL,
+                    CreatedAt datetime DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY idx_account (AccountId),
+                    CONSTRAINT otp_codes_ibfk_1 FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("support_tickets", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    AccountId int unsigned NOT NULL,
+                    Category enum('Account','Billing','Bugs','Cheater Report','Other') NOT NULL,
+                    Subject varchar(100) NOT NULL,
+                    Status enum('Open','Waiting for Admin','Waiting for User','Closed') NOT NULL DEFAULT 'Open',
+                    CreatedAt datetime DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY fk_ticket_owner (AccountId),
+                    CONSTRAINT fk_ticket_owner FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("support_replies", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    TicketId int unsigned NOT NULL,
+                    SenderId int unsigned NOT NULL,
+                    Message text NOT NULL,
+                    SentAt datetime DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY fk_reply_ticket (TicketId),
+                    KEY fk_reply_sender (SenderId),
+                    CONSTRAINT fk_reply_sender FOREIGN KEY (SenderId) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT fk_reply_ticket FOREIGN KEY (TicketId) REFERENCES support_tickets (Id) ON DELETE CASCADE)");
+
+                CreateTable("transactions", R"(
+                    Id int unsigned NOT NULL AUTO_INCREMENT,
+                    AccountId int unsigned NOT NULL,
+                    TransactionNo varchar(100) DEFAULT NULL,
+                    OrderNumber varchar(100) NOT NULL,
+                    Amount decimal(10,2) NOT NULL,
+                    Currency varchar(10) NOT NULL DEFAULT 'EUR',
+                    TokensAmount int unsigned NOT NULL,
+                    Status varchar(20) NOT NULL DEFAULT 'Pending',
+                    PaymentUrl text DEFAULT NULL,
+                    CreatedAt timestamp NULL DEFAULT current_timestamp(),
+                    UpdatedAt timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+                    PRIMARY KEY (Id),
+                    UNIQUE KEY IX_OrderNumber (OrderNumber),
+                    UNIQUE KEY IX_TransactionNo (TransactionNo),
+                    KEY FK_Transactions_Account (AccountId),
+                    CONSTRAINT FK_Transactions_Account FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_chatlogs", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    Aid int unsigned NOT NULL,
+                    TargetAid int unsigned DEFAULT NULL,
+                    ChatType enum('User','Whisper','Team','Clan','Command','Party') NOT NULL,
+                    ChatLocation enum('Lobby','Room','Plaza') DEFAULT NULL,
+                    ServerId int unsigned NOT NULL DEFAULT 0,
+                    RoomId int unsigned DEFAULT NULL,
+                    PlazaId int unsigned DEFAULT NULL,
+                    ClanId int unsigned DEFAULT NULL,
+                    Message varchar(256) NOT NULL,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_chatlogs_Aid (Aid),
+                    KEY IX_chatlogs_TargetAid (TargetAid),
+                    KEY IX_chatlogs_ClanId (ClanId),
+                    KEY IX_chatlogs_CreatedAt (CreatedAt),
+                    CONSTRAINT FK_chatlogs_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_chatlogs_TargetAid FOREIGN KEY (TargetAid) REFERENCES accounts (Id) ON DELETE SET NULL,
+                    CONSTRAINT FK_chatlogs_ClanId FOREIGN KEY (ClanId) REFERENCES clans (Id) ON DELETE SET NULL)");
+
+                
+                CreateTable("player_itemlogs", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    Aid int unsigned NOT NULL,
+                    RelatedAid int unsigned DEFAULT NULL,
+                    ActionType enum('Added','Deleted','Sold','Upgraded','Reset','Repaired','EnergyInjected','Gifted','Received') NOT NULL,
+                    ItemId int unsigned NOT NULL,
+                    ItemType enum('Hair','Face','Upper','Under','Pants','Hands','Boots','AccHead','AccWaist','AccBack','Melee','Rifle','Shotgun','Sniper','Gatling','Bazooka','Grenade','Set','ShieldEnamel','FlagBlue','Gatcha','Unknown1','Diorama1','Diorama2','Question1','MonsterFace','Unknown3','Unknown4') DEFAULT NULL,
+                    SerialInfo bigint unsigned DEFAULT NULL,
+                    OriginType enum('Shop','ShopCoupon','Gachapon','Package','BossBattle','Tutorial','Story','LevelUp','DailyMission','MonthlyReward','GiftSent','GiftReceived','GMSpawned','Pickup','Unknown') NOT NULL,
+                    MpDelta int DEFAULT 0,
+                    RtDelta int DEFAULT 0,
+                    CouponDelta int DEFAULT 0,
+                    EnergyDelta int DEFAULT 0,
+                    NewItemId int unsigned DEFAULT NULL,
+                    NewRepair smallint unsigned DEFAULT NULL,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_itemlogs_Aid (Aid),
+                    KEY IX_itemlogs_RelatedAid (RelatedAid),
+                    KEY IX_itemlogs_ActionType (ActionType),
+                    KEY IX_itemlogs_OriginType (OriginType),
+                    KEY IX_itemlogs_CreatedAt (CreatedAt),
+                    CONSTRAINT FK_itemlogs_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_itemlogs_RelatedAid FOREIGN KEY (RelatedAid) REFERENCES accounts (Id) ON DELETE SET NULL)");
+
+                CreateTable("player_currencylogs", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    Aid int unsigned NOT NULL,
+                    CurrencyType enum('MP','RT','Coupons','Energy') NOT NULL,
+                    Amount int NOT NULL,
+                    BeforeValue bigint unsigned NOT NULL,
+                    AfterValue bigint unsigned NOT NULL,
+                    SourceType enum('Shop','ShopCoupon','Gachapon','Package','ItemSell','ItemRepair','ItemUpgrade','BossBattle','Tutorial','LevelUp','Achievement','DailyMission','MonthlyReward','GiftSend','VoteKick','MatchReward','Admin','Unknown') NOT NULL,
+                    RelatedItemId int unsigned DEFAULT NULL,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_currencylogs_Aid (Aid),
+                    KEY IX_currencylogs_CurrencyType (CurrencyType),
+                    KEY IX_currencylogs_SourceType (SourceType),
+                    KEY IX_currencylogs_CreatedAt (CreatedAt),
+                    CONSTRAINT FK_currencylogs_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_roomlogs", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    Aid int unsigned NOT NULL,
+                    TargetAid int unsigned DEFAULT NULL,
+                    EventType enum('RoomCreated','RoomJoined','RoomLeft','RoomKicked','TeamChanged','VoteKickStarted','VoteKickAgreed','VoteKickSucceeded','VoteKickFailed') NOT NULL,
+                    ServerId int unsigned NOT NULL DEFAULT 0,
+                    RoomId int unsigned NOT NULL,
+                    HostAid int unsigned DEFAULT NULL,
+                    TeamId tinyint unsigned DEFAULT NULL,
+                    NewTeamId tinyint unsigned DEFAULT NULL,
+                    VoteKickReason tinyint unsigned DEFAULT NULL,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_roomlogs_Aid (Aid),
+                    KEY IX_roomlogs_TargetAid (TargetAid),
+                    KEY IX_roomlogs_EventType (EventType),
+                    KEY IX_roomlogs_RoomId (RoomId),
+                    KEY IX_roomlogs_CreatedAt (CreatedAt),
+                    CONSTRAINT FK_roomlogs_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_roomlogs_TargetAid FOREIGN KEY (TargetAid) REFERENCES accounts (Id) ON DELETE SET NULL,
+                    CONSTRAINT FK_roomlogs_HostAid FOREIGN KEY (HostAid) REFERENCES accounts (Id) ON DELETE SET NULL)");
+
+                CreateTable("player_gacha_pity", R"(
+                    PlayerId int unsigned NOT NULL,
+                    GachaId int unsigned NOT NULL,
+                    LuckyPoints int unsigned NOT NULL DEFAULT 0,
+                    PRIMARY KEY (PlayerId, GachaId),
+                    CONSTRAINT FK_gacha_pity_accounts FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE
+                )");
+
+                CreateTable("ac_detections", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    Aid int unsigned NOT NULL,
+                    Ip varchar(45) NOT NULL,
+                    Hwid varchar(64) NOT NULL,
+                    DetectionFlag enum('MemoryManipulation','SpeedHack','WallHack','AimbotDetected','FileIntegrityFail','DebuggerDetected','InjectionDetected','HeartbeatTimeout','InvalidResponse','ProcessAnomaly','NetworkManipulation','ClientModified','UnknownFlag') NOT NULL,
+                    Extra int unsigned NOT NULL DEFAULT 0,
+                    ServerId int unsigned NOT NULL DEFAULT 0,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_ac_detections_Aid (Aid),
+                    KEY IX_ac_detections_Flag (DetectionFlag),
+                    KEY IX_ac_detections_CreatedAt (CreatedAt),
+                    CONSTRAINT FK_ac_detections_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("ac_auth_history", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    Aid int unsigned NOT NULL,
+                    Ip varchar(45) NOT NULL,
+                    Hwid varchar(128) NOT NULL,
+                    ServerId int unsigned NOT NULL DEFAULT 0,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_ac_auth_history_Aid (Aid),
+                    KEY IX_ac_auth_history_CreatedAt (CreatedAt),
+                    CONSTRAINT FK_ac_auth_history_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                // Create default admin account if it doesn't exist
+                try
                 {
-                    conn->setSchema(database);
-                }  
+                    std::unique_ptr<sql::PreparedStatement> checkAdmin(conn->prepareStatement(
+                        "SELECT Id FROM accounts WHERE Username = 'admin' LIMIT 1"
+                    ));
+                    std::unique_ptr<sql::ResultSet> adminResult(checkAdmin->executeQuery());
+
+                    if (!adminResult->next())
+                    {
+                        // Admin doesn't exist, create it
+                        const std::string adminUsername = "admin";
+                        const std::string adminPassword = "admin123";
+                        const std::string adminNickname = "admin";
+                        const uint8_t adminGrade = 4;
+
+                        thread_local Utility::SecureRandomBlake2b::Generator rng;
+                        uint64_t salt_part1 = rng.GenerateAuthKey();
+                        uint64_t salt_part2 = rng.GenerateAuthKey();
+                        uint8_t salt[16];
+                        std::memcpy(salt, &salt_part1, 8);
+                        std::memcpy(salt + 8, &salt_part2, 8);
+
+                        // Hash password
+                        uint8_t hash[32];
+                        if (Utility::HashPassword(adminPassword, salt, hash))
+                        {
+                            // Base64 encode salt and hash
+                            std::string salt_b64 = Utility::Base64::to_base64(std::string_view(reinterpret_cast<char*>(salt), 16));
+                            std::string hash_b64 = Utility::Base64::to_base64(std::string_view(reinterpret_cast<char*>(hash), 32));
+
+                            std::unique_ptr<sql::PreparedStatement> insertAdmin(conn->prepareStatement(
+                                "INSERT INTO accounts (Username, Password, Salt, Nickname, Grade, Level, MaximumEnergy) "
+                                "VALUES (?, ?, ?, ?, ?, 0, 1000)"
+                            ));
+                            insertAdmin->setString(1, adminUsername);
+                            insertAdmin->setString(2, hash_b64);
+                            insertAdmin->setString(3, salt_b64);
+                            insertAdmin->setString(4, adminNickname);
+                            insertAdmin->setUInt(5, adminGrade);
+
+                            if (insertAdmin->executeUpdate())
+                                DEBUGLOG(green, "Created default admin account (username: admin, password: admin123, grade: 4)");
+                            else
+                                DEBUGLOG(red, "Failed to create default admin account");
+                        }
+                        else
+                        {
+                            DEBUGLOG(red, "Failed to hash password for default admin account");
+                        }
+                    }
+                    else
+                    {
+                        DEBUGLOG(dark_cyan, "Default admin account already exists");
+                    }
+                }
+                catch (sql::SQLException& e)
+                {
+                    DEBUGLOG(red, "Error checking/creating default admin account: {}", e.what());
+                }
             }
         }
         catch (sql::SQLException& e)
@@ -322,39 +668,157 @@ namespace BaseLib
         }
     }
 
-    bool CDatabase::CreateTable(const std::string& table_name, const std::string& data_collumns)
+    bool CDatabase::CreateTable(const std::string& table_name, const std::string& data_columns)
     {
         try
         {
-
             if (!conn || !conn->isValid())
             {
-				DEBUGLOG(yellow, "Reconnecting to the database...");
+                DEBUGLOG(yellow, "Reconnecting to the database...");
                 conn = driver->connect(this->properties);
-                if (conn)
-					DEBUGLOG(dark_cyan, "Successfully reconnected to database");
+                if (!conn || !conn->isValid())
+                {
+                    DEBUGLOG(red, "Failed to reconnect to database for table ({})", table_name);
+                    return false;
+                }
+                conn->setSchema(database_name); // Re-set schema after reconnect
+                DEBUGLOG(dark_cyan, "Successfully reconnected to database");
+            }
+
+            // Ensure schema is set
+            if (database_name.empty())
+            {
+                DEBUGLOG(red, "Database name is empty, cannot create table ({})", table_name);
+                return false;
             }
 
             std::unique_ptr<sql::PreparedStatement> check_stmt(conn->prepareStatement("SHOW TABLES LIKE ?"));
             check_stmt->setString(1, table_name);
-
             std::unique_ptr<sql::ResultSet> res(check_stmt->executeQuery());
-            if (res->next())
+
+            bool table_exists = res->next();
+
+            if (!table_exists)
+            {
+                std::string create_query = "CREATE TABLE `" + table_name + "` (" + data_columns + ")";
+                std::unique_ptr<sql::Statement> create_stmt(conn->createStatement());
+                create_stmt->execute(create_query);
+                DEBUGLOG(green, "Created table: ({})", table_name);
                 return true;
+            }
 
-            std::string create_query = "CREATE TABLE " + table_name + " (" + data_collumns + ")";
-            std::unique_ptr<sql::PreparedStatement> create_stmt(conn->prepareStatement(create_query));
+            // Table exists - check for missing columns
+            std::unique_ptr<sql::PreparedStatement> col_stmt(conn->prepareStatement(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?"));
+            col_stmt->setString(1, database_name);
+            col_stmt->setString(2, table_name);
+            std::unique_ptr<sql::ResultSet> col_res(col_stmt->executeQuery());
 
-            bool retn = !create_stmt->execute();
+            boost::unordered_flat_set<std::string> existing_columns;
+            while (col_res->next())
+            {
+                std::string col_name = col_res->getString("COLUMN_NAME").c_str();
+                std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
+                existing_columns.insert(col_name);
+            }
 
-            if (retn)
-				DEBUGLOG(green, "Created table: ({})", table_name);
+            std::vector<std::pair<std::string, std::string>> desired_columns;
+            int paren_depth = 0;
+            std::string current_def;
 
-            return retn;
+            for (char c : data_columns)
+            {
+                if (c == '(') paren_depth++;
+                else if (c == ')') paren_depth--;
+
+                if (c == ',' && paren_depth == 0)
+                {
+                    if (!current_def.empty())
+                    {
+                        size_t start = current_def.find_first_not_of(" \t\n\r");
+                        size_t end = current_def.find_last_not_of(" \t\n\r");
+                        if (start != std::string::npos)
+                        {
+                            std::string trimmed = current_def.substr(start, end - start + 1);
+                            std::string upper = trimmed;
+                            std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+                            if (upper.find("PRIMARY KEY") != 0 &&
+                                upper.find("KEY ") != 0 &&
+                                upper.find("CONSTRAINT") != 0 &&
+                                upper.find("UNIQUE KEY") != 0 &&
+                                upper.find("INDEX") != 0 &&
+                                upper.find("FOREIGN KEY") != 0)
+                            {
+                                size_t space_pos = trimmed.find_first_of(" \t");
+                                if (space_pos != std::string::npos)
+                                {
+                                    std::string col_name = trimmed.substr(0, space_pos);
+                                    std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
+                                    desired_columns.emplace_back(col_name, trimmed);
+                                }
+                            }
+                        }
+                    }
+                    current_def.clear();
+                }
+                else
+                {
+                    current_def += c;
+                }
+            }
+
+            // Handle last column definition
+            if (!current_def.empty())
+            {
+                size_t start = current_def.find_first_not_of(" \t\n\r");
+                size_t end = current_def.find_last_not_of(" \t\n\r");
+                if (start != std::string::npos)
+                {
+                    std::string trimmed = current_def.substr(start, end - start + 1);
+                    std::string upper = trimmed;
+                    std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+                    if (upper.find("PRIMARY KEY") != 0 &&
+                        upper.find("KEY ") != 0 &&
+                        upper.find("CONSTRAINT") != 0 &&
+                        upper.find("UNIQUE KEY") != 0 &&
+                        upper.find("INDEX") != 0 &&
+                        upper.find("FOREIGN KEY") != 0)
+                    {
+                        size_t space_pos = trimmed.find_first_of(" \t");
+                        if (space_pos != std::string::npos)
+                        {
+                            std::string col_name = trimmed.substr(0, space_pos);
+                            std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
+                            desired_columns.emplace_back(col_name, trimmed);
+                        }
+                    }
+                }
+            }
+
+            // Add missing columns
+            for (const auto& [col_name, col_def] : desired_columns)
+            {
+                if (existing_columns.find(col_name) == existing_columns.end())
+                {
+                    try
+                    {
+                        std::string alter_query = "ALTER TABLE `" + table_name + "` ADD COLUMN " + col_def;
+                        std::unique_ptr<sql::Statement> alter_stmt(conn->createStatement());
+                        alter_stmt->execute(alter_query);
+                        DEBUGLOG(green, "Added column '{}' to table ({})", col_name, table_name);
+                    }
+                    catch (sql::SQLException& e)
+                    {
+                        DEBUGLOG(red, "Failed to add column '{}' to table ({}): {}", col_name, table_name, e.what());
+                    }
+                }
+            }
+
+            return true;
         }
         catch (sql::SQLException& e)
         {
-            DEBUGLOG(red, "exception: ({})", e.what());;
+            DEBUGLOG(red, "CreateTable '{}' exception: ({}) - SQLState: {}", table_name, e.what(), e.getSQLState().c_str());
             return false;
         }
     }
@@ -932,25 +1396,58 @@ namespace BaseLib
         try
         {
             if (v.items_patches.empty()) return {};
-            std::string c_itemId, c_exp, c_rep, c_eng, c_equip, c_char;
-            std::vector<uint64_t> serials; serials.reserve(v.items_patches.size());
-            for (const auto& rp : v.items_patches) 
+
+            boost::unordered_flat_map<uint64_t, ItemPatchCtx> merged;
+            for (const auto& rp : v.items_patches)
             {
-                std::string s = std::to_string(rp.serial);
-                serials.push_back(rp.serial);
-                if (rp.patch.new_item_id.has_value()) c_itemId += "WHEN " + s + " THEN " + std::to_string(rp.patch.new_item_id.value()) + " ";
-                if (rp.patch.expire_date.has_value()) c_exp += "WHEN " + s + " THEN " + std::to_string(rp.patch.expire_date.value()) + " ";
-                if (rp.patch.repair.has_value()) c_rep += "WHEN " + s + " THEN " + std::to_string(rp.patch.repair.value()) + " ";
-                if (rp.patch.energy.has_value()) c_eng += "WHEN " + s + " THEN " + std::to_string(rp.patch.energy.value()) + " ";
-                if (rp.patch.is_equipped.has_value()) c_equip += "WHEN " + s + " THEN " + std::to_string(rp.patch.is_equipped.value()) + " ";
-                if (rp.patch.character_id.has_value()) c_char += "WHEN " + s + " THEN " + std::to_string(rp.patch.character_id.value()) + " ";
-                DEBUGLOG(green, "Preparing item patch for serial {}:", rp.serial);
+                auto& existing = merged[rp.serial];
+                if (rp.patch.new_item_id.has_value()) existing.new_item_id = rp.patch.new_item_id;
+                if (rp.patch.expire_date.has_value()) existing.expire_date = rp.patch.expire_date;
+                if (rp.patch.repair.has_value()) existing.repair = rp.patch.repair;
+                if (rp.patch.energy.has_value()) existing.energy = rp.patch.energy;
+                if (rp.patch.is_equipped.has_value()) existing.is_equipped = rp.patch.is_equipped;
+                if (rp.patch.character_id.has_value()) existing.character_id = rp.patch.character_id;
             }
+
+            if (merged.empty()) return {};
+
+            {
+                std::string checkSql = "SELECT SerialInfo FROM player_items WHERE PlayerId = ? AND SerialInfo IN (" + GenerateQuestionMarks(merged.size()) + ")";
+                auto checkPs = conn->prepareStatement(checkSql);
+                checkPs->setUInt(1, v.aid);
+                size_t idx = 2;
+                for (const auto& [serial, _] : merged)
+                    checkPs->setUInt64(idx++, serial);
+                std::unique_ptr<sql::ResultSet> rs(checkPs->executeQuery());
+                size_t foundCount = 0;
+                while (rs->next()) foundCount++;
+                DEBUGLOG(yellow, "PersistItemPatches: Found {} of {} items in DB for account {}", foundCount, merged.size(), v.aid);
+            }
+
+
+            std::string c_itemId, c_exp, c_rep, c_eng, c_equip, c_char;
+            std::vector<uint64_t> serials;
+            serials.reserve(merged.size());
+
+            for (const auto& [serial, patch] : merged)
+            {
+                std::string s = std::to_string(serial);
+                serials.push_back(serial);
+                if (patch.new_item_id.has_value()) c_itemId += "WHEN " + s + " THEN " + std::to_string(patch.new_item_id.value()) + " ";
+                if (patch.expire_date.has_value()) c_exp += "WHEN " + s + " THEN " + std::to_string(patch.expire_date.value()) + " ";
+                if (patch.repair.has_value()) c_rep += "WHEN " + s + " THEN " + std::to_string(patch.repair.value()) + " ";
+                if (patch.energy.has_value()) c_eng += "WHEN " + s + " THEN " + std::to_string(patch.energy.value()) + " ";
+                if (patch.is_equipped.has_value()) c_equip += "WHEN " + s + " THEN " + std::to_string(patch.is_equipped.value()) + " ";
+                if (patch.character_id.has_value()) c_char += "WHEN " + s + " THEN " + std::to_string(patch.character_id.value()) + " ";
+                DEBUGLOG(green, "Merged item patch for serial {}: equipped={}", serial, patch.is_equipped.value_or(255));
+            }
+
             if (serials.empty())
             {
                 DEBUGLOG(yellow, "No serials to update in PersistItemPatches");
                 return {};
             }
+
             std::vector<std::string> sets;
             if (!c_itemId.empty()) sets.push_back("ItemId = CASE SerialInfo " + c_itemId + "ELSE ItemId END");
             if (!c_exp.empty()) sets.push_back("ExpirationDate = CASE SerialInfo " + c_exp + "ELSE ExpirationDate END");
@@ -958,21 +1455,25 @@ namespace BaseLib
             if (!c_eng.empty()) sets.push_back("Energy = CASE SerialInfo " + c_eng + "ELSE Energy END");
             if (!c_equip.empty()) sets.push_back("IsEquipped = CASE SerialInfo " + c_equip + "ELSE IsEquipped END");
             if (!c_char.empty()) sets.push_back("CharacterId = CASE SerialInfo " + c_char + "ELSE CharacterId END");
+
             if (sets.empty())
             {
                 DEBUGLOG(yellow, "No item patches in PersistItemPatches");
                 return {};
             }
+
             std::string psql = "UPDATE player_items SET " + GenerateJoinedString(sets, ", ") + " WHERE PlayerId = ? AND SerialInfo IN (" + GenerateQuestionMarks(serials.size()) + ")";
             auto pps = conn->prepareStatement(psql);
             pps->setUInt(1, v.aid);
             for (size_t i = 0; i < serials.size(); ++i) pps->setUInt64(2 + i, serials[i]);
             auto patched = pps->executeUpdate();
-            if (!patched) 
+
+            if (!patched)
             {
                 DEBUGLOG(red, "Failed to patch items for account {}: expected {}, got {}", v.aid, serials.size(), patched);
                 return std::unexpected(DbError{ DbError::Type::NoRowsAffected,0,{},fmt::format("PersistItemPatches: expected {} patches, got {}", serials.size(), patched) });
             }
+
             DEBUGLOG(green, "Updated {} items for account {}", patched, v.aid);
             out.patched_rows_count += patched;
             out.patched_serials.insert(out.patched_serials.end(), serials.begin(), serials.end());
@@ -1000,14 +1501,21 @@ namespace BaseLib
                 aps->setUInt  (idx++, v.aid);
                 aps->setUInt64(idx++, item.item_info.serial_info.data);
                 aps->setUInt  (idx++, item.item_info.item_number.item_id);
-                aps->setUInt  (idx++, 0);
+                aps->setUInt  (idx++, item.item_type);
                 aps->setUInt  (idx++, item.item_info.expire_date);
                 aps->setUInt  (idx++, item.item_info.repair);
                 aps->setUInt  (idx++, item.item_info.energy);
-                aps->setUInt  (idx++, 0);
-                aps->setUInt  (idx++, 0);
-                aps->setUInt  (idx++, 0);
-                aps->setUInt  (idx++, 0);
+#if defined(RELEASE_1_0_3)
+                aps->setUInt(idx++, 0);
+                aps->setUInt(idx++, 0);
+                aps->setUInt(idx++, 0);
+                aps->setUInt(idx++, 0);
+#else
+                aps->setUInt(idx++, item.item_info.is_sealed);
+                aps->setUInt(idx++, item.item_info.seal_level);
+                aps->setUInt(idx++, item.item_info.enhance_exp);
+                aps->setUInt(idx++, item.item_info.enhance_level);
+#endif
                 aps->setUInt  (idx++, item.stock);
                 aps->setUInt  (idx++, item.is_equipped);
                 aps->setUInt  (idx++, item.character_id);
@@ -1593,6 +2101,32 @@ namespace BaseLib
         }
     }
 
+    std::expected<void, DbError> CDatabase::PersistGachaPityPatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.gacha_pity_patches.empty()) return {};
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "INSERT INTO player_gacha_pity (PlayerId, GachaId, LuckyPoints) VALUES (?, ?, ?) "
+                "ON DUPLICATE KEY UPDATE LuckyPoints = VALUES(LuckyPoints)"));
+
+            for (const auto& patch : v.gacha_pity_patches)
+            {
+                pstmt->setUInt(1, v.aid);
+                pstmt->setUInt(2, patch.gacha_id);
+                pstmt->setUInt(3, patch.lucky_points);
+                pstmt->executeUpdate();
+            }
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistGachaPityPatches sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
     std::expected<void, DbError> CDatabase::UpdateAccount(ValidatedDbUpdates& v, ResultDbUpdateInfo& out)
     {
         try 
@@ -1640,6 +2174,9 @@ namespace BaseLib
 
             if (auto r = PersistPlayerSocialsPatches(v, out); !r.has_value())
 				return fail(r.error(), "PersistPlayerSocialsPatches aid " + aid_str);
+
+            if (auto r = PersistGachaPityPatches(v); !r.has_value())
+				return fail(r.error(), "PersistGachaPityPatches aid " + aid_str);
 
             stmt->execute("COMMIT");
             return {};
@@ -1705,6 +2242,9 @@ namespace BaseLib
 
                 if (auto r = PersistPlayerSocialsPatches(v, out); !r.has_value())
                     return fail(r.error(), "PersistPlayerSocialsPatches aid " + aid_str);
+
+                if (auto r = PersistGachaPityPatches(v); !r.has_value())
+                    return fail(r.error(), "PersistGachaPityPatches aid " + aid_str);
             }
             stmt->execute("COMMIT");
             return {};
@@ -1715,6 +2255,285 @@ namespace BaseLib
             auto err = DbError::FromSQLException(e);
             DEBUGLOG(red, "UpdateAccount SQL error: {} (code {}, state {})", err.message, err.error_code, err.sql_state);
             return std::unexpected(err);
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::InsertAccount(const std::string& username, const std::string& password_hash, const std::string& salt, const std::string& nickname)
+    {
+        try
+        {
+            if (auto r = EnsureConnected(); !r.has_value()) return r;
+
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+                "INSERT INTO accounts (Username, Password, Salt, Nickname, Level, MaximumEnergy) "
+                "VALUES (?, ?, ?, ?, 0, 1000)"
+            ));
+            pstmt->setString(1, username);
+            pstmt->setString(2, password_hash);
+            pstmt->setString(3, salt);
+            pstmt->setString(4, nickname);
+
+            if (!pstmt->executeUpdate())
+                return std::unexpected(DbError{ DbError::Type::NoRowsAffected, 0, {}, "Failed to insert account" });
+
+            DEBUGLOG(green, "Created account: username={}, nickname={}", username, nickname);
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "InsertAccount sql exception: {}", e.what());
+            if (e.getErrorCode() == 1062) // Duplicate entry
+                return std::unexpected(DbError{ DbError::Type::DuplicateNickname, e.getErrorCode(), e.getSQLState().c_str(), "Username or nickname already exists" });
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistChatLogs(const std::vector<ChatLogEntry>& logs)
+    {
+        try
+        {
+            if (logs.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_chatlogs (Aid, TargetAid, ChatType, ChatLocation, ServerId, RoomId, PlazaId, ClanId, Message) VALUES "
+                + GenerateQuestionMarks(logs.size(), 9);
+
+            auto ps = conn->prepareStatement(sql);
+            int idx = 1;
+
+            for (const auto& log : logs)
+            {
+                ps->setInt(idx++, log.aid);
+                log.target_aid.has_value() ? ps->setInt(idx++, log.target_aid.value()) : ps->setNull(idx++, 0);
+                ps->setString(idx++, ChatLog::TypeToString(log.chat_type));
+                log.location.has_value() ? ps->setString(idx++, ChatLog::LocationToString(log.location.value())) : ps->setNull(idx++, 0);
+                ps->setUInt(idx++, log.server_id);
+                log.room_id.has_value() ? ps->setUInt(idx++, log.room_id.value()) : ps->setNull(idx++, 0);
+                log.plaza_id.has_value() ? ps->setUInt(idx++, log.plaza_id.value()) : ps->setNull(idx++, 0);
+                log.clan_id.has_value() ? ps->setUInt(idx++, log.clan_id.value()) : ps->setNull(idx++, 0);
+                ps->setString(idx++, log.message.substr(0, 256));
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} chat logs", logs.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistChatLogs sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistItemLogs(const std::vector<ItemLogEntry>& logs)
+    {
+        try
+        {
+            if (logs.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_itemlogs (Aid, RelatedAid, ActionType, ItemId, ItemType, SerialInfo, OriginType, MpDelta, RtDelta, CouponDelta, EnergyDelta, NewItemId, NewRepair) VALUES "
+                + GenerateQuestionMarks(logs.size(), 13);
+
+            auto ps = conn->prepareStatement(sql);
+            int idx = 1;
+
+            for (const auto& log : logs)
+            {
+                ps->setInt(idx++, log.aid);
+                log.related_aid.has_value() ? ps->setInt(idx++, log.related_aid.value()) : ps->setNull(idx++, 0);
+                ps->setString(idx++, ItemLog::ActionTypeToString(log.action_type));
+                ps->setUInt(idx++, log.item_id);
+                log.item_type.has_value() ? ps->setString(idx++, ItemLog::ItemTypeToString(log.item_type.value())) : ps->setNull(idx++, 0);
+                log.serial_info.has_value() ? ps->setUInt64(idx++, log.serial_info.value()) : ps->setNull(idx++, 0);
+                ps->setString(idx++, ItemLog::OriginTypeToString(log.origin_type));
+                ps->setInt(idx++, log.mp_delta);
+                ps->setInt(idx++, log.rt_delta);
+                ps->setInt(idx++, log.coupon_delta);
+                ps->setInt(idx++, log.energy_delta);
+                log.new_item_id.has_value() ? ps->setUInt(idx++, log.new_item_id.value()) : ps->setNull(idx++, 0);
+                log.new_repair.has_value() ? ps->setUInt(idx++, log.new_repair.value()) : ps->setNull(idx++, 0);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} item logs", logs.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistItemLogs sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistCurrencyLogs(const std::vector<CurrencyLogEntry>& logs)
+    {
+        try
+        {
+            if (logs.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_currencylogs (Aid, CurrencyType, Amount, BeforeValue, AfterValue, SourceType, RelatedItemId) VALUES "
+                + GenerateQuestionMarks(logs.size(), 7);
+
+            auto ps = conn->prepareStatement(sql);
+            int idx = 1;
+
+            for (const auto& log : logs)
+            {
+                ps->setInt(idx++, log.aid);
+                ps->setString(idx++, CurrencyLog::TypeToString(log.currency_type));
+                ps->setInt(idx++, log.amount);
+                ps->setUInt64(idx++, log.before_value);
+                ps->setUInt64(idx++, log.after_value);
+                ps->setString(idx++, CurrencyLog::SourceTypeToString(log.source_type));
+                log.related_item_id.has_value() ? ps->setUInt(idx++, log.related_item_id.value()) : ps->setNull(idx++, 0);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} currency logs", logs.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistCurrencyLogs sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistRoomLogs(const std::vector<RoomLogEntry>& logs)
+    {
+        try
+        {
+            if (logs.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_roomlogs (Aid, TargetAid, EventType, ServerId, RoomId, HostAid, TeamId, NewTeamId, VoteKickReason) VALUES "
+                + GenerateQuestionMarks(logs.size(), 9);
+
+            auto ps = conn->prepareStatement(sql);
+            int idx = 1;
+
+            for (const auto& log : logs)
+            {
+                ps->setInt(idx++, log.aid);
+                log.target_aid.has_value() ? ps->setInt(idx++, log.target_aid.value()) : ps->setNull(idx++, 0);
+                ps->setString(idx++, RoomLog::EventTypeToString(log.event_type));
+                ps->setUInt(idx++, log.server_id);
+                ps->setUInt(idx++, log.room_id);
+                log.host_aid.has_value() ? ps->setInt(idx++, log.host_aid.value()) : ps->setNull(idx++, 0);
+                log.team_id.has_value() ? ps->setUInt(idx++, log.team_id.value()) : ps->setNull(idx++, 0);
+                log.new_team_id.has_value() ? ps->setUInt(idx++, log.new_team_id.value()) : ps->setNull(idx++, 0);
+                log.votekick_reason.has_value() ? ps->setUInt(idx++, log.votekick_reason.value()) : ps->setNull(idx++, 0);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} room logs", logs.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistRoomLogs sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistAcDetectionLogs(const std::vector<AcDetectionLogEntry>& logs)
+    {
+        try
+        {
+            if (logs.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO ac_detections (Aid, Ip, Hwid, DetectionFlag, Extra, ServerId) VALUES "
+                + GenerateQuestionMarks(logs.size(), 6);
+
+            auto ps = conn->prepareStatement(sql);
+            int idx = 1;
+
+            for (const auto& log : logs)
+            {
+                ps->setInt(idx++, log.aid);
+                ps->setString(idx++, log.ip);
+                ps->setString(idx++, log.hwid);
+                ps->setString(idx++, AcDetection::FlagToString(log.detection_flag));
+                ps->setUInt(idx++, log.extra);
+                ps->setUInt(idx++, log.server_id);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} ac detection logs", logs.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistAcDetectionLogs sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistAuthHistory(const AuthHistoryLogEntry& entry)
+    {
+        try
+        {
+            auto ps = conn->prepareStatement(
+                "INSERT INTO ac_auth_history (Aid, Ip, Hwid, ServerId) VALUES (?, ?, ?, ?)");
+            ps->setInt(1, entry.aid);
+            ps->setString(2, entry.ip);
+            ps->setString(3, entry.hwid);
+            ps->setUInt(4, entry.server_id);
+            ps->executeUpdate();
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistAuthHistory sql exception: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CDatabase::PersistLogs(const LogContext& ctx)
+    {
+        try
+        {
+            if (ctx.empty()) return {};
+            if (!EnsureConnected()) return std::unexpected(DbError{ DbError::Type::ConnectionLost, 0, {}, "Not connected" });
+
+            std::unique_ptr<sql::Statement> stmt(conn->createStatement());
+            stmt->execute("START TRANSACTION");
+
+            auto fail = [&](DbError err, std::string_view reason)
+                {
+                    try { stmt->execute("ROLLBACK"); }
+                    catch (...) {}
+                    DEBUGLOG(red, "PersistLogs failed: {}", reason);
+                    return std::unexpected(err);
+                };
+
+            if (auto r = PersistChatLogs(ctx.chat_logs); !r.has_value())
+                return fail(r.error(), "PersistChatLogs");
+
+            if (auto r = PersistItemLogs(ctx.item_logs); !r.has_value())
+                return fail(r.error(), "PersistItemLogs");
+
+            if (auto r = PersistCurrencyLogs(ctx.currency_logs); !r.has_value())
+                return fail(r.error(), "PersistCurrencyLogs");
+
+            if (auto r = PersistRoomLogs(ctx.room_logs); !r.has_value())
+                return fail(r.error(), "PersistRoomLogs");
+
+            if (auto r = PersistAcDetectionLogs(ctx.ac_detection_logs); !r.has_value())
+                return fail(r.error(), "PersistAcDetectionLogs");
+
+            stmt->execute("COMMIT");
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            try { std::unique_ptr<sql::Statement> rb(conn->createStatement()); rb->execute("ROLLBACK"); }
+            catch (...) {}
+            DEBUGLOG(red, "PersistLogs SQL error: {}", e.what());
+            return std::unexpected(DbError::FromSQLException(e));
         }
     }
     /*
@@ -2493,7 +3312,7 @@ namespace BaseLib
     }
     */
 
-    bool CDatabase::GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids)
+    bool CDatabase::GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward)
     {
         try
         {
@@ -2781,6 +3600,59 @@ namespace BaseLib
                         static_cast<bool>(mailRes->getByte("DeletedFromSender")),
                         static_cast<bool>(mailRes->getByte("DeletedFromReceiver"))
                         });
+                }
+
+                std::unique_ptr<sql::PreparedStatement> pityStmt(conn->prepareStatement("SELECT GachaId, LuckyPoints FROM player_gacha_pity WHERE PlayerId = ?"));
+                pityStmt->setUInt(1, accId);
+                std::unique_ptr<sql::ResultSet> pityRes(pityStmt->executeQuery());
+                while (pityRes->next())
+                {
+                    GachaPityEntry entry;
+                    entry.gacha_id = pityRes->getUInt("GachaId");
+                    entry.lucky_points = pityRes->getUInt("LuckyPoints");
+                    gacha_pity.push_back(entry);
+                }
+
+                if (outMonthlyRewards)
+                {
+                    uint32_t curYear = Utility::GetCurrentYear();
+                    uint32_t curMonth = Utility::GetCurrentMonth();
+                    std::unique_ptr<sql::PreparedStatement> monthlyStmt(conn->prepareStatement(
+                        "SELECT * FROM system_monthly_rewards WHERE Year = ? AND Month = ?"));
+                    monthlyStmt->setUInt(1, curYear);
+                    monthlyStmt->setUInt(2, curMonth);
+                    std::unique_ptr<sql::ResultSet> monthlyRes(monthlyStmt->executeQuery());
+                    if (monthlyRes->next())
+                    {
+                        *outMonthlyRewards = SystemMonthlyRewards(curYear, curMonth,
+                            {
+                                monthlyRes->getUInt("Day1"),  monthlyRes->getUInt("Day2"),  monthlyRes->getUInt("Day3"),
+                                monthlyRes->getUInt("Day4"),  monthlyRes->getUInt("Day5"),  monthlyRes->getUInt("Day6"),
+                                monthlyRes->getUInt("Day7"),  monthlyRes->getUInt("Day8"),  monthlyRes->getUInt("Day9"),
+                                monthlyRes->getUInt("Day10"), monthlyRes->getUInt("Day11"), monthlyRes->getUInt("Day12"),
+                                monthlyRes->getUInt("Day13"), monthlyRes->getUInt("Day14"), monthlyRes->getUInt("Day15"),
+                                monthlyRes->getUInt("Day16"), monthlyRes->getUInt("Day17"), monthlyRes->getUInt("Day18"),
+                                monthlyRes->getUInt("Day19"), monthlyRes->getUInt("Day20"), monthlyRes->getUInt("Day21"),
+                                monthlyRes->getUInt("Day22"), monthlyRes->getUInt("Day23"), monthlyRes->getUInt("Day24"),
+                                monthlyRes->getUInt("Day25"), monthlyRes->getUInt("Day26"), monthlyRes->getUInt("Day27"),
+                                monthlyRes->getUInt("Day28"), monthlyRes->getUInt("Day29"), monthlyRes->getUInt("Day30"),
+                                monthlyRes->getUInt("Day31")
+                            });
+                    }
+                }
+
+                if (outPlayerMonthlyReward)
+                {
+                    std::unique_ptr<sql::PreparedStatement> playerMonthlyStmt(conn->prepareStatement(
+                        "SELECT RewardCount, UNIX_TIMESTAMP(LastUpdate) AS LastUpdate FROM player_monthly_rewards WHERE PlayerId = ?"));
+                    playerMonthlyStmt->setUInt(1, accId);
+                    std::unique_ptr<sql::ResultSet> playerMonthlyRes(playerMonthlyStmt->executeQuery());
+                    if (playerMonthlyRes->next())
+                    {
+                        outPlayerMonthlyReward->player_account_id = accId;
+                        outPlayerMonthlyReward->day_count = playerMonthlyRes->getByte("RewardCount");
+                        outPlayerMonthlyReward->last_time_update = playerMonthlyRes->getUInt64("LastUpdate");
+                    }
                 }
 
                 std::unique_ptr<sql::PreparedStatement> updateOnlineStmt(conn->prepareStatement("UPDATE accounts SET ServerId = ? WHERE Id = ?"));
@@ -3417,7 +4289,7 @@ namespace BaseLib
             stmt->execute("START TRANSACTION");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT Id, ServerId, Password, Salt, Grade "
+                "SELECT Id, ServerId, Password, Salt, Grade, IsEmailVerified, TwoFactorSecret, TwoFactorEnabled "
                 "FROM accounts "
                 "WHERE Username = ?"
             ));
@@ -3467,7 +4339,10 @@ namespace BaseLib
 
             *outPlazaAuth = PlazaAuth(result->getUInt("Id"),
                 result->getUInt("ServerId"),
-                result->getByte("Grade")
+                result->getByte("Grade"),
+                result->getBoolean("IsEmailVerified"),
+                result->getBoolean("TwoFactorEnabled"),
+                result->getString("TwoFactorSecret").c_str()
             );
 
             std::unique_ptr<sql::PreparedStatement> purge(conn->prepareStatement("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)"));
@@ -3609,7 +4484,7 @@ namespace BaseLib
 
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT a.Id, a.ServerId, a.Grade "
+                "SELECT a.Id, a.ServerId, a.Grade, a.IsEmailVerified, a.TwoFactorEnabled, a.TwoFactorSecret "
                 "FROM player_sessions s "
                 "JOIN accounts a ON s.PlayerId = a.Id "
                 "WHERE s.AuthKey = ?"
@@ -3626,6 +4501,9 @@ namespace BaseLib
             *outPlazaAuth = PlazaAuth(result->getUInt("Id"),
                 result->getUInt("ServerId"),
                 result->getByte("Grade"),
+                result->getBoolean("IsEmailVerified"),
+                result->getBoolean("TwoFactorEnabled"),
+                result->getString("TwoFactorSecret").c_str(),
                 authKey
             );
 

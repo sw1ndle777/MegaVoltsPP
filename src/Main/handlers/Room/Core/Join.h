@@ -18,6 +18,7 @@ namespace Game::Handlers
         int32_t current_team_id = -1;
         auto join_result = static_cast<NetEngine::Room::Join::ReqResult>(message->GetExtra());
         if (acc_index == -1) return;
+		auto server_id = acc_cache->server_id;
         const auto& joinRoomReq = reinterpret_cast<MainJoinRoomReq*>(message->GetData());
 
         if (acc_cache->in_room)
@@ -38,6 +39,18 @@ namespace Game::Handlers
         }
 
         auto room_cache = CRoom.get<unique_t>(joinRoomReq->room_id);
+        
+        auto hostAid = 0;
+		if (session_id != room_cache->host_session_id)
+        {
+            auto host_cache = CAccount.get<shared_t>(room_cache->host_session_id);
+            hostAid = host_cache->acc_info.Index;
+            host_cache.unlock();
+            
+        }
+        else
+            hostAid = acc_index;
+
         DEBUGLOG(dark_cyan, "player ({}) attempt to join Room No. ({}), channel id: ({})", session->GetSessionId(), joinRoomReq->room_id, joinRoomReq->channel_id);
         if (room_cache->title.empty())
         {
@@ -564,5 +577,19 @@ namespace Game::Handlers
                 player_session->SendMsg(312, 0, 0, 7, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
 
         DEBUGLOG(dark_cyan, "player ({}) join room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_cache->room_id);
+
+        RoomLogEntry room_log;
+        room_log.aid = acc_index;
+        room_log.event_type = RoomLog::EventType::RoomJoined;
+        room_log.server_id = server_id;
+        room_log.room_id = joinRoomReq->room_id;
+        room_log.host_aid = hostAid;
+        room_log.team_id = static_cast<uint8_t>(current_team_id);
+
+        [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([room_log]() mutable
+            {
+                BaseLib::Database->PersistRoomLogs({ room_log });
+            });
+
     }
 }

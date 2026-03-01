@@ -167,7 +167,8 @@ namespace Game
         uint32_t prob;
         ProbabilityStruct(const uint32_t& id, const uint32_t& prob) : id(id), prob(prob) {}
     };
-    
+
+    inline bool g_gacha_pity_enabled = true;
 
     struct Player
     {
@@ -197,8 +198,10 @@ namespace Game
         PlayerDailyMission daily_mission_info;
         BaseLib::FrontAccount acc_info;
         std::vector<Item> inventory_items;
-        bool multiple_accs_logged_in;
-        uint32_t front_sid{ 0 };
+		bool multiple_accs_logged_in;
+		uint32_t front_sid{ 0 };
+		std::vector<GachaPityEntry> gacha_pity;
+		std::string hwid;
         Player(const uint16_t& sessionId, const uint64_t& serverTime, const BaseLib::FrontAccount& accountInfo, const std::vector<Item>& inventoryItems)
             : session_id(sessionId), server_time(serverTime), acc_info(accountInfo), inventory_items(inventoryItems)
         {
@@ -224,6 +227,8 @@ namespace Game
             zombie_team = 0;
             multiple_accs_logged_in = false;
             front_sid = 0;
+            gacha_pity.clear();
+            hwid.clear();
         }
         Player(const Player& other)
         {
@@ -252,10 +257,12 @@ namespace Game
             acc_info = other.acc_info;
             inventory_items = other.inventory_items;
             daily_mission_info = other.daily_mission_info;
-            multiple_accs_logged_in = other.multiple_accs_logged_in;
+			multiple_accs_logged_in = other.multiple_accs_logged_in;
 			front_sid = other.front_sid;
-        }
-        Player& operator=(const Player& other)
+			gacha_pity = other.gacha_pity;
+			hwid = other.hwid;
+		}
+		Player& operator=(const Player& other)
         {
             if (this == &other) return *this;
 			boss_respawn_remaining = other.boss_respawn_remaining;
@@ -283,10 +290,12 @@ namespace Game
             acc_info = other.acc_info;
             inventory_items = other.inventory_items;
             daily_mission_info = other.daily_mission_info;
-            multiple_accs_logged_in = other.multiple_accs_logged_in;
+			multiple_accs_logged_in = other.multiple_accs_logged_in;
 			front_sid = other.front_sid;
-            return *this;
-        }
+			gacha_pity = other.gacha_pity;
+			hwid = other.hwid;
+			return *this;
+		}
         Player()
         {
 			boss_respawn_remaining = 3;
@@ -312,10 +321,12 @@ namespace Game
             voice_id = 0;
             match_loaded_time = 0;
             inventory_items.clear();
-            multiple_accs_logged_in = false;
+			multiple_accs_logged_in = false;
 			front_sid = 0;
-        }
-    };
+			gacha_pity.clear();
+			hwid.clear();
+		}
+	};
     struct Room
     {
         std::shared_mutex mutex;
@@ -847,7 +858,6 @@ namespace Game
                 {
                     auto acc = CAccount.get<shared_t>(id);
                     if (acc &&
-                        !acc.is_null() &&
                         acc->acc_info.Index != -1 && 
                         acc->in_room && 
                         acc->room_id == room_cache->room_id)
@@ -887,7 +897,6 @@ namespace Game
                     {
                         auto acc = CAccount.get<shared_t>(id);
                         if (acc &&
-                            !acc.is_null() &&
                             acc->acc_info.Index != -1 &&
                             acc->in_room &&
                             acc->room_id == room_cache->room_id)
@@ -921,7 +930,6 @@ namespace Game
                     {
                         auto acc = CAccount.get<shared_t>(id);
                         if (acc &&
-                            !acc.is_null() &&
                             acc->acc_info.Index != -1 &&
                             acc->in_room &&
                             acc->room_id == room_cache->room_id)
@@ -961,7 +969,6 @@ namespace Game
                     {
                         auto acc = CAccount.get<shared_t>(id);
                         if (acc &&
-                            !acc.is_null() &&
                             acc->acc_info.Index != -1 &&
                             acc->in_room &&
                             acc->room_id == room_cache->room_id)
@@ -1001,7 +1008,6 @@ namespace Game
                     {
                         auto acc = CAccount.get<shared_t>(id);
                         if (acc &&
-                            !acc.is_null() &&
                             acc->acc_info.Index != -1 &&
                             acc->in_room &&
                             acc->room_id == room_cache->room_id)
@@ -1041,7 +1047,6 @@ namespace Game
                     {
                         auto acc = CAccount.get<shared_t>(id);
                         if (acc &&
-                            !acc.is_null() &&
                             acc->acc_info.Index != -1 &&
                             acc->in_room &&
                             acc->room_id == room_cache->room_id)
@@ -1071,24 +1076,23 @@ namespace Game
 
             return idx;
         }
-        inline void TryRemoveObservers(RoomCacheResource& room) 
+        inline void TryRemoveObservers(RoomCacheResource& room)
         {
-            for (const auto& id : room->observers_session_ids) 
+            for (const auto& id : room->observers_session_ids)
             {
-                auto acc = CAccount.get<shared_t>(id);
-                if (!acc &&
-                    !acc.is_null() &&
-                    !acc->acc_info.Index &&
-                    !acc->in_room &&
+                auto acc = CAccount.get<unique_t>(id);
+                if (!acc ||
+                    !acc->acc_info.Index ||
+                    !acc->in_room ||
                     acc->room_id != room->room_id) continue;
 
-                acc->in_room  = false;
-                acc->slot_id  = 0;
-                acc->playing  = false;
-                acc->state    = PlayerInfo::State::Waiting;
+                acc->in_room = false;
+                acc->slot_id = 0;
+                acc->playing = false;
+                acc->state = PlayerInfo::State::Waiting;
                 acc.unlock();
 
-                if (auto pss = this->GetSessionById(id)) 
+                if (auto pss = this->GetSessionById(id))
                     pss->SendMsg(141, 0, NetEngine::Room::Leave::Ack::Result::Leave, 0);
             }
         }
@@ -1096,37 +1100,35 @@ namespace Game
         {
             const auto& sids = GetRoomSortedPlayerWithoutObserverSessionIds(room_cache);
             auto scan = [&](bool requirePlaying) ->uint16_t
-            {
-                uint16_t best_sid = 0;
-                uint32_t best_ping = std::numeric_limits<uint32_t>::max();
-                for (auto sid : sids)
                 {
-                    if (sid == leaving_hostSid) continue;
-
-                    auto acc = CAccount.get<shared_t>(sid);
-                    if (!acc &&
-                        !acc.is_null() &&
-                        !acc->acc_info.Index &&
-                        !acc->in_room &&
-                        acc->room_id != room_cache->room_id)
+                    uint16_t best_sid = 0;
+                    uint32_t best_ping = std::numeric_limits<uint32_t>::max();
+                    for (auto sid : sids)
                     {
+                        if (sid == leaving_hostSid) continue;
+
+                        auto acc = CAccount.get<shared_t>(sid);
+                        if (!acc ||
+                            !acc->acc_info.Index ||
+                            !acc->in_room ||
+                            acc->room_id != room_cache->room_id)
+                        {
+                            continue;
+                        }
+
+                        bool isPlaying = acc->playing;
+                        if (requirePlaying && !isPlaying) { acc.unlock(); continue; }
+                        if (!requirePlaying && isPlaying) { acc.unlock(); continue; }
+
+                        if (acc->ping < best_ping)
+                        {
+                            best_ping = acc->ping;
+                            best_sid = sid;
+                        }
                         acc.unlock();
-						continue;
                     }
-
-                    bool isPlaying = acc->playing;
-                    if (requirePlaying && !isPlaying) { acc.unlock(); continue; }
-                    if (!requirePlaying && isPlaying) { acc.unlock(); continue; }
-
-                    if (acc->ping < best_ping)
-                    {
-                        best_ping = acc->ping;
-                        best_sid = sid;
-                    }
-                    acc.unlock();
-                }
-                return best_sid;
-            };
+                    return best_sid;
+                };
 
             if (auto inMatchCandidate = scan(true); inMatchCandidate != 0)
                 return inMatchCandidate;
@@ -1179,7 +1181,6 @@ namespace Game
 		}
         void NewRemoveRoomPlayer(RoomCacheResource& room, const uint16_t sid, const uint8_t team_id, NetEngine::Room::Leave::Ack::Result leave_type, bool return_state)
         {
-
             const auto room_id = room->room_id;
             if (!CRoom.contains(room_id))
             {
@@ -1189,13 +1190,11 @@ namespace Game
             DEBUGLOG(dark_cyan, "player ({}) leave room (observer-aware swap-with-last)", sid);
 
             auto acc = CAccount.get<unique_t>(sid);
-            if (!acc &&
-                !acc.is_null() &&
-                !acc->acc_info.Index &&
-                !acc->in_room &&
+            if (!acc ||
+                !acc->acc_info.Index ||
+                !acc->in_room ||
                 acc->room_id != room_id)
             {
-                acc.unlock();
                 return;
             }
 
@@ -1205,66 +1204,78 @@ namespace Game
             acc.unlock();
 
             const bool is_observer = static_cast<NetEngine::Team::IdType>(removed_teamid) == NetEngine::Team::IdType::Observer;
-            constexpr uint32_t observer_slot_base = 16; // observers always start after the 16 max players
+            constexpr uint32_t observer_slot_base = 16;
             bool host_changed = false;
             uint32_t previousSlotIdNewHost = 0;
             if (!is_observer && room->host_session_id == sid)
             {
                 auto new_hostSid = PickAutoHost(room, sid);
-                room->host_session_id = new_hostSid;
+                if (new_hostSid != 0)
+                {
+                    room->host_session_id = new_hostSid;
 
-                struct RoomAuthData { uint16_t room_id; uint64_t auth_key; };
+                    struct RoomAuthData { uint16_t room_id; uint64_t auth_key; };
 
-                auto leaving_host = CAccount.get<unique_t>(sid);
-                auto new_host = CAccount.get<unique_t>(new_hostSid);
+                    auto [first_sid, second_sid] = std::minmax(sid, new_hostSid);
+                    auto first_lock = CAccount.get<unique_t>(first_sid);
+                    auto second_lock = CAccount.get<unique_t>(second_sid);
+                    if (!first_lock || !second_lock) return;
+                    auto& leaving_host = (sid == first_sid) ? first_lock : second_lock;
+                    auto& new_host = (new_hostSid == first_sid) ? first_lock : second_lock;
 
-                RoomAuthData new_host_data{ room->room_id, new_host->acc_info.AuthKey };
-                SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
+                    RoomAuthData new_host_data{ room->room_id, new_host->acc_info.AuthKey };
+                    SendCastIpc(PacketIds::Ipc::MainToCastHostChange, Utility::ToVector(new_host_data));
 
-                previousSlotIdNewHost = new_host->slot_id;
-                new_host->slot_id = 0;
-                leaving_host->slot_id = previousSlotIdNewHost;
-                my_slot_id = previousSlotIdNewHost;
+                    previousSlotIdNewHost = new_host->slot_id;
+                    new_host->slot_id = 0;
+                    leaving_host->slot_id = previousSlotIdNewHost;
+                    my_slot_id = previousSlotIdNewHost;
 
-                auto& nh_team = GetTeamList(room, new_host->team_id);
-                leaving_host.unlock();
-                new_host.unlock();
-                ReorderTeamList(nh_team, new_hostSid);
-                leaving_host.lock();
-                new_host.lock();
+                    auto& nh_team = GetTeamList(room, new_host->team_id);
+                    auto new_host_nickname = new_host->acc_info.Nickname;
+                    auto leaving_host_nickname = leaving_host->acc_info.Nickname;
+                    first_lock.unlock();
+                    second_lock.unlock();
+                    ReorderTeamList(nh_team, new_hostSid);
 
-                DEBUGLOG(dark_cyan,
-                    "player host ({}) left room ({}), new host is ({})",
-                    leaving_host->acc_info.Nickname.c_str(), room->room_id, new_host->acc_info.Nickname.c_str());
-                leaving_host.unlock();
-                new_host.unlock();
-                host_changed = true;
+                    DEBUGLOG(dark_cyan,
+                        "player host ({}) left room ({}), new host is ({})",
+                        leaving_host_nickname.c_str(), room->room_id, new_host_nickname.c_str());
+                    host_changed = true;
+                }
             }
 
             uint32_t slot_to_erase = my_slot_id;
 
-			auto ids = is_observer ? this->GetRoomSortedObserversSessionIds(room) : this->GetRoomSortedPlayerWithoutObserverSessionIds(room);
+            auto ids = is_observer ? this->GetRoomSortedObserversSessionIds(room) : this->GetRoomSortedPlayerWithoutObserverSessionIds(room);
             if (!ids.empty())
             {
-				auto last_sid = ids.back();
-				auto last_acc = CAccount.get<shared_t>(last_sid);
-				auto last_slot_id = last_acc->slot_id;
-				last_acc.unlock();
+                auto last_sid = ids.back();
+                auto last_acc = CAccount.get<shared_t>(last_sid);
+                auto last_slot_id = last_acc ? last_acc->slot_id : 0u;
+                if (last_acc) last_acc.unlock();
+
                 if (last_sid != sid)
                 {
                     auto last_acc_u = CAccount.get<unique_t>(last_sid);
-                    const auto last_team_id = last_acc_u->team_id;
-                    last_acc_u->slot_id = my_slot_id;
-                    last_acc_u.unlock();
-                    auto removed_acc2 = CAccount.get<unique_t>(sid);
-                    removed_acc2->slot_id = last_slot_id;
-                    removed_acc2.unlock();
-                    auto& last_team = GetTeamList(room, last_team_id);
-                    ReorderTeamList(last_team, last_sid);
+                    if (last_acc_u)
+                    {
+                        const auto last_team_id = last_acc_u->team_id;
+                        last_acc_u->slot_id = my_slot_id;
+                        last_acc_u.unlock();
+                        auto removed_acc2 = CAccount.get<unique_t>(sid);
+                        if (removed_acc2)
+                        {
+                            removed_acc2->slot_id = last_slot_id;
+                            removed_acc2.unlock();
+                        }
+                        auto& last_team = GetTeamList(room, last_team_id);
+                        ReorderTeamList(last_team, last_sid);
+                    }
                     slot_to_erase = last_slot_id;
                 }
                 else
-					slot_to_erase = last_slot_id;
+                    slot_to_erase = last_slot_id;
 
                 auto& team_list = GetTeamList(room, removed_teamid);
                 team_list.erase(std::remove(team_list.begin(), team_list.end(), sid), team_list.end());
@@ -1276,19 +1287,21 @@ namespace Game
                 if (id == sid) continue;
                 if (auto pss = this->GetSessionById(id))
                 {
-                    if (host_changed) pss->SendMsg(128, 0, 1, static_cast<uint8_t>(previousSlotIdNewHost)); // host change notice
+                    if (host_changed) pss->SendMsg(128, 0, 1, static_cast<uint8_t>(previousSlotIdNewHost));
                     pss->SendMsg(422, 0, 0, static_cast<uint8_t>(slot_to_erase), reinterpret_cast<uint8_t*>(&removed_uid), static_cast<uint16_t>(sizeof(removed_uid)));
                 }
             }
-            acc.lock();
-            acc->zombie_team = 0;
-            acc->in_room = false;
-            acc->slot_id = 0;
-            acc->playing = false;
-            acc->room_id = 0;
-            acc->state = PlayerInfo::State::Waiting;
-            const auto target_aid = acc->acc_info.Index;
-            acc.unlock();
+
+            auto acc_final = CAccount.get<unique_t>(sid);
+            if (!acc_final) return;
+            acc_final->zombie_team = 0;
+            acc_final->in_room = false;
+            acc_final->slot_id = 0;
+            acc_final->playing = false;
+            acc_final->room_id = 0;
+            acc_final->state = PlayerInfo::State::Waiting;
+            const auto target_aid = acc_final->acc_info.Index;
+            acc_final.unlock();
 
             using enum NetEngine::Room::Leave::Ack::Result;
             switch (leave_type)
@@ -1316,14 +1329,14 @@ namespace Game
             if (!room->observers_session_ids.empty())
                 TryRemoveObservers(room);
 
-            if(CRoom.contains(room_id))
+            if (CRoom.contains(room_id))
             {
                 CRoom.erase(room_id);
-				CRoomId.erase_value(room_id);
+                CRoomId.erase_value(room_id);
                 DEBUGLOG(dark_cyan, "room ({}) deleted from CRoom map", room_id);
             }
             else
-				DEBUGLOG(dark_cyan, "room ({}) not found in CRoom map on deletion attempt", room_id);
+                DEBUGLOG(dark_cyan, "room ({}) not found in CRoom map on deletion attempt", room_id);
             this->SetRoomIdAvailable(room_id);
         }
 
@@ -1474,6 +1487,18 @@ namespace Game
                     out.push_back(itemVec[*idx]);
             return Utility::Random::CustomGen(0, 100) < coupon_chance;
         }    
+        std::optional<GachaponPackageItem> ExtractGachaponRareItem(GachaponCacheResource& gachapon_info)
+        {
+            std::vector<GachaponPackageItem> rare_items;
+            for (const auto& [groupId, itemVec] : gachapon_info->Gachapons)
+                for (const auto& item : itemVec)
+                    if (item.ItemType == Items::Gachapon::Rarity::Rare)
+                        rare_items.push_back(item);
+            if (rare_items.empty()) return std::nullopt;
+            if (auto idx = ExtractIndex(rare_items, [](const GachaponPackageItem& e) { return e.Probability; }))
+                return rare_items[*idx];
+            return rare_items[0];
+        }
         auto GetUpgradeCollectionInfoCache(const Items::Upgrade::Type& upgrade_type, const uint32_t& item_id)
         {
             if (auto vecLock = CUpgradesInfo.get<BaseLib::shared_t>(item_id, upgrade_type);
@@ -1936,6 +1961,7 @@ namespace Game
             {
                 using enum CurrencyType;
                 out_ctx.ops.emplace_back(AccountCurrencyDelta{ .type = MP, .value = gi->RewardPoint, .is_reward = true });
+				result_info.reward_mp.emplace(gi->RewardPoint);
                 DEBUGLOG(dark_cyan, "will get point reward: ({})", gi->RewardPoint);
             }
             if (gi->RewardItem)
@@ -2029,9 +2055,11 @@ namespace Game
 					out.match_history_adds.push_back(*mha);
 				else if (auto psp = std::get_if<PlayerSessionsPatch>(&op))
 					out.player_sessions_patches.push_back(*psp);
-                else if (auto pslp = std::get_if<PlayerSocialPatch>(&op))
+				else if (auto pslp = std::get_if<PlayerSocialPatch>(&op))
 					out.player_social_patches.push_back(*pslp);
-            }
+				else if (auto gpp = std::get_if<GachaPityPatch>(&op))
+					out.gacha_pity_patches.push_back(*gpp);
+			}
 
             auto finalize = [&](Accum a, CurrencyType type) 
             {
@@ -2399,6 +2427,15 @@ namespace Game
                 default:
                     return std::unexpected(DbUpdateError::InvalidOp);
                 }
+            }
+            for (const auto& gpp : v.gacha_pity_patches)
+            {
+                auto it = std::find_if(acc_cache->gacha_pity.begin(), acc_cache->gacha_pity.end(),
+                    [&](const GachaPityEntry& e) { return e.gacha_id == gpp.gacha_id; });
+                if (it != acc_cache->gacha_pity.end())
+                    it->lucky_points = gpp.lucky_points;
+                else
+                    acc_cache->gacha_pity.push_back({ gpp.gacha_id, gpp.lucky_points });
             }
             return r;
         }

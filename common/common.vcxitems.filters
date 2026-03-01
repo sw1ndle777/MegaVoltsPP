@@ -25,6 +25,9 @@
     <Filter Include="Enums\Protocol">
       <UniqueIdentifier>{5f99d987-5f85-43dc-8d9a-e5ffc30613d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="BaseLib\otp">
+      <UniqueIdentifier>{c3c66fad-b2ce-4568-9bf4-204910cf447f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)NetEngine\Packets\PacketData.h">
@@ -87,6 +90,18 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Enums\Protocol\Orders.h">
       <Filter>Enums\Protocol</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLogging.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\cotp.hpp">
+      <Filter>BaseLib\otp</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_factory.hpp">
+      <Filter>BaseLib\otp</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_uri.hpp">
+      <Filter>BaseLib\otp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.cpp">
@@ -121,6 +136,15 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.c">
       <Filter>monocypher\optional</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\cotp.cpp">
+      <Filter>BaseLib\otp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_factory.cpp">
+      <Filter>BaseLib\otp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_uri.cpp">
+      <Filter>BaseLib\otp</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

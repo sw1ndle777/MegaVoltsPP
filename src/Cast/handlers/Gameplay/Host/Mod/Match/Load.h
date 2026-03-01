@@ -17,12 +17,6 @@ namespace Game::Handlers
         auto room = CRoom.get<shared_t>(host->room_id);
 
         if (!host || !room) return;
-        if (host->session_id != room->host_session_id)
-        {
-            auto orderName = magic_enum::enum_name(order);
-            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host->nickname, hostSid, room->room_id);
-            return;
-        }
 
         auto uid = NetEngine::Packets::Core::UniqueId(hostSid, host->server_id).data;
 		auto state = message->GetOption();

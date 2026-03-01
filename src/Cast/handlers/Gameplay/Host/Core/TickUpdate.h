@@ -30,7 +30,7 @@ namespace Game::Handlers
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
             return;
         }
-        PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) roomTick=({})", roomId, user->nickname, userSid, hostName, hostSid, roomTick);
+        //PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) roomTick=({})", roomId, user->nickname, userSid, hostName, hostSid, roomTick);
         server->Forward(userSid, hostSid, *message);
         
     }

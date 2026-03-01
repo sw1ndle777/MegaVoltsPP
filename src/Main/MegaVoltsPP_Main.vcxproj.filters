@@ -143,6 +143,9 @@
     <ClCompile Include="CMainServer.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="secure_channel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMainServer.h">
@@ -478,5 +481,20 @@
     <ClInclude Include="handlers\Room\Match\Rounds\Start.h">
       <Filter>header\handlers\Room\Match\Rounds</Filter>
     </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Moderation\Player\Register.h">
+      <Filter>header\handlers\Core\Cmds\Moderation\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Items\Gamble\GachaponPity.h">
+      <Filter>header\handlers\Items\Gamble</Filter>
+    </ClInclude>
+    <ClInclude Include="secure_channel.hpp">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\AnticheatHeartbeat.h">
+      <Filter>header\handlers\Player\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="file_integrity.json" />
   </ItemGroup>
 </Project>

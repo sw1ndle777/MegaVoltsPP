@@ -1,4 +1,5 @@
 #pragma once
+#include "BaseLib/otp/cotp.hpp"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -11,11 +12,19 @@ namespace Game::Handlers
         auto message = callback.message;
         if (!session || !message) return;
 
-		auto auth_key = message->GetData<uint64_t>();
-        [[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([front_server, session = std::move(callback.session), key = std::move(auth_key)]() mutable
+		//auto auth_key = message->GetData<uint64_t>();
+        auto req = reinterpret_cast<FrontLoginReconnectReq*>(message->GetData());
+        [[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([front_server, session = std::move(callback.session), req = std::move(req)]() mutable
             {
                 auto sid = session->GetSessionId();
-                if (CAuthKeys.contains(key)) return;
+				auto key = req->authKey;
+				auto code = req->code2fa;
+				DEBUGLOG(blue, "Reconnect attempt with auth key=({}), sid=({})", key, sid);
+                if (CAuthKeys.contains(key))
+                {
+					DEBUGLOG(red, "Reconnect attempt with already used auth key=({}), sid=({})", key, sid);
+                    return;
+                }
                 auto found = false;
                 int32_t aid = 0;
 #if defined(RELEASE_1_0_3)
@@ -37,6 +46,33 @@ namespace Game::Handlers
                     if (CAccount.contains(aid)) return;
 
 #if defined(RELEASE_1_0_3)
+
+                    cotp::TOTP totp(
+                        plazaAuth.secret2fa,
+                        "SHA1",   // Google Auth uses SHA1
+                        6,        // 6-digit code
+                        30        // 30-second interval
+                    );
+
+
+					plazaAuth.isVerified2fa = totp.verify(code, 1);
+                    if (!plazaAuth.isVerified2fa)
+                    {
+                        cotp::HOTP hotp(
+                            plazaAuth.secret2fa,
+                            "SHA1",   // Google Auth uses SHA1
+                            6        // 6-digit code
+						);
+                        plazaAuth.isVerified2fa = hotp.verify(code);
+                    }
+
+                    if (!plazaAuth.isVerified2fa)
+                    {
+                        session->SendMsg(AUTH_AUTHORIZE, 0, FrontAuthorize::Type::Fail2fa, 0);
+                        return;
+                    }
+
+					DEBUGLOG(blue, "2FA verification result for aid=({}), sid=({}): {} code=({}), secret=({})", aid, sid, plazaAuth.isVerified2fa ? "Success" : "Failure", code, plazaAuth.secret2fa.c_str());
                     player.plazaAuth = plazaAuth;
                     CAuthKeys.insert(player.plazaAuth.AuthKey);
 #else

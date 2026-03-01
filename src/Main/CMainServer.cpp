@@ -24,6 +24,9 @@
 #include "handlers/Core/Cmds/Items/Item.h"
 #include "handlers/Core/Cmds/Items/ItemsByType.h"
 
+
+#include "handlers/Core/Cmds/Moderation/Player/Register.h"
+
 #include "handlers/Core/Cmds/Moderation/Room/Break.h"
 #include "handlers/Core/Cmds/Moderation/Room/BreakAll.h"
 #include "handlers/Core/Cmds/Moderation/Room/Kick.h"
@@ -79,6 +82,7 @@
 
 #include "handlers/Items/Gamble/Package.h"
 #include "handlers/Items/Gamble/Gachapon.h"
+#include "handlers/Items/Gamble/GachaponPity.h"
 
 #include "handlers/Items/Shop/Normal.h"
 #include "handlers/Items/Shop/Coupon.h"
@@ -137,6 +141,7 @@
 #include "handlers/Party/Moderation/PlayersRule.h"
 #include "handlers/Party/Moderation/Password.h"
 
+#include "handlers/Core/AnticheatHeartbeat.h"
 #include "handlers/Core/Connect.h"
 #include "handlers/Core/Disconnect.h"
 #include "handlers/Core/Ipc/CastAuthorize.h"
@@ -1186,6 +1191,7 @@ namespace Game
         this->On(GIFT_RECEIVE, std::bind(&GiftReceive, std::placeholders::_1, this));//PlayerReceiveGiftbox
         this->On(GIFT_LIST, std::bind(&GiftView, std::placeholders::_1, this));//PlayerOpenGiftbox
 
+        this->On(INFO_SECURITY_TOOLS, std::bind(&AcHeartbeat, std::placeholders::_1, this));
         this->On(ID_AUTHORIZE, std::bind(&Authorize, std::placeholders::_1, this));//version check
         this->On(ID_CREATE, std::bind(&NameChange, std::placeholders::_1, this));//nickname creation
         // ID_CHARACTER_BUY 70
@@ -1208,10 +1214,11 @@ namespace Game
         this->On(ITEM_COUPONSHOP_BUY, std::bind(&ShopCoupon, std::placeholders::_1, this));//shop coupon buy item
 
         this->On(ITEM_GACHA_SPIN, std::bind(&GachaponSpin, std::placeholders::_1, this));//gachapon spin
+		this->On(ITEM_GACHA_PITY, std::bind(&GachaponPity, std::placeholders::_1, this));//gachapon pity
 
         this->On(ITEM_PICKUP, std::bind(&Pickups, std::placeholders::_1, this));//player pickup drop
 
-        this->On(97, std::bind(&ItemRepair, std::placeholders::_1, this));//repair item
+        this->On(ITEM_REPAIR, std::bind(&ItemRepair, std::placeholders::_1, this));//repair item
         // ITEM_RESTORE 98
         this->On(ITEM_SELL, std::bind(&ItemSell, std::placeholders::_1, this));//sell item
         this->On(ITEM_UPGRADE, std::bind(&ItemUpgrade, std::placeholders::_1, this));//upgrade item

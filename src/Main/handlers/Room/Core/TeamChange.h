@@ -19,12 +19,25 @@ namespace Game::Handlers
         bool broadcast = false;
         //DEBUGLOG(dark_cyan, "player ({}) attempt equip but can't find item in item info cache or it has no namme item id: ({})", acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
         if (acc_index == -1 || !acc_cache->in_room || !CRoom.contains(acc_cache->room_id)) return;
+		auto server_id = acc_cache->server_id;
         auto room_cache = CRoom.get<unique_t>(acc_cache->room_id);
+		auto roomId = room_cache->room_id;
+        auto hostAid = 0;
+        if (session_id != room_cache->host_session_id)
+        {
+            auto host_cache = CAccount.get<shared_t>(room_cache->host_session_id);
+            hostAid = host_cache->acc_info.Index;
+            host_cache.unlock();
+
+        }
+        else
+            hostAid = acc_index;
         auto isPlaying = acc_cache->playing;
         auto isHostObserver = (acc_cache->session_id == room_cache->host_session_id) && (team_option == NetEngine::Team::IdType::Observer);
         auto isNonHostNotWaiting = (acc_cache->session_id != room_cache->host_session_id) && (acc_cache->state != PlayerInfo::State::Waiting);
         auto is_mode_teambased = main_server->IsModeTeamBased(room_cache->ModeIndex);
         auto is_ZombieMode = room_cache->ModeIndex == NetEngine::Room::Mode::Index::ZombieMode;
+        
         DEBUGLOG(dark_cyan, "player ({}) wants to change team to team id ({})", acc_cache->acc_info.Nickname.c_str(), message->GetOption());
         DEBUGLOG(dark_cyan, "is playing: ({})", isPlaying);
         auto self_remove = [&](auto& team_session_ids)
@@ -163,8 +176,20 @@ namespace Game::Handlers
                 }
             }
         }
+
+       
+
         if (broadcast)
         {
+
+            RoomLogEntry room_log;
+            room_log.aid = acc_index;
+            room_log.event_type = RoomLog::EventType::TeamChanged;
+            room_log.server_id = server_id;
+            room_log.room_id = roomId;
+            room_log.host_aid = hostAid;
+            room_log.team_id = static_cast<uint8_t>(acc_cache->team_id);
+
             acc_cache.unlock();
             const auto& ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
             std::vector<PlayerRoomClanListInfo> players_clan_info;
@@ -192,7 +217,13 @@ namespace Game::Handlers
                     player_session->SendMsg(313, 0, NetEngine::Team::Change::Result::Success, team_option, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                     player_session->SendMsg(409, 0, 37, players_clan_info.size(), reinterpret_cast<uint8_t*>(players_clan_info.data()), sizeof(PlayerRoomClanListInfo) * players_clan_info.size());
                 }
-            }
+            } 
+
+            [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([room_log]() mutable
+                {
+                    BaseLib::Database->PersistRoomLogs({ room_log });
+                });
+
         }
     }
 }

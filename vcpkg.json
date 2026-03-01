@@ -5,7 +5,9 @@
   "dependencies": [
     "fmt",
     "crashpad",
-    "mariadb-connector-cpp"
+    "mariadb-connector-cpp",
+    "libsodium",
+    "openssl"
   ],
   "description": "",
   "name": "megavoltspp",

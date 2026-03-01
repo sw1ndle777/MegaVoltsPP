@@ -1,4 +1,7 @@
 #pragma once
+#include "secure_channel.hpp"
+#include <BaseLib/CLogging.h>
+
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -28,16 +31,106 @@ namespace Game::Handlers
 
         //std::shared_lock lock(session->GetMutex());
         auto sid = session->GetSessionId();
-        const auto& req = reinterpret_cast<MainVersionCheckReq*>(message->GetData());
-        auto auth_key = req->authKey;
-        auto server_id = req->serverId;
+        Game::Anticheat::ServerSecureChannel channel;
+        if (!Game::Anticheat::g_secureChannels.retrieve(sid, channel))
+        {
+            DEBUGLOG(dark_cyan, "sid=({}) secure channel not found", sid);
+            main_server->DisconnectPlayer(sid, Disconnect::Reason::Busy);
+            return;
+        }
+
+        uint8_t sessionKey[Game::Anticheat::kKeySize]{};
+        Game::Anticheat::SecureAuthPayload authPayload{};
+        if (!channel.decryptAuthPacket(message->GetData(), message->GetDataSize(), authPayload, sessionKey))
+        {
+            DEBUGLOG(dark_cyan, "sid=({}) auth packet decryption failed", sid);
+            main_server->DisconnectPlayer(sid, Disconnect::Reason::Busy);
+            return;
+        }
+
+        // Log file integrity hashes and verify against expected
+        {
+            auto hexBytes = [](const uint8_t* d, size_t n) {
+                std::string s;
+                s.reserve(n * 2);
+                for (size_t i = 0; i < n; ++i)
+                    s += fmt::format("{:02x}", d[i]);
+                return s;
+            };
+            DEBUGLOG(dark_cyan, "sid=({}) received {} file integrity hashes", sid, Game::Anticheat::kIntegrityFileCount);
+            for (uint32_t i = 0; i < Game::Anticheat::kIntegrityFileCount; ++i)
+            {
+                auto file = static_cast<Game::Anticheat::IntegrityFile>(i);
+                DEBUGLOG(dark_cyan, "  [{}] {}: {}", i, Game::Anticheat::IntegrityFileToString(file), hexBytes(authPayload.integrity.hashes[i], 32));
+            }
+
+            const auto& cfg = Game::Anticheat::g_fileIntegrityConfig;
+            if (cfg.enabled)
+            {
+                std::vector<AcDetectionLogEntry> failed_entries;
+                for (uint32_t i = 0; i < Game::Anticheat::kIntegrityFileCount; ++i)
+                {
+                    if (!cfg.has_hash[i]) continue;
+                    if (std::memcmp(authPayload.integrity.hashes[i], cfg.expected_hashes[i].data(), 32) != 0)
+                    {
+                        auto file = static_cast<Game::Anticheat::IntegrityFile>(i);
+                        DEBUGLOG(red, "sid=({}) file integrity MISMATCH on [{}] {}", sid, i, Game::Anticheat::IntegrityFileToString(file));
+                        DEBUGLOG(red, "  expected: {}", hexBytes(cfg.expected_hashes[i].data(), 32));
+                        DEBUGLOG(red, "  received: {}", hexBytes(authPayload.integrity.hashes[i], 32));
+
+                        std::string hwid;
+                        hwid.reserve(Game::Anticheat::kHwidSize * 2);
+                        for (uint32_t h = 0; h < Game::Anticheat::kHwidSize; ++h)
+                            hwid += fmt::format("{:02x}", authPayload.hwid[h]);
+
+                        AcDetectionLogEntry entry;
+                        entry.aid = 0; // unknown pre-auth
+                        entry.ip = session->GetIpAddress();
+                        entry.hwid = std::move(hwid);
+                        entry.detection_flag = AcDetection::Flag::FileIntegrityFail;
+                        entry.extra = static_cast<uint32_t>(file);
+                        entry.server_id = authPayload.server_id;
+                        failed_entries.push_back(std::move(entry));
+                    }
+                }
+
+                if (!failed_entries.empty())
+                {
+                    [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task(
+                        [entries = std::move(failed_entries)]() mutable {
+                            BaseLib::Database->PersistAcDetectionLogs(entries);
+                        });
+                    main_server->DisconnectPlayer(sid, Disconnect::Reason::DataError);
+                    return;
+                }
+                DEBUGLOG(dark_cyan, "sid=({}) file integrity check passed", sid);
+            }
+        }
+
+        // Copy session key for heartbeat (array → std::array for lambda capture)
+        std::array<uint8_t, Game::Anticheat::kKeySize> sessionKeyArr;
+        memcpy(sessionKeyArr.data(), sessionKey, Game::Anticheat::kKeySize);
+        crypto_wipe(sessionKey, Game::Anticheat::kKeySize);
+
+        auto auth_key = static_cast<uint64_t>(authPayload.auth_key) |
+                         (static_cast<uint64_t>(authPayload.auth_key2) << 32);
+        auto server_id = authPayload.server_id;
+
+        // Convert binary hwid to hex string for storage
+        std::string hwid_hex;
+        hwid_hex.reserve(Game::Anticheat::kHwidSize * 2);
+        for (uint32_t i = 0; i < Game::Anticheat::kHwidSize; ++i)
+            hwid_hex += fmt::format("{:02x}", authPayload.hwid[i]);
+
         DEBUGLOG(dark_cyan, "sid=({}) connected on server id ({}) with auth key ({})", sid, server_id, auth_key);
         [[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([
             main_server,
             session = std::move(callback.session),
             auth_key = auth_key,
             server_id = server_id,
-            sid = sid
+            sid = sid,
+            sessionKeyArr = std::move(sessionKeyArr),
+            hwid_hex = std::move(hwid_hex)
         ]() mutable
             {
                 if (!session) return;
@@ -49,10 +142,12 @@ namespace Game::Handlers
                 std::vector<BlockedInfo> acc_blockeds;
                 std::vector<FriendInfo> acc_friends;
                 std::vector<SocialInfo> acc_socials;
-                std::vector<BaseLib::MailboxInfo> mailbox_list;
-
-                auto daily_mission_ids_random = main_server->GetRandomDailyMissionIds(3, 0, 0, 0);
-                if (!BaseLib::Database->GetMainFrontAccount(auth_key, server_id, &accInfo, &clanInfo, &playerDailyMissionData, acc_items, acc_socials, acc_blockeds, acc_friends, mailbox_list, daily_mission_ids_random))
+				std::vector<BaseLib::MailboxInfo> mailbox_list;
+				std::vector<GachaPityEntry> gacha_pity;
+				BaseLib::SystemMonthlyRewards systemMonthlyRewards;
+				BaseLib::PlayerMonthlyReward playerMonthlyReward{};
+				auto daily_mission_ids_random = main_server->GetRandomDailyMissionIds(3, 0, 0, 0);
+				if (!BaseLib::Database->GetMainFrontAccount(auth_key, server_id, &accInfo, &clanInfo, &playerDailyMissionData, acc_items, acc_socials, acc_blockeds, acc_friends, mailbox_list, daily_mission_ids_random, gacha_pity, &systemMonthlyRewards, &playerMonthlyReward))
                 {
                     DEBUGLOG(dark_cyan,
                         "sid=({}) with auth key: ({}) doesn't exist in database",
@@ -66,14 +161,29 @@ namespace Game::Handlers
                 std::vector<Item> player_inventory_items;
                 auto server_time = Utility::GetUtcTimeNowInMilliseconds() - main_server->GetStartTime();
                 auto newPlayer = Player({ session->GetSessionId(), server_time, accInfo, acc_items });
-                newPlayer.server_id = server_id;
-                newPlayer.uid = NetEngine::Packets::Core::UniqueId(sid, server_id);
-                main_server->TransformItems(acc_items, player_inventory_items);//check here
-                main_server->TransformEquippedItems(acc_items, player_equipped_items);
+				newPlayer.server_id = server_id;
+				newPlayer.gacha_pity = std::move(gacha_pity);
+				newPlayer.uid = NetEngine::Packets::Core::UniqueId(sid, server_id);
+				newPlayer.hwid = hwid_hex;
+				main_server->TransformItems(acc_items, player_inventory_items);//check here
+				main_server->TransformEquippedItems(acc_items, player_equipped_items);
 				CAccount.insert(session->GetSessionId(), newPlayer);
 				CAidSid.insert(accInfo.Index, session->GetSessionId());
 				CSid.emplace_back(session->GetSessionId());
 				CAuthKey.insert(auth_key, session->GetSessionId());
+
+				// Persist auth history
+				{
+					AuthHistoryLogEntry auth_log;
+					auth_log.aid = accInfo.Index;
+					auth_log.ip = session->GetIpAddress();
+					auth_log.hwid = hwid_hex;
+					auth_log.server_id = server_id;
+					[[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([auth_log = std::move(auth_log)]() mutable
+						{
+							BaseLib::Database->PersistAuthHistory(auth_log);
+						});
+				}
                 
                 auto acc = CAccount.get<unique_t>(sid);
                 auto clan_id = acc->acc_info.ClanId;
@@ -237,6 +347,85 @@ namespace Game::Handlers
                 session->SendMsg(167, 0, 1, dailyMissions.size(), reinterpret_cast<uint8_t*>(dailyMissions.data()), sizeof(guide_daily_mission) * dailyMissions.size());
                 session->SendMsg(413, 0, 59, 0, reinterpret_cast<uint8_t*>(&accInfo.VoiceType), sizeof(accInfo.VoiceType)); // final account info
                 DEBUGLOG(dark_cyan, "server_time ({})", server_time);
+
+                // Monthly rewards
+                auto current_month = Utility::GetCurrentMonth();
+                if (systemMonthlyRewards.month == current_month)
+                {
+                    auto is_inventory_full = player_inventory_items.size() >= accInfo.MaximumItems;
+                    auto is_gift_box_full = unopened_gifts >= 100;
+                    auto last_sign_in = playerMonthlyReward.last_time_update;
+                    auto last_sign_in_date = Utility::ConvertUtcTimestampToDate(last_sign_in);
+                    auto current_date = Utility::ConvertUtcTimestampToDate(Utility::GetUtcTimeNow64());
+                    bool already_signed_in = (last_sign_in_date.tm_year == current_date.tm_year &&
+                        last_sign_in_date.tm_mon == current_date.tm_mon &&
+                        last_sign_in_date.tm_mday == current_date.tm_mday);
+
+                    if (!already_signed_in && playerMonthlyReward.day_count < 31 && (!is_gift_box_full || !is_inventory_full))
+                    {
+                        playerMonthlyReward.day_count++;
+                        auto current_signin = static_cast<uint32_t>(playerMonthlyReward.day_count - 1);
+                        auto current_day_reward = systemMonthlyRewards.rewards[current_signin];
+
+                        auto reward_acc_cache = CAccount.get<unique_t>(sid);
+                        if (reward_acc_cache->acc_info.Index)
+                        {
+                            DatabaseUpdateCtx dctx{ .sid = sid, .aid = reward_acc_cache->acc_info.Index };
+                            auto crafted_item = main_server->CraftInventoryItems(reward_acc_cache, { current_day_reward }, NetEngine::Items::Origin::From_Game);
+                            if (crafted_item.has_value())
+                            {
+                                dctx.ops.push_back(crafted_item.value());
+                            }
+                            dctx.ops.emplace_back(PlayerMonthlyRewardPatch{ .day_count = playerMonthlyReward.day_count, .last_time_update = Utility::GetUtcTimeNow64() });
+
+                            auto validated = main_server->ValidateDatabaseUpdates(reward_acc_cache, dctx, true);
+                            if (validated.has_value())
+                            {
+                                reward_acc_cache.unlock();
+                                [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
+                                    session,
+                                    s_id = sid,
+                                    v = std::move(validated.value()),
+                                    rewardMp = uint32_t(0)
+                                ]() mutable
+                                    {
+                                        if (!session) return;
+                                        ResultDbUpdateInfo dbres;
+                                        if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
+                                        auto new_acc_cache = CAccount.get<unique_t>(s_id);
+                                        auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, v);
+                                        if (!applied.has_value())
+                                        {
+                                            DEBUGLOG(red, "ApplyDatabaseUpdates failed for monthly reward [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
+                                            return;
+                                        }
+                                    });
+                            }
+                            else
+                            {
+                                DEBUGLOG(red, "ValidateDatabaseUpdates failed for monthly reward [{}]: {}", reward_acc_cache->acc_info.Index, static_cast<int>(validated.error()));
+                                reward_acc_cache.unlock();
+                            }
+                        }
+                        else
+                            reward_acc_cache.unlock();
+
+                        auto monthly_reward_ack = MainMonthlyRewardAck(current_month, playerMonthlyReward.day_count, systemMonthlyRewards.rewards).Serialize();
+                        session->SendMsg(172, 0, 28, 1, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
+                    }
+                    else
+                    {
+                        auto monthly_reward_ack = MainMonthlyRewardAck(current_month, playerMonthlyReward.day_count, systemMonthlyRewards.rewards).Serialize();
+                        session->SendMsg(172, 0, 28, 0, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
+                    }
+                }
+                else
+                    DEBUGLOG(dark_cyan, "sid=({}) no monthly rewards info for month ({})", session->GetSessionId(), current_month);
+
+                // Start heartbeat challenge/response cycle
+                Game::Anticheat::g_heartbeatManager.startSession(
+                    session->GetSessionId(), sessionKeyArr.data(),
+                    main_server->GetIoContext(), main_server);
             });
     }
 }

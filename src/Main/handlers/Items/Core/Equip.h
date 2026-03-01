@@ -192,7 +192,7 @@ namespace Game::Handlers
                 if (!applied.has_value())
                 {
                     DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
-                    return;
+                    //return;
                 }
                 session->SendMsg(p_order, 0, 51, items_count);
                 auto uid = new_acc_cache->uid.data;

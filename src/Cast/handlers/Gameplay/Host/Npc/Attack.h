@@ -12,10 +12,18 @@ namespace Game::Handlers
 
         auto order = magic_enum::enum_cast<EOrder>(u16_cast(message->GetOrder())).value_or(EOrder::NONE);
 
-        auto sid = session->GetSessionId();
-        auto acc = CAccount.get<shared_t>(sid);
-        auto room = CRoom.get<shared_t>(acc->room_id);
-        acc.unlock();
+        auto hostSid = session->GetSessionId();
+        auto host = CAccount.get<shared_t>(hostSid);
+        auto room = CRoom.get<shared_t>(host->room_id);
+
+        if (!host || !room)
+        {
+            DEBUGLOG(red, "NpcProjectile: invalid host or room for hostSid=({})", hostSid);
+            return;
+        }
+
+        PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}))", host->room_id, host->nickname, hostSid);
+        host.unlock();
         server->Broadcast(room->players_session_id, *message);
     }
 }

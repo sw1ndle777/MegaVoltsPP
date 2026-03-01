@@ -224,6 +224,7 @@ namespace Utility
     uint32_t GetUtcTimeNow();
     uint32_t GetCurrentMonth();
     uint32_t GetCurrentDay();
+    uint32_t GetCurrentYear();
     uint32_t GetUtcTimeNowPlusSeconds(const uint32_t& seconds);
     uint64_t GetUtcTimeNow64();
     uint64_t GetLast6AMUtc();

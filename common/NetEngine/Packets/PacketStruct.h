@@ -41,6 +41,7 @@ namespace NetEngine
             struct FrontLoginReconnectReq
             {
                 uint64_t authKey;
+                uint32_t code2fa;
 
                 FrontLoginReconnectReq(uint64_t authKey) : authKey(authKey) {}
             };
@@ -161,6 +162,11 @@ namespace NetEngine
             {
                 ItemSerialInfo item[4];
             };
+            struct MainGachaponPityReq
+            {
+                uint32_t gachapon_id;
+            };
+
         #if defined(RELEASE_1_0_3)
             struct MainGachaponSpinReq
             {
@@ -1082,9 +1088,9 @@ namespace NetEngine
             class PartyEquipInfoAck
             {
             public:
-                EquipItemNumber equipped[17];
+                uint32_t equipped[17];
 #if defined(RELEASE_1_1_1)
-                uint32_t EquippedItems2[17] = 0;
+                uint32_t EquippedItems2[17];
 #endif
                 Core::UniqueId unique_id;
 
@@ -1094,7 +1100,7 @@ namespace NetEngine
                     std::memset(this, 0, sizeof(PartyEquipInfoAck));
                     this->unique_id.data = uniqueId.data;
                     for (auto i = 0; i < 17 && i < equippedItems.size(); i++)
-                        this->equipped[i] = equippedItems[i];
+                        this->equipped[i] = equippedItems[i].item_id;
 
                 }
             };
@@ -1256,9 +1262,9 @@ namespace NetEngine
             public:
                 Core::UniqueId unique_id;
                 RoomUserPlayerInfo1 info;//4
-                EquipItemNumber equipped[17];
+                uint32_t equipped[17];
 #if defined(RELEASE_1_1_1)
-                uint32_t EquippedItems2[17] = 0;
+                uint32_t EquippedItems2[17];
 #endif
                 char nickname[16];//4c
                 RoomUserPlayerInfo2 info2;//5c
@@ -1279,7 +1285,7 @@ namespace NetEngine
                     this->info.data = info1.data;
                     this->info2.data = info2.data;
                     for (auto i = 0; i < 17 && i < equippedItems.size(); i++)
-                        this->equipped[i] = equippedItems[i];
+                        this->equipped[i] = equippedItems[i].item_id;
                 }
             };
 

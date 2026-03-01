@@ -24,12 +24,16 @@ namespace Game::Handlers
         std::vector<ItemSerialInfo> items_updated;
         uint32_t total_repair_price = 0;
 
+        LogContext log_ctx;
+
+		auto temp_mp = acc_cache->acc_info.MicroPoints;
         for (uint32_t i = 0; i < items_count; i++)
         {
             const auto& item_repair = main_server->GetPlayerItemInventory(acc_cache, repairItemReq->items[i]);
             if (!item_repair.has_value()) continue;
             auto item_info = CItemsInfo.get<shared_t>(item_repair.value().item_info.item_number.item_id);
-            total_repair_price = total_repair_price + (item_info->Durability - item_repair.value().item_info.repair);
+            auto cost = item_info->Durability - item_repair.value().item_info.repair;
+            total_repair_price += cost;
             ItemPatchCtx p
             {
                 .sel = ItemSelector{.serial = item_repair.value().item_info.serial_info},
@@ -37,6 +41,27 @@ namespace Game::Handlers
             };
             dctx.ops.push_back(p);
             items_updated.push_back(repairItemReq->items[i]);
+
+            ItemLogEntry item_log;
+            item_log.aid = acc_index;
+            item_log.action_type = ItemLog::ActionType::Repaired;
+            item_log.item_id = item_info->Id;
+            item_log.serial_info = repairItemReq->items[i].data;
+            item_log.origin_type = ItemLog::OriginType::Unknown;
+            item_log.mp_delta = -static_cast<int32_t>(cost);
+            log_ctx.item_logs.push_back(item_log);
+
+            CurrencyLogEntry currency_log;
+            currency_log.aid = acc_index;
+            currency_log.currency_type = CurrencyLog::Type::MP;
+            currency_log.amount = static_cast<int32_t>(cost);
+            currency_log.before_value = temp_mp;
+			temp_mp -= cost;
+            currency_log.after_value = temp_mp;
+            currency_log.source_type = CurrencyLog::SourceType::ItemRepair;
+            currency_log.related_item_id = item_info->Id;
+            log_ctx.currency_logs.push_back(currency_log);
+
         }
         if (items_updated.empty() || acc_cache->acc_info.MicroPoints < total_repair_price) return;
 
@@ -56,6 +81,7 @@ namespace Game::Handlers
             s_id = session_id,
             mp_cost = total_repair_price,
             serial_info_vec = std::move(items_updated),
+			logContext = std::move(log_ctx),
             v = std::move(validated.value())
         ]() mutable
             {
@@ -65,7 +91,7 @@ namespace Game::Handlers
                 if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
 
                 auto new_acc_cache = CAccount.get<unique_t>(s_id);
-
+				auto mpBefore = new_acc_cache->acc_info.MicroPoints;
                 auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, v);
                 if (!applied.has_value())
                 {
@@ -77,6 +103,9 @@ namespace Game::Handlers
                 session->SendMsg(97, 0, 1, serial_info_vec.size(), reinterpret_cast<uint8_t*>(repairItemAckData.data()), repairItemAckData.size());
 
                 DEBUGLOG(dark_cyan, "player ({}) spent {} mp to repair {} items", new_acc_cache->acc_info.Nickname.c_str(), mp_cost, serial_info_vec.size());
+        
+                BaseLib::Database->PersistLogs(logContext);
+
             });
     }
 }

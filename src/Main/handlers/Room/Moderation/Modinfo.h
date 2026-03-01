@@ -44,7 +44,7 @@ namespace Game::Handlers
 
                 std::vector<std::pair<uint16_t, uint32_t>> player_slot_pairs;
 
-                static auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids)
+                auto addPlayerToSlotPairs = [&](const std::vector<uint16_t>& team_session_ids)
                     {
                         for (const auto& id : team_session_ids)
                         {

@@ -26,12 +26,16 @@ namespace Game::Handlers
 
 		auto req = message->GetData<PlayerVictimWeapon2Req*>();
         auto cnt = message->GetOption();
+        PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}) victimsCount=({})", host->room_id, host->nickname, hostSid, cnt);
+
+        host.unlock();
         for (uint8_t i = 0; i < cnt; i++)
         {
             auto data = req->player_victims_data[i];
+            
             auto victim_acc = CAccount.get<unique_t>(static_cast<uint16_t>(data.victim_unique_id.session));
-            victim_acc->health = data.player_info.health;
-            victim_acc.unlock();
+            if (victim_acc)
+                victim_acc->health = data.player_info.health;
         }
 
         server->Broadcast(room->players_session_id, *message);

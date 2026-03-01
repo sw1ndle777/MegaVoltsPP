@@ -427,11 +427,12 @@ namespace BaseLib
                         return CLocker{ std::move(el), it->second };
                     }
                 }
+                ml.unlock();
                 static thread_local M null_entry{};
                 if constexpr (std::is_same_v<LockTag, shared_t>)
-                    return CLocker{ std::shared_lock<std::shared_mutex>(null_entry.mutex), null_entry, true };
+                    return CLocker{ std::shared_lock<std::shared_mutex>(null_entry.mutex, std::defer_lock), null_entry, true };
                 else
-                    return CLocker{ std::unique_lock<std::shared_mutex>(null_entry.mutex), null_entry, true };
+                    return CLocker{ std::unique_lock<std::shared_mutex>(null_entry.mutex, std::defer_lock), null_entry, true };
             }
             else
             {
@@ -442,7 +443,7 @@ namespace BaseLib
                     if (it != m_cont.end()) return CLocker{ std::move(ml), it->second };
                     static thread_local mutex_type null_mtx;
                     static thread_local M null_val{};
-                    return CLocker{ std::shared_lock<mutex_type>(null_mtx), null_val, true };
+                    return CLocker{ std::shared_lock<mutex_type>(null_mtx, std::defer_lock), null_val, true };
                 }
                 else
                 {
@@ -451,7 +452,7 @@ namespace BaseLib
                     if (it != m_cont.end()) return CLocker{ std::move(ml), it->second };
                     static thread_local mutex_type null_mtx;
                     static thread_local M null_val{};
-                    return CLocker{ std::unique_lock<mutex_type>(null_mtx), null_val, true };
+                    return CLocker{ std::unique_lock<mutex_type>(null_mtx, std::defer_lock), null_val, true };
                 }
             }
         }
@@ -507,9 +508,9 @@ namespace BaseLib
                 }
                 static thread_local InnerMapped null_entry{};
                 if constexpr (std::is_same_v<LockTag, shared_t>)
-                    return CLocker{ std::shared_lock<std::shared_mutex>(null_entry.mutex), null_entry, true };
+                    return CLocker{ std::shared_lock<std::shared_mutex>(null_entry.mutex, std::defer_lock), null_entry, true };
                 else
-                    return CLocker{ std::unique_lock<std::shared_mutex>(null_entry.mutex), null_entry, true };
+                    return CLocker{ std::unique_lock<std::shared_mutex>(null_entry.mutex, std::defer_lock), null_entry, true };
             }
             else
             {
@@ -525,7 +526,7 @@ namespace BaseLib
                     }
                     static thread_local mutex_type null_mtx;
                     static thread_local InnerMapped null_val{};
-                    return CLocker{ std::shared_lock<mutex_type>(null_mtx), null_val, true };
+                    return CLocker{ std::shared_lock<mutex_type>(null_mtx, std::defer_lock), null_val, true };
                 }
                 else
                 {
@@ -539,7 +540,7 @@ namespace BaseLib
                     }
                     static thread_local mutex_type null_mtx;
                     static thread_local InnerMapped null_val{};
-                    return CLocker{ std::unique_lock<mutex_type>(null_mtx), null_val, true };
+                    return CLocker{ std::unique_lock<mutex_type>(null_mtx, std::defer_lock), null_val, true };
                 }
             }
         }
@@ -573,9 +574,9 @@ namespace BaseLib
                 }
                 static thread_local M null_entry{};
                 if constexpr (std::is_same_v<LockTag, shared_t>)
-                    return CLocker{ std::shared_lock<std::shared_mutex>(null_entry.mutex), null_entry, true };
+                    return CLocker{ std::shared_lock<std::shared_mutex>(null_entry.mutex, std::defer_lock), null_entry, true };
                 else
-                    return CLocker{ std::unique_lock<std::shared_mutex>(null_entry.mutex), null_entry, true };
+                    return CLocker{ std::unique_lock<std::shared_mutex>(null_entry.mutex, std::defer_lock), null_entry, true };
             }
             else
             {
@@ -591,7 +592,7 @@ namespace BaseLib
                     }
                     static thread_local mutex_type null_mtx;
                     static thread_local M null_val{};
-                    return CLocker{ std::shared_lock<mutex_type>(null_mtx), null_val, true };
+                    return CLocker{ std::shared_lock<mutex_type>(null_mtx, std::defer_lock), null_val, true };
                 }
                 else
                 {
@@ -605,7 +606,7 @@ namespace BaseLib
                     }
                     static thread_local mutex_type null_mtx;
                     static thread_local M null_val{};
-                    return CLocker{ std::unique_lock<mutex_type>(null_mtx), null_val, true };
+                    return CLocker{ std::unique_lock<mutex_type>(null_mtx, std::defer_lock), null_val, true };
                 }
             }
         }

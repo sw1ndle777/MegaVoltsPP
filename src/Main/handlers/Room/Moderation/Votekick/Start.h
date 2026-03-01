@@ -23,6 +23,7 @@ namespace Game::Handlers
         auto mode_id = static_cast<NetEngine::Room::Mode::Index>(option);
         auto data_size = message->GetDataSize();
         auto room_id = acc_cache->room_id;
+        auto server_id = acc_cache->server_id;
 
         if (acc_index == -1 || !acc_cache->in_room || !CRoom.contains(room_id)) return;
         auto acc_cache_nickname = acc_cache->acc_info.Nickname;
@@ -84,6 +85,8 @@ namespace Game::Handlers
         [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
             session = std::move(callback.session),
             s_id = sid,
+			aid = acc_index,
+			server_id = server_id,
             target_uid = target_uid,
             reason_id = req->reason_id,
             room_id = room_id,
@@ -95,6 +98,7 @@ namespace Game::Handlers
                 ResultDbUpdateInfo dbres;
                 if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
                 auto new_acc = CAccount.get<unique_t>(s_id);
+
                 auto applied = main_server->ApplyDatabaseUpdates(new_acc, v);
                 if (!applied.has_value())
                 {
@@ -109,6 +113,7 @@ namespace Game::Handlers
                 DEBUGLOG(dark_cyan,
                     "player: ({}) vote kicked other player: ({}) for reason id: ({})",
                     new_acc->acc_info.Nickname.c_str(), target_acc->acc_info.Nickname.c_str(), reason_id);
+				auto target_aid = target_acc->acc_info.Index;
 
                 auto room = CRoom.get<unique_t>(room_id);
                 room->is_kick_vote_running = true;
@@ -118,6 +123,27 @@ namespace Game::Handlers
                 for (const auto& id : ids)
                     if (auto pss = main_server->GetSessionById(id))
                         pss->SendMsg(125, 0, 28, 1, reinterpret_cast<uint8_t*>(&voteKickAck), sizeof(MainVoteKickAck));
+
+                RoomLogEntry room_log;
+                room_log.aid = aid;
+                room_log.target_aid = target_aid;
+                room_log.event_type = RoomLog::EventType::VoteKickStarted;
+                room_log.server_id = server_id;
+                room_log.room_id = room_id;
+                room_log.votekick_reason = reason_id;
+
+                CurrencyLogEntry currency_log;
+                currency_log.aid = aid;
+                currency_log.currency_type = CurrencyLog::Type::MP;
+                currency_log.amount = -100;
+                currency_log.before_value = new_acc->acc_info.MicroPoints + 100;
+                currency_log.after_value = new_acc->acc_info.MicroPoints;
+                currency_log.source_type = CurrencyLog::SourceType::VoteKick;
+
+                LogContext log_ctx;
+                log_ctx.room_logs.push_back(room_log);
+                log_ctx.currency_logs.push_back(currency_log);
+                BaseLib::Database->PersistLogs(log_ctx);
             });
     }
 }

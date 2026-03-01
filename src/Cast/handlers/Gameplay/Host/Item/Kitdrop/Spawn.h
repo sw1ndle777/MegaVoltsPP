@@ -27,7 +27,7 @@ namespace Game::Handlers
         {
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
-            return;
+            //return;
         }
         //PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({})", host->room_id, host->nickname, hostSid);
 		auto user = CAccount.get<shared_t>(userId);

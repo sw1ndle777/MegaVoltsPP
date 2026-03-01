@@ -23,6 +23,7 @@ namespace Game::Handlers
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host->nickname, hostSid, room->room_id);
             return;
         }
+        PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({})", host->room_id, host->nickname, hostSid);
 
         server->Broadcast(room->players_session_id, *message);
     }

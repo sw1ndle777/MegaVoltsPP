@@ -5,6 +5,9 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+
+using AuthKey32 = std::array<uint8_t, 32>;
+
 namespace NetEngine
 {
 

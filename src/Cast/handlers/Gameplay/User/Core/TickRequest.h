@@ -12,7 +12,7 @@ namespace Game::Handlers
 
         auto sid = session->GetSessionId();
         auto hostSid = message->GetSession();
-		PACKETLOG(REQ, USER_SERVER_TICK, "sid=({}) hostSid=({})", sid, hostSid);
+		//PACKETLOG(REQ, USER_SERVER_TICK, "sid=({}) hostSid=({})", sid, hostSid);
         server->Forward(hostSid, sid, *message); 
     }
 }

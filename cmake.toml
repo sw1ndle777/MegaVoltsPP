@@ -2,6 +2,8 @@
 [cmake]
 version       = "3.30"
 cmkr-include  = "cmake/cmkr.cmake"
+build-dir     = "out"
+config        = "Release"
 
 [project]
 name          = "MegaVoltsPP"
@@ -14,14 +16,16 @@ version = "2025.06.13"
 packages = [
     "fmt",
     "crashpad",
-	"mariadb-connector-cpp"
-	"libsodium"
+	"mariadb-connector-cpp",
+	"libsodium",
+    "openssl"
 ]
 overlay = "vcpkg-overlay"
 
 [find-package.fmt]
 [find-package.crashpad]
 [find-package.unofficial-mariadb-connector-cpp]
+[find-package.OpenSSL]
 
 [subdir.deps]
 [subdir.common]
@@ -31,7 +35,7 @@ type                = "executable"
 compile-definitions = ["RELEASE_1_0_3", "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0A00"]
 compile-features = ["cxx_std_23"]
 properties.MSVC_RUNTIME_LIBRARY = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "common"]
+link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "magic_enum", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "OpenSSL::Crypto", "common"]
 
 [target.front]
 type                = "server-executable"   # inherits template from root

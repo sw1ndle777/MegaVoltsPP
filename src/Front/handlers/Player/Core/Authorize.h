@@ -36,9 +36,16 @@ namespace Game::Handlers
                     session->SendMsg(AUTH_AUTHORIZE, 0, FrontAuthorize::Type::DontExist, 0);
                 else
                 {
+
+
                     auto player = Player();
                     player.sid = sid;
-#if defined(RELEASE_1_0_3)                  
+#if defined(RELEASE_1_0_3)    
+                    if (!plazaAuth.emailVerified)
+                    {
+                        session->SendMsg(AUTH_AUTHORIZE, 0, FrontAuthorize::Type::EmailNotVerified, 0);
+                        return;
+                    }
                     player.plazaAuth = std::move(plazaAuth);
                     CAuthKeys.insert(player.plazaAuth.AuthKey);
 #else

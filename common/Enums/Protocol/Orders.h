@@ -45,6 +45,7 @@ enum class EOrder : uint16_t
     ITEM_GACHA_SPIN = 92,
     ITEM_PENALTY = 93,
     ITEM_KITDROP_GET = 94,
+	ITEM_GACHA_PITY = 95,
     ITEM_PICKUP = 96,
     ITEM_REPAIR = 97,
     ITEM_RESTORE = 98,
