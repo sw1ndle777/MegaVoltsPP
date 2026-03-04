@@ -1,5 +1,6 @@
 #pragma once
 #include <stdlib.h>
+#include <cstring>
 #include <vector>
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "Constants.h"
@@ -91,14 +92,30 @@ namespace NetEngine
         template <typename T>
         T GetData()
         {
-            return reinterpret_cast<T>(m_buffer.data() + dataOffset());
+            if constexpr (std::is_pointer_v<T>)
+            {
+                return reinterpret_cast<T>(m_buffer.data() + dataOffset());
+            }
+            else
+            {
+                static_assert(std::is_trivially_copyable_v<T>, "CMessage::GetData<T>() requires trivially copyable T for value return.");
+                T value{};
+                const auto available = m_buffer.size() > dataOffset() ? (m_buffer.size() - dataOffset()) : 0;
+                const auto copy_size = std::min(available, sizeof(T));
+                if (copy_size > 0)
+                    std::memcpy(&value, m_buffer.data() + dataOffset(), copy_size);
+                return value;
+            }
         }
         template <typename T>
         void SetData(T data)
         {
+			static_assert(!std::is_pointer_v<T>, "CMessage::SetData(T) does not accept pointer types. Use SetData(uint8_t*, uint16_t) instead.");
 			m_buffer.resize(minSize() + sizeof(data));
-            memcpy_s(m_buffer.data() + dataOffset(), sizeof(data), &data, sizeof(data));
-			m_header->size = minSize() + sizeof(data);
+			m_header = reinterpret_cast<Protocols::STcpPacketHeader*>(m_buffer.data());
+			m_command = reinterpret_cast<Protocols::SCommandHeader*>(m_header + 1);
+			std::memcpy(m_buffer.data() + dataOffset(), &data, sizeof(data));
+			m_header->size = static_cast<uint32_t>(minSize() + sizeof(data));
         }
         std::shared_ptr<std::vector<uint8_t>> GenerateMessage();
         void ProcessMessage(uint8_t* data, uint16_t size);

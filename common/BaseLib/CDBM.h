@@ -60,7 +60,10 @@ public:
     [[nodiscard]] uint32_t GetSize() const { return m_iSize; }
 
     void SetFieldData(std::span<uint8_t> newData) { field_data = newData; }
-    void SetName(const char* szName) { strcpy_s(m_szName, iDB_FIELD_NAME_LEN, szName); }
+    void SetName(const char* szName) {
+        std::snprintf(m_szName, iDB_FIELD_NAME_LEN, "%s", szName ? szName : "");
+        //strcpy_s(m_szName, iDB_FIELD_NAME_LEN, szName); 
+    }
     [[nodiscard]] const char* GetName() const { return m_szName; }
     [[nodiscard]] std::span<uint8_t> GetFieldData() const { return field_data; };
 

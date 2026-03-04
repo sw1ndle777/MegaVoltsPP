@@ -1,6 +1,9 @@
 #include "CDatabase.h"
 #include <fmt/color.h>
 #include <boost_unordered.hpp>
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 namespace BaseLib
 {
 	using enum fmt::color;
@@ -14,7 +17,144 @@ namespace BaseLib
             this->properties["userName"] = user.c_str();
             this->properties["password"] = password.c_str();
             this->properties["autoReconnect"] = "true";
-            conn = driver->connect(this->properties);
+
+            // Aliases used by different connector builds.
+            this->properties["host"] = host.c_str();
+            this->properties["port"] = std::to_string(port).c_str();
+            this->properties["user"] = user.c_str();
+
+            auto getenv_string = [](const char* name) -> std::string
+            {
+                const char* raw = std::getenv(name);
+                return raw ? std::string(raw) : std::string();
+            };
+            auto to_lower = [](std::string s) -> std::string
+            {
+                std::transform(s.begin(), s.end(), s.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+                return s;
+            };
+            auto apply_property_if_set = [&](const char* key, const std::string& value)
+            {
+                if (!value.empty())
+                    this->properties[key] = value.c_str();
+            };
+
+            // Optional TLS overrides from environment (used by Docker setup).
+            const std::string env_ssl_mode = getenv_string("DB_SSL_MODE");
+            const std::string env_use_tls = getenv_string("DB_USE_TLS");
+            const std::string env_tls_ca = getenv_string("DB_TLS_CA");
+            const std::string env_server_ssl_cert = getenv_string("DB_SERVER_SSL_CERT");
+            const std::string env_tls_cert = getenv_string("DB_TLS_CERT");
+            const std::string env_tls_key = getenv_string("DB_TLS_KEY");
+            const std::string env_tls_version = getenv_string("DB_TLS_VERSION");
+            const std::string env_trust_server_certificate = getenv_string("DB_TRUST_SERVER_CERTIFICATE");
+            const std::string env_disable_ssl_hostname_verification = getenv_string("DB_DISABLE_SSL_HOSTNAME_VERIFICATION");
+
+            apply_property_if_set("sslMode", env_ssl_mode);
+            apply_property_if_set("tlsCA", env_tls_ca);
+            apply_property_if_set("serverSslCert", env_server_ssl_cert);
+            apply_property_if_set("tlsCert", env_tls_cert);
+            apply_property_if_set("tlsKey", env_tls_key);
+            apply_property_if_set("tlsVersion", env_tls_version);
+            apply_property_if_set("trustServerCertificate", to_lower(env_trust_server_certificate));
+            apply_property_if_set("disableSslHostnameVerification", to_lower(env_disable_ssl_hostname_verification));
+
+            if (!env_use_tls.empty())
+            {
+                const auto normalized = to_lower(env_use_tls);
+                this->properties["useTls"] = normalized.c_str();
+                this->properties["useSsl"] = normalized.c_str();
+                this->properties["useSSL"] = normalized.c_str();
+            }
+
+            const bool has_tls_ca = !env_tls_ca.empty();
+            const bool has_server_ssl_cert = !env_server_ssl_cert.empty();
+
+            auto connect_with_current_properties = [&]()
+            {
+                conn = driver->connect(this->properties);
+            };
+
+            const bool is_host_gateway = (host == "host.docker.internal" || host == "host.containers.internal");
+
+            try
+            {
+                connect_with_current_properties();
+            }
+            catch (sql::SQLException& e)
+            {
+                const std::string msg = e.what();
+                const bool is_tls_self_signed =
+                    msg.find("TLS/SSL error") != std::string::npos ||
+                    msg.find("self-signed certificate") != std::string::npos ||
+                    msg.find("certificate verify failed") != std::string::npos;
+
+                if (!is_host_gateway || !is_tls_self_signed)
+                    throw;
+
+                DEBUGLOG(yellow, "DB TLS self-signed on host gateway detected, retrying with connector fallbacks...");
+
+                // If a CA/self-signed PEM is provided, try verify-ca first.
+                if (has_tls_ca || has_server_ssl_cert)
+                {
+                    try
+                    {
+                        this->properties["sslMode"] = "verify-ca";
+                        this->properties["useTls"] = "true";
+                        this->properties["useSsl"] = "true";
+                        this->properties["useSSL"] = "true";
+                        if (has_tls_ca)
+                            this->properties["tlsCA"] = env_tls_ca.c_str();
+                        if (has_server_ssl_cert)
+                            this->properties["serverSslCert"] = env_server_ssl_cert.c_str();
+                        connect_with_current_properties();
+                    }
+                    catch (const sql::SQLException& cert_retry_error)
+                    {
+                        DEBUGLOG(yellow, "DB verify-ca retry failed: {}", cert_retry_error.what());
+                    }
+                }
+
+                // Retry strategy for Docker->Windows host local DB:
+                // 1) trust TLS (skip hostname/cert-chain verification)
+                // 2) disable TLS entirely
+                if (!conn || !conn->isValid())
+                {
+                    try
+                    {
+                        this->properties["sslMode"] = "trust";
+                        this->properties["useTls"] = "true";
+                        this->properties["useSsl"] = "true";
+                        this->properties["useSSL"] = "true";
+                        this->properties["trustServerCertificate"] = "true";
+                        this->properties["disableSslHostnameVerification"] = "true";
+                        connect_with_current_properties();
+                    }
+                    catch (const sql::SQLException& e2)
+                    {
+                        const std::string msg2 = e2.what();
+
+                        // Some server/plugin combinations continue to fail in trust mode.
+                        // Last fallback is to explicitly disable TLS.
+                        if (msg2.find("TLS/SSL error") != std::string::npos ||
+                            msg2.find("self-signed certificate") != std::string::npos ||
+                            msg2.find("certificate verify failed") != std::string::npos ||
+                            msg2.find("GSSAPI") != std::string::npos ||
+                            msg2.find("auth_gssapi") != std::string::npos)
+                        {
+                            this->properties["sslMode"] = "disable";
+                            this->properties["useTls"] = "false";
+                            this->properties["useSsl"] = "false";
+                            this->properties["useSSL"] = "false";
+                            connect_with_current_properties();
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
+            }
             if (conn)
             {
 				DEBUGLOG(dark_cyan, "connected to ({}:{})", host, port);

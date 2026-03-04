@@ -12,9 +12,10 @@ namespace Game::Commands
 
             auto sessions = ctx.server->GetSessions();
 
-            auto ids = std::ranges::to<std::vector<uint16_t>>(
-                *sessions | std::views::keys
-            );
+            std::vector<uint16_t> ids;
+            ids.reserve(sessions->size());
+            for (const auto& [sid, _] : *sessions)
+                ids.push_back(sid);
 
             sessions.unlock();
 

@@ -1,5 +1,5 @@
 #include "Utility.h"
-#ifdef _WIN64
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <processthreadsapi.h>
@@ -565,12 +565,7 @@ namespace Utility
     std::int64_t cpu_last_time = 0;
     std::int64_t cpu_last_system_time = 0;
 
-    uint32_t num_processors = []
-    {
-        SYSTEM_INFO info;
-        GetSystemInfo(&info);
-        return info.dwNumberOfProcessors;
-    }();
+    uint32_t num_processors = std::thread::hardware_concurrency();
    
     void LogPackets(std::source_location source_location, BaseLib::PacketDir dir, NetEngine::CMessage& packetMessage, uint16_t m_sessionId)
     {

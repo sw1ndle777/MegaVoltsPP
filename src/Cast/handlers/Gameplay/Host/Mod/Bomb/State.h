@@ -5,18 +5,17 @@ namespace Game::Handlers
     using namespace NetEngine;
     using namespace NetEngine::Packets::Core;
     using namespace NetEngine::Packets::Cast;
-    using namespace DirectX::PackedVector;
 #pragma pack(push, 1)
     struct BombStateReq2
     {
         UniqueId uid;
         struct
         {
-            HALF x, y, z;
+            uint16_t x, y, z;
         }pos;
         struct
         {
-            HALF x, y, z;
+            uint16_t x, y, z;
         }dir;
     };
 #pragma pack(pop)
@@ -67,8 +66,8 @@ namespace Game::Handlers
 
         PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) state=({}) pos=({}, {}, {}) dir=({}, {}, {})",
             roomId, user->nickname, userId, hostName, hostSid, state,
-            XMConvertHalfToFloat(req->pos.x), XMConvertHalfToFloat(req->pos.y), XMConvertHalfToFloat(req->pos.z),
-			XMConvertHalfToFloat(req->dir.x), XMConvertHalfToFloat(req->dir.y), XMConvertHalfToFloat(req->dir.z));
+            Utility::XMConvertHalfToFloat(req->pos.x), Utility::XMConvertHalfToFloat(req->pos.y), Utility::XMConvertHalfToFloat(req->pos.z),
+			Utility::XMConvertHalfToFloat(req->dir.x), Utility::XMConvertHalfToFloat(req->dir.y), Utility::XMConvertHalfToFloat(req->dir.z));
 
         server->Broadcast(room->players_session_id, *message);
     }

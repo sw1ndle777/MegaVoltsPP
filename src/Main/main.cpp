@@ -3,6 +3,7 @@
 #include <iostream>
 #include <ostream>
 #include <filesystem>
+#include <cstdlib>
 
 #include <chrono>
 #include <BaseLib/CThreadPool.h>
@@ -57,19 +58,39 @@ void GenerateSigningKeypair()
 }
 
 using namespace NetEngine::Packets::Main;
-std::vector<uint8_t> loadFileCrossPlatform(std::source_location source_location, const std::string& relativePath)
+std::vector<uint8_t> loadFileCrossPlatform(
+    std::source_location source_location,
+    const std::string& relativePath)
 {
-    std::filesystem::path basePath = "../cgd";
+    std::filesystem::path basePath;
+
+#ifdef _WIN32
+    // Keep your original behaviour on Windows
+    basePath = "../cgd";
+#else
+    std::filesystem::path exePath = std::filesystem::canonical("/proc/self/exe");
+    std::filesystem::path exeDir = exePath.parent_path();
+    basePath = exeDir.parent_path() / "cgd";
+#endif
 
     if (!std::filesystem::exists(basePath))
         std::filesystem::create_directories(basePath);
 
     std::filesystem::path filePath = basePath / relativePath;
-    auto contents = Utility::load_file(source_location, filePath.string());
-    if(contents.empty())
-		BaseLib::EventLog->Debug(source_location, BaseLib::PacketDir::DEBUG, EOrder::NONE, fmt::color::red, "Error loading file ({}): {}", filePath.string().c_str(),"File not found");
 
-	return contents;
+    auto contents = Utility::load_file(source_location, filePath.string());
+
+    if (contents.empty())
+        BaseLib::EventLog->Debug(
+            source_location,
+            BaseLib::PacketDir::DEBUG,
+            EOrder::NONE,
+            fmt::color::red,
+            "Error loading file ({}): {}",
+            filePath.string(),
+            "File not found");
+
+    return contents;
 }
 
 #include <crashpad/client/crashpad_client.h>
@@ -77,33 +98,23 @@ std::vector<uint8_t> loadFileCrossPlatform(std::source_location source_location,
 #include <crashpad/client/settings.h>
 #include <crashpad/client/crashpad_info.h>
 
-
-#if  defined(__linux__)
-typedef std::string StringType;
-#elif defined(_MSC_VER)
-typedef std::wstring StringType;
+#ifdef _WIN32
+#include <Windows.h>
 #endif
 
-StringType getExecutableDir() 
-{
-    HMODULE hModule = GetModuleHandleW(NULL);
-    WCHAR path[MAX_PATH];
-    DWORD retVal = GetModuleFileNameW(hModule, path, MAX_PATH);
-    if (retVal == 0) return L"";
-
-    wchar_t *lastBackslash = wcsrchr(path, '\\');
-    if (lastBackslash == NULL) return L"";
-    *lastBackslash = 0;
-
-    return path;
-}
 
 void init_crash_handler()
 {
-    StringType exeDir = L"..";
-    base::FilePath handler(exeDir + L"\\crash_dumps\\crashpad_handler.exe");
-    base::FilePath db_path(exeDir + L"\\crash_dumps\\main\\");
-    base::FilePath metrics_path(exeDir + L"\\crash_dumps\\main\\metrics\\");
+    const base::FilePath exe_dir(FILE_PATH_LITERAL(".."));
+#ifdef _WIN32
+    base::FilePath handler = exe_dir.Append(FILE_PATH_LITERAL("crash_dumps")).Append(FILE_PATH_LITERAL("crashpad_handler.exe"));
+    base::FilePath db_path = exe_dir.Append(FILE_PATH_LITERAL("crash_dumps")).Append(FILE_PATH_LITERAL("main"));
+    base::FilePath metrics_path = db_path.Append(FILE_PATH_LITERAL("metrics"));
+#else
+    base::FilePath handler = exe_dir.Append("crash_dumps").Append("crashpad_handler");
+    base::FilePath db_path = exe_dir.Append("crash_dumps").Append("main");
+    base::FilePath metrics_path = db_path.Append("metrics");
+#endif
 
     std::map<std::string, std::string> annotations;
     annotations["format"] = "minidump";           // Required: Crashpad setting to save crash as a minidump
@@ -125,15 +136,21 @@ int main()
 {
     init_crash_handler();
 
+#ifdef _WIN32
     HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
     Utility::GetCpuUsage(m_process_handle);
     CloseHandle(m_process_handle);
+#else
+    Utility::GetCpuUsage(nullptr);
+#endif
     //CrashHandler::Init("../crash_dumps/MegaVoltsPP_main.dmp");
+#ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
     GetConsoleMode(hOut, &dwMode);
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(hOut, dwMode);//enable colors
+#endif
     std::srand(static_cast<uint32_t>(std::time(NULL)));
 
     //GenerateSigningKeypair();

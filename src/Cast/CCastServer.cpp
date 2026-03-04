@@ -43,7 +43,7 @@
 
 #include "handlers/Gameplay/Host/Mod/Bomb/State.h"
 
-#include "handlers/GamePlay/Host/Mod/Match/End.h"
+#include "handlers/Gameplay/Host/Mod/Match/End.h"
 #include "handlers/Gameplay/Host/Mod/Match/Leave.h"
 #include "handlers/Gameplay/Host/Mod/Match/Load.h"
 #include "handlers/Gameplay/Host/Mod/Match/Score.h"

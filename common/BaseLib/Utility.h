@@ -26,6 +26,13 @@
 #include "CLog.h"
 #include <NetEngine/CMessage.h>
 #include <source_location>
+
+#ifndef _WIN32
+#ifndef __forceinline
+#define __forceinline inline __attribute__((always_inline))
+#endif
+#endif
+
 namespace Utility
 {
     constexpr std::string_view allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()-_=+[{]}<.>/?";
@@ -205,7 +212,7 @@ namespace Utility
 
         if (!p || n == 0) return {};
         if (const void* end = std::memchr(p, '\0', n))
-            return { p, static_cast<const char*>(end) - p };
+            return std::string_view(p,static_cast<std::string_view::size_type>(static_cast<const char*>(end) - p));
         return { p, n };
     }
     template<class T>
@@ -213,6 +220,55 @@ namespace Utility
     {
         const auto sv = ReadMVView(std::forward<T>(in), max_size);
         return std::string(sv.data(), sv.size());
+    }
+
+    inline float XMConvertHalfToFloat(uint16_t Value) noexcept
+    {
+#if defined(_XM_F16C_INTRINSICS_) && !defined(_XM_NO_INTRINSICS_)
+        __m128i V1 = _mm_cvtsi32_si128(static_cast<int>(Value));
+        __m128 V2 = _mm_cvtph_ps(V1);
+        return _mm_cvtss_f32(V2);
+#elif defined(_XM_ARM_NEON_INTRINSICS_) && (defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64) || defined(_M_ARM64EC) || __aarch64__) && !defined(_XM_NO_INTRINSICS_) && (!defined(__GNUC__) || (__ARM_FP & 2))
+        uint16x4_t vHalf = vdup_n_u16(Value);
+        float32x4_t vFloat = vcvt_f32_f16(vreinterpret_f16_u16(vHalf));
+        return vgetq_lane_f32(vFloat, 0);
+#else
+        auto Mantissa = static_cast<uint32_t>(Value & 0x03FF);
+
+        uint32_t Exponent = (Value & 0x7C00);
+        if (Exponent == 0x7C00) // INF/NAN
+        {
+            Exponent = 0x8f;
+        }
+        else if (Exponent != 0)  // The value is normalized
+        {
+            Exponent = static_cast<uint32_t>((static_cast<int>(Value) >> 10) & 0x1F);
+        }
+        else if (Mantissa != 0)     // The value is denormalized
+        {
+            // Normalize the value in the resulting float
+            Exponent = 1;
+
+            do
+            {
+                Exponent--;
+                Mantissa <<= 1;
+            } while ((Mantissa & 0x0400) == 0);
+
+            Mantissa &= 0x03FF;
+        }
+        else                        // The value is zero
+        {
+            Exponent = static_cast<uint32_t>(-112);
+        }
+
+        uint32_t Result =
+            ((static_cast<uint32_t>(Value) & 0x8000) << 16) // Sign
+            | ((Exponent + 112) << 23)                      // Exponent
+            | (Mantissa << 13);                             // Mantissa
+
+        return reinterpret_cast<float*>(&Result)[0];
+#endif // !_XM_F16C_INTRINSICS_
     }
 
     

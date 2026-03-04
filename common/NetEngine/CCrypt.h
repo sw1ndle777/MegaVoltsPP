@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <stdexcept>
 #include <expected>
+#include <cstring>
 #pragma warning(disable: 28020) // The expression '_Param_(1)<26' is not true at this call.
 
 namespace NetEngine
@@ -183,7 +184,7 @@ namespace NetEngine
         void RC5_Setup() noexcept
         {
             constexpr auto abyKey = rc5_key();
-            [[assume(abyKey.size() == _RC5_KEY_SIZE)]]
+            //[[assume(abyKey.size() == _RC5_KEY_SIZE)]]
             RC5_KeySetup(abyKey.data());
         }
         /* RC5 decryption for 4-byte blocks (two 16-bit words)

@@ -1,0 +1,29 @@
+.git
+.github
+.vscode
+
+# Local/build artifacts
+build/
+build-*/
+build-linux/
+build-linux-*/
+out/
+CMakeCache.txt
+CMakeFiles/
+
+# Heavy/generated/dependency trees
+vcpkg/
+vcpkg_installed/
+**/vcpkg/buildtrees/
+**/vcpkg/downloads/
+**/vcpkg/packages/
+**/vcpkg_installed/
+
+# IDE/project-generator artifacts not needed for container builds
+src/*.sln
+src/**/*.vcxproj
+src/**/*.vcxproj.filters
+src/**/*.vcxproj.user
+
+# Misc
+*.7z

@@ -4,7 +4,7 @@ namespace Game::Handlers
     using namespace BaseLib;
     using namespace NetEngine;
     using namespace NetEngine::Packets::Cast;
-    using namespace DirectX::PackedVector;
+ 
     inline void HostRespawn(SCallbackData& callback, CCastServer* server)
     {
         auto session = callback.session;
@@ -37,7 +37,7 @@ namespace Game::Handlers
 
         PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) pos=({} {} {}) rot=({})",
             roomId, user->nickname, userSid, hostName, hostSid,
-            XMConvertHalfToFloat(req->x), XMConvertHalfToFloat(req->y), XMConvertHalfToFloat(req->z), XMConvertHalfToFloat(req->rotation));
+            Utility::XMConvertHalfToFloat(req->x), Utility::XMConvertHalfToFloat(req->y), Utility::XMConvertHalfToFloat(req->z), Utility::XMConvertHalfToFloat(req->rotation));
 
         user.unlock();
         server->Broadcast(room->players_session_id, *message);

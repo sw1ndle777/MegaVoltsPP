@@ -1,4 +1,4 @@
-name: CMake multi-platform (Clang 20)
+name: CMake multi-platform (Clang 19)
 
 on:
   push:
@@ -13,25 +13,28 @@ jobs:
   build:
     name: build-${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
 
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            name: linux-clang20
+            name: linux-clang19
             build_type: Release
-            c_compiler: clang-20
-            cpp_compiler: clang++-20
+            c_compiler: clang-19
+            cpp_compiler: clang++-19
             generator: Ninja
             output_tag: linux-clang
 
           - os: windows-latest
-            name: windows-clangcl20-vs2026
+            name: windows-clangcl19-vs2022
             build_type: Release
-            generator: Visual Studio 18 2026
-            platform: x64
-            toolset: ClangCL
+            c_compiler: clang-cl
+            cpp_compiler: clang-cl
+            generator: Ninja
             output_tag: windows-clangcl
 
     steps:
@@ -39,22 +42,60 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install Clang 20 toolchain (Ubuntu)
+    - name: Install Clang 19 toolchain (Ubuntu)
       if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget gnupg lsb-release software-properties-common ninja-build
+        sudo apt-get install -y wget gnupg lsb-release software-properties-common ninja-build ccache
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 20
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
+        sudo ./llvm.sh 19
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+        clang-19 --version
+        ccache --version
+
+    - name: Setup MSVC build environment (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Install LLVM/Clang 19 (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install llvm --version=19.1.7 -y --no-progress
+        "$env:ProgramFiles\\LLVM\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        clang-cl --version
 
     - name: Set reusable strings
       id: strings
       shell: bash
       run: echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Restore vcpkg + binary cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/vcpkg
+          ${{ github.workspace }}/.vcpkg-binary-cache
+          ${{ steps.strings.outputs.build-output-dir }}/vcpkg_installed
+        key: ${{ runner.os }}-${{ matrix.name }}-vcpkg-${{ hashFiles('vcpkg.json', 'vcpkg-overlay/**', 'cmake.toml', 'CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.name }}-vcpkg-
+          ${{ runner.os }}-vcpkg-
+
+    - name: Restore ccache (Linux)
+      if: runner.os == 'Linux'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ${{ runner.os }}-${{ matrix.name }}-ccache-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.name }}-ccache-
+          ${{ runner.os }}-ccache-
 
     - name: Configure (Linux)
       if: runner.os == 'Linux'
@@ -65,25 +106,34 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-    - name: Configure (Windows - VS 2026 + ClangCL 20)
+    - name: Configure (Windows - Ninja + clang-cl 19)
       if: runner.os == 'Windows'
-      shell: cmd
-      run: >
-        for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version [18.0,19.0) -property installationPath`) do set "VSINSTALL=%%i" &&
-        if not defined VSINSTALL (echo Visual Studio 2026 not found on runner & exit /b 1) &&
-        call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.platform }} -host_arch=x64 &&
-        set "LLVM_DIR=%VSINSTALL%\VC\Tools\Llvm\x64" &&
-        cmake -G "${{ matrix.generator }}" ^
-          -T ${{ matrix.toolset }} ^
-          -A ${{ matrix.platform }} ^
-          -S "%GITHUB_WORKSPACE%" ^
-          -B "${{ steps.strings.outputs.build-output-dir }}" ^
-          "-DCMAKE_VS_GLOBALS=LLVMInstallDir=%LLVM_DIR%;LLVMToolsVersion=20"
+      shell: pwsh
+      run: |
+        cmake -G "${{ matrix.generator }}" `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ steps.strings.outputs.build-output-dir }}" `
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} `
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
-    - name: Build
+    - name: Build (Linux)
+      if: runner.os == 'Linux'
       shell: bash
-      run: cmake --build "${{ steps.strings.outputs.build-output-dir }}" --parallel --config "${{ matrix.build_type }}" --target cast main front
+      run: cmake --build "${{ steps.strings.outputs.build-output-dir }}" --parallel --target cast main front
+
+    - name: Build (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: cmake --build "${{ steps.strings.outputs.build-output-dir }}" --parallel --target cast main front
+
+    - name: ccache stats (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: ccache -s
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4

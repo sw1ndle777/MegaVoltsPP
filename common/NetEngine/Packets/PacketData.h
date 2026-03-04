@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "BaseLib/Utility.h"
-#include <DirectXPackedVector.h>
+//#include <DirectXPackedVector.h>
 namespace NetEngine
 {
     namespace Packets
@@ -1058,27 +1058,27 @@ namespace NetEngine
 #pragma pack(push, 1)
             struct PositionStruct
             {
-                DirectX::PackedVector::HALF positionX{};//0
-                DirectX::PackedVector::HALF positionY{};//2
-                DirectX::PackedVector::HALF positionZ{};//4
+                uint16_t positionX{};//0
+                uint16_t positionY{};//2
+                uint16_t positionZ{};//4
             };
             struct DirectionStruct
             {
-                DirectX::PackedVector::HALF directionX{};//6
-                DirectX::PackedVector::HALF directionY{};//8
-                DirectX::PackedVector::HALF directionZ{};//10
+                uint16_t directionX{};//6
+                uint16_t directionY{};//8
+                uint16_t directionZ{};//10
             };
             struct BulletsStruct
             {
-                DirectX::PackedVector::HALF bullet1{};
-                DirectX::PackedVector::HALF bullet2{};
-                DirectX::PackedVector::HALF bullet3{};
-                DirectX::PackedVector::HALF bullet4{};
+                uint16_t bullet1{};
+                uint16_t bullet2{};
+                uint16_t bullet3{};
+                uint16_t bullet4{};
             };
             struct JumpStruct
             {
-                DirectX::PackedVector::HALF jump1;
-                DirectX::PackedVector::HALF jump2;
+                uint16_t jump1;
+                uint16_t jump2;
             };
             struct ClientPlayerInfoBasic
             {

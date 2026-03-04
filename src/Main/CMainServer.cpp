@@ -147,7 +147,7 @@
 #include "handlers/Core/Ipc/CastAuthorize.h"
 #include "handlers/Core/Ipc/CastMetrics.h"
 #include "handlers/Core/Ipc/CastSid.h"
-#include "handlers/Core/ipc/FrontDisconnect.h"
+#include "handlers/Core/Ipc/FrontDisconnect.h"
 #include "handlers/Core/Ipc/FrontAidOnline.h"
 #include "handlers/Core/Ipc.h"
 
@@ -968,10 +968,15 @@ namespace Game
         }
         static void MainProcessInfo(const std::vector<std::string>& args, const SCallbackData& callback, AccCacheResource& acc_cache, CMainServer* main_server)
         {
+#ifdef _WIN32
             HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
             auto cpu_usage = Utility::GetCpuUsage(m_process_handle);
             auto mem_usage = static_cast<uint32_t>(Utility::GetMemoryUsage(m_process_handle));
             CloseHandle(m_process_handle);
+#else
+            auto cpu_usage = Utility::GetCpuUsage(nullptr);
+            auto mem_usage = static_cast<uint32_t>(Utility::GetMemoryUsage(nullptr));
+#endif
             auto sessions_count = static_cast<uint16_t>(main_server->GetSessions()->size());
 
             auto msg = std::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",

@@ -10,10 +10,15 @@ namespace Game::Commands
         {
             ctx.acc_cache.unlock();
 
+#ifdef _WIN32
             HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
             auto cpu_usage = Utility::GetCpuUsage(m_process_handle);
             auto mem_usage = static_cast<uint32_t>(Utility::GetMemoryUsage(m_process_handle));
             CloseHandle(m_process_handle);
+#else
+            auto cpu_usage = Utility::GetCpuUsage(nullptr);
+            auto mem_usage = static_cast<uint32_t>(Utility::GetMemoryUsage(nullptr));
+#endif
             auto sessions_count = static_cast<uint16_t>(ctx.server->GetSessions()->size());
 
             auto msg = fmt::format("[MegaVolts Online] Main Info: Sessions Online: {}, Memory Usage: {} MB, Cpu Usage: {:.2f}%",

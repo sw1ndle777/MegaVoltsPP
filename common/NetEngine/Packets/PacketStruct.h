@@ -1723,12 +1723,13 @@ namespace NetEngine
                 Core::UniqueId UniqueId;
                 uint64_t Authkey;
             };
-
+            /*
             struct CastPlayerSpawnReq
             {
                 DirectX::PackedVector::XMHALF4 Position;
                 Core::UniqueId UniqueId;
             };
+            */
             struct CastJoinPlazaReq
             {
                 uint32_t plaza_id;

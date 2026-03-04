@@ -123,8 +123,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${front_SOURCES})
 
 target_compile_definitions(front PRIVATE
 	RELEASE_1_0_3
-	_CRT_SECURE_NO_WARNINGS
-	_WIN32_WINNT=0x0A00
+	"$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>"
+	"$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
 )
 
 target_compile_features(front PRIVATE
@@ -288,8 +288,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${main_SOURCES})
 
 target_compile_definitions(main PRIVATE
 	RELEASE_1_0_3
-	_CRT_SECURE_NO_WARNINGS
-	_WIN32_WINNT=0x0A00
+	"$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>"
+	"$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
 )
 
 target_compile_features(main PRIVATE
@@ -312,6 +312,7 @@ target_link_libraries(main PRIVATE
 
 target_include_directories(main PRIVATE
 	.
+	"src/Main"
 )
 
 set_target_properties(main PROPERTIES
@@ -402,8 +403,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cast_SOURCES})
 
 target_compile_definitions(cast PRIVATE
 	RELEASE_1_0_3
-	_CRT_SECURE_NO_WARNINGS
-	_WIN32_WINNT=0x0A00
+	"$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>"
+	"$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
 )
 
 target_compile_features(cast PRIVATE

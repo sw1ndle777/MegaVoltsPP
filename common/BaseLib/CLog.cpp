@@ -10,35 +10,41 @@ namespace BaseLib
 
     void CLog::Initialize(const std::string& Path, bool removeExisting)
     {
-
         std::filesystem::path logFilePath(Path);
 
-        std::filesystem::path logDirectory = logFilePath.parent_path();
+#ifndef _WIN32
+        if (!logFilePath.is_absolute())
+        {
+            std::filesystem::path exePath = std::filesystem::canonical("/proc/self/exe");
+            std::filesystem::path exeDir = exePath.parent_path();
 
+            logFilePath = exeDir.parent_path() / logFilePath;
+        }
+#endif
+
+        std::filesystem::path logDirectory = logFilePath.parent_path();
 
         if (!std::filesystem::exists(logDirectory))
         {
             std::error_code ec;
             if (!std::filesystem::create_directories(logDirectory, ec))
             {
-                std::cerr << "Failed to create directory: " << logDirectory << ", error: " << ec.message() << std::endl;
+                std::cerr << "Failed to create directory: "
+                    << logDirectory << ", error: "
+                    << ec.message() << std::endl;
             }
         }
 
-        if (removeExisting)
-        {
-            if (std::filesystem::exists(logFilePath))
-                std::filesystem::remove(logFilePath);
-        }
+        if (removeExisting && std::filesystem::exists(logFilePath))
+            std::filesystem::remove(logFilePath);
+
         std::ios_base::openmode mode = std::ofstream::out;
         mode |= removeExisting ? std::ofstream::trunc : std::ofstream::app;
 
-        File.open(Path, mode);
+        File.open(logFilePath.string(), mode);
 
         if (!File.is_open())
-        {
-            throw std::runtime_error("Could not open file: " + Path);
-        }
+            throw std::runtime_error("Could not open file: " + logFilePath.string());
     }
 
     void CLog::Write(const std::string& Text)

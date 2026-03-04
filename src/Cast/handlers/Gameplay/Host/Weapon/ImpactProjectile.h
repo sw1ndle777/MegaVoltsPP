@@ -28,9 +28,9 @@ namespace Game::Handlers
         auto cnt = message->GetOption();
 		auto req = message->GetData<AddProjectileReq*>();
 
-        auto pos_x = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_x);
-        auto pos_y = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_y);
-        auto pos_z = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_z);
+        //auto pos_x = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_x);
+        //auto pos_y = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_y);
+        //auto pos_z = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_z);
 
         PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}) victimsCount=({})", host->room_id, host->nickname, hostSid, cnt);
         host.unlock();

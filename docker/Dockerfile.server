@@ -1,0 +1,109 @@
+# syntax=docker/dockerfile:1.7
+
+FROM ubuntu:24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release \
+        software-properties-common \
+        wget \
+        git \
+        build-essential \
+        pkg-config \
+        zip \
+        unzip \
+        tar \
+        bash \
+        python3 \
+        python3-pip \
+        python3-venv \
+        autoconf \
+        automake \
+        libtool \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Clang 19 via upstream llvm apt helper
+COPY llvm.sh /tmp/llvm.sh
+RUN chmod +x /tmp/llvm.sh \
+    && /tmp/llvm.sh 19 \
+    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+
+# CMake >= 3.30 is required by the project
+RUN python3 -m pip install --no-cache-dir --break-system-packages "cmake>=3.30" "ninja>=1.11"
+
+WORKDIR /src
+COPY . .
+
+# Requested build command style:
+# CC=clang CXX=clang++ cmake -S . -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release
+ENV CC=clang
+ENV CXX=clang++
+
+RUN cmake -S . -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build-linux --target front main cast --config Release -j"$(nproc)"
+
+# Collect a runtime bundle that entrypoint will use
+RUN set -eux; \
+    mkdir -p /opt/mvpp/bin /opt/mvpp/cgd /opt/mvpp/crash_dumps /opt/mvpp/vcpkg-lib /opt/mvpp/vcpkg-bin; \
+    cp -f /src/out/linux-clang/bin/Release/front /opt/mvpp/bin/front; \
+    cp -f /src/out/linux-clang/bin/Release/main /opt/mvpp/bin/main; \
+    cp -f /src/out/linux-clang/bin/Release/cast /opt/mvpp/bin/cast; \
+    chmod +x /opt/mvpp/bin/front /opt/mvpp/bin/main /opt/mvpp/bin/cast; \
+    if [ -f /src/src/Main/file_integrity.json ]; then cp -f /src/src/Main/file_integrity.json /opt/mvpp/bin/file_integrity.json; fi; \
+    if [ -f /src/out/bin/settings.json ]; then cp -f /src/out/bin/settings.json /opt/mvpp/bin/settings.json; fi; \
+    if [ -f /src/out/bin/file_integrity.json ]; then cp -f /src/out/bin/file_integrity.json /opt/mvpp/bin/file_integrity.json; fi; \
+    if [ -d /src/out/cgd ]; then cp -a /src/out/cgd/. /opt/mvpp/cgd/; fi; \
+    if [ -d /src/build-linux/vcpkg_installed/x64-linux/lib ]; then cp -a /src/build-linux/vcpkg_installed/x64-linux/lib/. /opt/mvpp/vcpkg-lib/; fi; \
+    if [ -d /src/build-linux/vcpkg_installed/x64-linux/bin ]; then cp -a /src/build-linux/vcpkg_installed/x64-linux/bin/. /opt/mvpp/vcpkg-bin/; fi; \
+    CRASHPAD_HANDLER="$(find /src/build-linux /src/build -type f -name crashpad_handler 2>/dev/null | head -n1 || true)"; \
+    if [ -n "${CRASHPAD_HANDLER}" ]; then cp -f "${CRASHPAD_HANDLER}" /opt/mvpp/crash_dumps/crashpad_handler; chmod +x /opt/mvpp/crash_dumps/crashpad_handler; fi
+
+
+FROM ubuntu:24.04 AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libstdc++6 \
+        libgcc-s1 \
+        libatomic1 \
+        zlib1g \
+        libssl3 \
+        python3 \
+        bash \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/mvpp /opt/mvpp
+COPY docker/entrypoint.sh /usr/local/bin/mvpp-entrypoint.sh
+COPY docker/configure_settings.py /usr/local/bin/configure_settings.py
+
+RUN chmod +x /usr/local/bin/mvpp-entrypoint.sh
+
+WORKDIR /app/bin
+
+ENV SERVICE_TARGET=main
+ENV DB_HOST=host.docker.internal
+ENV DB_PORT=3306
+ENV DB_NAME=
+ENV DB_USER=
+ENV DB_PASSWORD=
+ENV FRONT_HOST=0.0.0.0
+ENV FRONT_PORT=13000
+ENV FRONT_IPC_PORT=12000
+ENV MAIN_HOST=main
+ENV MAIN_PORT=13005
+ENV MAIN_IPC_PORT=12005
+ENV CAST_HOST=0.0.0.0
+ENV CAST_PORT=13006
+ENV CAST_IPC_PORT=12006
+ENV LD_LIBRARY_PATH=/app/vcpkg-lib:/app/vcpkg-bin:/app/bin:${LD_LIBRARY_PATH}
+
+ENTRYPOINT ["/usr/local/bin/mvpp-entrypoint.sh"]

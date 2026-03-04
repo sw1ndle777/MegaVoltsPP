@@ -1,0 +1,139 @@
+name: megavoltspp
+
+x-db-env: &db-env
+  DB_HOST: ${MVPP_DB_HOST:-host.docker.internal}
+  DB_PORT: ${MVPP_DB_PORT:-3306}
+  DB_NAME: ${MVPP_DB_NAME:-}
+  DB_USER: ${MVPP_DB_USER:-}
+  DB_PASSWORD: ${MVPP_DB_PASSWORD:-}
+  DB_SSL_MODE: ${MVPP_DB_SSL_MODE:-disable}
+  DB_USE_TLS: ${MVPP_DB_USE_TLS:-}
+  DB_TLS_CA: ${MVPP_DB_TLS_CA:-}
+  DB_SERVER_SSL_CERT: ${MVPP_DB_SERVER_SSL_CERT:-}
+  DB_TLS_CERT: ${MVPP_DB_TLS_CERT:-}
+  DB_TLS_KEY: ${MVPP_DB_TLS_KEY:-}
+  DB_TLS_VERSION: ${MVPP_DB_TLS_VERSION:-}
+  DB_TRUST_SERVER_CERTIFICATE: ${MVPP_DB_TRUST_SERVER_CERTIFICATE:-}
+  DB_DISABLE_SSL_HOSTNAME_VERIFICATION: ${MVPP_DB_DISABLE_SSL_HOSTNAME_VERIFICATION:-}
+
+x-runtime-common: &runtime-common
+  image: megavoltspp-server:clang19
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.server
+  pull_policy: never
+  restart: unless-stopped
+  init: true
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  volumes:
+    # Expected structure on host:
+    # ./out/bin/settings.json
+    # ./out/bin/file_integrity.json
+    # ./out/cgd/*
+    - ./out:/seed:ro
+    - ./docker-data/logs:/app/logs
+    - ./docker-data/crash_dumps:/app/crash_dumps
+    - ./docker-data/certs:/seed/certs:ro
+
+services:
+  main:
+    <<: *runtime-common
+    container_name: mvpp-main
+    environment:
+      <<: *db-env
+      SERVICE_TARGET: main
+      # Bind + whitelist values used by the server code
+      MAIN_HOST: ${MVPP_MAIN_HOST:-172.30.0.10}
+      MAIN_PORT: ${MVPP_MAIN_PORT:-13005}
+      MAIN_IPC_PORT: ${MVPP_MAIN_IPC_PORT:-12005}
+      FRONT_HOST: ${MVPP_FRONT_HOST:-172.30.0.11}
+      FRONT_PORT: ${MVPP_FRONT_PORT:-13000}
+      FRONT_IPC_PORT: ${MVPP_FRONT_IPC_PORT:-12000}
+      CAST_HOST: ${MVPP_CAST_HOST:-172.30.0.12}
+      CAST_PORT: ${MVPP_CAST_PORT:-13006}
+      CAST_IPC_PORT: ${MVPP_CAST_IPC_PORT:-12006}
+    networks:
+      mvpp-net:
+        ipv4_address: ${MVPP_MAIN_HOST:-172.30.0.10}
+    ports:
+      - "${MVPP_MAIN_PORT:-13005}:${MVPP_MAIN_PORT:-13005}"
+      - "${MVPP_MAIN_IPC_PORT:-12005}:${MVPP_MAIN_IPC_PORT:-12005}"
+
+  front:
+    <<: *runtime-common
+    container_name: mvpp-front
+    depends_on:
+      - main
+    environment:
+      <<: *db-env
+      SERVICE_TARGET: front
+      # NOTE: front currently binds using servers.main.host in src/Front/main.cpp
+      MAIN_HOST: ${MVPP_FRONT_HOST:-172.30.0.11}
+      FRONT_HOST: ${MVPP_FRONT_HOST:-172.30.0.11}
+      FRONT_PORT: ${MVPP_FRONT_PORT:-13000}
+      FRONT_IPC_PORT: ${MVPP_FRONT_IPC_PORT:-12000}
+      MAIN_PORT: ${MVPP_MAIN_PORT:-13005}
+      MAIN_IPC_PORT: ${MVPP_MAIN_IPC_PORT:-12005}
+      CAST_HOST: ${MVPP_CAST_HOST:-172.30.0.12}
+      CAST_PORT: ${MVPP_CAST_PORT:-13006}
+      CAST_IPC_PORT: ${MVPP_CAST_IPC_PORT:-12006}
+    networks:
+      mvpp-net:
+        ipv4_address: ${MVPP_FRONT_HOST:-172.30.0.11}
+    ports:
+      - "${MVPP_FRONT_PORT:-13000}:${MVPP_FRONT_PORT:-13000}"
+      - "${MVPP_FRONT_IPC_PORT:-12000}:${MVPP_FRONT_IPC_PORT:-12000}"
+
+  cast:
+    <<: *runtime-common
+    container_name: mvpp-cast
+    depends_on:
+      - main
+    environment:
+      <<: *db-env
+      SERVICE_TARGET: cast
+      CAST_HOST: ${MVPP_CAST_HOST:-172.30.0.12}
+      CAST_PORT: ${MVPP_CAST_PORT:-13006}
+      CAST_IPC_PORT: ${MVPP_CAST_IPC_PORT:-12006}
+      MAIN_HOST: ${MVPP_MAIN_HOST:-172.30.0.10}
+      MAIN_PORT: ${MVPP_MAIN_PORT:-13005}
+      MAIN_IPC_PORT: ${MVPP_MAIN_IPC_PORT:-12005}
+      FRONT_HOST: ${MVPP_FRONT_HOST:-172.30.0.11}
+      FRONT_PORT: ${MVPP_FRONT_PORT:-13000}
+      FRONT_IPC_PORT: ${MVPP_FRONT_IPC_PORT:-12000}
+    networks:
+      mvpp-net:
+        ipv4_address: ${MVPP_CAST_HOST:-172.30.0.12}
+    ports:
+      - "${MVPP_CAST_PORT:-13006}:${MVPP_CAST_PORT:-13006}"
+      - "${MVPP_CAST_IPC_PORT:-12006}:${MVPP_CAST_IPC_PORT:-12006}"
+
+  # Optional local DB: enable with `docker compose --profile local-db up -d`
+  mariadb:
+    image: mariadb:11.4
+    container_name: mvpp-mariadb
+    profiles: ["local-db"]
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MVPP_LOCAL_DB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${MVPP_DB_NAME:-megavoltspp}
+      MARIADB_USER: ${MVPP_DB_USER:-megavolts}
+      MARIADB_PASSWORD: ${MVPP_DB_PASSWORD:-megavolts}
+    ports:
+      - "${MVPP_LOCAL_DB_PORT:-3307}:3306"
+    volumes:
+      - mvpp-mariadb:/var/lib/mysql
+    networks:
+      mvpp-net:
+        ipv4_address: ${MVPP_DB_CONTAINER_IP:-172.30.0.20}
+
+networks:
+  mvpp-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${MVPP_DOCKER_SUBNET:-172.30.0.0/24}
+
+volumes:
+  mvpp-mariadb:

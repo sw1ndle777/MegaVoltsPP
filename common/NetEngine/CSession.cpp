@@ -201,7 +201,7 @@ namespace NetEngine
                         }
                         else
                         {
-                            memcpy_s(&header, headerSize, m_reader.data(), headerSize);
+                            std::memcpy(&header, m_reader.data(), headerSize);
                         }
 
                         if (header.size >= 2047) // Manage unencrypted packet with wrong size
