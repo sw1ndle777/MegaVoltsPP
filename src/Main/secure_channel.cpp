@@ -4,9 +4,34 @@
 #include "BaseLib/Utility.h"
 #include "BaseLib/CLog.h"
 #include <fstream>
+#include <filesystem>
+#include <vector>
+#if defined(__linux__)
+#include <unistd.h>
+#endif
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 
 namespace Game::Anticheat {
+
+namespace {
+
+std::filesystem::path GetExecutableDirectory()
+{
+#if defined(__linux__)
+    char exePath[4096]{};
+    const auto len = ::readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+    if (len > 0)
+    {
+        exePath[len] = '\0';
+        return std::filesystem::path(exePath).parent_path();
+    }
+#endif
+
+    return {};
+}
+
+} // namespace
 
 using BaseLib::DEBUG;
 using BaseLib::NONE;
@@ -410,12 +435,58 @@ bool HeartbeatManager::verifyChallengeAnswer(const uint8_t sessionKey[kKeySize],
 // =============================================================================
 FileIntegrityConfig FileIntegrityConfig::Load(const char* path)
 {
+    namespace fs = std::filesystem;
     FileIntegrityConfig cfg;
 
-    std::ifstream file(path);
+    fs::path requestedPath = (path && *path) ? fs::path(path) : fs::path("file_integrity.json");
+    std::vector<fs::path> candidates;
+    candidates.reserve(3);
+    candidates.emplace_back(requestedPath);
+
+    if (requestedPath.is_relative())
+    {
+        std::error_code cwdEc;
+        const auto cwd = fs::current_path(cwdEc);
+        if (!cwdEc)
+            candidates.emplace_back(cwd / requestedPath);
+
+        const auto exeDir = GetExecutableDirectory();
+        if (!exeDir.empty())
+            candidates.emplace_back(exeDir / requestedPath);
+    }
+
+    std::ifstream file;
+    fs::path loadedPath;
+    for (const auto& candidate : candidates)
+    {
+        file.open(candidate, std::ios::in | std::ios::binary);
+        if (file.is_open())
+        {
+            loadedPath = candidate;
+            break;
+        }
+
+        file.clear();
+    }
+
     if (!file.is_open())
     {
-        DEBUGLOG(dark_cyan, "file_integrity.json not found — integrity checking disabled");
+        std::error_code cwdEc;
+        const auto cwd = fs::current_path(cwdEc);
+        std::string tried;
+        for (size_t i = 0; i < candidates.size(); ++i)
+        {
+            tried += candidates[i].string();
+            if (i + 1 < candidates.size())
+                tried += ", ";
+        }
+
+        DEBUGLOG(
+            dark_cyan,
+            "file_integrity.json not found (requested='{}', cwd='{}', tried=[{}]) — integrity checking disabled",
+            requestedPath.string(),
+            cwdEc ? std::string("<unknown>") : cwd.string(),
+            tried);
         return cfg;
     }
 
@@ -424,9 +495,19 @@ FileIntegrityConfig FileIntegrityConfig::Load(const char* path)
 
     rapidjson::Document doc;
     doc.Parse(content.c_str());
-    if (doc.HasParseError() || !doc.IsObject())
+    if (doc.HasParseError())
     {
-        DEBUGLOG(fmt::color::red, "file_integrity.json parse error — integrity checking disabled");
+        DEBUGLOG(fmt::color::red,
+                 "file_integrity.json parse error at offset {} ({}) in '{}' — integrity checking disabled",
+                 doc.GetErrorOffset(), rapidjson::GetParseError_En(doc.GetParseError()), loadedPath.string());
+        return cfg;
+    }
+
+    if (!doc.IsObject())
+    {
+        DEBUGLOG(fmt::color::red,
+                 "file_integrity.json root is not an object in '{}' — integrity checking disabled",
+                 loadedPath.string());
         return cfg;
     }
 
@@ -435,13 +516,15 @@ FileIntegrityConfig FileIntegrityConfig::Load(const char* path)
 
     if (!cfg.enabled)
     {
-        DEBUGLOG(dark_cyan, "file_integrity.json loaded but checking is disabled");
+        DEBUGLOG(dark_cyan, "file_integrity.json loaded from '{}' but checking is disabled", loadedPath.string());
         return cfg;
     }
 
     if (!doc.HasMember("files") || !doc["files"].IsObject())
     {
-        DEBUGLOG(fmt::color::red, "file_integrity.json missing 'files' object — integrity checking disabled");
+        DEBUGLOG(fmt::color::red,
+                 "file_integrity.json missing 'files' object in '{}' — integrity checking disabled",
+                 loadedPath.string());
         cfg.enabled = false;
         return cfg;
     }
@@ -472,7 +555,8 @@ FileIntegrityConfig FileIntegrityConfig::Load(const char* path)
 
     uint32_t count = 0;
     for (auto h : cfg.has_hash) if (h) count++;
-    DEBUGLOG(dark_cyan, "file_integrity.json loaded: {} of {} files have expected hashes", count, kIntegrityFileCount);
+    DEBUGLOG(dark_cyan, "file_integrity.json loaded from '{}': {} of {} files have expected hashes",
+             loadedPath.string(), count, kIntegrityFileCount);
     return cfg;
 }
 

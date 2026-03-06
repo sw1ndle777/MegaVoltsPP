@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ostream>
 #include <filesystem>
+#include <fstream>
 #include <cstdlib>
 
 
@@ -34,18 +35,55 @@ std::ostream& outputStream = std::cout;
 
 using namespace NetEngine::Packets::Front;
 
+namespace
+{
+    std::filesystem::path resolve_runtime_path(const std::filesystem::path& path)
+    {
+#ifdef _WIN32
+        return path;
+#else
+        if (path.is_absolute())
+            return path;
+
+        std::error_code ec;
+        const auto exe_path = std::filesystem::canonical("/proc/self/exe", ec);
+        const auto exe_dir = ec ? std::filesystem::current_path(ec) : exe_path.parent_path();
+        const auto resolved_path = exe_dir / path;
+        const auto normalized_path = std::filesystem::weakly_canonical(resolved_path, ec);
+        return ec ? resolved_path : normalized_path;
+#endif
+    }
+
+    void write_startup_log(const std::string& message)
+    {
+        const auto startup_log_path = resolve_runtime_path("../logs/MegaVoltsPP_front.startup.log");
+        std::error_code ec;
+        std::filesystem::create_directories(startup_log_path.parent_path(), ec);
+
+        std::ofstream startup_log_file(startup_log_path, std::ios::app);
+        if (startup_log_file.is_open())
+            startup_log_file << message << std::endl;
+
+        std::cerr << message << std::endl;
+    }
+}
+
 
 void init_crash_handler()
 {
-    const base::FilePath exe_dir(FILE_PATH_LITERAL(".."));
+    const auto crash_root = resolve_runtime_path("../crash_dumps");
+
+    std::error_code ec;
+    std::filesystem::create_directories(crash_root / "front" / "metrics", ec);
+
 #ifdef _WIN32
-    base::FilePath handler = exe_dir.Append(FILE_PATH_LITERAL("crash_dumps")).Append(FILE_PATH_LITERAL("crashpad_handler.exe"));
-    base::FilePath db_path = exe_dir.Append(FILE_PATH_LITERAL("crash_dumps")).Append(FILE_PATH_LITERAL("front"));
+    base::FilePath handler((crash_root / "crashpad_handler.exe").wstring());
+    base::FilePath db_path((crash_root / "front").wstring());
     base::FilePath metrics_path = db_path.Append(FILE_PATH_LITERAL("metrics"));
 #else
-    base::FilePath handler = exe_dir.Append("crash_dumps").Append("crashpad_handler");
-    base::FilePath db_path = exe_dir.Append("crash_dumps").Append("front");
-    base::FilePath metrics_path = db_path.Append("metrics");
+    base::FilePath handler((crash_root / "crashpad_handler").string());
+    base::FilePath db_path((crash_root / "front").string());
+    base::FilePath metrics_path((crash_root / "front" / "metrics").string());
 #endif
 
     std::map<std::string, std::string> annotations;
@@ -58,10 +96,18 @@ void init_crash_handler()
     arguments.push_back("--no-rate-limit"); // optional
 
     std::unique_ptr<crashpad::CrashReportDatabase> database = crashpad::CrashReportDatabase::Initialize(db_path);
-    if (database == NULL) return;
+    if (database == NULL)
+    {
+        write_startup_log("[front] Crashpad database initialization failed.");
+        return;
+    }
 
-    crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-	client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
+    crashpad::CrashpadClient client;
+    const bool handler_started = client.StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
+    if (!handler_started)
+        write_startup_log("[front] Crashpad handler start failed.");
+    else
+        write_startup_log("[front] Crashpad handler started.");
 }
 
 int main()
@@ -89,7 +135,7 @@ int main()
     BaseLib::Database->Initialize(server_settings.database.db_name, server_settings.database.host, server_settings.database.port, server_settings.database.user, server_settings.database.password);
 
     Game::CFrontServer* frontServer = new Game::CFrontServer();
-    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.main.host, std::to_string(server_settings.front.port), std::to_string(server_settings.front.ipc_port), server_settings.front.debug, true, true, server_settings.cast.watchguard, server_settings.front.asio_threads, server_settings.front.database_threads, server_settings.front.logger_threads);
+    NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.front.host, std::to_string(server_settings.front.port), std::to_string(server_settings.front.ipc_port), server_settings.front.debug, true, true, server_settings.front.watchguard, server_settings.front.asio_threads, server_settings.front.database_threads, server_settings.front.logger_threads);
     frontServer->Setup(settings, server_settings);
     frontServer->Run();
     std::cin.get();

@@ -15,10 +15,20 @@ namespace BaseLib
 #ifndef _WIN32
         if (!logFilePath.is_absolute())
         {
-            std::filesystem::path exePath = std::filesystem::canonical("/proc/self/exe");
-            std::filesystem::path exeDir = exePath.parent_path();
+            std::error_code ec;
+            std::filesystem::path exeDir;
 
-            logFilePath = exeDir.parent_path() / logFilePath;
+            const auto exePath = std::filesystem::canonical("/proc/self/exe", ec);
+            if (!ec)
+                exeDir = exePath.parent_path();
+            else
+                exeDir = std::filesystem::current_path(ec);
+
+            // Resolve relative paths against the executable directory (/app/bin in Docker),
+            // so "../logs/..." lands in /app/logs and is persisted by the host volume mount.
+            const auto resolvedLogFilePath = exeDir / logFilePath;
+            const auto normalizedLogFilePath = std::filesystem::weakly_canonical(resolvedLogFilePath, ec);
+            logFilePath = ec ? resolvedLogFilePath : normalizedLogFilePath;
         }
 #endif
 

@@ -371,7 +371,7 @@ namespace Game::Handlers
                         if (reward_acc_cache->acc_info.Index)
                         {
                             DatabaseUpdateCtx dctx{ .sid = sid, .aid = reward_acc_cache->acc_info.Index };
-                            auto crafted_item = main_server->CraftInventoryItems(reward_acc_cache, { current_day_reward }, NetEngine::Items::Origin::From_Game);
+                            auto crafted_item = main_server->CraftInventoryItems(reward_acc_cache, { current_day_reward }, NetEngine::Items::Origin::From_Event);
                             if (crafted_item.has_value())
                             {
                                 dctx.ops.push_back(crafted_item.value());

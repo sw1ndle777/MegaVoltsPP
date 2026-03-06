@@ -3,18 +3,18 @@ name: megavoltspp
 x-db-env: &db-env
   DB_HOST: ${MVPP_DB_HOST:-host.docker.internal}
   DB_PORT: ${MVPP_DB_PORT:-3306}
-  DB_NAME: ${MVPP_DB_NAME:-}
-  DB_USER: ${MVPP_DB_USER:-}
-  DB_PASSWORD: ${MVPP_DB_PASSWORD:-}
-  DB_SSL_MODE: ${MVPP_DB_SSL_MODE:-disable}
-  DB_USE_TLS: ${MVPP_DB_USE_TLS:-}
+  DB_NAME: ${MVPP_DB_NAME:-megavoltspp}
+  DB_USER: ${MVPP_DB_USER:-root}
+  DB_PASSWORD: ${MVPP_DB_PASSWORD:-god123}
+  DB_SSL_MODE: ${MVPP_DB_SSL_MODE:-trust}
+  DB_USE_TLS: ${MVPP_DB_USE_TLS:-true}
   DB_TLS_CA: ${MVPP_DB_TLS_CA:-}
   DB_SERVER_SSL_CERT: ${MVPP_DB_SERVER_SSL_CERT:-}
   DB_TLS_CERT: ${MVPP_DB_TLS_CERT:-}
   DB_TLS_KEY: ${MVPP_DB_TLS_KEY:-}
   DB_TLS_VERSION: ${MVPP_DB_TLS_VERSION:-}
-  DB_TRUST_SERVER_CERTIFICATE: ${MVPP_DB_TRUST_SERVER_CERTIFICATE:-}
-  DB_DISABLE_SSL_HOSTNAME_VERIFICATION: ${MVPP_DB_DISABLE_SSL_HOSTNAME_VERIFICATION:-}
+  DB_TRUST_SERVER_CERTIFICATE: ${MVPP_DB_TRUST_SERVER_CERTIFICATE:-true}
+  DB_DISABLE_SSL_HOSTNAME_VERIFICATION: ${MVPP_DB_DISABLE_SSL_HOSTNAME_VERIFICATION:-true}
 
 x-runtime-common: &runtime-common
   image: megavoltspp-server:clang19
@@ -24,6 +24,11 @@ x-runtime-common: &runtime-common
   pull_policy: never
   restart: unless-stopped
   init: true
+  cap_add:
+    - SYS_PTRACE
+  security_opt:
+    - seccomp:unconfined
+  privileged: true
   extra_hosts:
     - "host.docker.internal:host-gateway"
   volumes:
@@ -34,7 +39,7 @@ x-runtime-common: &runtime-common
     - ./out:/seed:ro
     - ./docker-data/logs:/app/logs
     - ./docker-data/crash_dumps:/app/crash_dumps
-    - ./docker-data/certs:/seed/certs:ro
+    - ./docker-data/certs:/app/certs:ro
 
 services:
   main:
@@ -68,8 +73,8 @@ services:
     environment:
       <<: *db-env
       SERVICE_TARGET: front
-      # NOTE: front currently binds using servers.main.host in src/Front/main.cpp
-      MAIN_HOST: ${MVPP_FRONT_HOST:-172.30.0.11}
+      # Front now binds using FRONT_HOST; keep MAIN_HOST pointing at main for IPC.
+      MAIN_HOST: ${MVPP_MAIN_HOST:-172.30.0.10}
       FRONT_HOST: ${MVPP_FRONT_HOST:-172.30.0.11}
       FRONT_PORT: ${MVPP_FRONT_PORT:-13000}
       FRONT_IPC_PORT: ${MVPP_FRONT_IPC_PORT:-12000}

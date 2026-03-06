@@ -66,6 +66,41 @@ namespace Game::Handlers
         MainRoomEndMatchResponseBossBattle
     >;
 
+    [[nodiscard]] inline bool IsWeaponTypeId(const uint32_t item_type)
+    {
+        return item_type >= static_cast<uint32_t>(NetEngine::Items::WeaponItems::Type::Melee) &&
+            item_type <= static_cast<uint32_t>(NetEngine::Items::WeaponItems::Type::Grenade);
+    }
+
+    [[nodiscard]] inline std::optional<uint32_t> ToRestrictedWeaponType(const NetEngine::Room::Restriction::Type restriction)
+    {
+        using enum NetEngine::Room::Restriction::Type;
+        using enum NetEngine::Items::WeaponItems::Type;
+
+        switch (restriction)
+        {
+        case MeleeOnly: return static_cast<uint32_t>(Melee);
+        case RifleOnly: return static_cast<uint32_t>(Rifle);
+        case ShotgunOnly: return static_cast<uint32_t>(Shotgun);
+        case SniperOnly: return static_cast<uint32_t>(Sniper);
+        case MinigunOnly: return static_cast<uint32_t>(Gatling);
+        case BazookaOnly: return static_cast<uint32_t>(Bazooka);
+        case GrenadeOnly: return static_cast<uint32_t>(Grenade);
+        case AllWeapons:
+        default:
+            return std::nullopt;
+        }
+    }
+
+#pragma pack(push, 1)
+    struct ItemPenaltyAck
+    {
+        ItemSerialInfo serial_info;
+        uint32_t repair_reduction;
+    };
+#pragma pack(pop)
+
+
     // ========== ADD THIS TRACKING STRUCTURE ==========
     struct PlayerRewardTracking
     {
@@ -576,7 +611,69 @@ namespace Game::Handlers
 
             auto dctx = ctx.make_dctx(acc);
             using enum CurrencyType;
-            
+
+            const auto selected_character = static_cast<uint8_t>(acc->acc_info.SelectedCharacter);
+            const auto restricted_weapon_type = ToRestrictedWeaponType(room->Restriction);
+            const auto now = Utility::GetUtcTimeNow();
+            std::vector<ItemPenaltyAck> penalty_damages;
+
+            for (const auto& equipped_item : acc->inventory_items)
+            {
+                if (equipped_item.is_equipped != 1 || equipped_item.character_id != selected_character)
+                    continue;
+
+                const auto expire_date = equipped_item.item_info.expire_date;
+                if (expire_date == ItemExpire::Type::Destroyed || expire_date == ItemExpire::Type::Expired)
+                    continue;
+                if (expire_date > ItemExpire::Type::Expired && expire_date <= now)
+                    continue;
+
+                auto equipped_item_info = CItemsInfo.get<shared_t>(equipped_item.item_info.item_number.item_id);
+                if (!equipped_item_info->Id)
+                    continue;
+
+                const auto equipped_item_type = static_cast<uint32_t>(equipped_item_info->Type);
+                const auto is_weapon = IsWeaponTypeId(equipped_item_type);
+                if (is_weapon && restricted_weapon_type.has_value() && equipped_item_type != restricted_weapon_type.value())
+                    continue;
+
+                const auto current_repair = static_cast<uint32_t>(equipped_item.item_info.repair);
+                if (current_repair == 0)
+                {
+                    ItemPatchCtx patch
+                    {
+                        .sel = ItemSelector{ .serial = equipped_item.item_info.serial_info },
+                        .is_equipped = false,
+                        .expire_date = ItemExpire::Type::Destroyed
+                    };
+                    dctx.ops.push_back(patch);
+                    continue;
+                }
+
+                const uint32_t new_repair = current_repair - 1;
+                ItemPatchCtx patch
+                {
+                    .sel = ItemSelector{ .serial = equipped_item.item_info.serial_info },
+                    .repair = new_repair
+                };
+                penalty_damages.push_back(ItemPenaltyAck{ equipped_item.item_info.serial_info, 1u });
+                if (new_repair == 0)
+                {
+                    patch.is_equipped = false;
+                    patch.expire_date = ItemExpire::Type::Destroyed;
+                }
+                dctx.ops.push_back(patch);
+            }
+
+            if (!penalty_damages.empty())
+            {
+                ctx.packets.enqueue(id,
+                    NetEngine::Protocols::SCommandHeader(93, 0, 0, static_cast<uint8_t>(penalty_damages.size())),
+                    penalty_damages.data(),
+                    penalty_damages.size() * sizeof(ItemPenaltyAck),
+                    PriorityLevel::Highest);
+            }
+             
             if (!no_rewards && !is_bossbattle)
             {
                 if (ctx.ffa_winner.sid == id && is_ffa) won = true;
@@ -978,6 +1075,44 @@ namespace Game::Handlers
                     DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", acc->acc_info.Index, acc->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
                     acc.unlock();
                     return;
+                }
+
+                uint32_t destroyed_items_count = 0;
+                for (const auto& patched_item : v.items_patches)
+                {
+                    if (patched_item.patch.expire_date.has_value() && patched_item.patch.expire_date.value() == ItemExpire::Type::Destroyed &&
+                        patched_item.patch.is_equipped.has_value() && !patched_item.patch.is_equipped.value())
+                    {
+                        destroyed_items_count++;
+                    }
+                }
+
+                if (destroyed_items_count > 0)
+                {
+                    const auto selected_character = static_cast<uint8_t>(acc->acc_info.SelectedCharacter);
+                    const auto voice_id = acc->voice_id;
+                    auto my_unique_id = acc->uid.data;
+                    auto equipped_items = main_server->GetEquippedItems(acc);
+                    auto equip_data = EquipInfoAck(acc->uid, equipped_items);
+
+                    packets.enqueue(v.sid, NetEngine::Protocols::SCommandHeader(414, 0, selected_character, 17),
+                        reinterpret_cast<uint8_t*>(&equip_data),
+                        sizeof(EquipInfoAck),
+                        PriorityLevel::Highest);
+
+                    for (const auto& other_sid : all_ss)
+                    {
+                        if (other_sid == v.sid) continue;
+
+                        packets.enqueue(other_sid, NetEngine::Protocols::SCommandHeader(414, 0, selected_character, 17),
+                            reinterpret_cast<uint8_t*>(&equip_data),
+                            sizeof(EquipInfoAck),
+                            PriorityLevel::Highest);
+                        packets.enqueue(other_sid, NetEngine::Protocols::SCommandHeader(314, 0, 0, voice_id),
+                            reinterpret_cast<uint8_t*>(&my_unique_id),
+                            sizeof(my_unique_id),
+                            PriorityLevel::Highest);
+                    }
                 }
 
                 // Find matching tracking entry

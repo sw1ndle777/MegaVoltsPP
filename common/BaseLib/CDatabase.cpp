@@ -1769,7 +1769,7 @@ namespace BaseLib
             if (m.last_time_update.has_value()) sql += ", LastUpdate";
             sql += ") VALUES (?";
             if (m.day_count.has_value()) sql += ", ?";
-            if (m.last_time_update.has_value()) sql += ", ?";
+            if (m.last_time_update.has_value()) sql += ", FROM_UNIXTIME(?)";
             sql += ") ON DUPLICATE KEY UPDATE ";
             bool first = true;
             auto add_update = [&](const char* col)
@@ -5650,7 +5650,7 @@ namespace BaseLib
             stmt->execute("START TRANSACTION");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "SELECT * FROM player_monthly_rewards WHERE PlayerId = ?"
+                "SELECT RewardCount, UNIX_TIMESTAMP(LastUpdate) AS LastUpdate FROM player_monthly_rewards WHERE PlayerId = ?"
             ));
             pstmt->setUInt(1, acc_id);
 
@@ -5717,7 +5717,7 @@ namespace BaseLib
 
             // Insert player reward data
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "INSERT INTO player_monthly_rewards (PlayerId, RewardCount, LastUpdate) VALUES (?, ?, ?)"
+                "INSERT INTO player_monthly_rewards (PlayerId, RewardCount, LastUpdate) VALUES (?, ?, FROM_UNIXTIME(?))"
             ));
             pstmt->setUInt(1, acc_id);
             pstmt->setUInt(2, reward_count);
@@ -5775,7 +5775,7 @@ namespace BaseLib
             stmt->execute("START TRANSACTION");
 
             std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
-                "UPDATE player_monthly_rewards SET RewardCount = ?, LastUpdate = ? WHERE PlayerId = ?"
+                "UPDATE player_monthly_rewards SET RewardCount = ?, LastUpdate = FROM_UNIXTIME(?) WHERE PlayerId = ?"
             ));
             pstmt->setUInt(1, reward_count);
             pstmt->setUInt64(2, last_update);

@@ -146,13 +146,12 @@ namespace Game
      
         this->On(HOST_MOD_BOMB_STATE, std::bind(&HostModBombState, std::placeholders::_1, this));//host broadcast bomb plant/defuse state
         this->On(HOST_ATTACK_PROJECTILE, std::bind(&HostAttackProjectile, std::placeholders::_1, this));//bazokoka fire
-        // OTHER_USER_RADIO 273
+		this->On(OTHER_RADIO, std::bind(&UserRadio, std::placeholders::_1, this)); // idk maybe other player radio smth
         // PVE_NPC_STATE 274
         this->On(USER_RELOAD, std::bind(&UserReload, std::placeholders::_1, this));
         this->On(HOST_RESPAWN, std::bind(&HostRespawn, std::placeholders::_1, this));
         this->On(ROOM_CREATE_CAST, std::bind(&RoomCreate, std::placeholders::_1, this));
         this->On(ROOM_LEAVE_CAST, std::bind(&RoomLeave, std::placeholders::_1, this));
-        // USER_RADIO 280
         this->On(USER_MOVE, std::bind(&UserMovement, std::placeholders::_1, this));
 
         this->On(HOST_NPC_MOVE, std::bind(&NpcMovement, std::placeholders::_1, this));

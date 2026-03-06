@@ -34,3 +34,4 @@ Debug/
 /deps/monocypher
 /deps/rapidjson
 /deps/thread-pool
+/docker-data/crash_dumps

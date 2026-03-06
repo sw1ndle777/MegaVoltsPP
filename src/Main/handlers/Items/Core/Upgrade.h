@@ -512,7 +512,8 @@ namespace Game::Handlers
                         ? static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailLow)
                         : static_cast<uint8_t>(Items::Upgrade::Result::UpgradeFailHigh));
 
-                session->SendMsg(101, type_param, result_param, upgrade_info, reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
+                session->SendMsg(ITEM_UPGRADE, type_param, result_param, upgrade_info, 
+                    reinterpret_cast<uint8_t*>(upgradeItemAckData.data()), upgradeItemAckData.size());
                 BaseLib::Database->PersistLogs(logContext);
             });
     }
