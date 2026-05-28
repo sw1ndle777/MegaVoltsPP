@@ -48,12 +48,8 @@ CMakeFiles/
 # Crash dumps
 /crash_dumps/
 
-# Dependencies (vendored via vcpkg)
-/deps/asio
-/deps/boost_unordered
-/deps/monocypher
-/deps/rapidjson
-/deps/thread-pool
+# vcpkg installed artifacts
+/vcpkg_installed/
 
 # Claude Code
 .claude/
