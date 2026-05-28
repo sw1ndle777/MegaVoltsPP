@@ -53,22 +53,22 @@ namespace Game::Handlers
 		auto state = (extra && mission) ? fmt::format("{}_{}", magic_enum::enum_name(*mission), magic_enum::enum_name(*extra)) : "UNKNOWN";
 
 		auto req = message->GetData<BombStateReq2*>();
-		auto userId = static_cast<uint16_t>(req->uid.session);
-		auto user = CAccount.get<shared_t>(userId);
+		//auto userId = static_cast<uint16_t>(req->uid.session);
+		//auto user = CAccount.get<shared_t>(userId);
         auto room = CRoom.get<shared_t>(roomId);
-        if (!user || !room) return;
-        if (host->session_id != room->host_session_id)
+        if (!room) return;
+        if (hostSid != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
-            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host->nickname, hostSid, room->room_id);
+            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
             return;
         }
-
+        /*
         PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) state=({}) pos=({}, {}, {}) dir=({}, {}, {})",
             roomId, user->nickname, userId, hostName, hostSid, state,
             Utility::XMConvertHalfToFloat(req->pos.x), Utility::XMConvertHalfToFloat(req->pos.y), Utility::XMConvertHalfToFloat(req->pos.z),
 			Utility::XMConvertHalfToFloat(req->dir.x), Utility::XMConvertHalfToFloat(req->dir.y), Utility::XMConvertHalfToFloat(req->dir.z));
-
+        */
         server->Broadcast(room->players_session_id, *message);
     }
 }

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "PacketData.h"
+#include <BaseLib/Platform.h>
 
 namespace NetEngine
 {
@@ -1779,24 +1780,24 @@ namespace NetEngine
             };
             struct AddProjectileReq
             {
-                uint32_t projectile_id;
+                uint32_t idk;
                 uint16_t coord_x;
                 uint16_t coord_y;
                 uint16_t coord_z;
-                uint16_t idk;
+                uint16_t dir_x;
+                uint16_t dir_y;
+                uint16_t dir_z;
+                Core::UniqueId attacker_unique_id;
+                uint32_t projectile_id;
                 //PlayerVictimDataReq player_victims_data[26];
             };
             struct ImpactProjectileReq
             {
-                uint32_t idk;
+                uint32_t projectile_id;
                 uint16_t pos_x;//0x4
                 uint16_t pos_y;//0x6
                 uint16_t pos_z; // 0x8
-                uint16_t dir_x;//0xA
-                uint16_t dir_y;//0xC
-                uint16_t dir_z;//0xE
-                Core::UniqueId attacker_unique_id;
-                uint32_t projectile_id;
+                uint16_t idk;
             };
             struct PveProjectileImpactReq
             {
@@ -1864,6 +1865,67 @@ namespace NetEngine
             };
 
             struct CastConnectionAck{};
+#pragma pack(pop)
+        }
+
+        namespace Ipc
+        {
+#pragma pack(push, 1)
+            enum class CastCombatWeaponKind : uint8_t
+            {
+                Unknown = 0,
+                Melee = 1,
+                Rifle = 2,
+                Shotgun = 3,
+                Sniper = 4,
+                Gatling = 5,
+                Bazooka = 6,
+                Grenade = 7,
+            };
+
+            struct CastCombatHitEvent
+            {
+                uint32_t room_id;
+                uint16_t attacker_sid;
+                uint16_t victim_sid;
+                uint32_t damage_raw;
+                uint32_t victim_health_raw;
+                uint8_t kill_confirmed;
+                CastCombatWeaponKind weapon_kind;
+                uint16_t attacker_current_kill_streak;
+                uint16_t attacker_highest_kill_streak;
+            };
+
+            struct MainToCastPlayerHealthSync
+            {
+                uint16_t sid;
+                uint32_t max_health;
+                uint32_t current_health;
+            };
+
+            struct MainToCastTpToProjToggle
+            {
+                uint16_t sid;
+                uint8_t enabled;
+            };
+
+            enum class MainToCastRoomLifecycleAction : uint8_t
+            {
+                Create = 1,
+                Join = 2,
+                Leave = 3,
+                Remove = 4,
+                MatchState = 5,
+            };
+
+            struct MainToCastRoomLifecycleSync
+            {
+                MainToCastRoomLifecycleAction action;
+                uint16_t room_id;
+                uint16_t sid;
+                uint16_t host_sid;
+                uint8_t is_playing;
+            };
 #pragma pack(pop)
         }
 

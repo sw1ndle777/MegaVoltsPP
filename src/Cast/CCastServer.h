@@ -19,6 +19,7 @@ namespace Game
     using namespace BaseLib;
     using namespace NetEngine;
     using namespace NetEngine::Packets::Cast;
+    extern CCache<boost::unordered_flat_set<uint16_t>> g_tp_to_proj_sids;
     struct PlayerInfo
     {
         enum State : uint8_t
@@ -43,11 +44,19 @@ namespace Game
         uint16_t server_id;
         uint16_t state_id;
         uint32_t health;
+        uint32_t combat_health;
+        bool combat_health_known;
+        uint32_t max_health;
+        uint32_t current_health;
+        uint16_t current_kill_streak;
+        uint16_t highest_kill_streak;
+        int32_t account_id;
         bool in_room;
         bool in_plaza;
         bool is_dead;
         uint64_t auth_key;
 		std::string nickname;
+		std::string hwid;
 
         Player(const uint16_t& sessionId = 0,
             const uint16_t& hostSessionId = 0,
@@ -61,7 +70,15 @@ namespace Game
             const std::string& nickname = "")
             : session_id(sessionId), room_id(roomId), plaza_id(plazaId), server_id(severId), state_id(stateId), in_room(inRoom), in_plaza(inPlaza), auth_key(authKey), nickname(nickname) {
                 is_dead = false;
-                health = 0;
+                health = 1000;
+                combat_health = 1000;
+                combat_health_known = true;
+                max_health = 1000;
+                current_health = 1000;
+                current_kill_streak = 0;
+                highest_kill_streak = 0;
+                account_id = -1;
+                hwid.clear();
         }
         Player(const Player& other)
             : session_id(other.session_id),
@@ -70,11 +87,19 @@ namespace Game
             server_id(other.server_id),
             state_id(other.state_id),
             health(other.health),
+            combat_health(other.combat_health),
+            combat_health_known(other.combat_health_known),
+            max_health(other.max_health),
+            current_health(other.current_health),
+            current_kill_streak(other.current_kill_streak),
+            highest_kill_streak(other.highest_kill_streak),
+            account_id(other.account_id),
             in_room(other.in_room),
             in_plaza(other.in_plaza),
             is_dead(other.is_dead),
             auth_key(other.auth_key),
-            nickname(other.nickname)
+            nickname(other.nickname),
+            hwid(other.hwid)
         {
         }
 
@@ -87,11 +112,19 @@ namespace Game
             server_id = other.server_id;
             state_id = other.state_id;
             health = other.health;
+            combat_health = other.combat_health;
+            combat_health_known = other.combat_health_known;
+            max_health = other.max_health;
+            current_health = other.current_health;
+            current_kill_streak = other.current_kill_streak;
+            highest_kill_streak = other.highest_kill_streak;
+            account_id = other.account_id;
             in_room = other.in_room;
             in_plaza = other.in_plaza;
             is_dead = other.is_dead;
             auth_key = other.auth_key;
             nickname = other.nickname;
+            hwid = other.hwid;
             return *this;
         }
 
@@ -102,11 +135,19 @@ namespace Game
             server_id(other.server_id),
             state_id(other.state_id),
             health(other.health),
+            combat_health(other.combat_health),
+            combat_health_known(other.combat_health_known),
+            max_health(other.max_health),
+            current_health(other.current_health),
+            current_kill_streak(other.current_kill_streak),
+            highest_kill_streak(other.highest_kill_streak),
+            account_id(other.account_id),
             in_room(other.in_room),
             in_plaza(other.in_plaza),
             is_dead(other.is_dead),
             auth_key(other.auth_key),
-            nickname(std::move(other.nickname))
+            nickname(std::move(other.nickname)),
+            hwid(std::move(other.hwid))
         {
         }
 
@@ -119,11 +160,19 @@ namespace Game
             server_id = other.server_id;
             state_id = other.state_id;
             health = other.health;
+            combat_health = other.combat_health;
+            combat_health_known = other.combat_health_known;
+            max_health = other.max_health;
+            current_health = other.current_health;
+            current_kill_streak = other.current_kill_streak;
+            highest_kill_streak = other.highest_kill_streak;
+            account_id = other.account_id;
             in_room = other.in_room;
             in_plaza = other.in_plaza;
             is_dead = other.is_dead;
             auth_key = other.auth_key;
             nickname = std::move(other.nickname);
+            hwid = std::move(other.hwid);
             return *this;
         }
     };
@@ -133,25 +182,40 @@ namespace Game
         std::shared_mutex mutex;
         uint16_t room_id;
         uint16_t host_session_id;
+        bool is_playing;
         std::vector<uint16_t> players_session_id;
+        boost::unordered_flat_map<uint32_t, uint16_t> projectile_owner_by_id;
+        boost::unordered_flat_map<uint32_t, uint8_t> projectile_type_by_id;
+        std::vector<std::vector<uint8_t>> pending_positions;
+        uint32_t room_tick{};
         Room(const uint16_t& roomId = 0,
             const uint16_t& hostSessionId = 0)
-            : room_id(roomId), host_session_id(hostSessionId)
+            : room_id(roomId), host_session_id(hostSessionId), is_playing(false)
         {
             players_session_id.clear();
+            projectile_owner_by_id.clear();
+            projectile_type_by_id.clear();
         }
         Room(const Room& other)
         {
             room_id = other.room_id;
             host_session_id = other.host_session_id;
+            is_playing = other.is_playing;
             players_session_id = other.players_session_id;
+            projectile_owner_by_id = other.projectile_owner_by_id;
+            projectile_type_by_id = other.projectile_type_by_id;
+            room_tick = other.room_tick;
         }
         Room& operator=(const Room& other)
         {
             if (this == &other) return *this;
             room_id = other.room_id;
             host_session_id = other.host_session_id;
+            is_playing = other.is_playing;
             players_session_id = other.players_session_id;
+            projectile_owner_by_id = other.projectile_owner_by_id;
+            projectile_type_by_id = other.projectile_type_by_id;
+            room_tick = other.room_tick;
             return *this;
         }
     };
@@ -194,6 +258,7 @@ namespace Game
     public:
         CCastServer();
         ~CCastServer();
+        NetEngine::RateLimit::IdentitySnapshot BuildPacketRateLimitIdentitySnapshot(const SCallbackData& callback);
         using enum fmt::color;
         auto Broadcast(const std::vector<uint16_t>& ids, 
             CMessage& msg, 
@@ -234,6 +299,16 @@ namespace Game
             BaseLib::EventLog->Debug(loc, ACK, o, red,
                 "couldn't forward packet from sid=({}) to sid=({})", from_sid, to_sid);
             return false;
-        }   
+        }
+
+        bool IsBatchPositionsEnabled() const { return m_batchPositions; }
+        void SetBatchPositions(bool enabled) { m_batchPositions = enabled; }
+
+        void FlushPendingPositions();
+        void StartPositionFlushTimer();
+
+    private:
+        bool m_batchPositions = false;
+        std::shared_ptr<asio::steady_timer> m_positionFlushTimer;
     };
 }

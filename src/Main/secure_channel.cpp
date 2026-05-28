@@ -6,6 +6,7 @@
 #include <fstream>
 #include <filesystem>
 #include <vector>
+#include <magic_enum.hpp>
 #if defined(__linux__)
 #include <unistd.h>
 #endif
@@ -29,6 +30,50 @@ std::filesystem::path GetExecutableDirectory()
 #endif
 
     return {};
+}
+
+std::string ExtractDetectionDetail(const DetectionEvent& event)
+{
+    std::size_t len = 0;
+    while (len < kDetectionDetailSize && event.detail[len] != '\0')
+        ++len;
+
+    return std::string(event.detail, len);
+}
+
+std::string DescribeDetectionFlag(uint32_t rawFlag)
+{
+    using BaseLib::AcDetection::Flag;
+
+    const auto exactFlag = BaseLib::AcDetection::FlagFromValue(rawFlag);
+    if (exactFlag != Flag::UnknownFlag || rawFlag == static_cast<uint32_t>(Flag::UnknownFlag))
+    {
+        const auto enumName = magic_enum::enum_name(exactFlag);
+        if (!enumName.empty())
+            return std::string(enumName);
+
+        return BaseLib::AcDetection::FlagToString(exactFlag);
+    }
+
+    const auto expandedFlags = BaseLib::AcDetection::ExpandRawFlags(rawFlag);
+    std::string result;
+    for (const auto flag : expandedFlags)
+    {
+        const auto enumName = magic_enum::enum_name(flag);
+        const std::string_view flagName = !enumName.empty()
+            ? enumName
+            : std::string_view(BaseLib::AcDetection::FlagToString(flag));
+
+        if (!result.empty())
+            result += '|';
+
+        result.append(flagName.data(), flagName.size());
+    }
+
+    if (!result.empty())
+        return result;
+
+    return fmt::format("0x{:08X}", rawFlag);
 }
 
 } // namespace
@@ -227,6 +272,7 @@ void HeartbeatManager::startSession(uint16_t sid, const uint8_t sessionKey[kKeyS
         memcpy(state.sessionKey, sessionKey, kKeySize);
         state.retryCount = 0;
         state.awaitingResponse = false;
+        state.allowQueuedResponses = false;
         state.currentChallengeId = 0;
     }
     DEBUGLOG(dark_cyan, "sid=({}) heartbeat session started", sid);
@@ -259,10 +305,12 @@ bool HeartbeatManager::onResponse(uint16_t sid, const uint8_t* data, uint32_t da
     if (it == sessions_.end()) return false;
     auto& state = it->second;
 
-    if (!state.awaitingResponse) {
+    if (!state.awaitingResponse && !state.allowQueuedResponses) {
         DEBUGLOG(dark_cyan, "sid=({}) heartbeat response received but not awaiting one", sid);
         return false;
     }
+
+    const bool isPrimaryResponse = state.awaitingResponse;
 
     // Decrypt the response
     auto wire = reinterpret_cast<const HeartbeatWireData<HeartbeatResponse>*>(data);
@@ -291,31 +339,54 @@ bool HeartbeatManager::onResponse(uint16_t sid, const uint8_t* data, uint32_t da
         return false;
     }
 
-    // Cancel timeout timer
-    if (state.timer) state.timer->cancel();
+    if (isPrimaryResponse)
+    {
+        // Cancel timeout timer for the first valid packet of this challenge.
+        if (state.timer) state.timer->cancel();
 
-    state.awaitingResponse = false;
-    state.retryCount = 0;
-
-    DEBUGLOG(dark_cyan, "sid=({}) heartbeat OK, challenge=0x{:016X} events={}",
-             sid, response.challenge_id, response.event_count);
-
-    // Log detection events
-    for (uint8_t i = 0; i < response.event_count && i < kMaxQueuedEvents; ++i) {
-        DEBUGLOG(dark_cyan, "sid=({}) detection event: flag=0x{:08X} ts={} extra=0x{:08X}",
-                 sid, response.events[i].flag, response.events[i].timestamp, response.events[i].extra);
+        state.awaitingResponse = false;
+        state.allowQueuedResponses = true;
+        state.retryCount = 0;
     }
 
-    if (outEvents && response.event_count > 0) {
-        outEvents->reserve(std::min<uint8_t>(response.event_count, kMaxQueuedEvents));
-        for (uint8_t i = 0; i < response.event_count && i < kMaxQueuedEvents; ++i)
+    const std::size_t eventCount =
+        (response.event_count < kMaxQueuedEvents) ? response.event_count : kMaxQueuedEvents;
+
+    DEBUGLOG(dark_cyan, "sid=({}) heartbeat {} accepted, challenge=0x{:016X} events={}",
+             sid,
+             isPrimaryResponse ? "response" : "queued batch",
+             response.challenge_id,
+             static_cast<uint32_t>(eventCount));
+
+    // Log detection events
+    for (std::size_t i = 0; i < eventCount; ++i) {
+        const auto detail = ExtractDetectionDetail(response.events[i]);
+        const auto flagName = DescribeDetectionFlag(response.events[i].flag);
+        if (detail.empty())
+        {
+            DEBUGLOG(dark_cyan, "sid=({}) detection event: flag={} ts={} extra=0x{:08X}",
+                     sid, flagName, response.events[i].timestamp, response.events[i].extra);
+        }
+        else
+        {
+            DEBUGLOG(dark_cyan, "sid=({}) detection event: flag={} ts={} extra=0x{:08X} detail='{}'",
+                     sid, flagName, response.events[i].timestamp, response.events[i].extra, detail);
+        }
+    }
+
+    if (outEvents && eventCount > 0) {
+        outEvents->reserve(outEvents->size() + eventCount);
+        for (std::size_t i = 0; i < eventCount; ++i)
             outEvents->push_back(response.events[i]);
     }
 
     lock.unlock();
 
-    // Schedule next challenge
-    scheduleNextChallenge(sid, io, server, kChallengeIntervalMs);
+    // Schedule next challenge only once; extra packets with the same challenge
+    // are accepted as queued follow-up batches until the next challenge is sent.
+    if (isPrimaryResponse)
+        scheduleNextChallenge(sid, io, server, kChallengeIntervalMs);
+
     return true;
 }
 
@@ -331,6 +402,7 @@ void HeartbeatManager::sendChallenge(uint16_t sid, asio::io_context& io, Game::C
     rng.NextBytes(reinterpret_cast<uint8_t*>(&state.currentChallengeId), sizeof(uint64_t));
     rng.NextBytes(state.currentChallengeData, 32);
     state.awaitingResponse = true;
+    state.allowQueuedResponses = false;
 
     // Build plaintext challenge
     HeartbeatChallenge challenge{};

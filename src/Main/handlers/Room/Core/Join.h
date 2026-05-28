@@ -220,7 +220,8 @@ namespace Game::Handlers
         settings_info.allow_intruders = room_cache->allow_intruders;
         settings_info.allow_observers = room_cache->allow_observers;
         settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;//room_cache->TeamBalance;
-        if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle)
+        if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle ||
+            room_cache->ModeIndex == NetEngine::Room::Mode::Index::CLAN_BombBattle)
             settings_info.team_balance = NetEngine::Room::Balance::State::Disabled;
         settings_info.has_password = has_password;
         settings_info.hide_password = false;
@@ -236,6 +237,7 @@ namespace Game::Handlers
         mode_settings_info.allow_items = room_cache->allow_drops;
         mode_settings_info.restriction = room_cache->Restriction;
         std::vector<PlayerRoomClanListInfo> players_clan_info;
+        auto my_clan_id = acc_cache->acc_info.ClanId;
 
         acc_cache.unlock();
         auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
@@ -275,7 +277,7 @@ namespace Game::Handlers
                     if (CClan.contains(player_cache->acc_info.ClanId))
                     {
                         auto clan_info = CClan.get<shared_t>(player_cache->acc_info.ClanId);
-                        auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, acc_cache->acc_info.ClanId, 0);
+                        auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, my_clan_id, 0);
                         clan_info.unlock();
                         players_clan_info.push_back(info);
                     }
@@ -345,8 +347,7 @@ namespace Game::Handlers
                             player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                     }
                     DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", session_id, plaza_id);
-                    auto remove_myself = std::remove(current_plaza->session_ids.begin(), current_plaza->session_ids.end(), session_id);
-                    current_plaza->session_ids.erase(remove_myself, current_plaza->session_ids.end());
+                    std::erase(current_plaza->session_ids, session_id);
                     acc_cache->plaza_id = 0;
                     acc_cache->in_plaza = false;
                 }
@@ -432,7 +433,8 @@ namespace Game::Handlers
             //arms_info.kitdrop = room_cache->allow_drops;
             session->SendMsg(309, 0, 0, room_cache->ModeIndex, reinterpret_cast<uint8_t*>(&arms_info), sizeof(arms_info));
         }
-        else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle)
+        else if (room_cache->ModeIndex == NetEngine::Room::Mode::Index::BombBattle||
+            room_cache->ModeIndex == NetEngine::Room::Mode::Index::CLAN_BombBattle)
         {
             BombBattle_ModeInfo bmb_info{};
             bmb_info.bluescore = 0;
@@ -554,7 +556,7 @@ namespace Game::Handlers
                     if (CClan.contains(player_cache->acc_info.ClanId))
                     {
                         auto clan_info = CClan.get<shared_t>(player_cache->acc_info.ClanId);
-                        auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, acc_cache->acc_info.ClanId, 0);
+                        auto info = PlayerRoomClanListInfo(player_cache->slot_id, clan_info->clan_name.c_str(), clan_info->logo_front, clan_info->logo_back, my_clan_id, 0);
                         clan_info.unlock();
                         players_clan_info_assure.push_back(info);
                     }
@@ -570,6 +572,7 @@ namespace Game::Handlers
         }
 
         acc_cache->state = PlayerInfo::State::Waiting;
+        main_server->SendCastRoomJoinSync(room_cache->room_id, session_id, room_cache->host_session_id, room_cache->is_playing);
 
         DEBUGLOG(dark_cyan, "will broadcast to all player new state 7 (waiting) to avoid playing bug state");
         for (const auto& room_player_session_id : players_ids)

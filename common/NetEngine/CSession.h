@@ -41,6 +41,7 @@ namespace NetEngine
 
         void Disconnect();
         void Send(CMessage& message);
+        void SendIpc(const uint32_t& ipc_id, const std::vector<uint8_t>& payload);
 
         template <typename O, typename M, typename E, typename P>
             requires (
@@ -83,10 +84,11 @@ namespace NetEngine
         void SetEncryptionKey(int32_t key);
         void SetSessionId(uint16_t id);
         void SetOnDisconnectCallback(std::function<void(std::shared_ptr<CSession>)> callback);
-        void SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>);
+        void SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> callback);
         int32_t GetEncryptionKey();
         uint16_t GetSessionId();
         CServer* GetServer();
+        bool IsOpen() const;
         void DoRead();
         void DoReadIpc();
         std::shared_mutex& GetMutex() {
@@ -132,7 +134,7 @@ namespace NetEngine
         bool m_useEncryption = false;
         int32_t m_encryptionKey = -1;
         uint16_t m_sessionId = 1;
-        std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback; 
+        std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback;
         std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> m_on_ipc_callback;
         bool m_ipc_identifier_skipped;
     };

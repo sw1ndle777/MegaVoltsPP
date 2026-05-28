@@ -1,7 +1,7 @@
 #pragma once
 namespace Game::Commands
 {
-    using CommandFunc = std::function<void(const std::vector<std::string>&,
+    using CommandFunc = std::move_only_function<void(const std::vector<std::string>&,
         const SCallbackData&,
         AccCacheResource&,
         CMainServer*)>;

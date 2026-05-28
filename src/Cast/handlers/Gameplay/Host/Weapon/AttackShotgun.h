@@ -1,4 +1,5 @@
 #pragma once
+#include "CombatIpc.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -33,9 +34,12 @@ namespace Game::Handlers
         for (uint8_t i = 0; i < cnt; i++)
         {
             auto data = req->player_victims_data[i];
-            auto victim_acc = CAccount.get<unique_t>(static_cast<uint16_t>(data.victim_unique_id.session));
-            if (victim_acc)
-                victim_acc->health = data.player_info.health;
+            UpdateVictimHealthAndSendCombatIpc(server,
+                room->room_id,
+                static_cast<uint16_t>(req->attacker_unique_id.session),
+                static_cast<uint16_t>(data.victim_unique_id.session),
+                data.player_info.health,
+                CombatWeaponKind::Shotgun);
         }
 
         server->Broadcast(room->players_session_id, *message);

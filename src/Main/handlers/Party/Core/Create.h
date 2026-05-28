@@ -77,8 +77,7 @@ namespace Game::Handlers
                                 pss->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&uid), sizeof(uid));
                         }
                         DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", sid, plaza_id);
-                        auto remove_myself = std::remove(plaza->session_ids.begin(), plaza->session_ids.end(), sid);
-                        plaza->session_ids.erase(remove_myself, plaza->session_ids.end());
+                        std::erase(plaza->session_ids, sid);
                         acc->plaza_id = 0;
                         acc->in_plaza = false;
                     }

@@ -9,20 +9,8 @@ namespace Game::Handlers
         auto session = callback.session;
         if (!session) return;
 
-        auto sid = session->GetSessionId();
-
-        uint16_t roomId = 0;
-        server->GetNextAvailableRoomId(roomId);
-        Game::Room room = { roomId , sid };
-        room.players_session_id.push_back(sid);
-        CRoom.insert(roomId, room);
-        CRoomId.emplace_back(roomId);
-
-        auto acc = CAccount.get<unique_t>(sid);
-        acc->room_id = roomId;
-        acc->in_room = true;
-        acc->state_id = PlayerInfo::State::WaitingRoom;
-        acc.unlock();
-        DEBUGLOG(dark_cyan, "sid=({}) created roomId=({})", sid, roomId);
+        DEBUGLOG(dark_cyan,
+            "sid=({}) ignored cast ROOM_CREATE_CAST because room lifecycle is synchronized from main IPC",
+            session->GetSessionId());
     }
 }

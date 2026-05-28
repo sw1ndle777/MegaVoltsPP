@@ -7,6 +7,10 @@ namespace Game::Handlers
     using namespace NetEngine;
     using namespace NetEngine::Packets::Main;
 
+    inline void PlayerQuit(SCallbackData& callback, CMainServer* main_server)
+    {
+    }
+
     inline void ServerDisconnect(std::shared_ptr<CSession> session, CMainServer* main_server)
     {
 
@@ -20,6 +24,7 @@ namespace Game::Handlers
         auto aid = acc->acc_info.Index;
         if (aid == -1)
         {
+            CSid.erase_value(sid);
             main_server->RemoveSession(sid);
             DEBUGLOG(dark_cyan, "disconnected sid=({})", sid);
             acc.unlock();
@@ -39,6 +44,14 @@ namespace Game::Handlers
         if (!validated.has_value())
         {
             DEBUGLOG(red, "ValidateDatabaseUpdates failed for aid=({}) name=({}) error=({})", acc->acc_info.Index, acc->acc_info.Nickname.c_str(), static_cast<int>(validated.error()));
+            acc.unlock();
+            CAccount.erase(sid);
+            CAidSid.erase(aid);
+            CAuthKey.erase(auth_key);
+            CSid.erase_value(sid);
+            CSocial.erase(sid);
+            main_server->RemoveSession(sid);
+            DEBUGLOG(dark_cyan, "cleaned up sid=({}) after validation failure", sid);
             return;
         }
         if (multiple_accs_logged_in)
@@ -167,6 +180,7 @@ namespace Game::Handlers
                 CAccount.erase(sid);
                 CAidSid.erase(aid);
                 CAuthKey.erase(auth_key);
+                CSid.erase_value(sid);
                 DEBUGLOG(dark_cyan, "removed acc cache for sid=({})", sid);
                 CSocial.erase(sid);
                 DEBUGLOG(dark_cyan, "removed socials cache for sid=({})", sid);

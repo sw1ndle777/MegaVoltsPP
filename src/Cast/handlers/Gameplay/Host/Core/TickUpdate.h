@@ -24,12 +24,14 @@ namespace Game::Handlers
         auto user = CAccount.get<shared_t>(userSid);
 		auto room = CRoom.get<shared_t>(roomId);
         if (!user || !room) return;
+        /*
         if (host->session_id != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
             return;
         }
+        */
         //PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) roomTick=({})", roomId, user->nickname, userSid, hostName, hostSid, roomTick);
         server->Forward(userSid, hostSid, *message);
         

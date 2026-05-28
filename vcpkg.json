@@ -7,7 +7,9 @@
     "crashpad",
     "mariadb-connector-cpp",
     "libsodium",
-    "openssl"
+    "openssl",
+    "libpqxx",
+    "gtest"
   ],
   "description": "",
   "name": "megavoltspp",

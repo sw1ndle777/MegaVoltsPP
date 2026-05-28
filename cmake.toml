@@ -18,7 +18,9 @@ packages = [
     "crashpad",
 	"mariadb-connector-cpp",
 	"libsodium",
-    "openssl"
+    "openssl",
+    "libpqxx",
+    "gtest"
 ]
 overlay = "vcpkg-overlay"
 
@@ -26,9 +28,12 @@ overlay = "vcpkg-overlay"
 [find-package.crashpad]
 [find-package.unofficial-mariadb-connector-cpp]
 [find-package.OpenSSL]
+[find-package.libpqxx]
+[find-package.GTest]
 
 [subdir.deps]
 [subdir.common]
+[subdir.tests]
 
 [template.server-executable]
 type                = "executable"
@@ -39,7 +44,7 @@ compile-definitions = [
 ]
 compile-features = ["cxx_std_23"]
 properties.MSVC_RUNTIME_LIBRARY = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "magic_enum", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "OpenSSL::Crypto", "common"]
+link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "magic_enum", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "libpqxx::pqxx", "OpenSSL::Crypto", "common"]
 
 [target.front]
 type                = "server-executable"   # inherits template from root

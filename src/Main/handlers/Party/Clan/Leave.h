@@ -76,6 +76,7 @@ namespace Game::Handlers
             room_cache.unlock();
 			CRoom.erase(target_room_id);
 			CRoomId.erase_value(target_room_id);
+            main_server->SendCastRoomRemoveSync(target_room_id);
             main_server->SetRoomIdAvailable(target_room_id);
 
             return;

@@ -19,6 +19,11 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CCache.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\DbError.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\IDatabase.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CMariaDatabase.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDatabaseFactory.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CPostgresDatabase.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBData.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CLocker.h" />
@@ -44,6 +49,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\monocypher.c" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\deps\monocypher\src\optional\monocypher-ed25519.c" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDatabase.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CMariaDatabase.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDatabaseFactory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CPostgresDatabase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDBM.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CLog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CSettings.cpp" />

@@ -1,4 +1,4 @@
-# Ignore binaries and object files
+# Binaries and object files
 *.o
 *.obj
 *.exe
@@ -10,28 +10,51 @@
 *.cgd
 *.dip
 *.dmp
+
+# Runtime config (contains credentials)
 settings.json
 
-# Ignore build directories
+# IDE / editor
 .vs/
-bin/
+.vscode/
+.idea/
+*.user
+*.suo
+*.ncb
+*.sdf
+
+# Build directories
+build/
+build-*/
 out/
+bin/
+obj/
 Release/
 Debug/
+CMakeFiles/
 /src/.vs
-/src/Front/obj
-/src/Front/obj_1_1_1
-/src/Main/obj
-/src/Main/obj_1_1_1
-/src/Cast/obj
-/src/Cast/obj_1_1_1
+/src/Front/obj*
+/src/Main/obj*
+/src/Cast/obj*
 /src/obj/
+
+# vcpkg installed artifacts
+/vcpkg_installed/
+
+# Docker data (volumes, certs, logs)
+/docker-data/crash_dumps
+/docker-data/certs/
+/docker-data/logs/
+
+# Crash dumps
 /crash_dumps/
-/build/
-/CMakeFiles
+
+# Dependencies (vendored via vcpkg)
 /deps/asio
 /deps/boost_unordered
 /deps/monocypher
 /deps/rapidjson
 /deps/thread-pool
-/docker-data/crash_dumps
+
+# Claude Code
+.claude/

@@ -118,7 +118,11 @@ namespace NetEngine
 				FrontToMainTryLoginPlayer = 11,
                 MainToFrontAcknowledgeAidOnline = 12,
 				MainToFrontAcknowledgeAidDisconnected = 13,
-				CastToMainAcknowledgeAuthPlayer = 14
+				CastToMainAcknowledgeAuthPlayer = 14,
+                CastToMainMatchCombatHit = 15,
+                MainToCastPlayerHealthSync = 16,
+                MainToCastTpToProjToggle = 17,
+                MainToCastRoomLifecycleSync = 18
             };
         }
 
@@ -829,11 +833,11 @@ namespace NetEngine
                 Scrimmage = 9,
                 BombBattle = 10,
                 BossBattle = 11,
-                CLAN_CaptureTheBattery = 14,
-                CLAN_TeamDeathMatch = 15,
-                CLAN_Elimination = 16,
-                CLAN_Random = 17
-                
+                CLAN_CaptureTheBattery = 13,
+                CLAN_Elimination = 14,
+                CLAN_TeamDeathMatch = 15,              
+				CLAN_BombBattle = 16,
+                CLAN_Random = 17 
             };
             constexpr std::string_view modeNames[] =
             {
@@ -842,18 +846,18 @@ namespace NetEngine
                 "Item Match",
                 "Capture The Battery",
                 "Close Combat",
-                "Sabotage",
+                "Elimination",
                 "Super Item Match",
                 "Zombie Mode",
                 "Arms Race",
                 "Scrimmage",
                 "Bomb Battle",
                 "Boss Battle",
-                "Clan Team Death Match"
-                "Clan Capture The Battery",
+                "Unknown 12",
+                "Clan Capture The Battery"
                 "Clan Elimination",
-                "Unknown 15",
-                "Unknown 16",
+                "Clan Team Death Match",
+                "Clan Bomb Battle",
                 "Clan Random"
             };
         #else

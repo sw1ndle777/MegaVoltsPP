@@ -56,8 +56,7 @@ namespace Game::Handlers
         }
 
 
-        auto remove_myself = std::remove(party_cache->members.begin(), party_cache->members.end(), session_id);
-        party_cache->members.erase(remove_myself, party_cache->members.end());
+        std::erase(party_cache->members, session_id);
 
         for (const auto& party_member_session_id : party_cache->members)
         {

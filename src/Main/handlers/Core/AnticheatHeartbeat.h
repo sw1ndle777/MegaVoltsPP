@@ -36,24 +36,42 @@ namespace Game::Handlers
 
             auto ip = session->GetIpAddress();
 
+            auto extractDetail = [](const Game::Anticheat::DetectionEvent& evt)
+            {
+                std::size_t len = 0;
+                while (len < Game::Anticheat::kDetectionDetailSize && evt.detail[len] != '\0')
+                    ++len;
+
+                return std::string(evt.detail, len);
+            };
+
             std::vector<AcDetectionLogEntry> logs;
-            logs.reserve(detectionEvents.size());
+            logs.reserve(detectionEvents.size() * 2);
             for (const auto& evt : detectionEvents)
             {
-                AcDetectionLogEntry entry;
-                entry.aid = aid;
-                entry.ip = ip;
-                entry.hwid = hwid;
-                entry.detection_flag = static_cast<AcDetection::Flag>(evt.flag);
-                entry.extra = evt.extra;
-                entry.server_id = server_id;
-                logs.push_back(std::move(entry));
+                const auto flags = AcDetection::ExpandRawFlags(evt.flag);
+                const auto detail = extractDetail(evt);
+                for (const auto flag : flags)
+                {
+                    AcDetectionLogEntry entry;
+                    entry.aid = aid;
+                    entry.ip = ip;
+                    entry.hwid = hwid;
+                    entry.detection_flag = flag;
+                    entry.extra = evt.extra;
+                    entry.details = detail;
+                    entry.server_id = server_id;
+                    logs.push_back(std::move(entry));
+                }
             }
 
-            [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([logs = std::move(logs)]() mutable
-                {
-                    BaseLib::Database->PersistAcDetectionLogs(logs);
-                });
+            if (!logs.empty())
+            {
+                [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([logs = std::move(logs)]() mutable
+                    {
+                        BaseLib::Database->PersistAcDetectionLogs(logs);
+                    });
+            }
         }
     }
 }

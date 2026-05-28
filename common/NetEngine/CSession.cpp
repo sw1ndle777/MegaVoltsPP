@@ -60,18 +60,61 @@ namespace NetEngine
                 DEBUGLOG(red, "trying to send order ({}), but sid ({}) socket not open", order, m_sessionId);
                 return;
             }
-            asio::async_write(m_socket,
-                asio::buffer(data_vec->data(), data_vec->size()),
-                asio::bind_executor(m_strand,
-                    [self, data_vec](const std::error_code& ec, size_t bytes_transferred)
-                    {
-                        if (ec)
-                        {
-                            DEBUGLOG(red, "failed to send data: ({})", ec.message().c_str());
-                            self->Disconnect();
-                        }
-                    }));
+            const bool was_idle = m_SendQueue.empty();
+            m_SendQueue.push_back(data_vec);
+            if (was_idle)
+                DoSend();
             });
+    }
+    void CSession::SendIpc(const uint32_t& ipc_id, const std::vector<uint8_t>& payload)
+    {
+        auto data_vec = std::make_shared<std::vector<uint8_t>>(8 + payload.size());
+        const uint32_t data_size = static_cast<uint32_t>(payload.size());
+        std::memcpy(data_vec->data(), &ipc_id, sizeof(ipc_id));
+        std::memcpy(data_vec->data() + sizeof(ipc_id), &data_size, sizeof(data_size));
+        if (!payload.empty())
+            std::memcpy(data_vec->data() + 8, payload.data(), payload.size());
+
+        asio::dispatch(m_strand, [this, self = shared_from_this(), data_vec]() {
+            if (!m_socket.is_open())
+            {
+                DEBUGLOG(red, "trying to send ipc but sid ({}) socket not open", m_sessionId);
+                return;
+            }
+            const bool was_idle = m_SendQueue.empty();
+            m_SendQueue.push_back(data_vec);
+            if (was_idle)
+                DoSend();
+            });
+    }
+    void CSession::DoSend()
+    {
+        if (!m_socket.is_open())
+        {
+            m_SendQueue.clear();
+            return;
+        }
+        if (m_SendQueue.empty()) return;
+
+        auto data_vec = m_SendQueue.front();
+        asio::async_write(m_socket,
+            asio::buffer(data_vec->data(), data_vec->size()),
+            asio::bind_executor(m_strand,
+                [this, self = shared_from_this(), data_vec](const std::error_code& ec, size_t /*bytes_transferred*/)
+                {
+                    if (ec)
+                    {
+                        DEBUGLOG(red, "failed to send data: ({})", ec.message().c_str());
+                        m_SendQueue.clear();
+                        self->Disconnect();
+                        return;
+                    }
+
+                    if (!m_SendQueue.empty())
+                        m_SendQueue.pop_front();
+                    if (!m_SendQueue.empty())
+                        DoSend();
+                }));
     }
 
     void CSession::SetEncryptionKey(int32_t key)
@@ -94,6 +137,10 @@ namespace NetEngine
     CServer* CSession::GetServer()
     {
         return m_server;
+    }
+    bool CSession::IsOpen() const
+    {
+        return m_socket.is_open();
     }
     void CSession::onPacket(Protocols::STcpPacketHeader& header, std::vector<uint8_t>& data)
     {

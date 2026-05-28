@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 #include <stdint.h>
 #include <string.h>
 #include "Enums/Protocol/Orders.h"
+#include <BaseLib/Platform.h>
 namespace NetEngine
 {
     namespace Protocols

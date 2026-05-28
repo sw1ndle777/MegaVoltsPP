@@ -11,6 +11,7 @@
 #include "BaseLib/CSettings.h"
 #include "NetEngine/Constants.h"
 #include "BaseLib/CDatabase.h"
+#include "BaseLib/CDatabaseFactory.h"
 #include "BaseLib/CDBM.h"
 #include "BaseLib/CDBData.h"
 
@@ -128,8 +129,8 @@ void init_crash_handler()
     std::unique_ptr<crashpad::CrashReportDatabase> database = crashpad::CrashReportDatabase::Initialize(db_path);
     if (database == NULL) return;
 
-    crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-	client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
+    static crashpad::CrashpadClient client;
+	client.StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
 }
 using namespace BaseLib;
 int main()
@@ -162,9 +163,10 @@ int main()
 
     BaseLib::EventLog->Initialize("../logs/MegaVoltsPP_main.log", false);
     //BaseLib::ThreadPool->Initialize(server_settings.main.pool_threads);
+    BaseLib::Database = BaseLib::CreateDatabase(server_settings.database.driver);
     BaseLib::Database->Initialize(server_settings.database.db_name.c_str(), server_settings.database.host.c_str(), server_settings.database.port, server_settings.database.user.c_str(), server_settings.database.password.c_str());
 
-    Game::CMainServer* mainServer = new Game::CMainServer();
+    auto mainServer = std::make_unique<Game::CMainServer>();
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.main.host.c_str(), std::to_string(server_settings.main.port).c_str(), std::to_string(server_settings.main.ipc_port).c_str(), server_settings.main.debug, true, true, server_settings.main.watchguard, server_settings.main.asio_threads, server_settings.main.database_threads, server_settings.main.logger_threads);
     settings.playtime_min_seconds = server_settings.main.playtime_min_seconds;
     auto start_time = std::chrono::system_clock::now();
@@ -176,17 +178,19 @@ int main()
     std::vector<uint8_t> buffer_dailymissioninfo = loadFileCrossPlatform(std::source_location::current(), "dailymissioninfo.cdb");
     std::vector<uint8_t> buffer_itemweaponsinfo = loadFileCrossPlatform(std::source_location::current(), "itemweaponsinfo.cdb");
     std::vector<uint8_t> buffer_setiteminfo = loadFileCrossPlatform(std::source_location::current(), "setiteminfo.cdb");
+    std::vector<uint8_t> buffer_baseunitinfo = loadFileCrossPlatform(std::source_location::current(), "baseunitinfo.cdb");
     std::vector<uint8_t> buffer_vendorinfo = loadFileCrossPlatform(std::source_location::current(), "vendorinfo.cdb");
     std::vector<uint8_t> buffer_upgradeinfo = loadFileCrossPlatform(std::source_location::current(), "upgradeinfo.cdb");
     std::vector<uint8_t> buffer_gachaponinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponinfo.cdb");
     std::vector<uint8_t> buffer_gachaponpackageinfo = loadFileCrossPlatform(std::source_location::current(), "gachaponpackageinfo.cdb");
     std::vector<uint8_t> buffer_itempackageinfo = loadFileCrossPlatform(std::source_location::current(), "itempackageinfo.cdb");
+    std::vector<uint8_t> buffer_mapinfo = loadFileCrossPlatform(std::source_location::current(), "mapinfo.cdb");
     std::vector<uint8_t> buffer_roomoptioninfo = loadFileCrossPlatform(std::source_location::current(), "roomoptioninfo.cdb");
     std::vector<uint8_t> buffer_gradeinfo = loadFileCrossPlatform(std::source_location::current(), "gradeinfo.cdb");
     std::vector<uint8_t> buffer_rewardinfo = loadFileCrossPlatform(std::source_location::current(), "rewardinfo.cdb");
 
   
-    CDBM iteminfo_cdb, effectinfo_cdb, collectioninfo_cdb, dailymissioninfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
+    CDBM iteminfo_cdb, effectinfo_cdb, collectioninfo_cdb, dailymissioninfo_cdb, itemweaponsinfo_cdb, setiteminfo_cdb, baseunitinfo_cdb, vendorinfo_cdb, upgradeinfo_cdb, gachaponinfo_cdb, gachaponpackageinfo_cdb, itempackageinfo_cdb, mapinfo_cdb, roomoptioninfo_cdb, gradeinfo_cdb, rewardinfo_cdb;
 
     iteminfo_cdb.LoadCDB(buffer_iteminfo);
     itemweaponsinfo_cdb.LoadCDB(buffer_itemweaponsinfo);
@@ -221,7 +225,13 @@ int main()
         new_item_info.PointPrice = data_fields.at("ii_buy_point").GetInt();
         new_item_info.SellPointPrice = data_fields.at("ii_sell_point").GetInt();
         new_item_info.Stock = data_fields.at("ii_stocks").GetInt();
-        new_item_info.BonusEffectId = data_fields.at("ef_effect_2").GetInt();
+        new_item_info.EffectId1 = data_fields.at("ef_effect_1").GetInt();
+        new_item_info.EffectTarget1 = data_fields.at("ef_target_1").GetInt();
+        new_item_info.EffectId2 = data_fields.at("ef_effect_2").GetInt();
+        new_item_info.EffectTarget2 = data_fields.at("ef_target_2").GetInt();
+        new_item_info.EffectId3 = data_fields.at("ef_effect_3").GetInt();
+        new_item_info.EffectTarget3 = data_fields.at("ef_target_3").GetInt();
+        new_item_info.BonusEffectId = new_item_info.EffectId2;
 		Game::CItemsInfo.insert(new_item_info.Id, new_item_info);
         //mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
@@ -253,7 +263,13 @@ int main()
         new_item_info.PointPrice = data_fields.at("ii_buy_point").GetInt();
         new_item_info.SellPointPrice = data_fields.at("ii_sell_point").GetInt();
         new_item_info.Stock = data_fields.at("ii_stocks").GetInt();
-        new_item_info.BonusEffectId = data_fields.at("ef_effect_2").GetInt();
+        new_item_info.EffectId1 = data_fields.at("ef_effect_1").GetInt();
+        new_item_info.EffectTarget1 = data_fields.at("ef_target_1").GetInt();
+        new_item_info.EffectId2 = data_fields.at("ef_effect_2").GetInt();
+        new_item_info.EffectTarget2 = data_fields.at("ef_target_2").GetInt();
+        new_item_info.EffectId3 = data_fields.at("ef_effect_3").GetInt();
+        new_item_info.EffectTarget3 = data_fields.at("ef_target_3").GetInt();
+        new_item_info.BonusEffectId = new_item_info.EffectId2;
         Game::CItemsInfo.insert(new_item_info.Id, new_item_info);
         //mainServer->AddItemInfoCache(new_item_info.Id, new_item_info);
     }
@@ -426,6 +442,33 @@ int main()
     fmt::print(fg(fmt::color::dark_cyan) | fmt::emphasis::bold, ") set items in ");
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, fmt::runtime("{}\n"), elapsed_time_str.c_str());
 	*/
+    start_time = std::chrono::system_clock::now();
+    baseunitinfo_cdb.LoadCDB(buffer_baseunitinfo);
+    auto& baseunitinfo_data = baseunitinfo_cdb.GetDataRows();
+    for (uint32_t i = 0; i < baseunitinfo_data.size(); i++)
+    {
+        BaseLib::BaseUnitInfo new_baseunit_info;
+        auto& data_fields = baseunitinfo_data[i];
+        new_baseunit_info.Type = data_fields.at("bi_type").GetInt();
+        new_baseunit_info.CashPrice = data_fields.at("bi_cash_price").GetInt();
+        new_baseunit_info.Price = data_fields.at("bi_price").GetInt();
+        new_baseunit_info.Life = data_fields.at("bi_life").GetInt();
+        new_baseunit_info.RunSpeed = data_fields.at("bi_run_speed").GetInt();
+        new_baseunit_info.WalkSpeed = data_fields.at("bi_walk_speed").GetInt();
+        new_baseunit_info.SitWalkSpeed = data_fields.at("bi_sit_walk_speed").GetInt();
+        new_baseunit_info.BackSpeed = data_fields.at("bi_back_speed").GetInt();
+        Game::CBaseUnitInfo.insert(new_baseunit_info.Type, new_baseunit_info);
+    }
+    baseunitinfo_data.clear();
+    baseunitinfo_data.shrink_to_fit();
+    baseunitinfo_cdb.Clear();
+    buffer_baseunitinfo.clear();
+    buffer_baseunitinfo.shrink_to_fit();
+    end_time = std::chrono::system_clock::now();
+    elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+    elapsed_time_str = Utility::readable_time(elapsed_time.count());
+    DEBUGLOG(dark_cyan, "loaded ({}) base units in ({})", Game::CBaseUnitInfo.size(), elapsed_time_str.c_str());
+
     start_time = std::chrono::system_clock::now();
     vendorinfo_cdb.LoadCDB(buffer_vendorinfo);
     auto& vendorinfo_data = vendorinfo_cdb.GetDataRows();
@@ -681,6 +724,72 @@ int main()
     buffer_itempackageinfo.shrink_to_fit();
 	
     start_time = std::chrono::system_clock::now();
+    mapinfo_cdb.LoadCDB(buffer_mapinfo);
+    auto& mapinfo_data = mapinfo_cdb.GetDataRows();
+    auto mapsInfo = Game::CMapsInfo.get_all(BaseLib::unique);
+    auto get_bool_field = [](const auto& fields, const char* name)
+    {
+        if (const auto it = fields.find(name); it != fields.end())
+            return it->second.GetBool();
+        return false;
+    };
+    auto get_uint_field = [](const auto& fields, const char* name, uint32_t fallback = 0u)
+    {
+        if (const auto it = fields.find(name); it != fields.end())
+            return it->second.GetInt();
+        return fallback;
+    };
+    auto get_string_field = [](const auto& fields, const char* name)
+    {
+        if (const auto it = fields.find(name); it != fields.end())
+            return it->second.GetString();
+        return std::string{};
+    };
+    for (uint32_t i = 0; i < mapinfo_data.size(); i++)
+    {
+        BaseLib::MapInfo new_mapinfo;
+        auto& data_fields = mapinfo_data[i];
+        new_mapinfo.Id = get_uint_field(data_fields, "mi_id", get_uint_field(data_fields, "mi_rid"));
+        new_mapinfo.Name = get_string_field(data_fields, "mi_name");
+        new_mapinfo.MaxUsers = get_uint_field(data_fields, "mi_max_user");
+        new_mapinfo.DeathHeight = static_cast<int32_t>(get_uint_field(data_fields, "mi_death_height"));
+        new_mapinfo.tdm = get_bool_field(data_fields, "mi_mod_tdm");
+        new_mapinfo.ffa = get_bool_field(data_fields, "mi_mod_ffa");
+        new_mapinfo.itm = get_bool_field(data_fields, "mi_mod_itm");
+        new_mapinfo.ctf = get_bool_field(data_fields, "mi_mod_ctf");
+        new_mapinfo.ctm = get_bool_field(data_fields, "mi_mod_ctm");
+        new_mapinfo.sab = get_bool_field(data_fields, "mi_mod_sab");
+        new_mapinfo.cim = get_bool_field(data_fields, "mi_mod_cim");
+        new_mapinfo.zsm = get_bool_field(data_fields, "mi_mod_zsm");
+        new_mapinfo.grm = get_bool_field(data_fields, "mi_mod_grm");
+        new_mapinfo.mock = get_bool_field(data_fields, "mi_mod_mock");
+        new_mapinfo.bmb = get_bool_field(data_fields, "mi_mod_bmb");
+        new_mapinfo.sni = get_bool_field(data_fields, "mi_mod_sni");
+        new_mapinfo.nod = get_bool_field(data_fields, "mi_mod_nod");
+        new_mapinfo.pve = get_bool_field(data_fields, "mi_mod_pve");
+        new_mapinfo.bot = get_bool_field(data_fields, "mi_mod_bot");
+        new_mapinfo.tut = get_bool_field(data_fields, "mi_mod_tut");
+        new_mapinfo.clan_ctf = get_bool_field(data_fields, "mi_mod_cl_ctf");
+        new_mapinfo.clan_sab = get_bool_field(data_fields, "mi_mod_cl_sab");
+        new_mapinfo.clan_tdm = get_bool_field(data_fields, "mi_mod_cl_tdm");
+        new_mapinfo.clan_bmb = get_bool_field(data_fields, "mi_mod_cl_bmb");
+
+        if (new_mapinfo.Id != 0)
+            (*mapsInfo)[new_mapinfo.Id] = std::move(new_mapinfo);
+    }
+    mapsInfo.unlock();
+    end_time = std::chrono::system_clock::now();
+    elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+    elapsed_time_str = Utility::readable_time(elapsed_time.count());
+
+    DEBUGLOG(dark_cyan, "loaded ({}) map info in ({})", Game::CMapsInfo.size(), elapsed_time_str.c_str());
+    mapinfo_data.clear();
+    mapinfo_data.shrink_to_fit();
+    mapinfo_cdb.Clear();
+    buffer_mapinfo.clear();
+    buffer_mapinfo.shrink_to_fit();
+
+    start_time = std::chrono::system_clock::now();
     roomoptioninfo_cdb.LoadCDB(buffer_roomoptioninfo);
     auto& roomoptioninfo_data = roomoptioninfo_cdb.GetDataRows();
     auto roomOptionsInfo = Game::CRoomOptionsInfo.get_all(BaseLib::unique);
@@ -829,7 +938,7 @@ int main()
 	mainServer->Setup(settings, server_settings);
 	mainServer->Run();
     std::cin.get();
-    delete mainServer;
+    mainServer.reset();
     BaseLib::DbPool.reset();
     BaseLib::LogPool.reset();
     return 0;

@@ -38,7 +38,16 @@ namespace Game::Handlers
         auto clan_id = acc_cache->acc_info.ClanId;
         auto my_unique_id = acc_cache->uid.data;
         auto server_id = acc_cache->server_id;
+        auto muted_until = acc_cache->acc_info.MutedUntil;
         acc_cache.unlock();
+
+        const auto now_utc = Utility::GetUtcTimeNow64();
+        if (chat_type != Chat::Type::Command && muted_until > now_utc)
+        {
+            main_server->SendServerMessage(session,
+                std::format("[MegaVolts Online] You are muted for {}.", Utility::FormatCompactDurationSeconds(muted_until - now_utc)));
+            return;
+        }
 
         ChatLogEntry chat_log;
         chat_log.aid = acc_index;
@@ -395,4 +404,71 @@ namespace Game::Handlers
         }
             
     }
+}
+
+namespace NetEngine
+{
+    template <>
+    struct PacketRateLimitPolicy<&Game::Handlers::Chat>
+    {
+        inline static const std::optional<RateLimit::Rule> value = RateLimit::Rule{
+            .enabled = true,
+            .bucket_scope = RateLimit::IdentityScope::Aid,
+            .max_packets = 50,
+            .window = std::chrono::seconds{ 50 },
+            .max_packets_resolver = [](const SCallbackData& callback, const RateLimit::IdentitySnapshot&)
+            {
+                if (!callback.message)
+                    return 50u;
+
+                const auto length = callback.message->GetOption();
+                if (length >= 160)
+                    return 35u;
+                if (length >= 96)
+                    return 40u;
+                return 50u;
+            },
+            .window_resolver = [](const SCallbackData& callback, const RateLimit::IdentitySnapshot&)
+            {
+                if (!callback.message)
+                    return std::chrono::seconds{ 50 };
+
+                const auto length = callback.message->GetOption();
+                if (length >= 160)
+                    return std::chrono::seconds{ 100 };
+                if (length >= 96)
+                    return std::chrono::seconds{ 75 };
+                return std::chrono::seconds{ 50 };
+            },
+            .on_limit = [](RateLimit::ActionContext& ctx)
+            {
+                if (ctx.identity.aid <= 0)
+                    return;
+
+                const auto length = ctx.callback && ctx.callback->message ? ctx.callback->message->GetOption() : 0;
+                const auto mute_duration = length >= 160 ? std::chrono::minutes{ 15 } : (length >= 96 ? std::chrono::minutes{ 10 } : std::chrono::minutes{ 5 });
+                const auto muted_until = Utility::GetUtcTimeNow64() + static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(mute_duration).count());
+                ctx.CooldownAid(std::chrono::duration_cast<std::chrono::milliseconds>(mute_duration));
+
+                if (Game::CAidSid.contains(ctx.identity.aid))
+                {
+                    auto sid = Game::CAidSid.get<BaseLib::shared_t>(ctx.identity.aid);
+                    if (sid && *sid)
+                    {
+                        auto acc = Game::CAccount.get<BaseLib::unique_t>(*sid);
+                        if (acc && acc->acc_info.Index == ctx.identity.aid)
+                            acc->acc_info.MutedUntil = muted_until;
+                    }
+                }
+
+                [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([
+                    aid = ctx.identity.aid,
+                    muted_until
+                ]() mutable
+                {
+                    BaseLib::Database->SetAccountMutedUntil(aid, muted_until);
+                });
+            },
+        };
+    };
 }

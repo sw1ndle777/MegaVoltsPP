@@ -79,8 +79,9 @@ def main() -> int:
     servers["cast"]["watchguard"] = env_bool("CAST_WATCHGUARD", bool(servers["cast"].get("watchguard", False)))
 
     db = servers.setdefault("database", {})
+    db["driver"] = os.getenv("DB_DRIVER", db.get("driver", "mariadb"))
     db["host"] = os.getenv("DB_HOST", "host.docker.internal")
-    db["port"] = env_int("DB_PORT", 3306)
+    db["port"] = env_int("DB_PORT", 5432 if db["driver"] in ("postgresql", "postgres", "pg") else 3306)
     db["db_name"] = os.getenv("DB_NAME", db.get("db_name", ""))
     db["user"] = os.getenv("DB_USER", db.get("user", ""))
     db["password"] = os.getenv("DB_PASSWORD", db.get("password", ""))

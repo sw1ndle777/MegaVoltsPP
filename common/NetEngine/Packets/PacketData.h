@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "BaseLib/Utility.h"
+#include <BaseLib/Platform.h>
 //#include <DirectXPackedVector.h>
 namespace NetEngine
 {

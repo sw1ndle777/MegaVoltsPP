@@ -80,6 +80,10 @@ find_package(unofficial-mariadb-connector-cpp REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 
+find_package(libpqxx REQUIRED)
+
+find_package(GTest REQUIRED)
+
 # Subdirectory: deps
 set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
 if(CMAKE_FOLDER)
@@ -98,6 +102,16 @@ else()
 	set(CMAKE_FOLDER common)
 endif()
 add_subdirectory(common)
+set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
+
+# Subdirectory: tests
+set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
+if(CMAKE_FOLDER)
+	set(CMAKE_FOLDER "${CMAKE_FOLDER}/tests")
+else()
+	set(CMAKE_FOLDER tests)
+endif()
+add_subdirectory(tests)
 set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
 # Target: front
@@ -141,6 +155,7 @@ target_link_libraries(front PRIVATE
 	fmt::fmt
 	crashpad::crashpad
 	unofficial::mariadb-connector-cpp::mariadbcpp
+	libpqxx::pqxx
 	OpenSSL::Crypto
 	common
 )
@@ -175,12 +190,18 @@ set(main_SOURCES
 	"src/Main/handlers/Core/Cmds/Core/Metrics/Rooms.h"
 	"src/Main/handlers/Core/Cmds/Core/System/Maintenance.h"
 	"src/Main/handlers/Core/Cmds/Core/System/ReloadGachaSale.h"
+	"src/Main/handlers/Core/Cmds/Core/System/TpToProj.h"
 	"src/Main/handlers/Core/Cmds/Items/ClearInventory.h"
+	"src/Main/handlers/Core/Cmds/Items/EffectCurr.h"
 	"src/Main/handlers/Core/Cmds/Items/ExaItems.h"
 	"src/Main/handlers/Core/Cmds/Items/GodItems.h"
 	"src/Main/handlers/Core/Cmds/Items/Item.h"
 	"src/Main/handlers/Core/Cmds/Items/ItemsByType.h"
+	"src/Main/handlers/Core/Cmds/Moderation/Player/Ban.h"
+	"src/Main/handlers/Core/Cmds/Moderation/Player/Mute.h"
+	"src/Main/handlers/Core/Cmds/Moderation/Player/PenaltyCommon.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Player/Register.h"
+	"src/Main/handlers/Core/Cmds/Moderation/Player/RoomAids.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Room/Break.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Room/BreakAll.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Room/Kick.h"
@@ -189,6 +210,7 @@ set(main_SOURCES
 	"src/Main/handlers/Core/Disconnect.h"
 	"src/Main/handlers/Core/Ipc.h"
 	"src/Main/handlers/Core/Ipc/CastAuthorize.h"
+	"src/Main/handlers/Core/Ipc/CastCombatStats.h"
 	"src/Main/handlers/Core/Ipc/CastMetrics.h"
 	"src/Main/handlers/Core/Ipc/CastSid.h"
 	"src/Main/handlers/Core/Ipc/FrontAidOnline.h"
@@ -306,6 +328,7 @@ target_link_libraries(main PRIVATE
 	fmt::fmt
 	crashpad::crashpad
 	unofficial::mariadb-connector-cpp::mariadbcpp
+	libpqxx::pqxx
 	OpenSSL::Crypto
 	common
 )
@@ -337,7 +360,10 @@ set(cast_SOURCES
 	"src/Cast/handlers/Core/Ipc/MainDisconnect.h"
 	"src/Cast/handlers/Core/Ipc/MainHostChange.h"
 	"src/Cast/handlers/Core/Ipc/MainPingAssure.h"
+	"src/Cast/handlers/Core/Ipc/MainPlayerHealth.h"
+	"src/Cast/handlers/Core/Ipc/MainRoomSync.h"
 	"src/Cast/handlers/Core/Ipc/MainServerInfo.h"
+	"src/Cast/handlers/Core/Ipc/MainTpToProj.h"
 	"src/Cast/handlers/Gameplay/Core/Node/Authorize.h"
 	"src/Cast/handlers/Gameplay/Core/Node/CastQuit.h"
 	"src/Cast/handlers/Gameplay/Core/Ping.h"
@@ -366,6 +392,7 @@ set(cast_SOURCES
 	"src/Cast/handlers/Gameplay/Host/Weapon/AttackRifle.h"
 	"src/Cast/handlers/Gameplay/Host/Weapon/AttackShotgun.h"
 	"src/Cast/handlers/Gameplay/Host/Weapon/AttackSniper.h"
+	"src/Cast/handlers/Gameplay/Host/Weapon/CombatIpc.h"
 	"src/Cast/handlers/Gameplay/Host/Weapon/ImpactProjectile.h"
 	"src/Cast/handlers/Gameplay/Host/Weapon/WarmupGatling.h"
 	"src/Cast/handlers/Gameplay/User/Core/EffectBehaviour.h"
@@ -421,6 +448,7 @@ target_link_libraries(cast PRIVATE
 	fmt::fmt
 	crashpad::crashpad
 	unofficial::mariadb-connector-cpp::mariadbcpp
+	libpqxx::pqxx
 	OpenSSL::Crypto
 	common
 )

@@ -17,8 +17,10 @@
 
 #include "handlers/Core/Cmds/Core/System/Maintenance.h"
 #include "handlers/Core/Cmds/Core/System/ReloadGachaSale.h"
+#include "handlers/Core/Cmds/Core/System/TpToProj.h"
 
 #include "handlers/Core/Cmds/Items/ClearInventory.h"
+#include "handlers/Core/Cmds/Items/EffectCurr.h"
 #include "handlers/Core/Cmds/Items/ExaItems.h"
 #include "handlers/Core/Cmds/Items/GodItems.h"
 #include "handlers/Core/Cmds/Items/Item.h"
@@ -26,6 +28,9 @@
 
 
 #include "handlers/Core/Cmds/Moderation/Player/Register.h"
+#include "handlers/Core/Cmds/Moderation/Player/Ban.h"
+#include "handlers/Core/Cmds/Moderation/Player/Mute.h"
+#include "handlers/Core/Cmds/Moderation/Player/RoomAids.h"
 
 #include "handlers/Core/Cmds/Moderation/Room/Break.h"
 #include "handlers/Core/Cmds/Moderation/Room/BreakAll.h"
@@ -145,6 +150,7 @@
 #include "handlers/Core/Connect.h"
 #include "handlers/Core/Disconnect.h"
 #include "handlers/Core/Ipc/CastAuthorize.h"
+#include "handlers/Core/Ipc/CastCombatStats.h"
 #include "handlers/Core/Ipc/CastMetrics.h"
 #include "handlers/Core/Ipc/CastSid.h"
 #include "handlers/Core/Ipc/FrontDisconnect.h"
@@ -1070,22 +1076,6 @@ namespace Game
     
 
     
-    std::unordered_map<uint32_t, BaseLib::ItemInfo> items_info; //read only
-    std::unordered_map<uint32_t, BaseLib::SetItemInfo> setitems_info; //read only
-    std::vector<BaseLib::VendorInfo> vendors_info; //read only
-    std::unordered_map<uint32_t, std::unordered_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>> upgrades_info; //read only
-    std::unordered_map<uint32_t, BaseLib::GachaponInfo> gachapons_info; //read only
-    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<BaseLib::PackageInfo>>> packages_info; //read only
-    std::vector<uint32_t> vendor_item_ids; //read only
-    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>> roomoptionsinfo_cache; //read only
-    std::unordered_map<uint32_t, BaseLib::GradeInfo> grades_info; //read only
-    std::unordered_map<uint32_t, BaseLib::RewardInfo> rewards_info; //read only
-    std::unordered_map<uint32_t, std::vector<BaseLib::FriendInfo>> friends_cache; //read & write
-    std::unordered_map<uint32_t, std::vector<BaseLib::BlockedInfo>> blockeds_cache; //read & write
-    std::unordered_map<uint32_t, Player> accounts_cache; //read & write
-    std::unordered_map<uint32_t, Room> rooms_cache; //read & write
-    std::unordered_map<uint32_t, Plaza> plaza_cache; //read & write
-    std::vector<uint32_t> room_ids; //read & write
     
 
     
@@ -1129,9 +1119,11 @@ namespace Game
     */
     
     CCache<boost::unordered_flat_map<uint32_t, std::vector<uint32_t>>> CItemsType;
+    CCache<boost::unordered_flat_set<uint16_t>> g_tp_to_proj_sids;
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::ItemInfo>> CItemsInfo;
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::SetItemInfo>> CSetItemsInfo;
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::EffectInfo>> CEffectInfo;
+    CCache<boost::unordered_flat_map<uint32_t, BaseLib::BaseUnitInfo>> CBaseUnitInfo;
     CCache<boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>>> CUpgradesInfo;
 
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::CollectionInfo>> CCollectionInfo;
@@ -1142,6 +1134,7 @@ namespace Game
     CCache<boost::unordered_flat_set<uint32_t>> CVendorItems;
 
     CCache<std::vector<uint32_t>> CDailyMissions;
+    CCache<boost::unordered_flat_map<uint32_t, BaseLib::MapInfo>> CMapsInfo;
     CCache<boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>>> CRoomOptionsInfo;
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::GradeInfo>> CGradesInfo;
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::RewardInfo>> CRewardsInfo;
@@ -1168,6 +1161,34 @@ namespace Game
     CCache<boost::unordered_flat_map<uint32_t, BaseLib::GachaponSaleInfo>> CGachaponSaleInfo;
     CCache<std::vector<uint32_t>> CGachaponSale;
 
+    NetEngine::RateLimit::IdentitySnapshot CMainServer::BuildPacketRateLimitIdentitySnapshot(const SCallbackData& callback)
+    {
+        NetEngine::RateLimit::IdentitySnapshot snapshot{};
+        if (!callback.session)
+            return snapshot;
+
+        snapshot.sid = callback.session->GetSessionId();
+        snapshot.ip = callback.session->GetIpAddress();
+
+        auto acc = CAccount.get<shared_t>(snapshot.sid);
+        if (!acc)
+            return snapshot;
+
+        snapshot.aid = acc->acc_info.Index;
+        snapshot.hwid = acc->hwid;
+        return snapshot;
+    }
+
+    void CMainServer::SendSessionAnnouncement(CSession* session, const std::string_view message)
+    {
+        if (!session || message.empty())
+            return;
+
+        const auto capped_size = static_cast<size_t>(std::min<uint32_t>(static_cast<uint32_t>(message.size()), 255u));
+        std::string payload(message.substr(0, capped_size));
+        session->SendMsg(402, 0, 10, 0, reinterpret_cast<uint8_t*>(payload.data()), static_cast<uint16_t>(payload.size()));
+    }
+
     CMainServer::CMainServer()
     {
         //Commands::Init();
@@ -1178,132 +1199,133 @@ namespace Game
         this->OnSessionDisconnected(std::bind(&ServerDisconnect, std::placeholders::_1, this));
         this->OnIpcMessage(std::bind(&ServerIpc, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, this));
 
-        this->On(BLOCKED_ADD, std::bind(&BlockedsAdd, std::placeholders::_1, this));//block add
-        this->On(BLOCKED_DELETE, std::bind(&BlockedsRemove, std::placeholders::_1, this));//block remove
-        this->On(BLOCKED_LIST, std::bind(&BlockedsView, std::placeholders::_1, this));//block list
-       
-        this->On(CLAN_LIST, std::bind(&ClanView, std::placeholders::_1, this));//clan list
-        this->On(PARTY_LIST, std::bind(&PartyView, std::placeholders::_1, this));//new party clan implement
+        this->BindMainHandler<&BlockedsAdd>(BLOCKED_ADD);//block add
+        this->BindMainHandler<&BlockedsRemove>(BLOCKED_DELETE);//block remove
+        this->BindMainHandler<&BlockedsView>(BLOCKED_LIST);//block list
+        
+        this->BindMainHandler<&ClanView>(CLAN_LIST);//clan list
+        this->BindMainHandler<&PartyView>(PARTY_LIST);//new party clan implement
 
-        this->On(INFO_COLLECTION, std::bind(&Achievements, std::placeholders::_1, this));//achievement achivement mission completion
+        this->BindMainHandler<&Achievements>(INFO_COLLECTION);//achievement achivement mission completion
 
-        this->On(FRIENDS_ADD, std::bind(&FriendsAdd, std::placeholders::_1, this));//friend add
-        this->On(FRIENDS_DELETE, std::bind(&FriendsRemove, std::placeholders::_1, this));//friend remove
-        this->On(FRIENDS_LIST, std::bind(&FriendsView, std::placeholders::_1, this));//friend list
+        this->BindMainHandler<&FriendsAdd>(FRIENDS_ADD);//friend add
+        this->BindMainHandler<&FriendsRemove>(FRIENDS_DELETE);//friend remove
+        this->BindMainHandler<&FriendsView>(FRIENDS_LIST);//friend list
 
-        this->On(GIFT_SEND, std::bind(&GiftSend, std::placeholders::_1, this));//PlayerSendGiftbox
-        this->On(GIFT_DELETE, std::bind(&GiftDelete, std::placeholders::_1, this));//PlayerDeleteGiftbox
-        this->On(GIFT_RECEIVE, std::bind(&GiftReceive, std::placeholders::_1, this));//PlayerReceiveGiftbox
-        this->On(GIFT_LIST, std::bind(&GiftView, std::placeholders::_1, this));//PlayerOpenGiftbox
+        this->BindMainHandler<&GiftSend>(GIFT_SEND);//PlayerSendGiftbox
+        this->BindMainHandler<&GiftDelete>(GIFT_DELETE);//PlayerDeleteGiftbox
+        this->BindMainHandler<&GiftReceive>(GIFT_RECEIVE);//PlayerReceiveGiftbox
+        this->BindMainHandler<&GiftView>(GIFT_LIST);//PlayerOpenGiftbox
 
-        this->On(INFO_SECURITY_TOOLS, std::bind(&AcHeartbeat, std::placeholders::_1, this));
-        this->On(ID_AUTHORIZE, std::bind(&Authorize, std::placeholders::_1, this));//version check
-        this->On(ID_CREATE, std::bind(&NameChange, std::placeholders::_1, this));//nickname creation
+        this->BindMainHandler<&AcHeartbeat>(INFO_SECURITY_TOOLS);
+        this->BindMainHandler<&Authorize>(ID_AUTHORIZE);//version check
+        this->BindMainHandler<&NameChange>(ID_CREATE);//nickname creation
         // ID_CHARACTER_BUY 70
-        this->On(ID_PING, std::bind(&Ping, std::placeholders::_1, this));//player ping
-        // ID_QUIT 73
-        this->On(ID_CHARACTER_SELECT, std::bind(&CharacterChange, std::placeholders::_1, this));//character select
-        this->On(INFO_CHANNEL, std::bind(&Channels, std::placeholders::_1, this));//channels info
+        this->BindMainHandler<&Ping>(ID_PING);//player ping
+		this->BindMainHandler<&PlayerQuit>(ID_QUIT);//player quit client
 
-        this->On(INFO_USER_LIST, std::bind(&UsersView, std::placeholders::_1, this));//lobby user list
-        this->On(INFO_USER_PROFILE, std::bind(&UsersProfile, std::placeholders::_1, this));//lobby user details
+        this->BindMainHandler<&CharacterChange>(ID_CHARACTER_SELECT);//character select
+        this->BindMainHandler<&Channels>(INFO_CHANNEL);//channels info
 
-        this->On(ITEM_BATTERY_GET, std::bind(&Battery, std::placeholders::_1, this));//player energy
+        this->BindMainHandler<&UsersView>(INFO_USER_LIST);//lobby user list
+        this->BindMainHandler<&UsersProfile>(INFO_USER_PROFILE);//lobby user details
+
+        this->BindMainHandler<&Battery>(ITEM_BATTERY_GET);//player energy
 
 
-        this->On(ITEM_NORMALSHOP_BUY, std::bind(&ShopNormal, std::placeholders::_1, this));//shop buy item
+        this->BindMainHandler<&ShopNormal>(ITEM_NORMALSHOP_BUY);//shop buy item
 
-        this->On(ITEM_EQUIP, std::bind(&ItemEquip, std::placeholders::_1, this));//character equip update
-        this->On(ITEM_DELETE, std::bind(&ItemDelete, std::placeholders::_1, this));//delete item
+        this->BindMainHandler<&ItemEquip>(ITEM_EQUIP);//character equip update
+        this->BindMainHandler<&ItemDelete>(ITEM_DELETE);//delete item
 
-        this->On(ITEM_COUPONSHOP_BUY, std::bind(&ShopCoupon, std::placeholders::_1, this));//shop coupon buy item
+        this->BindMainHandler<&ShopCoupon>(ITEM_COUPONSHOP_BUY);//shop coupon buy item
 
-        this->On(ITEM_GACHA_SPIN, std::bind(&GachaponSpin, std::placeholders::_1, this));//gachapon spin
-		this->On(ITEM_GACHA_PITY, std::bind(&GachaponPity, std::placeholders::_1, this));//gachapon pity
+        this->BindMainHandler<&GachaponSpin>(ITEM_GACHA_SPIN);//gachapon spin
+		this->BindMainHandler<&GachaponPity>(ITEM_GACHA_PITY);//gachapon pity
 
-        this->On(ITEM_PICKUP, std::bind(&Pickups, std::placeholders::_1, this));//player pickup drop
+        this->BindMainHandler<&Pickups>(ITEM_PICKUP);//player pickup drop
 
-        this->On(ITEM_REPAIR, std::bind(&ItemRepair, std::placeholders::_1, this));//repair item
+        this->BindMainHandler<&ItemRepair>(ITEM_REPAIR);//repair item
         // ITEM_RESTORE 98
-        this->On(ITEM_SELL, std::bind(&ItemSell, std::placeholders::_1, this));//sell item
-        this->On(ITEM_UPGRADE, std::bind(&ItemUpgrade, std::placeholders::_1, this));//upgrade item
+        this->BindMainHandler<&ItemSell>(ITEM_SELL);//sell item
+        this->BindMainHandler<&ItemUpgrade>(ITEM_UPGRADE);//upgrade item
 
-        this->On(ITEM_USE, std::bind(&PackageOpen, std::placeholders::_1, this));//package open
-
-
-        this->On(MAIL_DELETE, std::bind(&MailDelete, std::placeholders::_1, this));//delete mailbox
-        this->On(MAIL_SEND, std::bind(&MailSend, std::placeholders::_1, this));//send mailbox
-        this->On(MAIL_READ, std::bind(&MailRead, std::placeholders::_1, this));//update mailbox
-        this->On(MAIL_LIST, std::bind(&MailView, std::placeholders::_1, this));//open mailbox
+        this->BindMainHandler<&PackageOpen>(ITEM_USE);//package open
 
 
-        this->On(MOD_START, std::bind(&MatchStart, std::placeholders::_1, this));//start match room
-        this->On(MOD_ROUND_START, std::bind(&MatchRoundsStart, std::placeholders::_1, this));//start elimination next round
+        this->BindMainHandler<&MailDelete>(MAIL_DELETE);//delete mailbox
+        this->BindMainHandler<&MailSend>(MAIL_SEND);//send mailbox
+        this->BindMainHandler<&MailRead>(MAIL_READ);//update mailbox
+        this->BindMainHandler<&MailView>(MAIL_LIST);//open mailbox
 
-        this->On(PARTY_CREATE, std::bind(&PartyCreate, std::placeholders::_1, this));//create party
-        this->On(PARTY_JOIN, std::bind(&PartyJoin, std::placeholders::_1, this));//create party
-        this->On(PARTY_QUIT, std::bind(&PartyLeave, std::placeholders::_1, this));//leave party
 
-        this->On(PARTY_QUICK_LIST, std::bind(&PartyClanView, std::placeholders::_1, this));//clan active list
-        this->On(PARTY_CLAN_LIST, std::bind(&PartyClanView, std::placeholders::_1, this));//clan active list
+        this->BindMainHandler<&MatchStart>(MOD_START);//start match room
+        this->BindMainHandler<&MatchRoundsStart>(MOD_ROUND_START);//start elimination next round
 
-        this->On(PARTY_CHANGE_HOST, std::bind(&PartyHostChange, std::placeholders::_1, this));//party change host
-        this->On(PARTY_PASS, std::bind(&PartyPassword, std::placeholders::_1, this));//clan register
-        this->On(PARTY_MODINFO, std::bind(&PartyModinfo, std::placeholders::_1, this));//party settings
-        this->On(PARTY_RULE_MAXPLAYER, std::bind(&PartyPlayersRule, std::placeholders::_1, this));//party settings
+        this->BindMainHandler<&PartyCreate>(PARTY_CREATE);//create party
+        this->BindMainHandler<&PartyJoin>(PARTY_JOIN);//create party
+        this->BindMainHandler<&PartyLeave>(PARTY_QUIT);//leave party
 
-        this->On(PARTY_AUTOMATCH, std::bind(&PartyAutomatch, std::placeholders::_1, this));//party register
-        this->On(PARTY_CLAN_QUEUESTATE, std::bind(&PartyClanRegister, std::placeholders::_1, this));//clan register
-		this->On(PARTY_CLAN_JOIN, std::bind(&PartyClanOtherJoin, std::placeholders::_1, this));//clan other join
-		this->On(PARTY_CLAN_LEAVE, std::bind(&PartyClanLeave, std::placeholders::_1, this));//clan leave
+        this->BindMainHandler<&PartyClanView>(PARTY_QUICK_LIST);//clan active list
+        this->BindMainHandler<&PartyClanView>(PARTY_CLAN_LIST);//clan active list
 
-        this->On(ROOM_RULE_KITDROPS, std::bind(&AllowKitdrops, std::placeholders::_1, this));//change objects state room
+        this->BindMainHandler<&PartyHostChange>(PARTY_CHANGE_HOST);//party change host
+        this->BindMainHandler<&PartyPassword>(PARTY_PASS);//clan register
+        this->BindMainHandler<&PartyModinfo>(PARTY_MODINFO);//party settings
+        this->BindMainHandler<&PartyPlayersRule>(PARTY_RULE_MAXPLAYER);//party settings
 
-        this->On(ROOM_RULE_MOD, std::bind(&RoomModInfo, std::placeholders::_1, this));//change settings room
-        this->On(ROOM_RULE_MOD_FULL, std::bind(&RoomModinfoFull, std::placeholders::_1, this));//change settings room
+        this->BindMainHandler<&PartyAutomatch>(PARTY_AUTOMATCH);//party register
+        this->BindMainHandler<&PartyClanRegister>(PARTY_CLAN_QUEUESTATE);//clan register
+		this->BindMainHandler<&PartyClanOtherJoin>(PARTY_CLAN_JOIN);//clan other join
+		this->BindMainHandler<&PartyClanLeave>(PARTY_CLAN_LEAVE);//clan leave
 
-        this->On(ROOM_RULE_INTRUDERS, std::bind(&AllowIntruders, std::placeholders::_1, this));//change intruders state room
-        this->On(ROOM_CHANGE_HOST, std::bind(&HostChange, std::placeholders::_1, this));//change leader room
+        this->BindMainHandler<&AllowKitdrops>(ROOM_RULE_KITDROPS);//change objects state room
 
-        this->On(ROOM_RULE_MOD_PASS, std::bind(&RoomModinfoPassword, std::placeholders::_1, this));//change settings room
-        this->On(ROOM_RULE_MOD_TITLE, std::bind(&RoomModinfoTitle, std::placeholders::_1, this));//change settings room
+        this->BindMainHandler<&RoomModInfo>(ROOM_RULE_MOD);//change settings room
+        this->BindMainHandler<&RoomModinfoFull>(ROOM_RULE_MOD_FULL);//change settings room
 
-        this->On(ROOM_RULE_MAP, std::bind(&MapRule, std::placeholders::_1, this));//change map room
-        this->On(ROOM_RULE_MAX_PLAYER, std::bind(&PlayersRule, std::placeholders::_1, this));//change player limit room
-        this->On(ROOM_RULE_OBSERVER, std::bind(&AllowObservers, std::placeholders::_1, this));//change observers state room
-        this->On(ROOM_RULE_MAX_POINTS, std::bind(&PointsRule, std::placeholders::_1, this));//change points room
-        this->On(ROOM_RULE_TIME, std::bind(&TimeRule, std::placeholders::_1, this));//change time limit room
+        this->BindMainHandler<&AllowIntruders>(ROOM_RULE_INTRUDERS);//change intruders state room
+        this->BindMainHandler<&HostChange>(ROOM_CHANGE_HOST);//change leader room
 
-        this->On(ROOM_CREATE, std::bind(&RoomCreate, std::placeholders::_1, this));//create room
-        this->On(ROOM_JOIN, std::bind(&RoomJoin, std::placeholders::_1, this));//join room
-        this->On(ROOM_LEAVE, std::bind(&RoomLeave, std::placeholders::_1, this));//leave room
-        this->On(ROOM_LIST, std::bind(&RoomView, std::placeholders::_1, this));//rooms list
+        this->BindMainHandler<&RoomModinfoPassword>(ROOM_RULE_MOD_PASS);//change settings room
+        this->BindMainHandler<&RoomModinfoTitle>(ROOM_RULE_MOD_TITLE);//change settings room
 
-        this->On(USER_STATE, std::bind(&StateUpdate, std::placeholders::_1, this));//game event message
-        this->On(USER_CHANGE_TEAM, std::bind(&TeamChange, std::placeholders::_1, this));//change team room
-        this->On(USER_CHANGE_VOICE, std::bind(&VoiceUpdate, std::placeholders::_1, this));//select voicetype
+        this->BindMainHandler<&MapRule>(ROOM_RULE_MAP);//change map room
+        this->BindMainHandler<&PlayersRule>(ROOM_RULE_MAX_PLAYER);//change player limit room
+        this->BindMainHandler<&AllowObservers>(ROOM_RULE_OBSERVER);//change observers state room
+        this->BindMainHandler<&PointsRule>(ROOM_RULE_MAX_POINTS);//change points room
+        this->BindMainHandler<&TimeRule>(ROOM_RULE_TIME);//change time limit room
 
-        this->On(USER_CHAT_GAME, std::bind(&Chat, std::placeholders::_1, this));//chat message
-        this->On(USER_CHAT, std::bind(&Chat, std::placeholders::_1, this));//chat message
+        this->BindMainHandler<&RoomCreate>(ROOM_CREATE);//create room
+        this->BindMainHandler<&RoomJoin>(ROOM_JOIN);//join room
+        this->BindMainHandler<&RoomLeave>(ROOM_LEAVE);//leave room
+        this->BindMainHandler<&RoomView>(ROOM_LIST);//rooms list
 
-        this->On(USER_INVITE_OR_JOIN, std::bind(&InviteJoin, std::placeholders::_1, this));//invite and join
-        this->On(USER_MISSION_EVENT, std::bind(&Missions, std::placeholders::_1, this));//guide mission, daily mission
-        this->On(USER_AUTOMATCH, std::bind(&Automatch, std::placeholders::_1, this));//automatch
+        this->BindMainHandler<&StateUpdate>(USER_STATE);//game event message
+        this->BindMainHandler<&TeamChange>(USER_CHANGE_TEAM);//change team room
+        this->BindMainHandler<&VoiceUpdate>(USER_CHANGE_VOICE);//select voicetype
 
-        this->On(PARTY_KICK, std::bind(&PartyKick, std::placeholders::_1, this));//force kick a party member
+        this->BindMainHandler<&Chat>(USER_CHAT_GAME);//chat message
+        this->BindMainHandler<&Chat>(USER_CHAT);//chat message
+
+        this->BindMainHandler<&InviteJoin>(USER_INVITE_OR_JOIN);//invite and join
+        this->BindMainHandler<&Missions>(USER_MISSION_EVENT);//guide mission, daily mission
+        this->BindMainHandler<&Automatch>(USER_AUTOMATCH);//automatch
+
+        this->BindMainHandler<&PartyKick>(PARTY_KICK);//force kick a party member
 
 #if defined(RELEASE_1_0_3)
-        this->On(PLAZA_JOIN, std::bind(&PlazaJoin, std::placeholders::_1, this));// join plaza
-		this->On(PLAZA_LEAVE, std::bind(&PlazaLeave, std::placeholders::_1, this)); // leave plaza
+        this->BindMainHandler<&PlazaJoin>(PLAZA_JOIN);// join plaza
+		this->BindMainHandler<&PlazaLeave>(PLAZA_LEAVE); // leave plaza
 #endif
 
-        this->On(MOD_END, std::bind(&MatchEnd, std::placeholders::_1, this));//end match
-        this->On(MOD_LEAVE, std::bind(&MatchLeave, std::placeholders::_1, this));//leave match
+        this->BindMainHandler<&MatchEnd>(MOD_END);//end match
+        this->BindMainHandler<&MatchLeave>(MOD_LEAVE);//leave match
 
-        this->On(MOD_ROUND_END, std::bind(&MatchRoundsEnd, std::placeholders::_1, this));//start elimination next round
+        this->BindMainHandler<&MatchRoundsEnd>(MOD_ROUND_END);//start elimination next round
 
-        this->On(CURRENCY_UPDATE, std::bind(&CurrencyUpdate, std::placeholders::_1, this));//gift box sends first request to update currency
-        this->On(INFO_PVE_RESPAWN, std::bind(&PveRespawn, std::placeholders::_1, this));//boss battle respawn
+        this->BindMainHandler<&CurrencyUpdate>(CURRENCY_UPDATE);//gift box sends first request to update currency
+        this->BindMainHandler<&PveRespawn>(INFO_PVE_RESPAWN);//boss battle respawn
 
     }
     CMainServer::~CMainServer() {}

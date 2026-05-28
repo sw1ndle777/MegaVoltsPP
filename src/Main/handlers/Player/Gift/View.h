@@ -24,6 +24,7 @@ namespace Game::Handlers
                 const std::string& nick = is_receiver_tab ? md->sender_nickname : md->receiver_nickname;
                 std::strcpy(out.nickname, nick.c_str());
                 std::strcpy(out.msg, md->message.c_str());
+				DEBUGLOG(dark_cyan, "Made giftbox msg info for mail_id: ({}) with item_id: ({}) and nickname: ({}).", out.mail_id, out.item_id, out.nickname);
                 return out;
             };
         std::vector<GiftboxMsgInfo> giftbox_msgs;
@@ -31,14 +32,24 @@ namespace Game::Handlers
         for (const auto& mail_id : *ids_ptr)
         {
             auto data = CMailboxData.get<shared_t>(mail_id);
-            if (data->gift_itemid == 0) continue;
-            if (is_receiver_tab && data->sender_nickname.empty()) continue;
-            if (!is_receiver_tab && data->receiver_nickname.empty()) continue;
+            if (data->gift_itemid == 0) {
+                DEBUGLOG(red, "Skipping mail_id: ({}) with no gift item.", mail_id);
+				continue;
+            }
+            if (is_receiver_tab && data->sender_nickname.empty()) {
+                DEBUGLOG(red, "Skipping mail_id: ({}) in receiver tab with empty sender nickname.", mail_id);
+				continue;
+            }
+            if (!is_receiver_tab && data->receiver_nickname.empty()) {
+				DEBUGLOG(red, "Skipping mail_id: ({}) in sent tab with empty receiver nickname.", mail_id);
+                continue;
+            }
             giftbox_msgs.push_back(make_msg(data));
         }
         if (giftbox_msgs.empty())
         {
             session->SendMsg(67, mailbox_tab, Mailbox::OpenResult::Empty, 0);
+			DEBUGLOG(dark_cyan, "No gifts to show for user ({}), sending empty response.", acc_cache->acc_info.Nickname.c_str());
             return;
         }
         constexpr size_t kBatch = 5;
@@ -54,6 +65,7 @@ namespace Game::Handlers
             if (fragments == 1) result = Mailbox::OpenResult::SendMails2;
             auto payload = MainGiftboxAck(batch).Serialize();
             session->SendMsg(67, mailbox_tab, result, static_cast<uint8_t>(batch.size()), reinterpret_cast<uint8_t*>(payload.data()), payload.size());
+			DEBUGLOG(dark_cyan, "Sent batch ({}/{}) of giftbox messages to user ({}), batch size: ({}).", i + 1, fragments, acc_cache->acc_info.Nickname.c_str(), batch.size());
         }
         session->SendMsg(67, mailbox_tab, Mailbox::OpenResult::Confirm, 0);
     }

@@ -8,8 +8,12 @@ namespace Game::Handlers
     {
         NetEngine::Packets::Core::UniqueId old_uid;
         NetEngine::Packets::Core::UniqueId uid;
+        int32_t aid;
         uint64_t key;
+        uint32_t max_health;
+        uint32_t current_health;
         char nickname[16];
+        char hwid[65];
     };
     inline void IpcCastAuthorize(const std::vector<uint8_t>& payload, CMainServer* main_server, int retries = 0)
     {
@@ -22,8 +26,12 @@ namespace Game::Handlers
             AuthoriseData auth_data{};
             auth_data.old_uid = req.UniqueId;
             auth_data.uid = player->uid;
+            auth_data.aid = player->acc_info.Index;
             auth_data.key = player->acc_info.AuthKey;
+            auth_data.max_health = player->max_health;
+            auth_data.current_health = player->current_health;
             std::strcpy(auth_data.nickname, player->acc_info.Nickname.c_str());
+            std::strncpy(auth_data.hwid, player->hwid.c_str(), sizeof(auth_data.hwid) - 1);
             main_server->SendCastIpc(PacketIds::Ipc::MainToCastAuthorizePlayer, Utility::ToVector(auth_data));
             player.unlock();
             DEBUGLOG(dark_cyan, "ipc acknowledge auth sid=({}) old uid=({}) new uid=({}) key=({}) name=({})", sid, req.UniqueId.data, auth_data.uid.data, auth_data.key, auth_data.nickname);

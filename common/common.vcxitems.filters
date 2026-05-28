@@ -102,6 +102,21 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_uri.hpp">
       <Filter>BaseLib\otp</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\IDatabase.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CDatabaseFactory.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CMariaDatabase.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\CPostgresDatabase.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BaseLib\DbError.h">
+      <Filter>BaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)NetEngine\CMessage.cpp">
@@ -145,6 +160,15 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\otp\otp_uri.cpp">
       <Filter>BaseLib\otp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CDatabaseFactory.cpp">
+      <Filter>BaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CMariaDatabase.cpp">
+      <Filter>BaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BaseLib\CPostgresDatabase.cpp">
+      <Filter>BaseLib</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

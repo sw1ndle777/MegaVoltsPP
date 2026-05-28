@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 #include <iostream>
 #include <boost_unordered.hpp>
+#include <BaseLib/Platform.h>
 namespace BaseLib
 {
 #pragma pack(push, 1)
@@ -31,6 +32,12 @@ namespace BaseLib
         uint32_t SellPointPrice;
         uint32_t Stock;
         uint32_t BonusEffectId;
+        uint32_t EffectId1;
+        uint32_t EffectTarget1;
+        uint32_t EffectId2;
+        uint32_t EffectTarget2;
+        uint32_t EffectId3;
+        uint32_t EffectTarget3;
         ItemInfo()
         {
             this->Id = 0;
@@ -58,6 +65,12 @@ namespace BaseLib
             this->SellPointPrice = 0;
             this->Stock = -1;
             this->BonusEffectId = 0;
+            this->EffectId1 = 0;
+            this->EffectTarget1 = 0;
+            this->EffectId2 = 0;
+            this->EffectTarget2 = 0;
+            this->EffectId3 = 0;
+            this->EffectTarget3 = 0;
         }
     };
 #pragma pack(pop)
@@ -133,6 +146,28 @@ namespace BaseLib
             this->AccessoryA = 0;
             this->AccessoryB = 0;
             this->AccessoryC = 0;
+        }
+    };
+    struct BaseUnitInfo
+    {
+        uint32_t Type;
+        uint32_t CashPrice;
+        uint32_t Price;
+        uint32_t Life;
+        uint32_t RunSpeed;
+        uint32_t WalkSpeed;
+        uint32_t SitWalkSpeed;
+        uint32_t BackSpeed;
+        BaseUnitInfo()
+        {
+            this->Type = 0;
+            this->CashPrice = 0;
+            this->Price = 0;
+            this->Life = 1000;
+            this->RunSpeed = 0;
+            this->WalkSpeed = 0;
+            this->SitWalkSpeed = 0;
+            this->BackSpeed = 0;
         }
     };
     struct VendorInfo

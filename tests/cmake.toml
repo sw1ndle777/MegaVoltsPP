@@ -1,0 +1,25 @@
+[target.unit_tests]
+type = "executable"
+sources = ["**.cpp", "**.h"]
+compile-definitions = [
+    "RELEASE_1_0_3",
+    "$<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>",
+    "$<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>"
+]
+compile-features = ["cxx_std_23"]
+properties.MSVC_RUNTIME_LIBRARY = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+link-libraries = [
+    "GTest::gtest_main",
+    "asio",
+    "boost_unordered",
+    "thread-pool",
+    "rapidjson",
+    "monocypher",
+    "magic_enum",
+    "fmt::fmt",
+    "unofficial::mariadb-connector-cpp::mariadbcpp",
+    "libpqxx::pqxx",
+    "OpenSSL::Crypto",
+    "common"
+]
+include-directories = [".."]

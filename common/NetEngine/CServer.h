@@ -1,14 +1,20 @@
 #pragma once
 #include "BaseLib/CLog.h"
+#include <chrono>
+#include <deque>
 #include <iostream>
 #include <vector>
 #include <map>
 #include <set>
+#include <mutex>
+#include <optional>
+#include <string>
 //#include <unordered_map>
 #include <thread>
 #include <asio.hpp>
 
 #include "Constants.h"
+#include "PacketRateLimit.h"
 #include "CSession.h"
 
 #include <boost_unordered.hpp>
@@ -67,6 +73,25 @@ namespace NetEngine
     class CServer : public std::enable_shared_from_this<CServer>
     {
     public:
+        enum class IpcRole : uint8_t
+        {
+            Unknown,
+            Front,
+            Main,
+            Cast
+        };
+        enum class PersistentIpcTarget : uint8_t
+        {
+            Front,
+            Main,
+            Cast
+        };
+        struct PersistentIpcState
+        {
+            std::shared_ptr<CSession> session;
+            std::shared_ptr<asio::steady_timer> retry_timer;
+            bool connecting{ false };
+        };
         struct SServerSettings
         {
             std::string ip;
@@ -102,6 +127,7 @@ namespace NetEngine
         bool GetNextAvailableQueuePartyId(uint16_t& outId);
         bool SetQueuePartyIdAvailable(const uint16_t& queue_party_id);
         std::shared_ptr<CServer> GetShared() { return shared_from_this(); }
+        using PacketRateLimitClock = std::chrono::steady_clock;
         template <typename T>
             requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
         void On(T order, std::function<void(SCallbackData&)> callback)
@@ -115,10 +141,25 @@ namespace NetEngine
             }
             m_callbacks[u16_cast(order)] = callback;
         }
+        template <auto HandlerFn, typename ServerT, typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+        void BindPacketHandler(ServerT* self, T order)
+        {
+            const auto order_id = u16_cast(order);
+            const auto policy = PacketRateLimitPolicy<HandlerFn>::value;
+            this->On(order, [this, self, order_id, policy](SCallbackData& callback)
+                {
+                    const auto identity = self->BuildPacketRateLimitIdentitySnapshot(callback);
+                    if (!this->ShouldProcessPacket(order_id, callback, identity, policy))
+                        return;
+
+                    HandlerFn(callback, self);
+                });
+        }
         //void On(uint16_t id, std::function<void(SCallbackData&)> callback);
         void OnNewSession(std::function<void(std::shared_ptr<CSession>)> callback);
         void OnSessionDisconnected(std::function<void(std::shared_ptr<CSession>)> callback);
-        void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  callback);
+        void OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> callback);
         bool IsMultiThreaded();
         uint64_t GetStartTime() const { return this->start_time; }
         uint32_t GetPlaytimeMinSeconds() const { return this->m_playtimeMinSeconds; }
@@ -152,6 +193,11 @@ namespace NetEngine
             return m_ioContext;
         }
         auto IsVerbose() const { return m_verbose; }
+        bool ShouldProcessPacket(uint16_t order, SCallbackData& callback, const RateLimit::IdentitySnapshot& identity, const std::optional<RateLimit::Rule>& rule);
+        void ApplyPacketRateLimitCooldown(uint16_t order, RateLimit::IdentityScope scope, std::string identity, std::chrono::milliseconds duration);
+        void ApplyPacketRateLimitBlacklist(RateLimit::IdentityScope scope, std::string identity, std::chrono::milliseconds duration);
+        [[nodiscard]] uint32_t AddPacketRateLimitStrike(uint16_t order, RateLimit::IdentityScope scope, std::string identity, std::chrono::milliseconds window);
+        void ClearPacketRateLimitSessionState(uint16_t sid);
         void logExecution(uint16_t session_id, uint16_t order);
         void clearExecution(uint16_t session_id, uint16_t order);
     private:
@@ -188,12 +234,30 @@ namespace NetEngine
         uint32_t m_loggerThreads = 1;
 		uint32_t m_databaseThreads = 0;
         uint32_t m_availableConcurrentThreads = std::jthread::hardware_concurrency();
+        std::shared_mutex m_persistent_ipc_mutex;
+        IpcRole m_ipcRole = IpcRole::Unknown;
+        PersistentIpcState m_frontIpcState;
+        PersistentIpcState m_mainIpcState;
+        PersistentIpcState m_castIpcState;
         std::function<void(std::shared_ptr<CSession>)> m_OnDisconnect;
         std::function<void(std::shared_ptr<CSession>)> m_OnConnect;
-        std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  m_OnIpcMessage;
+        std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> m_OnIpcMessage;
         uint64_t start_time = 0;
+        std::mutex m_packet_rate_limit_mutex;
+        boost::unordered_flat_map<std::string, std::deque<PacketRateLimitClock::time_point>> m_packet_rate_limit_windows;
+        boost::unordered_flat_map<std::string, std::deque<PacketRateLimitClock::time_point>> m_packet_rate_limit_strikes;
+        boost::unordered_flat_map<std::string, PacketRateLimitClock::time_point> m_packet_order_cooldowns;
+        boost::unordered_flat_map<std::string, PacketRateLimitClock::time_point> m_packet_identity_blacklists;
         boost::unordered_flat_map<size_t, std::vector<ExecutionInfo>> m_execution_info;
         std::shared_mutex m_execution_guard_mutex;
+        [[nodiscard]] IpcRole DetectIpcRole(const SServerSettings& settings, const BaseLib::CSettings::ServerSettings& servers_settings) const;
+        [[nodiscard]] PersistentIpcState& GetPersistentIpcState(PersistentIpcTarget target);
+        [[nodiscard]] std::pair<std::string, std::string> GetPersistentIpcEndpoint(PersistentIpcTarget target);
+        [[nodiscard]] const char* GetPersistentIpcTargetName(PersistentIpcTarget target) const;
+        [[nodiscard]] bool TrySendPersistentIpc(PersistentIpcTarget target, const uint32_t ipc_id, const std::vector<uint8_t>& payload);
+        void StartPersistentIpcClients();
+        void EnsurePersistentIpcConnection(PersistentIpcTarget target);
+        void SchedulePersistentIpcReconnect(PersistentIpcTarget target, std::chrono::milliseconds delay = std::chrono::milliseconds(1000));
         void watchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
         void startWatchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
 

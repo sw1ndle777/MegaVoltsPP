@@ -29,11 +29,15 @@ namespace Game::Handlers
 		auto in_party = acc->in_party;
         acc.unlock();
         std::vector<PlayerAgoraInfo> user_list;
+        boost::unordered_flat_set<int32_t> seen_aids;
+        seen_aids.insert(aid);
 
         for (const auto& id : *sids)
         {
             if(id == sid) continue;
 			auto other_acc = CAccount.get<shared_t>(id);
+            if (!other_acc || other_acc->acc_info.Index <= 0) continue;
+            if (!seen_aids.emplace(other_acc->acc_info.Index).second) continue;
 
             const bool bothInPlazaFree =
                 in_plaza && other_acc->in_plaza &&
@@ -82,7 +86,7 @@ namespace Game::Handlers
             }*/
         }
 
-        if (user_list.size() <= 0)
+        if (user_list.empty())
         {
             session->SendMsg(84, 0, Userlist::ListResult::NoUsers, 0);
             return;

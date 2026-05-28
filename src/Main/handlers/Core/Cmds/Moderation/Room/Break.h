@@ -79,6 +79,7 @@ namespace Game::Commands
             room.unlock();
             CRoom.erase(target_room_id);
             CRoomId.erase_value(target_room_id);
+            ctx.server->SendCastRoomRemoveSync(target_room_id);
             ctx.server->SetRoomIdAvailable(target_room_id);
         };
 

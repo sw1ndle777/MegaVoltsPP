@@ -19,6 +19,27 @@ namespace Game
 {    
 	CCache<boost::unordered_flat_map<int32_t, Player>> CAccount;
     CCache<boost::unordered_flat_set<uint64_t>> CAuthKeys;
+    NetEngine::RateLimit::IdentitySnapshot CFrontServer::BuildPacketRateLimitIdentitySnapshot(const SCallbackData& callback)
+    {
+        NetEngine::RateLimit::IdentitySnapshot snapshot{};
+        if (!callback.session)
+            return snapshot;
+
+        snapshot.sid = callback.session->GetSessionId();
+        snapshot.ip = callback.session->GetIpAddress();
+
+        auto accounts = CAccount.get_all(shared);
+        for (const auto& [aid, player] : *accounts)
+        {
+            if (player.sid != snapshot.sid)
+                continue;
+
+            snapshot.aid = aid;
+            break;
+        }
+
+        return snapshot;
+    }
     CFrontServer::CFrontServer()
     {
         using namespace Game::Handlers;
@@ -26,9 +47,9 @@ namespace Game
         this->OnNewSession(std::bind(&ServerConnect, std::placeholders::_1, this));
         this->OnSessionDisconnected(std::bind(&ServerDisconnect, std::placeholders::_1, this));
         this->OnIpcMessage(std::bind(&ServerIpc, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, this));
-        this->On(AUTH_AUTHORIZE, std::bind(&Authorize, std::placeholders::_1, this));
-        this->On(INFO_SERVER, std::bind(&Channels, std::placeholders::_1, this));
-        this->On(AUTH_RETRY, std::bind(&Reconnect, std::placeholders::_1, this));
+        this->BindPacketHandler<&Authorize>(this, AUTH_AUTHORIZE);
+        this->BindPacketHandler<&Channels>(this, INFO_SERVER);
+        this->BindPacketHandler<&Reconnect>(this, AUTH_RETRY);
     }
     CFrontServer::~CFrontServer(){}
 }

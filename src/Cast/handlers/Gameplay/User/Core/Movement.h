@@ -110,8 +110,19 @@ namespace Game::Handlers
 
         if (in_room && !is_dead)
         {
-            auto room = CRoom.get<shared_t>(room_id);
-            server->Broadcast(room->players_session_id, movementMsg);
+            if (server->IsBatchPositionsEnabled())
+            {
+                auto room = CRoom.get<unique_t>(room_id);
+                if (!room) return;
+                auto* data_ptr = movementMsg.GetData();
+                auto data_len = movementMsg.GetDataSize();
+                room->pending_positions.emplace_back(data_ptr, data_ptr + data_len);
+            }
+            else
+            {
+                auto room = CRoom.get<shared_t>(room_id);
+                server->Broadcast(room->players_session_id, movementMsg);
+            }
         }
         else if (in_plaza)
         {

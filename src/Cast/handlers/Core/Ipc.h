@@ -17,10 +17,13 @@ namespace Game
             switch (msg_id)
             {
             case PacketIds::Ipc::MainToCastDisconnectPlayer: IpcMainDisconnect(payload, cast_server); break;
-			case PacketIds::Ipc::MainToCastHostChange: IpcMainHostChange(payload, cast_server); break;
+            case PacketIds::Ipc::MainToCastHostChange: IpcMainHostChange(payload, cast_server); break;
 			case PacketIds::Ipc::MainToCastReqServerInfo: IpcMainServerInfo(payload, cast_server); break;
 			case PacketIds::Ipc::MainToCastSendPingAssure: IpcMainPingAssure(payload, cast_server); break;
-			case PacketIds::Ipc::MainToCastAuthorizePlayer: IpcMainAuthorize(payload, cast_server); break;
+            case PacketIds::Ipc::MainToCastAuthorizePlayer: IpcMainAuthorize(payload, cast_server); break;
+            case PacketIds::Ipc::MainToCastPlayerHealthSync: IpcMainPlayerHealth(payload, cast_server); break;
+            case PacketIds::Ipc::MainToCastTpToProjToggle: IpcMainTpToProj(payload, cast_server); break;
+            case PacketIds::Ipc::MainToCastRoomLifecycleSync: IpcMainRoomLifecycleSync(payload, cast_server); break;
             default:
             {
                 DEBUGLOG(yellow, "Unhandled server IPC message ID: {}", msg_id);

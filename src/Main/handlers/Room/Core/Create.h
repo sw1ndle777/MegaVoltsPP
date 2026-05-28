@@ -115,6 +115,7 @@ namespace Game::Handlers
 #endif
         ctx.acc->slot_id = 0;
         TryLeavePlaza(ctx);
+        ctx.main->SendCastRoomCreateSync(room_id, sid);
 
         if (has_pw)
         {

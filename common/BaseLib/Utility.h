@@ -10,15 +10,15 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
 
-#if defined(__cpp_lib_bit_cast)
-#include <bit>  // For std::bit_cast.
-#endif
+#include <bit>
+#include <utility>
 
 #include <monocypher.h>
 #include <fmt/format.h>
@@ -85,6 +85,58 @@ namespace Utility
             return std::unexpected("contains non-digit characters");
 
         return value;
+    }
+
+    [[nodiscard]] inline std::expected<std::chrono::seconds, std::string> ParseHumanDuration(std::string_view input)
+    {
+        if (input.empty())
+            return std::unexpected("empty duration");
+
+        std::string lowered = ToLowercase(input);
+        std::erase_if(lowered, [](const unsigned char ch)
+        {
+            return std::isspace(ch) != 0;
+        });
+
+        if (lowered.empty())
+            return std::unexpected("empty duration");
+
+        size_t split = 0;
+        while (split < lowered.size() && std::isdigit(static_cast<unsigned char>(lowered[split])) != 0)
+            ++split;
+
+        if (split == 0)
+            return std::unexpected("duration must start with a number");
+
+        const auto value = ParseNumber<std::uint64_t>(std::string_view{ lowered.data(), split });
+        if (!value.has_value())
+            return std::unexpected(std::string(value.error()));
+
+        const auto suffix = std::string_view{ lowered.data() + split, lowered.size() - split };
+        std::uint64_t multiplier = 0;
+
+        if (suffix == "s" || suffix == "sec" || suffix == "secs" || suffix == "second" || suffix == "seconds")
+            multiplier = 1;
+        else if (suffix == "min" || suffix == "mins" || suffix == "minute" || suffix == "minutes")
+            multiplier = 60ull;
+        else if (suffix == "h" || suffix == "hr" || suffix == "hrs" || suffix == "hour" || suffix == "hours")
+            multiplier = 60ull * 60ull;
+        else if (suffix == "d" || suffix == "day" || suffix == "days")
+            multiplier = 60ull * 60ull * 24ull;
+        else if (suffix == "w" || suffix == "week" || suffix == "weeks")
+            multiplier = 60ull * 60ull * 24ull * 7ull;
+        else if (suffix == "m" || suffix == "mo" || suffix == "mon" || suffix == "month" || suffix == "months")
+            multiplier = 60ull * 60ull * 24ull * 30ull;
+        else if (suffix == "y" || suffix == "year" || suffix == "years")
+            multiplier = 60ull * 60ull * 24ull * 365ull;
+        else
+            return std::unexpected("unsupported duration suffix");
+
+        constexpr auto max_seconds = static_cast<std::uint64_t>(std::chrono::seconds::max().count());
+        if (*value > max_seconds / multiplier)
+            return std::unexpected("duration is too large");
+
+        return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(*value * multiplier) };
     }
 
     
@@ -267,7 +319,7 @@ namespace Utility
             | ((Exponent + 112) << 23)                      // Exponent
             | (Mantissa << 13);                             // Mantissa
 
-        return reinterpret_cast<float*>(&Result)[0];
+        return std::bit_cast<float>(Result);
 #endif // !_XM_F16C_INTRINSICS_
     }
 
@@ -286,8 +338,9 @@ namespace Utility
     uint64_t GetLast6AMUtc();
     uint64_t GetUtcTimeNowInMilliseconds();
     std::string FormatMilliseconds(uint64_t milliseconds);
+    std::string FormatCompactDurationSeconds(uint64_t total_seconds);
     uint64_t GetUtcTimeNowInSeconds();
-    std::string GetReadableTime(uint32_t time, std::string time_zone);
+    std::string GetReadableTime(uint32_t time, std::string_view time_zone);
     uint64_t DateTimeToUInt64(const std::string& formatted_datetime);
     std::string UInt64ToDateTimeString(uint64_t unix_timestamp);
     std::string GetBytesArray(uint8_t* data, uint16_t size);
@@ -295,8 +348,8 @@ namespace Utility
     std::string ReadMVString(std::string_view in);
     std::string ReadMicrovoltsString(const char* data, uint32_t size);
     std::vector<std::string> SplitStrings(std::string_view str, char delimiter);
-    bool IsDigitsOnly(const std::string& input);
-    uint32_t ExtractNumber(const std::string& input);
+    bool IsDigitsOnly(std::string_view input);
+    uint32_t ExtractNumber(std::string_view input);
     template <typename T>
     std::vector<uint8_t> ToVector(const T& data)
     {
@@ -330,24 +383,7 @@ namespace Utility
 
         namespace detail {
 
-        #if defined(__cpp_lib_bit_cast)
             using std::bit_cast;
-        #else
-            template <class To, class From>
-            std::enable_if_t<sizeof(To) == sizeof(From) &&
-                std::is_trivially_copyable_v<From> &&
-                std::is_trivially_copyable_v<To>,
-                To>
-                bit_cast(const From& src) noexcept {
-                static_assert(std::is_trivially_constructible_v<To>,
-                              "This implementation additionally requires "
-                              "destination type to be trivially constructible");
-
-                To dst;
-                std::memcpy(&dst, &src, sizeof(To));
-                return dst;
-            }
-        #endif
 
             inline constexpr char padding_char{'='};
             inline constexpr uint32_t bad_char{0x01FFFFFF};

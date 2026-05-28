@@ -42,8 +42,7 @@ namespace Game::Handlers
         DEBUGLOG(dark_cyan, "is playing: ({})", isPlaying);
         auto self_remove = [&](auto& team_session_ids)
             {
-                auto remove_myself = std::remove(team_session_ids.begin(), team_session_ids.end(), session_id);
-                team_session_ids.erase(remove_myself, team_session_ids.end());
+                std::erase(team_session_ids, session_id);
             };
         if (isPlaying && !is_ZombieMode)
         {

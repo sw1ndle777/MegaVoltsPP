@@ -8,15 +8,15 @@ namespace Game::Commands
 
         static void Run(std::span<const std::string_view> args, CommandContext& ctx)
         {
-            if (args.size() < 3)
+            if (args.size() < 4)
             {
                 ctx.server->SendServerMessage(ctx.callback.session, "[MegaVolts Online] Usage: /registeracc <username> <password> <nickname>");
                 return;
             }
 
-            std::string username(args[0]);
-            std::string password(args[1]);
-            std::string nickname(args[2]);
+            std::string username(args[1]);
+            std::string password(args[2]);
+            std::string nickname(args[3]);
 
             // Validate lengths
             if (username.length() < 2 || username.length() > 24)

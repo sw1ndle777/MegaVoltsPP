@@ -97,14 +97,14 @@ namespace BaseLib
         bool contains(const V& v) const
         {
             std::shared_lock<mutex_type> l(m_mtx);
-            return m_cont.find(v) != m_cont.end();
+            return m_cont.contains(v);
         }
         template<class K>
             requires (map_like<container_type>)
         bool contains(const K& k) const
         {
             std::shared_lock<mutex_type> l(m_mtx);
-            return m_cont.find(k) != m_cont.end();
+            return m_cont.contains(k);
         }
         template<class K1, class K2>
             requires (map_like<container_type>&& map_like<typename container_type::mapped_type>)
@@ -323,9 +323,7 @@ namespace BaseLib
         {
             std::unique_lock<mutex_type> ml(m_mtx);
             auto& vec = m_cont;
-            auto before = vec.size();
-            vec.erase(std::remove_if(vec.begin(), vec.end(), std::forward<Pred>(pred)), vec.end());
-            return before - vec.size();
+            return std::erase_if(vec, std::forward<Pred>(pred));
         }
 
         template<class T>
@@ -370,9 +368,7 @@ namespace BaseLib
             if (it == m_cont.end()) return false;
 
             auto& vec = it->second;
-            auto old = vec.size();
-            vec.erase(std::remove(vec.begin(), vec.end(), value), vec.end());
-            return vec.size() != old;
+            return std::erase(vec, value) > 0;
         }
 
         template<class K, class Pred>
@@ -385,9 +381,7 @@ namespace BaseLib
             if (it == m_cont.end()) return 0;
 
             auto& vec = it->second;
-            auto before = vec.size();
-            vec.erase(std::remove_if(vec.begin(), vec.end(), std::forward<Pred>(pred)), vec.end());
-            return before - vec.size();
+            return std::erase_if(vec, std::forward<Pred>(pred));
         }
 
         template<class K>

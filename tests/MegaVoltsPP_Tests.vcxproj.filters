@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="utility">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-111111111111}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="crypto">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-222222222222}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="database">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-333333333333}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-444444444444}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="room">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-555555555555}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="stress">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-666666666666}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="utility\test_parse_number.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="utility\test_parse_duration.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="utility\test_nickname_validation.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="utility\test_read_string_safe.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="utility\test_string_utils.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="utility\test_base64.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="utility\test_time_utils.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\test_blake2b_generator.cpp">
+      <Filter>crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\test_password_hashing.cpp">
+      <Filter>crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\test_auth_key.cpp">
+      <Filter>crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="database\test_db_factory.cpp">
+      <Filter>database</Filter>
+    </ClCompile>
+    <ClCompile Include="database\test_db_error.cpp">
+      <Filter>database</Filter>
+    </ClCompile>
+    <ClCompile Include="database\test_placeholder_generation.cpp">
+      <Filter>database</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_weighted_selection.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_gacha_pity.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_boss_rewards.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_serial_allocation.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_item_type_adjust.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_package_items.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_upgrade_probability.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="game\test_currency_validation.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="room\test_team_balancing.cpp">
+      <Filter>room</Filter>
+    </ClCompile>
+    <ClCompile Include="room\test_votekick_rules.cpp">
+      <Filter>room</Filter>
+    </ClCompile>
+    <ClCompile Include="stress\test_connection_stress.cpp">
+      <Filter>stress</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

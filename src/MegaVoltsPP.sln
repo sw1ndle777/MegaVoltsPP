@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MainServer", "Main\MegaVolt
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CastServer", "Cast\MegaVoltsPP_Cast.vcxproj", "{41CE8F9B-C96A-49E9-9E68-F908B3376047}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "..\tests\MegaVoltsPP_Tests.vcxproj", "{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{50A42FF7-E7AD-49FE-8148-BAA0DA1CEA2D}"
 	ProjectSection(SolutionItems) = preProject
 		..\.editorconfig = ..\.editorconfig
@@ -65,6 +67,15 @@ Global
 		{41CE8F9B-C96A-49E9-9E68-F908B3376047}.Release 1.1.1|x64.Build.0 = Release 1.1.1|x64
 		{41CE8F9B-C96A-49E9-9E68-F908B3376047}.Release 1.1.1|x86.ActiveCfg = Release 1.1.1|Win32
 		{41CE8F9B-C96A-49E9-9E68-F908B3376047}.Release 1.1.1|x86.Build.0 = Release 1.1.1|Win32
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Debug|x64.ActiveCfg = Debug|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Debug|x64.Build.0 = Debug|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Debug|x86.ActiveCfg = Debug|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Release 1.0.3|x64.ActiveCfg = Release 1.0.3|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Release 1.0.3|x64.Build.0 = Release 1.0.3|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Release 1.0.3|x86.ActiveCfg = Release 1.0.3|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Release 1.1.1|x64.ActiveCfg = Release 1.0.3|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Release 1.1.1|x64.Build.0 = Release 1.0.3|x64
+		{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}.Release 1.1.1|x86.ActiveCfg = Release 1.0.3|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -77,5 +88,6 @@ Global
 		..\common\common.vcxitems*{41ce8f9b-c96a-49e9-9e68-f908b3376047}*SharedItemsImports = 4
 		..\common\common.vcxitems*{a9a2868d-b45f-4997-b389-cf4ad481773d}*SharedItemsImports = 4
 		..\common\common.vcxitems*{cc307d29-7eb8-4f52-b8e5-1249bf8a87b3}*SharedItemsImports = 9
+		..\common\common.vcxitems*{e7b3c5a1-9f4d-4b2e-8a1c-3d5f7e9b0c2a}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

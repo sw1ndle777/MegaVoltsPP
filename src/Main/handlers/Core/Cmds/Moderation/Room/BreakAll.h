@@ -43,6 +43,7 @@ namespace Game::Commands
                 room.unlock();
                 CRoom.erase(room_id);
                 CRoomId.erase_value(room_id);
+                ctx.server->SendCastRoomRemoveSync(room_id);
                 ctx.server->SetRoomIdAvailable(room_id);
             }
             ctx.server->SendServerMessage(ctx.callback.session, "[MegaVolts Online] successfully broke all rooms.");

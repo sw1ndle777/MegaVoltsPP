@@ -1,5 +1,31 @@
 message(STATUS "Evaluating platform-specific compiler flags...")
 
+# ── Sanitizers ──────────────────────────────────────────────────────────────────
+include(${CMAKE_SOURCE_DIR}/cmake/Sanitizers.cmake)
+
+# ── ccache / sccache ────────────────────────────────────────────────────────────
+find_program(MVPP_CCACHE_PROGRAM ccache)
+find_program(MVPP_SCCACHE_PROGRAM sccache)
+if (MVPP_CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER   "${MVPP_CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${MVPP_CCACHE_PROGRAM}")
+    message(STATUS "Using ccache: ${MVPP_CCACHE_PROGRAM}")
+elseif(MVPP_SCCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER   "${MVPP_SCCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${MVPP_SCCACHE_PROGRAM}")
+    message(STATUS "Using sccache: ${MVPP_SCCACHE_PROGRAM}")
+else()
+    message(STATUS "No compiler cache found (ccache/sccache). Builds will not be cached.")
+endif()
+
+option(MVPP_MARCH_NATIVE "Use -march=native for local dev. Disable for portable/Docker builds." ON)
+if (MVPP_MARCH_NATIVE)
+    set(MVPP_MARCH_FLAG "-march=native")
+else()
+    set(MVPP_MARCH_FLAG "-march=x86-64-v2")
+endif()
+message(STATUS "Architecture flag: ${MVPP_MARCH_FLAG}")
+
 # Platform/compiler-specific output folders (e.g. out/windows-msvc, out/linux-clang)
 set(MVPP_PLATFORM_TAG "${CMAKE_SYSTEM_NAME}")
 string(TOLOWER "${MVPP_PLATFORM_TAG}" MVPP_PLATFORM_TAG)

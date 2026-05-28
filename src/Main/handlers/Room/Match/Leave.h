@@ -19,6 +19,7 @@ namespace Game::Handlers
         if (acc_index == -1 || !acc_cache->in_room || !CRoom.contains(acc_cache->room_id)) return;
         auto room_cache = CRoom.get<unique_t>(acc_cache->room_id);
         auto my_slot_id = acc_cache->slot_id;
+        auto nick_copy = acc_cache->acc_info.Nickname.c_str();
         acc_cache->playing = false;
 #if defined(RELEASE_1_0_3)
         acc_cache->state = (room_cache->host_session_id == session_id) ? PlayerInfo::State::HostReady : PlayerInfo::State::Waiting;
@@ -26,11 +27,11 @@ namespace Game::Handlers
         acc_cache->state = (room_cache->host_session_id == session_id) ? PlayerInfo::State::PlayerReady : PlayerInfo::State::Waiting;
 #endif
         acc_cache->earnt_battery = 0;
+        auto in_party = acc_cache->in_party;
         acc_cache.unlock();
         auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
 
         auto left_while_vote_kicked = room_cache->vote_kick_target_session_id == session_id;
-        auto in_party = acc_cache->in_party;
 
         DEBUGLOG(dark_cyan, "player leave match so will apply penality of 1 lose and 1 clan lose if clan room");
         acc_cache.lock();
@@ -64,7 +65,11 @@ namespace Game::Handlers
                 return is_playing;
             }));
         uint32_t total_players_room = static_cast<uint32_t>(players.size());
-        if (total_players_room == 1) room_cache->is_playing = false;
+        if (total_players_room == 1)
+        {
+            room_cache->is_playing = false;
+            main_server->SendCastRoomMatchStateSync(room_cache->room_id, room_cache->host_session_id, false);
+        }
         if (total_players_playing > 0)
         {
             if (room_cache->host_session_id == session_id)
@@ -83,8 +88,10 @@ namespace Game::Handlers
             }
             else
             {
+                acc_cache.lock();
                 DEBUGLOG(dark_cyan, "player wasnt special case state: ({}), now room is playing: ({})", static_cast<uint32_t>(acc_cache->state), room_cache->is_playing);
                 acc_cache->playing = false;
+                acc_cache.unlock();
             }
             if (in_party)
             {
@@ -134,8 +141,7 @@ namespace Game::Handlers
                 }
 
 
-                auto remove_myself = std::remove(party_cache->members.begin(), party_cache->members.end(), session_id);
-                party_cache->members.erase(remove_myself, party_cache->members.end());
+                std::erase(party_cache->members, session_id);
 
                 for (const auto& party_member_session_id : party_cache->members)
                 {
@@ -164,6 +170,6 @@ namespace Game::Handlers
                 acc_cache.unlock();
             }
         }
-        DEBUGLOG(dark_cyan, "player ({}) left room match -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_cache->room_id);
+        DEBUGLOG(dark_cyan, "player ({}) left room match -> id: ({})", nick_copy, room_cache->room_id);
     }
 }

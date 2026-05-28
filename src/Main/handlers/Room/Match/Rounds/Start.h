@@ -17,9 +17,11 @@ namespace Game::Handlers
         acc->zombie_team = 0;
 
         if (!aid || !acc->in_room || !CRoom.contains(acc->room_id)) return;
-        auto room = CRoom.get<shared_t>(acc->room_id);
+        auto room = CRoom.get<unique_t>(acc->room_id);
         acc.unlock();
         if (room->host_session_id != sid) return;
+        if (main_server->IsModeTeamBased(room->ModeIndex) && room->is_playing)
+            ++room->team_rounds_started;
         auto players = main_server->GetRoomSortedPlayerSessionIds(room);
         for (const auto& id : players)
         {

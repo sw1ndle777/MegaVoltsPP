@@ -236,8 +236,8 @@ namespace BaseLib
                                 std::string_view outside(match[1].first, match[1].length());
                                 fmt::print(fmt::fg(color) | fmt::emphasis::bold, "{}", outside);
 
-                                if (outside.find("rare") != std::string_view::npos) changecolor = fmt::color::yellow;
-                                if (outside.find("normal") != std::string_view::npos) changecolor = fmt::color::gray;
+                                if (outside.contains("rare")) changecolor = fmt::color::yellow;
+                                if (outside.contains("normal")) changecolor = fmt::color::gray;
                                 std::string_view group(match[2].first, match[2].length());
                                 fmt::print(fmt::fg(changecolor) | fmt::emphasis::bold, "{}", group);
 

@@ -28,9 +28,11 @@ namespace BaseLib
             bool debug;
             bool watchguard;
             bool gacha_pity_enabled;
+            bool batch_positions;
         };
         struct DatabaseSettings
         {
+            std::string driver;
             std::string host;
             uint32_t port;
             std::string db_name;

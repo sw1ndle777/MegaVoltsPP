@@ -1,4 +1,5 @@
 #pragma once
+#include "../Weapon/CombatIpc.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -24,7 +25,7 @@ namespace Game::Handlers
 
         auto room = CRoom.get<shared_t>(roomId);
         if (!room) return;
-        if (host->session_id != room->host_session_id)
+        if (hostSid != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
@@ -33,7 +34,12 @@ namespace Game::Handlers
 
         auto user = CAccount.get<unique_t>(userSid);
         if (!user) return;
-        user->health = 1000000;
+        const auto full_health = user->max_health ? user->max_health : kCastDefaultHealthRaw;
+        user->current_health = full_health;
+        user->health = full_health;
+        user->combat_health = full_health;
+        user->combat_health_known = true;
+        user->is_dead = false;
 
         PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) pos=({} {} {}) rot=({})",
             roomId, user->nickname, userSid, hostName, hostSid,

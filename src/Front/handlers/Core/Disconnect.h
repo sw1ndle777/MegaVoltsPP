@@ -10,23 +10,33 @@ namespace Game
         inline void ServerDisconnect(std::shared_ptr<CSession> session, CFrontServer* front_server)
         {
             if (!session) return;
-			auto sid = session->GetSessionId();
-            
+            auto sid = session->GetSessionId();
+
             DEBUGLOG(dark_cyan, "disconnected sid=({})", sid);
             uint64_t auth_key = 0;
-            if (CAccount.contains(sid))
+            int32_t aid = 0;
             {
-				auto acc = CAccount.get<shared_t>(sid);
-				uint64_t key = 0;
+                auto accounts = CAccount.get_all(unique);
+                for (auto it = accounts->begin(); it != accounts->end(); ++it)
+                {
+                    if (it->second.sid != sid) continue;
+
+                    aid = it->first;
 #if defined(RELEASE_1_0_3)
-				key = acc->plazaAuth.AuthKey;
+                    auth_key = it->second.plazaAuth.AuthKey;
 #else
-                key = acc->frontAccount.AuthKey;
+                    auth_key = it->second.frontAccount.AuthKey;
 #endif
-                acc.unlock();
-				CAuthKeys.erase(key);
-                CAccount.erase(sid);
-            } 
+                    accounts->erase(it);
+                    break;
+                }
+            }
+
+            if (auth_key)
+                CAuthKeys.erase(auth_key);
+            if (aid)
+                DEBUGLOG(dark_cyan, "removed front cache aid=({}) sid=({}) key=({})", aid, sid, auth_key);
+
             front_server->RemoveSession(sid);
         }
     }

@@ -38,6 +38,7 @@ namespace BaseLib
                 obj.AddMember("debug", debug, allocator);
                 obj.AddMember("watchguard", false, allocator);
                 obj.AddMember("gacha_pity_enabled", false, allocator);
+                obj.AddMember("batch_positions", false, allocator);
                 servers.AddMember(rapidjson::Value(name, allocator), obj, allocator);
             };
 
@@ -46,6 +47,7 @@ namespace BaseLib
             createHostSettings("cast", 13006, 12006, false);
 
             rapidjson::Value database(rapidjson::kObjectType);
+            database.AddMember("driver", "mariadb", allocator);
             database.AddMember("host", "127.0.0.1", allocator);
             database.AddMember("port", 3306, allocator);
             database.AddMember("db_name", "", allocator);
@@ -114,6 +116,8 @@ namespace BaseLib
             settings.watchguard = obj["watchguard"].GetBool();
             try { settings.gacha_pity_enabled = obj["gacha_pity_enabled"].GetBool(); }
             catch (...) { settings.gacha_pity_enabled = false; }
+            try { settings.batch_positions = obj["batch_positions"].GetBool(); }
+            catch (...) { settings.batch_positions = false; }
         };
 
         getHostSettings("front", serverSettings.front);
@@ -121,6 +125,7 @@ namespace BaseLib
         getHostSettings("cast", serverSettings.cast);
 
         const auto& db = servers["database"];
+        serverSettings.database.driver = db.HasMember("driver") ? db["driver"].GetString() : "mariadb";
         serverSettings.database.host = db["host"].GetString();
         serverSettings.database.port = db["port"].GetUint();
         serverSettings.database.db_name = db["db_name"].GetString();

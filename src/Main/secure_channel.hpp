@@ -3,10 +3,13 @@
 #include <shared_mutex>
 #include <array>
 #include <fstream>
+#include <utility>
 #include <boost_unordered.hpp>
 #include <asio.hpp>
 #include "NetEngine/Packets/PacketStruct.h"
 #include "NetEngine/Packets/PacketData.h"
+#include "NetEngine/Protocols/BaseProtocol.h"
+#include <BaseLib/Platform.h>
 
 namespace Game { class CMainServer; }
 
@@ -19,7 +22,7 @@ inline constexpr uint32_t kSigSize    = 64;
 inline constexpr uint32_t kSignSkSize = 64; // Ed25519 expanded secret key
 inline constexpr uint32_t kHwidSize   = 32; // BLAKE2b-256 of hardware fingerprint
 
-// ── ConnectAck plaintext — encrypted inside ServerKeyPayload ──────────────────
+// â”€â”€ ConnectAck plaintext â€” encrypted inside ServerKeyPayload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #pragma pack(push, 1)
 struct ConnectAckData {
     int32_t      cryptoKey;
@@ -29,28 +32,27 @@ struct ConnectAckData {
 
 inline constexpr uint32_t kConnectDataSize = sizeof(ConnectAckData); // 8
 
-// ── ServerKeyPayload — sent to client in ConnectAck ───────────────────────────
+// â”€â”€ ServerKeyPayload â€” sent to client in ConnectAck â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Signed message = (x25519_pk || mac || encrypted_data), contiguous in memory.
 inline constexpr uint32_t kSignedMsgSize = kKeySize + kConnectDataSize;
 
 #pragma pack(push, 1)
 struct ServerKeyPayload {
-    uint8_t sign_pubkey[kKeySize];                // 32 — Ed25519 verify key
-    uint8_t signature[kSigSize];                  // 64 — Ed25519(sign_sk, signed message)
-    // ── signed message starts here ──
-    uint8_t x25519_pubkey[kKeySize];              // 32 — Server ephemeral X25519 DH key
-    ConnectAckData connect_data;                   //  8 — plaintext {cryptoKey, uniqueId}
-    // ── signed message ends here ──
+    uint8_t sign_pubkey[kKeySize];                // 32 â€” Ed25519 verify key
+    uint8_t signature[kSigSize];                  // 64 â€” Ed25519(sign_sk, signed message)
+    // â”€â”€ signed message starts here â”€â”€
+    uint8_t x25519_pubkey[kKeySize];              // 32 â€” Server ephemeral X25519 DH key
+    ConnectAckData connect_data;                   //  8 â€” plaintext {cryptoKey, uniqueId}
+    // â”€â”€ signed message ends here â”€â”€
 };
 #pragma pack(pop)
 
-// ── File integrity payload — BLAKE2b-256 hashes of game files ─────────────────
-inline constexpr uint32_t kIntegrityFileCount = 34; // 1 launcher + 2 data + 31 release
+// â”€â”€ File integrity payload â€” BLAKE2b-256 hashes of game files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+inline constexpr uint32_t kIntegrityFileCount = 33; // 2 data + 31 release
 
 enum class IntegrityFile : uint32_t
 {
-    Launcher = 0,
-    MapDat,
+    MapDat = 0,
     CgdDip,
     Bdvid32,
     Cudart32,
@@ -85,12 +87,11 @@ enum class IntegrityFile : uint32_t
     SteamApi,
     Count // must equal kIntegrityFileCount
 };
-static_assert(static_cast<uint32_t>(IntegrityFile::Count) == kIntegrityFileCount);
+static_assert(std::to_underlying(IntegrityFile::Count) == kIntegrityFileCount);
 
 inline constexpr const char* IntegrityFileToString(IntegrityFile f)
 {
     constexpr const char* names[kIntegrityFileCount] = {
-        "Launcher.exe",
         "Data/map.dat",
         "Data/cgd.dip",
         "Release/bdvid32.dll",
@@ -125,18 +126,17 @@ inline constexpr const char* IntegrityFileToString(IntegrityFile f)
         "Release/PhysXLoader.dll",
         "Release/steam_api.dll",
     };
-    auto idx = static_cast<uint32_t>(f);
+    auto idx = std::to_underlying(f);
     return (idx < kIntegrityFileCount) ? names[idx] : "Unknown";
 }
 
 #pragma pack(push, 1)
 struct FileIntegrityPayload {
-    uint8_t hashes[kIntegrityFileCount][32]; // 34 × 32 = 1088 bytes
+    uint8_t hashes[kIntegrityFileCount][32];
 };
 #pragma pack(pop)
-static_assert(sizeof(FileIntegrityPayload) == 1088, "FileIntegrityPayload size mismatch");
 
-// ── File integrity expected hashes loaded from file_integrity.json ────────────
+// â”€â”€ File integrity expected hashes loaded from file_integrity.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 struct FileIntegrityConfig {
     bool enabled = false;
     std::array<std::array<uint8_t, 32>, kIntegrityFileCount> expected_hashes{};
@@ -147,7 +147,7 @@ struct FileIntegrityConfig {
 
 inline FileIntegrityConfig g_fileIntegrityConfig;
 
-// ── Auth payload — encrypted contents of the authorize packet from client ─────
+// â”€â”€ Auth payload â€” encrypted contents of the authorize packet from client â”€â”€â”€â”€â”€
 #pragma pack(push, 1)
 struct SecureAuthPayload {
     uint32_t auth_key;
@@ -162,20 +162,20 @@ struct SecureAuthPayload {
 };
 #pragma pack(pop)
 
-// ── Wire layout of auth data as received by server (data-only, no cmd header) ─
+// â”€â”€ Wire layout of auth data as received by server (data-only, no cmd header) â”€
 #pragma pack(push, 1)
 struct SecureAuthWireData {
-    uint8_t client_pubkey[kKeySize]; // 32 — client ephemeral X25519 public key
-    uint8_t mac[kMacSize];           // 16 — AEAD auth tag
+    uint8_t client_pubkey[kKeySize]; // 32 â€” client ephemeral X25519 public key
+    uint8_t mac[kMacSize];           // 16 â€” AEAD auth tag
     uint8_t ciphertext[sizeof(SecureAuthPayload)]; // encrypted payload
 };
 #pragma pack(pop)
 
 // =============================================================================
-// ServerSecureChannel — per-session server-side key management
+// ServerSecureChannel â€” per-session server-side key management
 // =============================================================================
-// Phase 1 (Connect):  buildConnectPayload()  → ServerKeyPayload sent to client
-// Phase 2 (Authorize): decryptAuthPacket()   → SecureAuthPayload from client
+// Phase 1 (Connect):  buildConnectPayload()  â†’ ServerKeyPayload sent to client
+// Phase 2 (Authorize): decryptAuthPacket()   â†’ SecureAuthPayload from client
 // =============================================================================
 class ServerSecureChannel {
 public:
@@ -206,7 +206,7 @@ private:
 };
 
 // =============================================================================
-// SecureChannelStore — thread-safe storage for pending channels
+// SecureChannelStore â€” thread-safe storage for pending channels
 // =============================================================================
 // Stores a ServerSecureChannel between Connect and Authorize, keyed by session id.
 // retrieve() moves the channel out and erases the entry.
@@ -225,18 +225,43 @@ private:
 inline SecureChannelStore g_secureChannels;
 
 // =============================================================================
-// Heartbeat — periodic challenge/response anti-cheat system
+// Heartbeat â€” periodic challenge/response anti-cheat system
 // =============================================================================
 
-inline constexpr uint32_t kDetectionBitsSize = 16;
-inline constexpr uint32_t kMaxQueuedEvents   = 16;
+inline constexpr uint32_t kDetectionBitsSize          = 16;
+inline constexpr uint32_t kDetectionDetailSize        = 64;
+inline constexpr uint32_t kHeartbeatPacketLimit       = 1432;
+inline constexpr uint32_t kHeartbeatEncryptedOverhead = kNonceSize + kMacSize;
+inline constexpr uint32_t kHeartbeatTransportOverhead =
+    sizeof(NetEngine::Protocols::STcpPacketHeader) +
+    sizeof(NetEngine::Protocols::SCommandHeader) +
+    kHeartbeatEncryptedOverhead;
+inline constexpr uint32_t kHeartbeatFixedResponseBytes =
+    sizeof(uint64_t) + 32 + kDetectionBitsSize + sizeof(uint8_t) + 3;
+inline constexpr int32_t kHeartbeatEventBudget =
+    static_cast<int32_t>(kHeartbeatPacketLimit) -
+    static_cast<int32_t>(kHeartbeatTransportOverhead) -
+    static_cast<int32_t>(kHeartbeatFixedResponseBytes);
+
+static_assert(kHeartbeatEventBudget > 0,
+              "Heartbeat packet overhead exceeds the encrypted transport budget");
 
 #pragma pack(push, 1)
 struct DetectionEvent {
     uint32_t flag;
     uint32_t timestamp;
     uint32_t extra;
+    char     detail[kDetectionDetailSize];
 };
+
+static_assert(sizeof(DetectionEvent) == sizeof(uint32_t) * 3 + kDetectionDetailSize,
+              "DetectionEvent size mismatch");
+
+inline constexpr uint32_t kMaxQueuedEvents = static_cast<uint32_t>(
+    kHeartbeatEventBudget / static_cast<int32_t>(sizeof(DetectionEvent)));
+
+static_assert(kMaxQueuedEvents > 0,
+              "DetectionEvent is too large for the heartbeat packet budget");
 
 struct HeartbeatChallenge {
     uint64_t challenge_id;
@@ -253,6 +278,12 @@ struct HeartbeatResponse {
 };
 #pragma pack(pop)
 
+static_assert(
+    sizeof(NetEngine::Protocols::STcpPacketHeader) +
+    sizeof(NetEngine::Protocols::SCommandHeader) +
+    kHeartbeatEncryptedOverhead + sizeof(HeartbeatResponse) <= kHeartbeatPacketLimit,
+    "Heartbeat response exceeds the encrypted transport budget");
+
 // Wire data for encrypted heartbeat messages (nonce + mac + ciphertext, no header)
 template<typename T>
 struct HeartbeatWireData {
@@ -262,13 +293,13 @@ struct HeartbeatWireData {
 };
 
 // =============================================================================
-// HeartbeatManager — server-side challenge/response scheduler
+// HeartbeatManager â€” server-side challenge/response scheduler
 // =============================================================================
 // After auth, call startSession() to begin periodic challenges.
 // The Authorize handler routes heartbeat responses to onResponse().
 // On disconnect, call stopSession() to clean up timers/keys.
 //
-// Retry logic: send challenge → wait kChallengeTimeoutMs → if no response,
+// Retry logic: send challenge â†’ wait kChallengeTimeoutMs â†’ if no response,
 // resend up to kMaxRetries times, then disconnect the player.
 // =============================================================================
 class HeartbeatManager {
@@ -295,6 +326,7 @@ private:
         uint8_t  currentChallengeData[32]{};
         uint32_t retryCount{0};
         bool     awaitingResponse{false};
+        bool     allowQueuedResponses{false};
         std::shared_ptr<asio::steady_timer> timer;
     };
 

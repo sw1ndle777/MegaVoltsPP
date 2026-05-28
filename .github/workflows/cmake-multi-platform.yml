@@ -1,4 +1,4 @@
-name: CMake multi-platform (Clang 19)
+name: CMake multi-platform
 
 on:
   push:
@@ -28,6 +28,26 @@ jobs:
             cpp_compiler: clang++-19
             generator: Ninja
             output_tag: linux-clang
+            toolchain: clang
+
+          - os: ubuntu-latest
+            name: linux-gcc13
+            build_type: Release
+            c_compiler: gcc-13
+            cpp_compiler: g++-13
+            generator: Ninja
+            output_tag: linux-gcc
+            toolchain: gcc
+
+          - os: ubuntu-latest
+            name: linux-clang19-asan
+            build_type: Debug
+            c_compiler: clang-19
+            cpp_compiler: clang++-19
+            generator: Ninja
+            output_tag: linux-clang-asan
+            toolchain: clang
+            sanitizers: "-DMVPP_SANITIZE_ADDRESS=ON -DMVPP_SANITIZE_UNDEFINED=ON"
 
           - os: windows-latest
             name: windows-clangcl19-vs2022
@@ -36,6 +56,16 @@ jobs:
             cpp_compiler: clang-cl
             generator: Ninja
             output_tag: windows-clangcl
+            toolchain: clang-cl
+
+          - os: windows-latest
+            name: windows-msvc-vs2022
+            build_type: Release
+            c_compiler: cl
+            cpp_compiler: cl
+            generator: Ninja
+            output_tag: windows-msvc
+            toolchain: msvc
 
     steps:
     - uses: actions/checkout@v4
@@ -43,7 +73,7 @@ jobs:
         submodules: recursive
 
     - name: Install Clang 19 toolchain (Ubuntu)
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && matrix.toolchain == 'clang'
       shell: bash
       run: |
         sudo apt-get update -qq
@@ -56,6 +86,15 @@ jobs:
         clang-19 --version
         ccache --version
 
+    - name: Install GCC 13 toolchain (Ubuntu)
+      if: runner.os == 'Linux' && matrix.toolchain == 'gcc'
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y gcc-13 g++-13 ninja-build ccache clang
+        gcc-13 --version
+        ccache --version
+
     - name: Setup MSVC build environment (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
@@ -63,7 +102,7 @@ jobs:
         arch: x64
 
     - name: Install LLVM/Clang 19 (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && matrix.toolchain == 'clang-cl'
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
@@ -125,11 +164,11 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCMAKE_C_COMPILER_LAUNCHER=ccache
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        -DMVPP_MARCH_NATIVE=OFF
+        ${{ matrix.sanitizers || '' }}
 
-    - name: Configure (Windows - Ninja + clang-cl 19)
-      if: runner.os == 'Windows'
+    - name: Configure (Windows - clang-cl)
+      if: runner.os == 'Windows' && matrix.toolchain == 'clang-cl'
       shell: pwsh
       run: |
         cmake -G "${{ matrix.generator }}" `
@@ -137,6 +176,17 @@ jobs:
           -B "${{ steps.strings.outputs.build-output-dir }}" `
           -DCMAKE_C_COMPILER="$env:WIN_CLANG_CL" `
           -DCMAKE_CXX_COMPILER="$env:WIN_CLANG_CL" `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Configure (Windows - MSVC)
+      if: runner.os == 'Windows' && matrix.toolchain == 'msvc'
+      shell: pwsh
+      run: |
+        cmake -G "${{ matrix.generator }}" `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ steps.strings.outputs.build-output-dir }}" `
+          -DCMAKE_C_COMPILER=cl `
+          -DCMAKE_CXX_COMPILER=cl `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build (Linux)
@@ -155,11 +205,72 @@ jobs:
       run: ccache -s
 
     - name: Upload build artifacts
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
         path: out/${{ matrix.output_tag }}/bin/Release/**
         if-no-files-found: error
+
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Clang 19 + clang-tidy
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y wget gnupg lsb-release software-properties-common ninja-build ccache
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 19
+        sudo apt-get install -y clang-tidy-19
+        sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-19 100
+
+    - name: Ensure vcpkg binary cache directory exists
+      shell: bash
+      run: mkdir -p "${{ github.workspace }}/.vcpkg-binary-cache"
+
+    - name: Restore vcpkg + binary cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/vcpkg
+          ${{ github.workspace }}/.vcpkg-binary-cache
+          ${{ github.workspace }}/build/vcpkg_installed
+        key: ${{ runner.os }}-clang-tidy-vcpkg-${{ hashFiles('vcpkg.json', 'vcpkg-overlay/**', 'cmake.toml', 'CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-clang-tidy-vcpkg-
+          ${{ runner.os }}-vcpkg-
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake -G Ninja -S ${{ github.workspace }}
+        -B ${{ github.workspace }}/build
+        -DCMAKE_C_COMPILER=clang-19
+        -DCMAKE_CXX_COMPILER=clang++-19
+        -DCMAKE_BUILD_TYPE=Debug
+        -DMVPP_MARCH_NATIVE=OFF
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    - name: Run clang-tidy
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        find src common -name '*.cpp' | head -50 | \
+          xargs -P$(nproc) -I{} clang-tidy-19 -p build {} 2>&1 | tee clang-tidy-output.txt
+        if grep -q 'error:' clang-tidy-output.txt; then
+          echo "::warning::clang-tidy found issues"
+        fi
 
   release:
     name: release

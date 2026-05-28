@@ -48,6 +48,8 @@ namespace Game::Handlers
                     DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
                     return;
                 }
+                main_server->RefreshPlayerHealthCache(*new_acc_cache, !new_acc_cache->playing);
+                main_server->SendCastPlayerHealthSync(new_acc_cache->session_id, new_acc_cache->max_health, new_acc_cache->current_health);
                 if (auto pss = main_server->GetSessionById(s_id))
                     pss->SendMsg(74, 0, CharacterSelectInfo::Result::Ok, static_cast<uint8_t>(character));
             });

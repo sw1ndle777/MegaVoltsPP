@@ -47,10 +47,35 @@ namespace Game::Handlers
         {
             if (room_cache->host_session_id == session_id && room_cache->MapIndex == NetEngine::Room::Map::Index::Random) //set a real map id to RandomMapIndex !
             {
-                room_cache->RandomMapIndex = NetEngine::Room::Map::Index::HouseTop;
+                if (const auto random_map = main_server->GetRandomMapIndexForMode(room_cache->ModeIndex, room_cache->max_players); random_map.has_value())
+                {
+                    room_cache->RandomMapIndex = random_map.value();
+                    DEBUGLOG(dark_cyan,
+                        "room ({}) random map resolved to ({}) for mode ({})",
+                        room_cache->room_id,
+                        main_server->GetMapName(static_cast<uint32_t>(room_cache->RandomMapIndex)),
+                        main_server->GetModeName(static_cast<uint32_t>(room_cache->ModeIndex)));
+                }
+                else
+                {
+                    room_cache->RandomMapIndex = NetEngine::Room::Map::Index::HouseTop;
+                    DEBUGLOG(dark_cyan,
+                        "room ({}) random map pool empty for mode ({}) - fallback to ({})",
+                        room_cache->room_id,
+                        main_server->GetModeName(static_cast<uint32_t>(room_cache->ModeIndex)),
+                        main_server->GetMapName(static_cast<uint32_t>(room_cache->RandomMapIndex)));
+                }
             }
             room_cache->is_playing = true;
             room_cache->start_time = Utility::GetUtcTimeNowInMilliseconds();
+            main_server->SendCastRoomMatchStateSync(room_cache->room_id, room_cache->host_session_id, true);
+            if (is_host)
+            {
+                thread_local Utility::SecureRandomBlake2b::Generator rng;
+                room_cache->match_instance_id = rng.GenerateAuthKey();
+            }
+            room_cache->team_rounds_started = 0;
+            room_cache->match_combat_stats.clear();
             //acc_cache->playing = true;
             DEBUGLOG(dark_cyan, "player normal started match and will broadcast to: ({}) players", players_ids.size());
             for (const auto& room_player_session_id : players_ids)

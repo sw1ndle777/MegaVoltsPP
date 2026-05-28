@@ -1,4 +1,5 @@
 #include "Utility.h"
+#include <charconv>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -388,6 +389,31 @@ namespace Utility
 
         return std::format("{} Day(s) {} Hour(s) {} Minute(s)", days, hours, minutes);
     }
+    std::string FormatCompactDurationSeconds(uint64_t total_seconds)
+    {
+        constexpr uint64_t seconds_in_minute = 60;
+        constexpr uint64_t seconds_in_hour = seconds_in_minute * 60;
+        constexpr uint64_t seconds_in_day = seconds_in_hour * 24;
+
+        const auto days = total_seconds / seconds_in_day;
+        total_seconds %= seconds_in_day;
+
+        const auto hours = total_seconds / seconds_in_hour;
+        total_seconds %= seconds_in_hour;
+
+        const auto minutes = total_seconds / seconds_in_minute;
+        const auto seconds = total_seconds % seconds_in_minute;
+
+        std::string out;
+        if (days > 0)
+            out += std::format("{}d ", days);
+        if (hours > 0 || !out.empty())
+            out += std::format("{}h ", hours);
+        if (minutes > 0 || !out.empty())
+            out += std::format("{}m ", minutes);
+        out += std::format("{}s", seconds);
+        return out;
+    }
     uint64_t GetUtcTimeNowInSeconds()
     {
         auto now = std::chrono::system_clock::now();
@@ -408,7 +434,7 @@ namespace Utility
         throw std::invalid_argument("Unknown time zone key: " + std::string(tz));
     }
 
-    std::string GetReadableTime(uint32_t time, std::string time_zone)
+    std::string GetReadableTime(uint32_t time, std::string_view time_zone)
     {
         const int offset_h = ParseOffsetHours(time_zone);
 
@@ -549,18 +575,16 @@ namespace Utility
         return result;
     }
 
-    bool IsDigitsOnly(const std::string& input)
+    bool IsDigitsOnly(std::string_view input)
     {
-        for (char ch : input)
-            if (!std::isdigit(ch))
-                return false;
-
-        return true;
+        return std::ranges::all_of(input, [](unsigned char ch) { return std::isdigit(ch) != 0; });
     }
 
-    uint32_t ExtractNumber(const std::string& input)
+    uint32_t ExtractNumber(std::string_view input)
     {
-        return static_cast<uint32_t>(std::stoul(input));
+        uint32_t value{};
+        std::from_chars(input.data(), input.data() + input.size(), value);
+        return value;
     }
     std::int64_t cpu_last_time = 0;
     std::int64_t cpu_last_system_time = 0;

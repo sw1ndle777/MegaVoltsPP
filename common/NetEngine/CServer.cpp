@@ -1,11 +1,132 @@
 #include "CServer.h"
 #include <fmt/color.h>
 #include <numeric>
+#include <utility>
 
 namespace NetEngine
 {
 	using namespace BaseLib;
     using enum fmt::color;
+
+    namespace
+    {
+        [[nodiscard]] std::string MakePacketRateLimitOrderKey(const uint16_t order, const RateLimit::IdentityScope scope, const std::string_view identity)
+        {
+            return std::format("{}|{}|{}", order, std::to_underlying(scope), identity);
+        }
+
+        [[nodiscard]] std::string MakePacketRateLimitIdentityKey(const RateLimit::IdentityScope scope, const std::string_view identity)
+        {
+            return std::format("{}|{}", static_cast<uint32_t>(scope), identity);
+        }
+
+        [[nodiscard]] std::chrono::milliseconds RemainingPacketRateLimitDuration(const CServer::PacketRateLimitClock::time_point expires_at,
+            const CServer::PacketRateLimitClock::time_point now)
+        {
+            if (expires_at <= now)
+                return {};
+
+            return std::chrono::duration_cast<std::chrono::milliseconds>(expires_at - now);
+        }
+
+        void PrunePacketRateLimitWindow(std::deque<CServer::PacketRateLimitClock::time_point>& timestamps,
+            const CServer::PacketRateLimitClock::time_point now,
+            const std::chrono::milliseconds window)
+        {
+            while (!timestamps.empty() && now - timestamps.front() >= window)
+                timestamps.pop_front();
+        }
+
+        [[nodiscard]] bool IsPacketRateLimitSessionOrderKey(const std::string_view key, const std::string_view session_identity)
+        {
+            const auto first = key.find('|');
+            if (first == std::string_view::npos) return false;
+            const auto second = key.find('|', first + 1);
+            if (second == std::string_view::npos) return false;
+
+            return key.substr(first + 1, second - first - 1) == std::to_string(std::to_underlying(RateLimit::IdentityScope::Session)) &&
+                key.substr(second + 1) == session_identity;
+        }
+
+        [[nodiscard]] bool IsPacketRateLimitSessionIdentityKey(const std::string_view key, const std::string_view session_identity)
+        {
+            const auto first = key.find('|');
+            if (first == std::string_view::npos) return false;
+
+            return key.substr(0, first) == std::to_string(std::to_underlying(RateLimit::IdentityScope::Session)) &&
+                key.substr(first + 1) == session_identity;
+        }
+    }
+
+    bool RateLimit::ActionContext::HasIdentity(const IdentityScope scope) const
+    {
+        return !IdentityValue(scope).empty();
+    }
+
+    std::string RateLimit::ActionContext::OrderName() const
+    {
+        if (const auto order_enum = magic_enum::enum_cast<EOrder>(order); order_enum.has_value())
+        {
+            const auto name = magic_enum::enum_name(*order_enum);
+            if (!name.empty())
+                return std::string(name);
+        }
+
+        return std::to_string(order);
+    }
+
+    std::string RateLimit::ActionContext::IdentityValue(const IdentityScope scope) const
+    {
+        switch (scope)
+        {
+        case IdentityScope::Session:
+            return identity.sid ? std::to_string(identity.sid) : std::string{};
+        case IdentityScope::Ip:
+            return identity.ip;
+        case IdentityScope::Hwid:
+            return identity.hwid;
+        case IdentityScope::Aid:
+            return identity.aid > 0 ? std::to_string(identity.aid) : std::string{};
+        default:
+            return {};
+        }
+    }
+
+    void RateLimit::ActionContext::ApplyOrderCooldown(const IdentityScope scope, const std::chrono::milliseconds duration) const
+    {
+        if (!server || duration.count() <= 0)
+            return;
+
+        if (auto value = IdentityValue(scope); !value.empty())
+            server->ApplyPacketRateLimitCooldown(order, scope, std::move(value), duration);
+    }
+
+    void RateLimit::ActionContext::Blacklist(const IdentityScope scope, const std::chrono::milliseconds duration) const
+    {
+        if (!server || duration.count() <= 0)
+            return;
+
+        if (auto value = IdentityValue(scope); !value.empty())
+            server->ApplyPacketRateLimitBlacklist(scope, std::move(value), duration);
+    }
+
+    uint32_t RateLimit::ActionContext::AddStrike(const IdentityScope scope, const std::chrono::milliseconds window) const
+    {
+        if (!server || window.count() <= 0)
+            return 0;
+
+        if (auto value = IdentityValue(scope); !value.empty())
+            return server->AddPacketRateLimitStrike(order, scope, std::move(value), window);
+
+        return 0;
+    }
+
+    void RateLimit::ActionContext::Disconnect() const
+    {
+        if (session)
+            session->Disconnect();
+    }
+
     CServer::CServer() : m_ioContext(), m_socket(m_ioContext), m_ipcSocket(m_ioContext)//, m_available_session_ids(65536, true), m_available_room_ids(4096, true), m_available_plaza_ids(65536, true)
     { 
         m_sessionIdGenerator = IdGenerator(1, 65535);
@@ -17,6 +138,7 @@ namespace NetEngine
     void CServer::Setup(const SServerSettings& settings, const BaseLib::CSettings::ServerSettings& servers_settings)
     {
         server_settings = servers_settings;
+        m_ipcRole = DetectIpcRole(settings, servers_settings);
         m_ip_address = settings.ip;
         m_port = settings.port;
         m_ipc_port = settings.ipc_port;
@@ -52,20 +174,54 @@ namespace NetEngine
             }
             
             
+            try {
 
-            m_acceptor = std::make_shared<asio::ip::tcp::acceptor>(m_ioContext);
-            m_acceptor->open(endpoint.protocol());
-            m_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
-            m_acceptor->set_option(asio::ip::tcp::no_delay(true));
-            m_acceptor->bind(endpoint);
-            m_acceptor->listen();
 
-            m_ipc_acceptor = std::make_shared<asio::ip::tcp::acceptor>(m_ioContext);
-            m_ipc_acceptor->open(ipc_endpoint.protocol());
-            m_ipc_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
-            m_ipc_acceptor->set_option(asio::ip::tcp::no_delay(true));
-            m_ipc_acceptor->bind(ipc_endpoint);
-            m_ipc_acceptor->listen();
+                m_acceptor = std::make_shared<asio::ip::tcp::acceptor>(m_ioContext);
+                m_acceptor->open(endpoint.protocol());
+                m_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
+                m_acceptor->set_option(asio::ip::tcp::no_delay(true));
+                m_acceptor->bind(endpoint);
+                m_acceptor->listen();
+
+                m_ipc_acceptor = std::make_shared<asio::ip::tcp::acceptor>(m_ioContext);
+                m_ipc_acceptor->open(ipc_endpoint.protocol());
+                m_ipc_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
+                m_ipc_acceptor->set_option(asio::ip::tcp::no_delay(true));
+                m_ipc_acceptor->bind(ipc_endpoint);
+                m_ipc_acceptor->listen();
+            }
+            catch (const std::system_error& e)
+            {
+                // Handle system errors (e.g., mutex lock failures)
+                DEBUGLOG(red,
+                    "System error in callback for server::setup: {} (code: {})",
+                    e.what(), e.code().value());
+            }
+            catch (const std::runtime_error& e)
+            {
+                // Handle runtime errors
+                DEBUGLOG(red,
+                    "Runtime error in callback for server::setup: {}", e.what());
+            }
+            catch (const std::logic_error& e)
+            {
+                // Handle logic errors
+                DEBUGLOG(red,
+                    "Logic error in callback for server::setup: {}", e.what());
+            }
+            catch (const std::exception& e)
+            {
+                // Catch other standard exceptions
+                DEBUGLOG(red,
+                    "Exception in callback for server::setup: {}", e.what());
+            }
+            catch (...)
+            {
+                // Catch non-standard exceptions
+                DEBUGLOG(red,
+                    "Unknown exception in callback for server::setup");
+            }
    
         }
     }
@@ -106,12 +262,14 @@ namespace NetEngine
 
             AcceptSessions();
             AcceptIpcSessions(ipc_addresses);
+            StartPersistentIpcClients();
         }
         else
         {
             auto work = asio::make_work_guard(m_ioContext);
             AcceptSessions();
             AcceptIpcSessions(ipc_addresses);
+            StartPersistentIpcClients();
             while (true)
             {
                 m_ioContext.run();
@@ -199,6 +357,189 @@ namespace NetEngine
             AcceptIpcSessions(ipc_addresses);
         });
     }
+    CServer::IpcRole CServer::DetectIpcRole(const SServerSettings& settings, const BaseLib::CSettings::ServerSettings& servers_settings) const
+    {
+        if (settings.ipc_port == std::to_string(servers_settings.front.ipc_port)) return IpcRole::Front;
+        if (settings.ipc_port == std::to_string(servers_settings.main.ipc_port)) return IpcRole::Main;
+        if (settings.ipc_port == std::to_string(servers_settings.cast.ipc_port)) return IpcRole::Cast;
+        return IpcRole::Unknown;
+    }
+    CServer::PersistentIpcState& CServer::GetPersistentIpcState(PersistentIpcTarget target)
+    {
+        switch (target)
+        {
+        case PersistentIpcTarget::Front: return m_frontIpcState;
+        case PersistentIpcTarget::Main: return m_mainIpcState;
+        case PersistentIpcTarget::Cast: return m_castIpcState;
+        }
+        return m_mainIpcState;
+    }
+    std::pair<std::string, std::string> CServer::GetPersistentIpcEndpoint(PersistentIpcTarget target)
+    {
+        std::shared_lock lock(m_server_settings_mutex);
+        auto normalize_host = [](const std::string& host)
+        {
+            return host == "0.0.0.0" ? std::string("127.0.0.1") : host;
+        };
+
+        switch (target)
+        {
+        case PersistentIpcTarget::Front:
+            return { normalize_host(server_settings.front.host), std::to_string(server_settings.front.ipc_port) };
+        case PersistentIpcTarget::Main:
+            return { normalize_host(server_settings.main.host), std::to_string(server_settings.main.ipc_port) };
+        case PersistentIpcTarget::Cast:
+            return { normalize_host(server_settings.cast.host), std::to_string(server_settings.cast.ipc_port) };
+        }
+
+        return { "127.0.0.1", "0" };
+    }
+    const char* CServer::GetPersistentIpcTargetName(PersistentIpcTarget target) const
+    {
+        switch (target)
+        {
+        case PersistentIpcTarget::Front: return "front";
+        case PersistentIpcTarget::Main: return "main";
+        case PersistentIpcTarget::Cast: return "cast";
+        }
+        return "unknown";
+    }
+    bool CServer::TrySendPersistentIpc(PersistentIpcTarget target, const uint32_t ipc_id, const std::vector<uint8_t>& payload)
+    {
+        std::shared_ptr<CSession> session;
+        {
+            std::shared_lock lock(m_persistent_ipc_mutex);
+            auto& state = GetPersistentIpcState(target);
+            session = state.session;
+        }
+
+        if (!session || !session->IsOpen())
+            return false;
+
+        session->SendIpc(ipc_id, payload);
+        return true;
+    }
+    void CServer::StartPersistentIpcClients()
+    {
+        switch (m_ipcRole)
+        {
+        case IpcRole::Front:
+            EnsurePersistentIpcConnection(PersistentIpcTarget::Main);
+            break;
+        case IpcRole::Main:
+            EnsurePersistentIpcConnection(PersistentIpcTarget::Front);
+            EnsurePersistentIpcConnection(PersistentIpcTarget::Cast);
+            break;
+        case IpcRole::Cast:
+            EnsurePersistentIpcConnection(PersistentIpcTarget::Main);
+            break;
+        case IpcRole::Unknown:
+        default:
+            break;
+        }
+    }
+    void CServer::EnsurePersistentIpcConnection(PersistentIpcTarget target)
+    {
+        {
+            std::unique_lock lock(m_persistent_ipc_mutex);
+            auto& state = GetPersistentIpcState(target);
+            if ((state.session && state.session->IsOpen()) || state.connecting)
+                return;
+            state.connecting = true;
+            if (state.retry_timer)
+                state.retry_timer->cancel();
+        }
+
+        auto [host, port] = GetPersistentIpcEndpoint(target);
+        auto socket = std::make_shared<asio::ip::tcp::socket>(m_ioContext);
+        auto resolver = std::make_shared<asio::ip::tcp::resolver>(m_ioContext);
+
+        resolver->async_resolve(host, port,
+            [this, target, host, port, socket, resolver](const asio::error_code& ec, asio::ip::tcp::resolver::results_type endpoints)
+            {
+                if (ec)
+                {
+                    {
+                        std::unique_lock lock(m_persistent_ipc_mutex);
+                        GetPersistentIpcState(target).connecting = false;
+                    }
+                    DEBUGLOG(yellow, "persistent ipc resolve to {} failed: {}", GetPersistentIpcTargetName(target), ec.message().c_str());
+                    SchedulePersistentIpcReconnect(target);
+                    return;
+                }
+
+                asio::async_connect(*socket, endpoints,
+                    [this, target, host, port, socket](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
+                    {
+                        if (ec)
+                        {
+                            {
+                                std::unique_lock lock(m_persistent_ipc_mutex);
+                                GetPersistentIpcState(target).connecting = false;
+                            }
+                            DEBUGLOG(yellow, "persistent ipc connect to {} ({}:{}) failed: {}", GetPersistentIpcTargetName(target), host, port, ec.message().c_str());
+                            SchedulePersistentIpcReconnect(target);
+                            return;
+                        }
+
+                        asio::error_code opt_ec;
+                        socket->set_option(asio::ip::tcp::no_delay(true), opt_ec);
+
+                        CSession::SSessionSettings settings{};
+                        settings.verbose = m_verbose;
+                        settings.useEncryption = false;
+                        settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
+
+                        auto session = CSession::Create(std::move(*socket), m_ioContext, this, settings, 0);
+                        if (m_OnIpcMessage)
+                            session->SetOnIpcMessageCallback(m_OnIpcMessage);
+
+                        std::weak_ptr<CSession> weak_session = session;
+                        session->SetOnDisconnectCallback([this, target, weak_session](std::shared_ptr<CSession>)
+                        {
+                            {
+                                std::unique_lock lock(m_persistent_ipc_mutex);
+                                auto& state = GetPersistentIpcState(target);
+                                if (state.session == weak_session.lock())
+                                    state.session.reset();
+                                state.connecting = false;
+                            }
+                            DEBUGLOG(yellow, "persistent ipc to {} disconnected", GetPersistentIpcTargetName(target));
+                            SchedulePersistentIpcReconnect(target);
+                        });
+
+                        {
+                            std::unique_lock lock(m_persistent_ipc_mutex);
+                            auto& state = GetPersistentIpcState(target);
+                            state.session = session;
+                            state.connecting = false;
+                            if (state.retry_timer)
+                                state.retry_timer->cancel();
+                        }
+
+                        session->DoReadIpc();
+                        DEBUGLOG(dark_cyan, "persistent ipc connected to {} ({}:{})", GetPersistentIpcTargetName(target), host, port);
+                    });
+            });
+    }
+    void CServer::SchedulePersistentIpcReconnect(PersistentIpcTarget target, std::chrono::milliseconds delay)
+    {
+        std::shared_ptr<asio::steady_timer> timer;
+        {
+            std::unique_lock lock(m_persistent_ipc_mutex);
+            auto& state = GetPersistentIpcState(target);
+            if (!state.retry_timer)
+                state.retry_timer = std::make_shared<asio::steady_timer>(m_ioContext);
+            timer = state.retry_timer;
+            timer->expires_after(delay);
+        }
+
+        timer->async_wait([this, target, timer](const asio::error_code& ec)
+        {
+            if (!ec)
+                EnsurePersistentIpcConnection(target);
+        });
+    }
 
     bool CServer::AddSession(const std::shared_ptr<CSession>& session)
     {
@@ -227,6 +568,8 @@ namespace NetEngine
 
         m_sessions.erase(it);
         m_sessionIdGenerator.free(id);
+        lock.unlock();
+        ClearPacketRateLimitSessionState(id);
         DEBUGLOG(dark_cyan, "removed sid=({}) and now it's available", id);
     }
     
@@ -281,7 +624,7 @@ namespace NetEngine
     {
         this->m_OnDisconnect = callback;
     }
-    void CServer::OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)>  callback)
+    void CServer::OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> callback)
     {
         this->m_OnIpcMessage = callback;
     }
@@ -336,21 +679,27 @@ namespace NetEngine
     }
     void CServer::SendFrontIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
     {
-        std::shared_lock lock(m_server_settings_mutex);
-        std::string host = (this->server_settings.front.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.front.host;
-        SendIpcMessage(host, std::to_string(this->server_settings.front.ipc_port), ipc_id, payload);
+        if (TrySendPersistentIpc(PersistentIpcTarget::Front, ipc_id, payload))
+            return;
+        EnsurePersistentIpcConnection(PersistentIpcTarget::Front);
+        auto [host, port] = GetPersistentIpcEndpoint(PersistentIpcTarget::Front);
+        SendIpcMessage(host, port, ipc_id, payload);
     }
     void CServer::SendMainIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
     {
-        std::shared_lock lock(m_server_settings_mutex);
-        std::string host = (this->server_settings.main.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.main.host;
-        SendIpcMessage(host, std::to_string(this->server_settings.main.ipc_port), ipc_id, payload);
+        if (TrySendPersistentIpc(PersistentIpcTarget::Main, ipc_id, payload))
+            return;
+        EnsurePersistentIpcConnection(PersistentIpcTarget::Main);
+        auto [host, port] = GetPersistentIpcEndpoint(PersistentIpcTarget::Main);
+        SendIpcMessage(host, port, ipc_id, payload);
     }
     void CServer::SendCastIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload)
     {
-        std::shared_lock lock(m_server_settings_mutex);
-        std::string host = (this->server_settings.cast.host == "0.0.0.0") ? "127.0.0.1" : this->server_settings.cast.host;
-        SendIpcMessage(host, std::to_string(this->server_settings.cast.ipc_port), ipc_id, payload);
+        if (TrySendPersistentIpc(PersistentIpcTarget::Cast, ipc_id, payload))
+            return;
+        EnsurePersistentIpcConnection(PersistentIpcTarget::Cast);
+        auto [host, port] = GetPersistentIpcEndpoint(PersistentIpcTarget::Cast);
+        SendIpcMessage(host, port, ipc_id, payload);
     }
     void CServer::WebsitePost(const std::string& path, const std::string& payload)
     {
@@ -466,7 +815,213 @@ namespace NetEngine
 
         DEBUGLOG(dark_cyan,
             "AdoptSessionId: rebound session from ({}) to ({})", old_sid, new_sid);
+        ClearPacketRateLimitSessionState(old_sid);
+        ClearPacketRateLimitSessionState(new_sid);
         return true;
+    }
+    bool CServer::ShouldProcessPacket(const uint16_t order,
+        SCallbackData& callback,
+        const RateLimit::IdentitySnapshot& identity,
+        const std::optional<RateLimit::Rule>& rule)
+    {
+        if (!rule.has_value() || !rule->enabled)
+            return true;
+
+        const auto bucket_scope = rule->bucket_scope_resolver ? rule->bucket_scope_resolver(callback, identity) : rule->bucket_scope;
+        const auto max_packets = rule->max_packets_resolver ? rule->max_packets_resolver(callback, identity) : rule->max_packets;
+        const auto window = rule->window_resolver ? rule->window_resolver(callback, identity) : rule->window;
+
+        RateLimit::ActionContext ctx{
+            .server = this,
+            .callback = &callback,
+            .session = callback.session,
+            .event = RateLimit::Event::LimitExceeded,
+            .order = order,
+            .identity = identity,
+            .retry_after = {},
+            .packet_count = 0,
+        };
+
+        const auto now = PacketRateLimitClock::now();
+        std::optional<std::pair<RateLimit::Event, std::chrono::milliseconds>> rejection{};
+        bool limit_triggered = false;
+        uint32_t packet_count = 0;
+        std::chrono::milliseconds retry_after{};
+
+        {
+            std::scoped_lock lock(m_packet_rate_limit_mutex);
+
+            const auto try_reject = [&](const RateLimit::Event event, auto& entries, const std::string& key)
+            {
+                auto it = entries.find(key);
+                if (it == entries.end())
+                    return false;
+
+                const auto remaining = RemainingPacketRateLimitDuration(it->second, now);
+                if (remaining.count() <= 0)
+                {
+                    entries.erase(it);
+                    return false;
+                }
+
+                rejection = std::make_pair(event, remaining);
+                return true;
+            };
+
+            constexpr RateLimit::IdentityScope scopes[] = {
+                RateLimit::IdentityScope::Session,
+                RateLimit::IdentityScope::Ip,
+                RateLimit::IdentityScope::Hwid,
+                RateLimit::IdentityScope::Aid,
+            };
+
+            for (const auto scope : scopes)
+            {
+                const auto value = ctx.IdentityValue(scope);
+                if (value.empty())
+                    continue;
+
+                if (try_reject(RateLimit::Event::BlacklistActive, m_packet_identity_blacklists, MakePacketRateLimitIdentityKey(scope, value)))
+                    break;
+            }
+
+            if (!rejection.has_value())
+            {
+                for (const auto scope : scopes)
+                {
+                    const auto value = ctx.IdentityValue(scope);
+                    if (value.empty())
+                        continue;
+
+                    if (try_reject(RateLimit::Event::CooldownActive, m_packet_order_cooldowns, MakePacketRateLimitOrderKey(order, scope, value)))
+                        break;
+                }
+            }
+
+            if (!rejection.has_value() && max_packets > 0 && window.count() > 0)
+            {
+                const auto bucket_value = ctx.IdentityValue(bucket_scope);
+                if (!bucket_value.empty())
+                {
+                    auto& timestamps = m_packet_rate_limit_windows[MakePacketRateLimitOrderKey(order, bucket_scope, bucket_value)];
+                    PrunePacketRateLimitWindow(timestamps, now, window);
+                    timestamps.push_back(now);
+                    packet_count = static_cast<uint32_t>(timestamps.size());
+                    if (packet_count > max_packets)
+                    {
+                        limit_triggered = true;
+                        retry_after = RemainingPacketRateLimitDuration(timestamps.front() + window, now);
+                    }
+                }
+            }
+        }
+
+        if (rejection.has_value())
+        {
+            ctx.event = rejection->first;
+            ctx.retry_after = rejection->second;
+            if (rule->on_rejected)
+                rule->on_rejected(ctx);
+            return false;
+        }
+
+        if (!limit_triggered)
+            return true;
+
+        ctx.event = RateLimit::Event::LimitExceeded;
+        ctx.retry_after = retry_after;
+        ctx.packet_count = packet_count;
+        if (rule->on_limit)
+            rule->on_limit(ctx);
+        return false;
+    }
+    void CServer::ApplyPacketRateLimitCooldown(const uint16_t order,
+        const RateLimit::IdentityScope scope,
+        std::string identity,
+        const std::chrono::milliseconds duration)
+    {
+        if (identity.empty() || duration.count() <= 0)
+            return;
+
+        const auto key = MakePacketRateLimitOrderKey(order, scope, identity);
+        const auto expires_at = PacketRateLimitClock::now() + duration;
+
+        std::scoped_lock lock(m_packet_rate_limit_mutex);
+        auto& current = m_packet_order_cooldowns[key];
+        if (current < expires_at)
+            current = expires_at;
+    }
+    void CServer::ApplyPacketRateLimitBlacklist(const RateLimit::IdentityScope scope,
+        std::string identity,
+        const std::chrono::milliseconds duration)
+    {
+        if (identity.empty() || duration.count() <= 0)
+            return;
+
+        const auto key = MakePacketRateLimitIdentityKey(scope, identity);
+        const auto expires_at = PacketRateLimitClock::now() + duration;
+
+        std::scoped_lock lock(m_packet_rate_limit_mutex);
+        auto& current = m_packet_identity_blacklists[key];
+        if (current < expires_at)
+            current = expires_at;
+    }
+    uint32_t CServer::AddPacketRateLimitStrike(const uint16_t order,
+        const RateLimit::IdentityScope scope,
+        std::string identity,
+        const std::chrono::milliseconds window)
+    {
+        if (identity.empty() || window.count() <= 0)
+            return 0;
+
+        const auto key = MakePacketRateLimitOrderKey(order, scope, identity);
+        const auto now = PacketRateLimitClock::now();
+
+        std::scoped_lock lock(m_packet_rate_limit_mutex);
+        auto& strikes = m_packet_rate_limit_strikes[key];
+        PrunePacketRateLimitWindow(strikes, now, window);
+        strikes.push_back(now);
+        return static_cast<uint32_t>(strikes.size());
+    }
+    void CServer::ClearPacketRateLimitSessionState(const uint16_t sid)
+    {
+        if (!sid)
+            return;
+
+        const auto identity = std::to_string(sid);
+        std::scoped_lock lock(m_packet_rate_limit_mutex);
+
+        for (auto it = m_packet_rate_limit_windows.begin(); it != m_packet_rate_limit_windows.end();)
+        {
+            if (IsPacketRateLimitSessionOrderKey(it->first, identity))
+                it = m_packet_rate_limit_windows.erase(it);
+            else
+                ++it;
+        }
+
+        for (auto it = m_packet_rate_limit_strikes.begin(); it != m_packet_rate_limit_strikes.end();)
+        {
+            if (IsPacketRateLimitSessionOrderKey(it->first, identity))
+                it = m_packet_rate_limit_strikes.erase(it);
+            else
+                ++it;
+        }
+
+        for (auto it = m_packet_order_cooldowns.begin(); it != m_packet_order_cooldowns.end();)
+        {
+            if (IsPacketRateLimitSessionOrderKey(it->first, identity))
+                it = m_packet_order_cooldowns.erase(it);
+            else
+                ++it;
+        }
+
+        for (auto it = m_packet_identity_blacklists.begin(); it != m_packet_identity_blacklists.end();)
+        {
+            if (IsPacketRateLimitSessionIdentityKey(it->first, identity))
+                it = m_packet_identity_blacklists.erase(it);
+            else
+                ++it;
+        }
     }
     void CServer::logExecution(uint16_t session_id, uint16_t order)
     {

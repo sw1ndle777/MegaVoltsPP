@@ -45,3 +45,35 @@ namespace Game::Handlers
         }
     }
 }
+
+namespace NetEngine
+{
+    template <>
+    struct PacketRateLimitPolicy<&Game::Handlers::Ping>
+    {
+        inline static const std::optional<RateLimit::Rule> value = RateLimit::Rule{
+            .enabled = true,
+            .bucket_scope = RateLimit::IdentityScope::Aid,
+            .max_packets = 60,
+            .window = std::chrono::milliseconds{ 3000 },
+            .on_limit = [](RateLimit::ActionContext& ctx)
+            {
+                auto* server = static_cast<Game::CMainServer*>(ctx.server);
+                if (!server)
+                    return;
+
+                ctx.CooldownAid(std::chrono::milliseconds{ 5000 });
+
+                if (ctx.StrikeHwid(std::chrono::minutes{ 10 }) >= 3)
+                {
+                    server->SendSessionAnnouncement(ctx.session, "[MegaVolts Online] Ping flood detected. Connection closed.");
+                    ctx.BlacklistHwid(std::chrono::minutes{ 30 });
+                    server->DisconnectPlayer(ctx.identity.sid, Game::Disconnect::Reason::Deny);
+                    return;
+                }
+
+                server->SendServerMessage(ctx.session, "[MegaVolts Online] Ping packet rate limit hit.");
+            },
+        };
+    };
+}

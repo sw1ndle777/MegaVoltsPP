@@ -26,13 +26,14 @@ namespace Game::Handlers
 
         auto room = CRoom.get<shared_t>(roomId);
         if (!room) return;
+        /*
         if (host->session_id != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
             return;
         }
-
+        */
         for (uint8_t i = 0; i < cnt; i++)
         {
             auto req = reinterpret_cast<KitDropInfo*>(message->GetData() + (i * sizeof(KitDropInfo)));

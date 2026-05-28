@@ -1,4 +1,5 @@
 #pragma once
+#include "../Weapon/CombatIpc.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -70,13 +71,13 @@ namespace Game::Handlers
             userName = user->nickname;
             user.unlock();
         }
-        else
+		else
 			userName = hostName;
 		
 
-		auto room = CRoom.get<shared_t>(host->room_id);
+		auto room = CRoom.get<shared_t>(roomId);
         if (!room) return;
-        if (host->session_id != room->host_session_id)
+        if (hostSid != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
@@ -95,11 +96,29 @@ namespace Game::Handlers
             update[i].uid = data->uid;
             update[i].info.player_status = data->m_bIsDead ? 12 : 11;
 			auto updateSid = static_cast<uint16_t>(data->uid.session);
-            auto player = CAccount.get<shared_t>(updateSid);
+            auto player = CAccount.get<unique_t>(updateSid);
             if (!player) continue;
-            update[i].info.health = player->health;
+            const bool was_dead = player->is_dead;
+            player->is_dead = data->m_bIsDead != 0;
+            if (player->is_dead)
+            {
+                player->current_kill_streak = 0;
+                player->current_health = 0;
+                player->health = 0;
+                player->combat_health = 0;
+                player->combat_health_known = true;
+            }
+            else if (was_dead || player->health == 0)
+            {
+                const auto full_health = player->max_health ? player->max_health : kCastDefaultHealthRaw;
+                player->current_health = full_health;
+                player->health = full_health;
+                player->combat_health = full_health;
+                player->combat_health_known = true;
+            }
+            update[i].info.health = player->current_health;
             PACKETLOG(ACK, order, "roomId=({}) player=({}) playerSid=({}) from host=({}) hostSid=({}) health=({}) m_bIsDead=({})",
-				roomId, player->nickname, updateSid, hostName, hostSid, player->health, data->m_bIsDead ? "true" : "false");
+				roomId, player->nickname, updateSid, hostName, hostSid, player->current_health, data->m_bIsDead ? "true" : "false");
         }
         server->Forward(userSid, hostSid, *message);
         CMessage statusMsg;

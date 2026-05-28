@@ -1,4 +1,6 @@
-﻿#pragma once
+#pragma once
+#include <chrono>
+#include <ctime>
 #include <BaseLib/CLogging.h>
 
 namespace Game::Handlers
@@ -92,6 +94,105 @@ namespace Game::Handlers
         }
     }
 
+    [[nodiscard]] inline bool IsRoundBasedAdrMode(const NetEngine::Room::Mode::Index mode)
+    {
+        using enum NetEngine::Room::Mode::Index;
+        return mode == Elimination ||
+            mode == BombBattle ||
+            mode == ZombieMode ||
+			mode == CLAN_BombBattle ||
+            mode == CLAN_Elimination;
+    }
+
+    [[nodiscard]] inline uint32_t ComputeAdrFromRawDamage(const uint64_t damage_raw, const uint32_t divisor)
+    {
+        const auto safe_divisor = std::max<uint32_t>(1, divisor);
+        return static_cast<uint32_t>((damage_raw + (safe_divisor / 2ull)) / safe_divisor);
+    }
+
+    [[nodiscard]] inline std::string ToWinRuleType(const NetEngine::Room::Mode::Index mode)
+    {
+        using enum NetEngine::Room::Mode::Index;
+
+        switch (mode)
+        {
+        case Elimination:
+        case BombBattle:
+        case ZombieMode:
+        case CLAN_Elimination:
+		case CLAN_BombBattle:
+            return "Rounds";
+        case CaptureTheBattery:
+        case CLAN_CaptureTheBattery:
+            return "Captures";
+        case ArmsRace:
+            return "ArmsPoints";
+        case BossBattle:
+            return "BossObjective";
+        default:
+            return "Kills";
+        }
+    }
+
+    [[nodiscard]] inline std::string FormatUnixMillisUtc(const uint64_t unix_ms)
+    {
+        if (!unix_ms)
+            return {};
+
+        using namespace std::chrono;
+        const auto tp = system_clock::time_point{ milliseconds{ unix_ms } };
+        const auto tt = system_clock::to_time_t(tp);
+        std::tm tm{};
+#ifdef _WIN64
+        gmtime_s(&tm, &tt);
+#else
+        gmtime_r(&tt, &tm);
+#endif
+
+        return fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03} UTC",
+            tm.tm_year + 1900,
+            tm.tm_mon + 1,
+            tm.tm_mday,
+            tm.tm_hour,
+            tm.tm_min,
+            tm.tm_sec,
+            static_cast<uint32_t>(unix_ms % 1000ull));
+    }
+
+    [[nodiscard]] inline std::string BuildMatchUniqueId(const uint32_t room_id,
+        const uint16_t host_session_id,
+        const uint64_t match_start_time_ms,
+        const uint64_t match_end_time_ms,
+        const NetEngine::Room::Mode::Index room_mode,
+        const NetEngine::Room::Map::Index room_map,
+        const uint32_t red_score,
+        const uint32_t blue_score)
+    {
+        const auto seed = fmt::format("{}:{}:{}:{}:{}:{}:{}:{}",
+            room_id,
+            host_session_id,
+            match_start_time_ms,
+            match_end_time_ms,
+            static_cast<uint32_t>(room_mode),
+            static_cast<uint32_t>(room_map),
+            red_score,
+            blue_score);
+
+        std::array<uint8_t, 64> digest{};
+        crypto_blake2b(digest.data(), digest.size(),
+            reinterpret_cast<const uint8_t*>(seed.data()), seed.size());
+
+        static constexpr char kHex[] = "0123456789abcdef";
+        std::string out;
+        out.reserve(digest.size() * 2);
+        for (const auto byte : digest)
+        {
+            out.push_back(kHex[(byte >> 4) & 0x0F]);
+            out.push_back(kHex[byte & 0x0F]);
+        }
+        return out;
+    }
+
 #pragma pack(push, 1)
     struct ItemPenaltyAck
     {
@@ -104,6 +205,16 @@ namespace Game::Handlers
     // ========== ADD THIS TRACKING STRUCTURE ==========
     struct PlayerRewardTracking
     {
+        std::string match_unique_id;
+        uint64_t match_start_time{ 0 };
+        uint64_t match_end_time{ 0 };
+        std::string match_start_utc;
+        std::string match_end_utc;
+        uint32_t win_rule{ 0 };
+        uint32_t time_rule{ 0 };
+        std::string win_rule_type;
+        bool is_win{ false };
+        bool is_lose{ false };
         uint16_t sid;
         int32_t aid;
         uint32_t mp_reward;
@@ -119,6 +230,13 @@ namespace Game::Handlers
         uint32_t tutorial_item_id;
         bool had_level_up;
         std::optional<ShopItem> level_up_item;
+        bool is_match_summary{ false };
+        uint64_t packet_damage_raw{ 0 };
+        uint32_t packet_kills{ 0 };
+        uint32_t reported_kills{ 0 };
+        uint32_t rounds_played{ 0 };
+        uint32_t adr{ 0 };
+        bool kill_mismatch{ false };
     };
     
     struct EndMatchCtx
@@ -233,7 +351,8 @@ namespace Game::Handlers
             };
             auto add_zombie = [&]()
             {
-                auto ZombiKill = m.killstreak, Infected = m.melee_kills, Survived = m.missionWin;
+                auto ZombiKill = m.total_kills, Infected = m.melee_kills, Survived = m.missionWin;
+				ZombiKill *= 3; // zombie kills are calculated as 3 * totalKills in client
                 exp += (ZombiKill * ri->ExpModeKill) + (Infected * ri->ExpKill) + (Survived * ri->ExpMissionWin);
                 pt += (ZombiKill * ri->PointModeKill) + (Infected * ri->PointKill) + (Survived * ri->PointMissionWin);
             };
@@ -273,6 +392,7 @@ namespace Game::Handlers
                 break;
             }
             case NetEngine::Room::Mode::Index::BombBattle:
+			case NetEngine::Room::Mode::Index::CLAN_BombBattle:
             {
                 add_basic();
                 add_bmb();
@@ -324,6 +444,10 @@ namespace Game::Handlers
             r.unique_id = info.unique_id;
             if (no_reward) return r;
             auto [exp, pt] = calc_xpmp(room, acc, *pvp);
+            const auto streak_stats_it = room->match_combat_stats.find(acc->session_id);
+            const auto authoritative_streak = streak_stats_it != room->match_combat_stats.end()
+                ? streak_stats_it->second.highest_kill_streak
+                : static_cast<uint32_t>(pvp->killstreak);
             outEnergyReward = tmpEnergy;
             r.melee_kills = pvp->melee_kills;
             r.rifle_kills = pvp->rifle_kills;
@@ -332,7 +456,7 @@ namespace Game::Handlers
             r.gatling_kills = pvp->gatling_kills;
             r.bazooka_kills = pvp->bazooka_kills;
             r.grenade_kills = pvp->grenade_kills;
-            r.killstreak = pvp->killstreak;
+            r.killstreak = static_cast<uint8_t>(std::min<uint32_t>(authoritative_streak, 255u));
             r.total_kills = pvp->total_kills;
             r.deaths = pvp->deaths;
             r.headshots = pvp->headshots;
@@ -458,6 +582,11 @@ namespace Game::Handlers
         if (!ctx.room_exists() || !ctx.same_room(ctx.host)) return;
         auto room = CRoom.get<unique_t>(ctx.host->room_id);
         ctx.host.unlock();
+        if (!room->is_playing)
+        {
+            DEBUGLOG(yellow, "ignoring stale end match packet for room ({}) because the match is already finished", room->room_id);
+            return;
+        }
         gamemodeOut = room->ModeIndex;
         auto req = reinterpret_cast<MainRoomEndMatchScoreClientInfo*>(ctx.data);
         auto blue_win = req->blue_score > req->red_score;
@@ -468,9 +597,10 @@ namespace Game::Handlers
         auto all_players = ctx.all_players(room);
         auto playing_players = ctx.playing_players(room);
         auto end_time = Utility::GetUtcTimeNowInSeconds();
+        auto match_end_time_ms = Utility::GetUtcTimeNowInMilliseconds();
         auto is_zombie = room->ModeIndex == NetEngine::Room::Mode::Index::ZombieMode;
         auto is_ffa = room->ModeIndex == NetEngine::Room::Mode::Index::FreeForAll;
-        auto is_bomb = room->ModeIndex == NetEngine::Room::Mode::Index::BombBattle;
+        auto is_bomb = room->ModeIndex == NetEngine::Room::Mode::Index::BombBattle || room->ModeIndex == NetEngine::Room::Mode::Index::CLAN_BombBattle;
         auto is_arms_race = room->ModeIndex == NetEngine::Room::Mode::Index::ArmsRace;
         auto is_ctb = room->ModeIndex == NetEngine::Room::Mode::Index::CaptureTheBattery || room->ModeIndex == NetEngine::Room::Mode::Index::CLAN_CaptureTheBattery;
         auto is_bossbattle = room->ModeIndex == NetEngine::Room::Mode::Index::BossBattle;
@@ -508,6 +638,10 @@ namespace Game::Handlers
                 auto play_time = end_time - acc->match_loaded_time;
                 auto no_rewards = ctx.no_rewards(room, acc, ctx.cli[id], play_time);
                 if (no_rewards) { acc.unlock(); continue; }
+                const auto streak_stats_it = room->match_combat_stats.find(id);
+                const auto authoritative_streak = streak_stats_it != room->match_combat_stats.end()
+                    ? streak_stats_it->second.highest_kill_streak
+                    : static_cast<uint32_t>(info.killstreak);
                 DEBUGLOG(dark_cyan, "({}) end info melee: ({}) rifle: ({}) shotgun: ({}) sniper: ({}) gatling: ({}) bazooka: ({}) grenade: ({}) killstreak: ({}) kills: ({}) deaths: ({}) hs: ({}) assist: ({}) mission: ({}) missionWin: ({})",
                     acc->acc_info.Nickname,
                     info.melee_kills,
@@ -517,7 +651,7 @@ namespace Game::Handlers
                     info.gatling_kills,
                     info.bazooka_kills,
                     info.grenade_kills,
-                    info.killstreak,
+                    authoritative_streak,
                     info.total_kills,
                     info.deaths,
                     info.headshots,
@@ -527,20 +661,26 @@ namespace Game::Handlers
                 acc.unlock();
                 LeaderDerived d{};
                 d.base_mvp = info.total_kills * 2 + info.assists;
-                auto hs_percentage = info.total_kills == 0 ? 0.f : (static_cast<float>(info.headshots) / static_cast<float>(info.total_kills)) * 100.f;
-                d.heads = static_cast<int32_t>(hs_percentage);
+                d.heads = 0;
+                if (info.total_kills != 0)
+                {
+                    // Store headshot percentage in basis points so 6/21 becomes 2857 => 28.57%.
+                    d.heads = static_cast<int32_t>(
+                        (static_cast<int64_t>(info.headshots) * 10000 + (static_cast<int64_t>(info.total_kills) / 2)) /
+                        static_cast<int64_t>(info.total_kills));
+                }
                 d.assists = info.assists;
-                d.streak = info.killstreak;
+                d.streak = static_cast<int32_t>(authoritative_streak);
                 d.boom = info.bazooka_kills + info.grenade_kills;
                 d.ctb_cap = info.mission;
                 d.bomb_won = info.missionWin;
                 d.arms_pts = info.mission;
                 (info.deaths == 0) ?
-                    d.kd_rank = std::numeric_limits<int32_t>::max() :
+                    d.kd_rank = static_cast<int32_t>(info.total_kills * 10000) :
                     d.kd_rank = static_cast<int32_t>((static_cast<int64_t>(info.total_kills) * 10000) / info.deaths);
 
                 if (is_zombie)
-                    d.zombie = info.killstreak * 3 + info.melee_kills + info.missionWin;
+                    d.zombie = info.total_kills * 3 + info.melee_kills + info.missionWin;
 
                 if (is_ffa) ctx.bump_score(ctx.ffa_winner, id, info.total_kills);
                 if (is_ctb) ctx.bump_score(ctx.most_captures, id, d.ctb_cap);
@@ -600,14 +740,65 @@ namespace Game::Handlers
             track.is_tutorial = false;
             track.is_story = false;
             track.had_level_up = false;
+            track.is_match_summary = true;
+            track.match_unique_id = BuildMatchUniqueId(
+                room->room_id,
+                room->host_session_id,
+                room->start_time,
+                match_end_time_ms,
+                room->ModeIndex,
+                room->MapIndex,
+                req->red_score,
+                req->blue_score);
+            track.match_start_time = room->start_time;
+            track.match_end_time = match_end_time_ms;
+            track.match_start_utc = FormatUnixMillisUtc(track.match_start_time);
+            track.match_end_utc = FormatUnixMillisUtc(track.match_end_time);
+            track.win_rule = room->score_rule;
+            track.time_rule = room->time_rule;
+            track.win_rule_type = ToWinRuleType(room->ModeIndex);
+
+            const auto packet_stats_it = room->match_combat_stats.find(id);
+            if (packet_stats_it != room->match_combat_stats.end())
+            {
+                track.packet_damage_raw = packet_stats_it->second.damage_dealt_raw;
+                track.packet_kills = packet_stats_it->second.packet_kills;
+            }
             
             auto resp = ctx.get_rewards(room, acc, info, no_rewards, mp_reward, exp_reward, energy_reward, reward_item);
             auto won = acc->team_id == NetEngine::Team::IdType::Blue ? blue_win : !blue_win;
+            auto lost = !draw && !won;
 
             track.mp_reward = mp_reward;
             track.exp_reward = exp_reward;
             track.energy_reward = energy_reward;
             track.reward_item_id = reward_item;
+            track.is_win = won;
+            track.is_lose = lost;
+
+            if (const auto* pvp_info = std::get_if<MainRoomEndMatchClientInfo>(&info.info);
+                pvp_info && !is_zombie && !is_bossbattle)
+            {
+                track.reported_kills = pvp_info->total_kills;
+                track.rounds_played = IsRoundBasedAdrMode(room->ModeIndex)
+                    ? std::max<uint32_t>(1, room->team_rounds_started)
+                    : std::max<uint32_t>(1, static_cast<uint32_t>(pvp_info->deaths));
+                track.adr = ComputeAdrFromRawDamage(track.packet_damage_raw, track.rounds_played);
+                track.kill_mismatch = track.packet_kills != track.reported_kills;
+                DEBUGLOG(dark_cyan,
+                    "[MatchEnd Combat Debug] sid=({}) aid=({}) packetDamageRaw=({}) packetKills=({}) reportedKills=({}) divisor=({}) adr=({}) teamRoundsStarted=({}) deaths=({}) roundBased=({}) mismatch=({})",
+                    track.sid,
+                    track.aid,
+                    track.packet_damage_raw,
+                    track.packet_kills,
+                    track.reported_kills,
+                    track.rounds_played,
+                    track.adr,
+                    room->team_rounds_started,
+                    static_cast<uint32_t>(pvp_info->deaths),
+                    IsRoundBasedAdrMode(room->ModeIndex) ? "true" : "false",
+                    track.kill_mismatch ? "true" : "false");
+            }
 
             auto dctx = ctx.make_dctx(acc);
             using enum CurrencyType;
@@ -644,7 +835,7 @@ namespace Game::Handlers
                     {
                         .sel = ItemSelector{ .serial = equipped_item.item_info.serial_info },
                         .is_equipped = false,
-                        .expire_date = ItemExpire::Type::Destroyed
+                        //.expire_date = ItemExpire::Type::Destroyed
                     };
                     dctx.ops.push_back(patch);
                     continue;
@@ -660,7 +851,7 @@ namespace Game::Handlers
                 if (new_repair == 0)
                 {
                     patch.is_equipped = false;
-                    patch.expire_date = ItemExpire::Type::Destroyed;
+                    //patch.expire_date = ItemExpire::Type::Destroyed;
                 }
                 dctx.ops.push_back(patch);
             }
@@ -723,7 +914,7 @@ namespace Game::Handlers
                     dctx.ops.emplace_back(AccountInfoPatch{
                         .deaths = acc->acc_info.Deaths + pvp->deaths,
                         .headshots = acc->acc_info.Headshots + pvp->headshots,
-                        .zombie_kills = acc->acc_info.ZombieKills + pvp->killstreak,
+                        .zombie_kills = acc->acc_info.ZombieKills + pvp->total_kills * 3,
                         .infections = acc->acc_info.Infections + pvp->melee_kills
                     });
                 else
@@ -732,7 +923,7 @@ namespace Game::Handlers
                         .deaths = acc->acc_info.Deaths + pvp->deaths,
                         .assists = acc->acc_info.Assists + pvp->assists,
                         .headshots = acc->acc_info.Headshots + pvp->headshots,
-                        .highest_kill_streak = std::max<uint32_t>(acc->acc_info.HighestKillStreak, pvp->killstreak),
+                        .highest_kill_streak = std::max<uint32_t>(acc->acc_info.HighestKillStreak, static_cast<uint32_t>(pvp->killstreak)),
                         .melee_kills = acc->acc_info.MeleeKills + pvp->melee_kills,
                         .rifle_kills = acc->acc_info.RifleKills + pvp->rifle_kills,
                         .shotgun_kills = acc->acc_info.ShotgunKills + pvp->shotgun_kills,
@@ -821,7 +1012,7 @@ namespace Game::Handlers
             auto setinfo = CSetItemsInfo.get<shared_t>(set_item_id);
             auto fallback = [&](uint32_t direct, uint32_t set_field_value)
             {
-                return direct ? direct : setinfo->Id;
+                return ctx.main->ResolveEquippedCostumeItemId(direct, set_field_value, setinfo->Id);
             };
 
             const auto hair = item_id_of(0);
@@ -855,11 +1046,12 @@ namespace Game::Handlers
             auto EquippedBackAcc = EquipItemNumber(fallback(accB, setinfo->AccessoryC), 9);
 
             const auto* pvp = std::get_if<MainRoomEndMatchClientInfo>(&info.info);
+            const auto* pvp_response = std::get_if<MainRoomEndMatchResponse>(&resp);
             const uint32_t kills = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->total_kills;
             const uint32_t deaths = (!pvp || is_bossbattle) ? 0 : pvp->deaths;
             const uint32_t assists = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->assists;
             const uint32_t headshots = (!pvp || is_bossbattle) ? 0 : pvp->headshots;
-            const uint32_t streak = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->killstreak;
+            const uint32_t streak = (!pvp_response || is_zombie || is_bossbattle) ? 0 : pvp_response->killstreak;
             const uint32_t melee_k = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->melee_kills;
             const uint32_t rifle_k = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->rifle_kills;
             const uint32_t shotgun_k = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->shotgun_kills;
@@ -867,16 +1059,31 @@ namespace Game::Handlers
             const uint32_t gatling_k = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->gatling_kills;
             const uint32_t bazooka_k = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->bazooka_kills;
             const uint32_t grenade_k = (!pvp || is_zombie || is_bossbattle) ? 0 : pvp->grenade_kills;
-            const uint32_t zombie_k = (is_zombie && pvp) ? pvp->killstreak : 0;
+            const uint32_t zombie_k = (is_zombie && pvp) ? pvp->total_kills * 3 : 0;
             const uint32_t infections = (is_zombie && pvp) ? pvp->melee_kills : 0;
+            const auto derived_it = derived.find(id);
+            const LeaderDerived zero_derived{};
+            const auto& player_derived = (derived_it != derived.end()) ? derived_it->second : zero_derived;
+            uint32_t mvp_score = static_cast<uint32_t>(std::max(0, player_derived.base_mvp));
+            for (const auto& [bonus_sid, bonus] : role_bonuses)
+            {
+                if (bonus_sid == id)
+                    mvp_score += static_cast<uint32_t>(std::max(0, bonus));
+            }
 
             dctx.ops.emplace_back(MatchInfoHistoryAdd
             {
+                .MatchUniqueId = track.match_unique_id,
                 .Sid = id,
                 .Aid = acc->acc_info.Index,
+                .IsWin = track.is_win,
+                .IsLose = track.is_lose,
                 .IsHost = room->host_session_id == id,
                 .IsDraw = draw,
                 .IsClanMatch = is_cw,
+                .WinRule = room->score_rule,
+                .TimeRule = room->time_rule,
+                .WinRuleType = track.win_rule_type,
                 .PlayTime = static_cast<uint32_t>(play_time),
                 .Level = acc->acc_info.Level,
                 .Experience = exp_reward,
@@ -903,7 +1110,10 @@ namespace Game::Handlers
                 .GrenadeKills = grenade_k,
                 .ZombieKills = zombie_k,
                 .Infections = infections,
-                .MatchEndTime = end_time,
+                .MatchStartTime = track.match_start_time,
+                .MatchStartUtc = track.match_start_utc,
+                .MatchEndTime = track.match_end_time,
+                .MatchEndUtc = track.match_end_utc,
                 .Hair = EquippedHair.item_id,
                 .Face = EquippedFace.item_id,
                 .Upper = EquippedUpper.item_id,
@@ -928,6 +1138,17 @@ namespace Game::Handlers
                 .IsBullseye = (id == ctx.bullseye.sid),
                 .IsSupport = (id == ctx.support.sid),
                 .IsBomba = (id == ctx.bomba.sid),
+                .MvpScore = mvp_score,
+                .EntryFraggerScore = static_cast<uint32_t>(std::max(0, player_derived.streak)),
+                .BullseyeScore = static_cast<uint32_t>(std::max(0, player_derived.heads)),
+                .SupportScore = static_cast<uint32_t>(std::max(0, player_derived.assists)),
+                .BombaScore = static_cast<uint32_t>(std::max(0, player_derived.boom)),
+                .BestKdScore = static_cast<uint32_t>(std::max(0, player_derived.kd_rank)),
+                .CaptureScore = static_cast<uint32_t>(std::max(0, player_derived.ctb_cap)),
+                .WonRoundScore = static_cast<uint32_t>(std::max(0, player_derived.bomb_won)),
+                .ArmsRaceScore = static_cast<uint32_t>(std::max(0, player_derived.arms_pts)),
+                .ZombieScore = static_cast<uint32_t>(std::max(0, player_derived.zombie)),
+                .ADR = track.adr,
             });
 
             ctx.dctxs.push_back(std::move(dctx));
@@ -941,6 +1162,9 @@ namespace Game::Handlers
         room->kicked.clear();
         room->voters.clear();
         room->voteKickers.clear();
+        room->team_rounds_started = 0;
+        ctx.main->SendCastRoomMatchStateSync(room->room_id, room->host_session_id, false);
+        room->match_combat_stats.clear();
 
         if (is_bossbattle)
         {
@@ -1025,7 +1249,7 @@ namespace Game::Handlers
         bSinglePlayer ? SpGameModes(ctx) : MpGameModes(ctx, gameMode);
         
         std::vector<ValidatedDbUpdates> validated_vec;
-        validated_vec.resize(dctxs.size());
+        validated_vec.reserve(dctxs.size());
         
         for (auto& d : dctxs)
         {
@@ -1063,6 +1287,7 @@ namespace Game::Handlers
             
             std::string mvp_msg = "", entry_msg = "", bullseye_msg = "", support_msg = "", bomba_msg = "";
             auto is_boss = gameMode == NetEngine::Room::Mode::Index::BossBattle;
+            std::vector<AcDetectionLogEntry> ac_logs;
             
             // ========== BUILD AND PERSIST LOGS ==========
             for (size_t idx = 0; idx < validated_vec.size(); ++idx)
@@ -1080,8 +1305,8 @@ namespace Game::Handlers
                 uint32_t destroyed_items_count = 0;
                 for (const auto& patched_item : v.items_patches)
                 {
-                    if (patched_item.patch.expire_date.has_value() && patched_item.patch.expire_date.value() == ItemExpire::Type::Destroyed &&
-                        patched_item.patch.is_equipped.has_value() && !patched_item.patch.is_equipped.value())
+                    if(patched_item.patch.repair.has_value() && patched_item.patch.repair.value() == 0 &&
+						patched_item.patch.is_equipped.has_value() && !patched_item.patch.is_equipped.value())
                     {
                         destroyed_items_count++;
                     }
@@ -1115,15 +1340,11 @@ namespace Game::Handlers
                     }
                 }
 
-                // Find matching tracking entry
-                auto track_it = std::find_if(tracking.begin(), tracking.end(), [&](const PlayerRewardTracking& t) {
-                    return t.sid == v.sid && t.aid == v.aid;
-                });
-
-                if (track_it != tracking.end())
+                LogContext log_ctx;
+                for (const auto& track : tracking)
                 {
-                    auto& track = *track_it;
-                    LogContext log_ctx;
+                    if (track.sid != v.sid || track.aid != v.aid)
+                        continue;
 
                     // Log Energy reward (from battery pickups during match)
                     if (track.energy_reward > 0)
@@ -1245,16 +1466,38 @@ namespace Game::Handlers
                         }
                     }
 
-                    // Persist logs for this player
-                    if (!log_ctx.empty())
+                    if (track.is_match_summary && track.kill_mismatch)
                     {
-                        auto log_result = BaseLib::Database->PersistLogs(log_ctx);
-                        if (!log_result.has_value())
-                        {
-                            DEBUGLOG(red, "Failed to persist match end logs for player [{}]: {}",
-                                acc->acc_info.Nickname.c_str(),
-                                log_result.error().message);
-                        }
+                        DEBUGLOG(yellow,
+                            "[MatchEnd Kill Mismatch] sid=({}) aid=({}) packetKills=({}) reportedKills=({}) packetDamageRaw=({}) rounds=({}) adr=({})",
+                            track.sid,
+                            track.aid,
+                            track.packet_kills,
+                            track.reported_kills,
+                            track.packet_damage_raw,
+                            track.rounds_played,
+                            track.adr);
+                        auto player_session = main_server->GetSessionById(v.sid);
+                        AcDetectionLogEntry ac_log;
+                        ac_log.aid = track.aid;
+                        ac_log.ip = player_session ? player_session->GetIpAddress() : std::string{};
+                        ac_log.hwid = acc->hwid;
+                        ac_log.detection_flag = AcDetection::Flag::MatchKillMismatch;
+                        ac_log.extra = ((track.packet_kills & 0xFFFFu) << 16) | (track.reported_kills & 0xFFFFu);
+                        ac_log.server_id = acc->server_id;
+                        ac_logs.push_back(std::move(ac_log));
+                    }
+                }
+
+                // Persist logs for this player
+                if (!log_ctx.empty())
+                {
+                    auto log_result = BaseLib::Database->PersistLogs(log_ctx);
+                    if (!log_result.has_value())
+                    {
+                        DEBUGLOG(red, "Failed to persist match end logs for player [{}]: {}",
+                            acc->acc_info.Nickname.c_str(),
+                            log_result.error().message);
                     }
                 }
 
@@ -1274,6 +1517,13 @@ namespace Game::Handlers
                 }
                 
                 acc.unlock();
+            }
+
+            if (!ac_logs.empty())
+            {
+                auto ac_result = BaseLib::Database->PersistAcDetectionLogs(ac_logs);
+                if (!ac_result.has_value())
+                    DEBUGLOG(red, "Failed to persist match mismatch detection logs: {}", ac_result.error().message);
             }
             
             // flush all packets

@@ -358,39 +358,177 @@ namespace BaseLib
     // ==================== Anticheat Detection Log ====================
     namespace AcDetection
     {
-        enum class Flag : uint8_t
+        inline constexpr uint32_t kServerFlagBase = 0x40000000u;
+
+        enum class Flag : uint32_t
         {
-            MemoryManipulation,
-            SpeedHack,
-            WallHack,
-            AimbotDetected,
-            FileIntegrityFail,
-            DebuggerDetected,
-            InjectionDetected,
-            HeartbeatTimeout,
-            InvalidResponse,
-            ProcessAnomaly,
-            NetworkManipulation,
-            ClientModified,
-            UnknownFlag
+            None                     = 0,
+            DebuggerPresent          = (1u << 0),
+            DebugPort                = (1u << 1),
+            TimingAnomaly            = (1u << 2),
+            PebDebugFlag             = (1u << 3),
+            InlineHook               = (1u << 4),
+            IatHook                  = (1u << 5),
+            HoneypotTriggered        = (1u << 6),
+            IntegrityViolation       = (1u << 7),
+            DllInjection             = (1u << 8),
+            ManualMap                = (1u << 9),
+            AnonymousThread          = (1u << 10),
+            ProxyDll                 = (1u << 11),
+            GlobalHookInjection      = (1u << 12),
+            MappedImage              = (1u << 13),
+            HookIntegrity            = (1u << 14),
+            BlacklistedModule        = (1u << 15),
+            UnsignedModule           = (1u << 16),
+            DangerousHandle          = (1u << 17),
+            VulnerableDriver         = (1u << 18),
+            BlacklistedString        = (1u << 19),
+            BlacklistedSignature     = (1u << 20),
+            UnsignedDriver           = (1u << 21),
+            DriverBlocklistDisabled  = (1u << 22),
+            HvciDisabled             = (1u << 23),
+
+            FileIntegrityFail          = kServerFlagBase + 1u,
+            MatchKillMismatch         = kServerFlagBase + 2u,
+            LoginSpam                 = kServerFlagBase + 3u,
+            HeartbeatTimeout          = kServerFlagBase + 4u,
+            InvalidResponse           = kServerFlagBase + 5u,
+            UnknownFlag               = kServerFlagBase + 255u
         };
+
+        inline constexpr Flag kClientFlags[] = {
+            Flag::DebuggerPresent,
+            Flag::DebugPort,
+            Flag::TimingAnomaly,
+            Flag::PebDebugFlag,
+            Flag::InlineHook,
+            Flag::IatHook,
+            Flag::HoneypotTriggered,
+            Flag::IntegrityViolation,
+            Flag::DllInjection,
+            Flag::ManualMap,
+            Flag::AnonymousThread,
+            Flag::ProxyDll,
+            Flag::GlobalHookInjection,
+            Flag::MappedImage,
+            Flag::HookIntegrity,
+            Flag::BlacklistedModule,
+            Flag::UnsignedModule,
+            Flag::DangerousHandle,
+            Flag::VulnerableDriver,
+            Flag::BlacklistedString,
+            Flag::BlacklistedSignature,
+            Flag::UnsignedDriver,
+            Flag::DriverBlocklistDisabled,
+            Flag::HvciDisabled,
+        };
+
+        inline constexpr uint32_t FlagToValue(Flag f)
+        {
+            return static_cast<uint32_t>(f);
+        }
+
+        inline constexpr Flag FlagFromValue(uint32_t value)
+        {
+            switch (value)
+            {
+                case FlagToValue(Flag::None):                    return Flag::None;
+                case FlagToValue(Flag::DebuggerPresent):         return Flag::DebuggerPresent;
+                case FlagToValue(Flag::DebugPort):               return Flag::DebugPort;
+                case FlagToValue(Flag::TimingAnomaly):           return Flag::TimingAnomaly;
+                case FlagToValue(Flag::PebDebugFlag):            return Flag::PebDebugFlag;
+                case FlagToValue(Flag::InlineHook):              return Flag::InlineHook;
+                case FlagToValue(Flag::IatHook):                 return Flag::IatHook;
+                case FlagToValue(Flag::HoneypotTriggered):       return Flag::HoneypotTriggered;
+                case FlagToValue(Flag::IntegrityViolation):      return Flag::IntegrityViolation;
+                case FlagToValue(Flag::DllInjection):            return Flag::DllInjection;
+                case FlagToValue(Flag::ManualMap):               return Flag::ManualMap;
+                case FlagToValue(Flag::AnonymousThread):         return Flag::AnonymousThread;
+                case FlagToValue(Flag::ProxyDll):                return Flag::ProxyDll;
+                case FlagToValue(Flag::GlobalHookInjection):     return Flag::GlobalHookInjection;
+                case FlagToValue(Flag::MappedImage):             return Flag::MappedImage;
+                case FlagToValue(Flag::HookIntegrity):           return Flag::HookIntegrity;
+                case FlagToValue(Flag::BlacklistedModule):       return Flag::BlacklistedModule;
+                case FlagToValue(Flag::UnsignedModule):          return Flag::UnsignedModule;
+                case FlagToValue(Flag::DangerousHandle):         return Flag::DangerousHandle;
+                case FlagToValue(Flag::VulnerableDriver):        return Flag::VulnerableDriver;
+                case FlagToValue(Flag::BlacklistedString):       return Flag::BlacklistedString;
+                case FlagToValue(Flag::BlacklistedSignature):    return Flag::BlacklistedSignature;
+                case FlagToValue(Flag::UnsignedDriver):          return Flag::UnsignedDriver;
+                case FlagToValue(Flag::DriverBlocklistDisabled): return Flag::DriverBlocklistDisabled;
+                case FlagToValue(Flag::HvciDisabled):            return Flag::HvciDisabled;
+                case FlagToValue(Flag::FileIntegrityFail):       return Flag::FileIntegrityFail;
+                case FlagToValue(Flag::MatchKillMismatch):       return Flag::MatchKillMismatch;
+                case FlagToValue(Flag::LoginSpam):               return Flag::LoginSpam;
+                case FlagToValue(Flag::HeartbeatTimeout):        return Flag::HeartbeatTimeout;
+                case FlagToValue(Flag::InvalidResponse):         return Flag::InvalidResponse;
+                default:                                         return Flag::UnknownFlag;
+            }
+        }
+
+        inline std::vector<Flag> ExpandRawFlags(uint32_t value)
+        {
+            std::vector<Flag> flags;
+            if (value == 0)
+                return flags;
+
+            if (const auto exact = FlagFromValue(value); exact != Flag::UnknownFlag && exact != Flag::None)
+            {
+                flags.push_back(exact);
+                return flags;
+            }
+
+            uint32_t matched_mask = 0;
+            for (const auto flag : kClientFlags)
+            {
+                const auto flag_value = FlagToValue(flag);
+                if ((value & flag_value) == flag_value)
+                {
+                    flags.push_back(flag);
+                    matched_mask |= flag_value;
+                }
+            }
+
+            if (flags.empty() || matched_mask != value)
+                flags.push_back(Flag::UnknownFlag);
+
+            return flags;
+        }
 
         inline const char* FlagToString(Flag f)
         {
             switch (f)
             {
-                case Flag::MemoryManipulation:  return "MemoryManipulation";
-                case Flag::SpeedHack:           return "SpeedHack";
-                case Flag::WallHack:            return "WallHack";
-                case Flag::AimbotDetected:      return "AimbotDetected";
+                case Flag::None:                     return "None";
+                case Flag::DebuggerPresent:          return "DebuggerPresent";
+                case Flag::DebugPort:                return "DebugPort";
+                case Flag::TimingAnomaly:            return "TimingAnomaly";
+                case Flag::PebDebugFlag:             return "PebDebugFlag";
+                case Flag::InlineHook:               return "InlineHook";
+                case Flag::IatHook:                  return "IatHook";
+                case Flag::HoneypotTriggered:        return "HoneypotTriggered";
+                case Flag::IntegrityViolation:       return "IntegrityViolation";
+                case Flag::DllInjection:             return "DllInjection";
+                case Flag::ManualMap:                return "ManualMap";
+                case Flag::AnonymousThread:          return "AnonymousThread";
+                case Flag::ProxyDll:                 return "ProxyDll";
+                case Flag::GlobalHookInjection:      return "GlobalHookInjection";
+                case Flag::MappedImage:              return "MappedImage";
+                case Flag::HookIntegrity:            return "HookIntegrity";
+                case Flag::BlacklistedModule:        return "BlacklistedModule";
+                case Flag::UnsignedModule:           return "UnsignedModule";
+                case Flag::DangerousHandle:          return "DangerousHandle";
+                case Flag::VulnerableDriver:         return "VulnerableDriver";
+                case Flag::BlacklistedString:        return "BlacklistedString";
+                case Flag::BlacklistedSignature:     return "BlacklistedSignature";
+                case Flag::UnsignedDriver:           return "UnsignedDriver";
+                case Flag::DriverBlocklistDisabled:  return "DriverBlocklistDisabled";
+                case Flag::HvciDisabled:             return "HvciDisabled";
                 case Flag::FileIntegrityFail:   return "FileIntegrityFail";
-                case Flag::DebuggerDetected:    return "DebuggerDetected";
-                case Flag::InjectionDetected:   return "InjectionDetected";
+                case Flag::MatchKillMismatch:   return "MatchKillMismatch";
+                case Flag::LoginSpam:           return "LoginSpam";
                 case Flag::HeartbeatTimeout:    return "HeartbeatTimeout";
                 case Flag::InvalidResponse:     return "InvalidResponse";
-                case Flag::ProcessAnomaly:      return "ProcessAnomaly";
-                case Flag::NetworkManipulation: return "NetworkManipulation";
-                case Flag::ClientModified:      return "ClientModified";
                 default:                        return "UnknownFlag";
             }
         }
@@ -403,6 +541,7 @@ namespace BaseLib
         std::string hwid;
         AcDetection::Flag detection_flag{ AcDetection::Flag::UnknownFlag };
         uint32_t extra{ 0 };
+        std::string details;
         uint32_t server_id{ 0 };
     };
 

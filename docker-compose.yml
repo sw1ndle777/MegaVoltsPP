@@ -1,6 +1,7 @@
 name: megavoltspp
 
 x-db-env: &db-env
+  DB_DRIVER: ${MVPP_DB_DRIVER:-mariadb}
   DB_HOST: ${MVPP_DB_HOST:-host.docker.internal}
   DB_PORT: ${MVPP_DB_PORT:-3306}
   DB_NAME: ${MVPP_DB_NAME:-megavoltspp}
@@ -133,6 +134,24 @@ services:
       mvpp-net:
         ipv4_address: ${MVPP_DB_CONTAINER_IP:-172.30.0.20}
 
+  # Optional local PostgreSQL: enable with `docker compose --profile local-pg up -d`
+  postgresql:
+    image: postgres:16
+    container_name: mvpp-postgresql
+    profiles: ["local-pg"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MVPP_DB_NAME:-megavoltspp}
+      POSTGRES_USER: ${MVPP_DB_USER:-megavolts}
+      POSTGRES_PASSWORD: ${MVPP_DB_PASSWORD:-megavolts}
+    ports:
+      - "${MVPP_LOCAL_PG_PORT:-5433}:5432"
+    volumes:
+      - mvpp-postgresql:/var/lib/postgresql/data
+    networks:
+      mvpp-net:
+        ipv4_address: ${MVPP_PG_CONTAINER_IP:-172.30.0.21}
+
 networks:
   mvpp-net:
     driver: bridge
@@ -142,3 +161,4 @@ networks:
 
 volumes:
   mvpp-mariadb:
+  mvpp-postgresql:

@@ -54,8 +54,8 @@ void init_crash_handler()
     std::unique_ptr<crashpad::CrashReportDatabase> database = crashpad::CrashReportDatabase::Initialize(db_path);
     if (database == NULL) return;
 
-    crashpad::CrashpadClient *client = new crashpad::CrashpadClient();
-    client->StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
+    static crashpad::CrashpadClient client;
+    client.StartHandler(handler, db_path, metrics_path, "", annotations, arguments, true, false);
 }
 
 
@@ -85,13 +85,15 @@ int main()
     //BaseLib::ThreadPool->Initialize(std::jthread::hardware_concurrency());
     //BaseLib::Database->Initialize(server_settings.database.db_name.c_str(), server_settings.database.host.c_str(), server_settings.database.port, server_settings.database.user.c_str(), server_settings.database.password.c_str());
 
-    Game::CCastServer* castServer = new Game::CCastServer();
+    auto castServer = std::make_unique<Game::CCastServer>();
 
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.cast.host.c_str(), std::to_string(server_settings.cast.port).c_str(), std::to_string(server_settings.cast.ipc_port).c_str(), server_settings.cast.debug, false, true, server_settings.cast.watchguard, server_settings.cast.asio_threads, 0, server_settings.cast.logger_threads);
     castServer->Setup(settings, server_settings);
+    castServer->SetBatchPositions(server_settings.cast.batch_positions);
+    castServer->StartPositionFlushTimer();
     castServer->Run();
     std::cin.get();
-    delete castServer;
+    castServer.reset();
     BaseLib::DbPool.reset();
     BaseLib::LogPool.reset();
     return 0;

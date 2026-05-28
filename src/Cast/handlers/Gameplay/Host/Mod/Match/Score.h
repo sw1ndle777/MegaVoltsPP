@@ -5,4 +5,5 @@ namespace Game::Handlers
     using namespace NetEngine;
     using namespace NetEngine::Packets::Cast;
     inline void HostModMatchScore(SCallbackData& callback, CCastServer* server){}
+	inline void HostModRoundEnd(SCallbackData& callback, CCastServer* server){}
 }

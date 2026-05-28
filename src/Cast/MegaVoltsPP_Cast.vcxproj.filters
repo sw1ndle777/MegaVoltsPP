@@ -283,5 +283,14 @@
     <ClInclude Include="handlers\Core\Ipc\MainServerInfo.h">
       <Filter>header\handlers\Core\Ipc</Filter>
     </ClInclude>
+    <ClInclude Include="handlers\Gameplay\Host\Weapon\CombatIpc.h">
+      <Filter>header\handlers\Gameplay\Host\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainPlayerHealth.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\MainTpToProj.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

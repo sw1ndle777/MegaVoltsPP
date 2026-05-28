@@ -1,7 +1,6 @@
 {
     "enabled": false,
     "files": {
-        "Launcher.exe": "",
         "Data/map.dat": "",
         "Data/cgd.dip": "",
         "Release/bdvid32.dll": "",

@@ -11,6 +11,7 @@ namespace Game::Handlers
         DEBUGLOG(dark_cyan, "sid=({}) disconnected", sid);
         cast_server->RemoveSession(sid);
         auto acc = CAccount.get<shared_t>(sid);
+        auto auth_key = acc->auth_key;
         if (acc->in_plaza)
         {
             if (CPlaza.contains(acc->plaza_id))
@@ -28,24 +29,11 @@ namespace Game::Handlers
             acc->in_plaza = false;
         }
         if (acc->in_room)
-        {
-            if (CRoom.contains(acc->room_id))
-            {
-                auto room = CRoom.get<unique_t>(acc->room_id);
-                std::erase_if(room->players_session_id, [&](const auto& id) { return id == sid; });
-                DEBUGLOG(dark_cyan, "sid=({}) left roomId=({})", sid, acc->room_id);
-                if (!room->players_session_id.size())
-                {
-                    room.unlock();
-                    CRoom.erase(acc->room_id);
-                    cast_server->SetRoomIdAvailable(acc->room_id);
-                    DEBUGLOG(dark_cyan, "sid=({}) removed roomId=({})", sid, acc->room_id);
-                }
-            }
-            acc->in_room = false;
-        }
+            DEBUGLOG(dark_cyan, "sid=({}) disconnected while in roomId=({}), waiting for main room lifecycle sync", sid, acc->room_id);
         acc->state_id = PlayerInfo::State::Disconnected;
         acc.unlock();
+        if (auth_key)
+            CAuthKey.erase(auth_key);
         CAccount.erase(sid);
     }
 }

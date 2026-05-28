@@ -11,6 +11,7 @@
 #include "BaseLib/CSettings.h"
 #include "NetEngine/Constants.h"
 #include "BaseLib/CDatabase.h"
+#include "BaseLib/CDatabaseFactory.h"
 
 #include "NetEngine/CServer.h"
 
@@ -132,14 +133,15 @@ int main()
     BaseLib::LogPool = std::make_unique<BS::thread_pool<BS::tp::priority>>(server_settings.front.logger_threads);
 	BaseLib::DbPool = std::make_unique<BS::thread_pool<BS::tp::priority>>(server_settings.front.database_threads);
     BaseLib::EventLog->Initialize("../logs/MegaVoltsPP_front.log", false);
+    BaseLib::Database = BaseLib::CreateDatabase(server_settings.database.driver);
     BaseLib::Database->Initialize(server_settings.database.db_name, server_settings.database.host, server_settings.database.port, server_settings.database.user, server_settings.database.password);
 
-    Game::CFrontServer* frontServer = new Game::CFrontServer();
+    auto frontServer = std::make_unique<Game::CFrontServer>();
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.front.host, std::to_string(server_settings.front.port), std::to_string(server_settings.front.ipc_port), server_settings.front.debug, true, true, server_settings.front.watchguard, server_settings.front.asio_threads, server_settings.front.database_threads, server_settings.front.logger_threads);
     frontServer->Setup(settings, server_settings);
     frontServer->Run();
     std::cin.get();
-    delete frontServer;
+    frontServer.reset();
     BaseLib::DbPool.reset();
     BaseLib::LogPool.reset();
 

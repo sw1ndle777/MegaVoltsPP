@@ -77,6 +77,7 @@ namespace Game
     public:
         CFrontServer();
         ~CFrontServer();
+        NetEngine::RateLimit::IdentitySnapshot BuildPacketRateLimitIdentitySnapshot(const SCallbackData& callback);
         /*
         auto IsPlayerAlready(int32_t aid)
         {

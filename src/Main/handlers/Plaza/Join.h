@@ -13,8 +13,7 @@ namespace Game::Handlers
 
     inline void TryRemovePlazaSid(PlazaCacheResource& plaza, uint32_t sid)
     {
-        auto it = std::remove(plaza->session_ids.begin(), plaza->session_ids.end(), sid);
-        plaza->session_ids.erase(it, plaza->session_ids.end());
+        std::erase(plaza->session_ids, sid);
     }
     inline void TryBroadcastPlazaPlayerDisconnect(JoinPlazaCtx& ctx, PlazaCacheResource& plaza, uint32_t sid)
     {

@@ -31,18 +31,15 @@ namespace Game::Handlers
                         player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                 }
                 DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", session_id, plaza_id);
-                auto remove_myself = std::remove(current_plaza->session_ids.begin(), current_plaza->session_ids.end(), session_id);
-                current_plaza->session_ids.erase(remove_myself, current_plaza->session_ids.end());
+                std::erase(current_plaza->session_ids, session_id);
                 acc_cache->plaza_id = 0;
                 acc_cache->in_plaza = false;
             }
         }
         session->SendMsg(174, 0, 0, 0); // leave plaza success
-        acc_cache.unlock();
         ResultLevelUpInfo level_up_info{};
         if (acc_cache->state == 0 && acc_cache->acc_info.GuideMission == 9) // Done guide mission "View roomlist"
         {
-            auto acc_cache = CAccount.get<unique_t>(session_id);
             auto current_coll = CCollectionInfo.get<shared_t>(55);
             dctx.ops.emplace_back(AccountInfoPatch{ .guide_mission = 10 });
             if (current_coll->rewardPoint > 0)

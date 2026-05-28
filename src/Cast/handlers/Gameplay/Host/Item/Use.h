@@ -5,7 +5,7 @@ namespace Game::Handlers
     using namespace NetEngine;
     using namespace NetEngine::Packets::Core;
     using namespace NetEngine::Packets::Cast;
-#pragma push(pack, 1)
+#pragma pack(push, 1)
     struct UseReq
     {
         uint32_t itemId;
@@ -29,18 +29,21 @@ namespace Game::Handlers
 
         auto room = CRoom.get<shared_t>(roomId);
         if (!room) return;
-        if (host->session_id != room->host_session_id)
+        if (hostSid != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
             return;
         }
+
+        server->Broadcast(room->players_session_id, *message);
+
 		auto userSid = static_cast<uint16_t>(req->uid.session);
 		auto user = CAccount.get<shared_t>(userSid);
 		if (!user) return;
 
         PACKETLOG(ACK, order, "roomId=({}) user=({}) userSid=({}) from host=({}) hostSid=({}) itemId=({}", roomId, user->nickname, userSid, hostName, hostSid, req->itemId);
 
-        server->Broadcast(room->players_session_id, *message);
+        
     }
 }

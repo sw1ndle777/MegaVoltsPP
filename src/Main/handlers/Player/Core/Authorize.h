@@ -89,6 +89,7 @@ namespace Game::Handlers
                         entry.hwid = std::move(hwid);
                         entry.detection_flag = AcDetection::Flag::FileIntegrityFail;
                         entry.extra = static_cast<uint32_t>(file);
+                        entry.details = Game::Anticheat::IntegrityFileToString(file);
                         entry.server_id = authPayload.server_id;
                         failed_entries.push_back(std::move(entry));
                     }
@@ -165,11 +166,13 @@ namespace Game::Handlers
 				newPlayer.gacha_pity = std::move(gacha_pity);
 				newPlayer.uid = NetEngine::Packets::Core::UniqueId(sid, server_id);
 				newPlayer.hwid = hwid_hex;
+				main_server->RefreshPlayerHealthCache(newPlayer, true);
 				main_server->TransformItems(acc_items, player_inventory_items);//check here
 				main_server->TransformEquippedItems(acc_items, player_equipped_items);
 				CAccount.insert(session->GetSessionId(), newPlayer);
 				CAidSid.insert(accInfo.Index, session->GetSessionId());
-				CSid.emplace_back(session->GetSessionId());
+				if (!CSid.contains_value(session->GetSessionId()))
+					CSid.emplace_back(session->GetSessionId());
 				CAuthKey.insert(auth_key, session->GetSessionId());
 
 				// Persist auth history
@@ -196,6 +199,12 @@ namespace Game::Handlers
                     newClan.clan_name = clanInfo.name;
                     newClan.online_members.push_back(sid);
 					CClan.insert(clan_id, newClan);
+                }
+                else if (clan_id)
+                {
+                    auto clan = CClan.get<unique_t>(clan_id);
+                    if (clan && !std::ranges::contains(clan->online_members, sid))
+                        clan->online_members.push_back(sid);
                 }
                 acc->daily_mission_info = playerDailyMissionData;
                 auto accInfoMsg = main_server->CraftAccInfoAck(acc, server_id, clanInfo.name.c_str(), clanInfo.logo_front, clanInfo.logo_back);
@@ -310,10 +319,10 @@ namespace Game::Handlers
                     if (mail.gift_itemid == 0)
                     {
                         if (!mail.deleted_from_sender)
-							CMailSent.insert(mail.sender_account_id, mail.mail_id);
+							CMailSent.emplace_back(mail.sender_account_id, mail.mail_id);
                         if (!mail.deleted_from_receiver)
                         {
-							CMailRecv.insert(mail.receiver_account_id, mail.mail_id);
+							CMailRecv.emplace_back(mail.receiver_account_id, mail.mail_id);
                             if (mail.receiver_account_id == accInfo.Index && mail.is_new)
                                 unopened_mails++;
                         }
@@ -321,10 +330,10 @@ namespace Game::Handlers
                     else
                     {
                         if (!mail.deleted_from_sender)
-							CGiftSent.insert(mail.sender_account_id, mail.mail_id);
+							CGiftSent.emplace_back(mail.sender_account_id, mail.mail_id);
                         if (!mail.deleted_from_receiver)
                         {
-							CGiftRecv.insert(mail.receiver_account_id, mail.mail_id);
+							CGiftRecv.emplace_back(mail.receiver_account_id, mail.mail_id);
                             if (mail.receiver_account_id == accInfo.Index)
                                 unopened_gifts++; // count gifts even if read to remind players
                         }
@@ -382,24 +391,16 @@ namespace Game::Handlers
                             if (validated.has_value())
                             {
                                 reward_acc_cache.unlock();
-                                [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([main_server,
-                                    session,
-                                    s_id = sid,
-                                    v = std::move(validated.value()),
-                                    rewardMp = uint32_t(0)
-                                ]() mutable
+                                ResultDbUpdateInfo dbres;
+                                if (BaseLib::Database->UpdateAccount(validated.value(), dbres).has_value())
+                                {
+                                    auto new_acc_cache = CAccount.get<unique_t>(sid);
+                                    auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, validated.value());
+                                    if (!applied.has_value())
                                     {
-                                        if (!session) return;
-                                        ResultDbUpdateInfo dbres;
-                                        if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
-                                        auto new_acc_cache = CAccount.get<unique_t>(s_id);
-                                        auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, v);
-                                        if (!applied.has_value())
-                                        {
-                                            DEBUGLOG(red, "ApplyDatabaseUpdates failed for monthly reward [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
-                                            return;
-                                        }
-                                    });
+                                        DEBUGLOG(red, "ApplyDatabaseUpdates failed for monthly reward [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
+                                    }
+                                }
                             }
                             else
                             {

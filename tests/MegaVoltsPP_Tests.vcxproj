@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release 1.0.3|x64">
+      <Configuration>Release 1.0.3</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{E7B3C5A1-9F4D-4B2E-8A1C-3D5F7E9B0C2A}</ProjectGuid>
+    <RootNamespace>MegaVoltsPPTests</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>UnitTests</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+    <Import Project="..\common\common.vcxitems" Label="Shared" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(ProjectDir)..\deps\magic_enum;$(ProjectDir)..\deps\asio\asio\include;$(ProjectDir)..\deps\boost_unordered\;$(ProjectDir)..\deps\thread-pool\include;$(ProjectDir)..\deps\monocypher\src;$(ProjectDir)..\deps\rapidjson\include;$(ProjectDir)..\out\vcpkg_installed\x64-windows\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)..\out\vcpkg_installed\x64-windows\debug\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>..\out\tests\bin\debug\</OutDir>
+    <IntDir>..\obj\tests\debug\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
+    <IncludePath>$(ProjectDir)..\deps\magic_enum;$(ProjectDir)..\deps\asio\asio\include;$(ProjectDir)..\deps\boost_unordered\;$(ProjectDir)..\deps\thread-pool\include;$(ProjectDir)..\deps\monocypher\src;$(ProjectDir)..\deps\rapidjson\include;$(ProjectDir)..\out\vcpkg_installed\x64-windows\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)..\out\vcpkg_installed\x64-windows\lib;$(ProjectDir)..\out\vcpkg_installed\x64-windows\lib\manual-link;$(LibraryPath)</LibraryPath>
+    <OutDir>..\out\tests\bin\</OutDir>
+    <IntDir>..\obj\tests\release\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0A00;RELEASE_1_0_3;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>gtestd.lib;gtest_maind.lib;mariadbcpp.lib;pqxx.lib;libpq.lib;libpgcommon.lib;libpgport.lib;libssl.lib;lz4.lib;zlib.lib;Secur32.lib;Wldap32.lib;ws2_32.lib;crypt32.lib;fmt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release 1.0.3|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0A00;RELEASE_1_0_3;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>gtest.lib;gtest_main.lib;mariadbcpp.lib;pqxx.lib;libpq.lib;libpgcommon.lib;libpgport.lib;libssl.lib;lz4.lib;zlib.lib;Secur32.lib;Wldap32.lib;ws2_32.lib;crypt32.lib;fmt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="utility\test_parse_number.cpp" />
+    <ClCompile Include="utility\test_parse_duration.cpp" />
+    <ClCompile Include="utility\test_nickname_validation.cpp" />
+    <ClCompile Include="utility\test_read_string_safe.cpp" />
+    <ClCompile Include="utility\test_string_utils.cpp" />
+    <ClCompile Include="utility\test_base64.cpp" />
+    <ClCompile Include="utility\test_time_utils.cpp" />
+    <ClCompile Include="crypto\test_blake2b_generator.cpp" />
+    <ClCompile Include="crypto\test_password_hashing.cpp" />
+    <ClCompile Include="crypto\test_auth_key.cpp" />
+    <ClCompile Include="database\test_db_factory.cpp" />
+    <ClCompile Include="database\test_db_error.cpp" />
+    <ClCompile Include="database\test_placeholder_generation.cpp" />
+    <ClCompile Include="game\test_weighted_selection.cpp" />
+    <ClCompile Include="game\test_gacha_pity.cpp" />
+    <ClCompile Include="game\test_boss_rewards.cpp" />
+    <ClCompile Include="game\test_serial_allocation.cpp" />
+    <ClCompile Include="game\test_item_type_adjust.cpp" />
+    <ClCompile Include="game\test_package_items.cpp" />
+    <ClCompile Include="game\test_upgrade_probability.cpp" />
+    <ClCompile Include="game\test_currency_validation.cpp" />
+    <ClCompile Include="room\test_team_balancing.cpp" />
+    <ClCompile Include="room\test_votekick_rules.cpp" />
+    <ClCompile Include="stress\test_connection_stress.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

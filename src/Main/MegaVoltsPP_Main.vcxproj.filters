@@ -493,6 +493,15 @@
     <ClInclude Include="handlers\Core\AnticheatHeartbeat.h">
       <Filter>header\handlers\Player\Core</Filter>
     </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Items\EffectCurr.h">
+      <Filter>header\handlers\Core\Cmds\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Cmds\Core\System\TpToProj.h">
+      <Filter>header\handlers\Core\Cmds\Core\System</Filter>
+    </ClInclude>
+    <ClInclude Include="handlers\Core\Ipc\CastCombatStats.h">
+      <Filter>header\handlers\Core\Ipc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="file_integrity.json" />

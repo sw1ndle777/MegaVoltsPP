@@ -71,15 +71,16 @@ namespace Game::Handlers
                     const auto& set_item_types = main_server->GetSetItemTypes(item_id);
                     for (const auto& item_type : set_item_types)
                     {
-                        auto curr_item = main_server->GetPlayerItemInventory(acc_cache, item_type, character_id);
+                        auto curr_item = main_server->GetPlayerEquippedItem(acc_cache, item_type, character_id);
                         if (curr_item.has_value())
                         {
-                            AddEquip(std::nullopt, item_type, false, character_id);
+                            AddEquip(curr_item->item_info.serial_info, std::nullopt, false, character_id);
                             DEBUGLOG(dark_cyan, "player ({}) had an item but set replaced part type ({})", acc_cache->acc_info.Nickname.c_str(), item_type);
                         }
                     }
                 }
-                AddEquip(std::nullopt, item_info->Type, false, character_id);
+                if (auto curr_item = main_server->GetPlayerEquippedItem(acc_cache, item_info->Type, character_id); curr_item.has_value())
+                    AddEquip(curr_item->item_info.serial_info, std::nullopt, false, character_id);
                 AddEquip(item.item_info.serial_info, std::nullopt, true, character_id);
             }
         }
@@ -128,17 +129,17 @@ namespace Game::Handlers
                     const auto& set_item_types = main_server->GetSetItemTypes(item.item_info.item_number.item_id);
                     for (const auto& item_type : set_item_types)
                     {
-                        auto curr_item = main_server->GetPlayerItemInventory(acc_cache, item_type, current_character);
+                        auto curr_item = main_server->GetPlayerEquippedItem(acc_cache, item_type, current_character);
                         if (curr_item.has_value())
                         {
-                            AddEquip(std::nullopt, item_type, false, current_character);
+                            AddEquip(curr_item->item_info.serial_info, std::nullopt, false, current_character);
                             DEBUGLOG(dark_cyan, "player ({}) had an item but set replaced part type ({})", acc_cache->acc_info.Nickname.c_str(), item_type);
                         }
                     }
                 }
                 else
                 {
-                    auto item_set = main_server->GetPlayerItemInventory(acc_cache, 25, current_character);
+                    auto item_set = main_server->GetPlayerEquippedItem(acc_cache, 25, current_character);
                     if (item_set.has_value())
                     {
                         const auto set_item_types = main_server->GetSetItemTypes(item_set->item_info.item_number.item_id);
@@ -147,13 +148,13 @@ namespace Game::Handlers
                             if (item_type == item_info->Type)
                             {
                                 DEBUGLOG(dark_cyan, "player ({}) had an set but part replaced it type {}", acc_cache->acc_info.Nickname.c_str(), item_type);
-                                AddEquip(std::nullopt, 25, false, current_character);
+                                AddEquip(item_set->item_info.serial_info, std::nullopt, false, current_character);
                                 break;
                             }
                         }
                     }
                 }
-                auto curr_item = main_server->GetPlayerItemInventory(acc_cache, item_info->Type, current_character);
+                auto curr_item = main_server->GetPlayerEquippedItem(acc_cache, item_info->Type, current_character);
                 if (curr_item.has_value())
                 {
                     AddEquip(curr_item.value().item_info.serial_info, std::nullopt, false, current_character);
@@ -194,6 +195,11 @@ namespace Game::Handlers
                     DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
                     //return;
                 }
+                else
+                {
+                    main_server->RefreshPlayerHealthCache(*new_acc_cache, !new_acc_cache->playing);
+                    main_server->SendCastPlayerHealthSync(new_acc_cache->session_id, new_acc_cache->max_health, new_acc_cache->current_health);
+                }
                 session->SendMsg(p_order, 0, 51, items_count);
                 auto uid = new_acc_cache->uid.data;
                 if (new_acc_cache->in_room)
@@ -205,8 +211,9 @@ namespace Game::Handlers
                         auto voice_id = new_acc_cache->voice_id;
                         auto equipped_items = main_server->GetEquippedItems(new_acc_cache);
                         auto equip_data = EquipInfoAck(new_acc_cache->uid, equipped_items);
+                        auto nick_copy = new_acc_cache->acc_info.Nickname.c_str();
                         new_acc_cache.unlock();
-                        
+
                         auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room);
                         for (const auto& room_player_session_id : players_ids)
                         {
@@ -215,7 +222,7 @@ namespace Game::Handlers
                             {
                                 player_session->SendMsg(414, 0, selected_character, 17, reinterpret_cast<uint8_t*>(&equip_data), sizeof(EquipInfoAck));
                                 player_session->SendMsg(314, 0, 0, voice_id, reinterpret_cast<uint8_t*>(&uid), sizeof(uid));
-                                DEBUGLOG(dark_cyan, "player ({}) sent equip update to player session id ({}) in room ({})", new_acc_cache->acc_info.Nickname.c_str(), room_player_session_id, room->room_id);
+                                DEBUGLOG(dark_cyan, "player ({}) sent equip update to player session id ({}) in room ({})", nick_copy, room_player_session_id, room->room_id);
                             }
                         }
                         new_acc_cache.lock();

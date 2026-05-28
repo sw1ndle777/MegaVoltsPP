@@ -1,9 +1,13 @@
 #pragma once
 #include <string>
+#include <chrono>
+#include <deque>
 #include <functional>
+#include <mutex>
 #include <unordered_set>
 #include <optional>
 #include <numeric>
+#include <random>
 #include <ranges>
 #include <expected>
 #include "BaseLib/CLog.h"
@@ -169,6 +173,14 @@ namespace Game
     };
 
     inline bool g_gacha_pity_enabled = true;
+    extern CCache<boost::unordered_flat_set<uint16_t>> g_tp_to_proj_sids;
+
+    struct MatchCombatPlayerStats
+    {
+        uint64_t damage_dealt_raw{ 0 };
+        uint32_t packet_kills{ 0 };
+        uint32_t highest_kill_streak{ 0 };
+    };
 
     struct Player
     {
@@ -192,6 +204,8 @@ namespace Game
         bool sent_ping_once;
         uint32_t boss_respawn_remaining{3};
         uint8_t voice_id;
+        uint32_t max_health;
+        uint32_t current_health;
         uint64_t match_loaded_time;
         uint32_t earnt_battery;
         uint32_t zombie_team;
@@ -222,6 +236,8 @@ namespace Game
             in_party = false;
             sent_ping_once = false;
             voice_id = 0;
+            max_health = 1000;
+            current_health = 1000;
             match_loaded_time = 0;
             earnt_battery = 0;
             zombie_team = 0;
@@ -252,6 +268,8 @@ namespace Game
             sent_ping_once = other.sent_ping_once;
             zombie_team = other.zombie_team;
             voice_id = other.voice_id;
+            max_health = other.max_health;
+            current_health = other.current_health;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
             acc_info = other.acc_info;
@@ -285,6 +303,8 @@ namespace Game
             sent_ping_once = other.sent_ping_once;
             zombie_team = other.zombie_team;
             voice_id = other.voice_id;
+            max_health = other.max_health;
+            current_health = other.current_health;
             match_loaded_time = other.match_loaded_time;
             earnt_battery = other.earnt_battery;
             acc_info = other.acc_info;
@@ -319,6 +339,8 @@ namespace Game
             sent_ping_once = false;
             zombie_team = 0;
             voice_id = 0;
+            max_health = 1000;
+            current_health = 1000;
             match_loaded_time = 0;
             inventory_items.clear();
 			multiple_accs_logged_in = false;
@@ -340,6 +362,7 @@ namespace Game
         uint32_t max_players, score_rule, time_rule;
         bool allow_intruders, allow_drops, allow_observers, is_playing, has_password;
         uint64_t start_time{ 0 };
+        uint64_t match_instance_id{ 0 };
         std::vector<uint16_t> neutralteam_session_ids, blueteam_session_ids, redteam_session_ids, observers_session_ids;
         boost::unordered_flat_set<int32_t> kicked;
 		boost::unordered_flat_set<int32_t> voters;
@@ -349,6 +372,8 @@ namespace Game
         bool is_clan_room;
         uint32_t clan_id_1;
         uint32_t clan_id_2;
+        uint32_t team_rounds_started{ 0 };
+        boost::unordered_flat_map<uint16_t, MatchCombatPlayerStats> match_combat_stats;
         Room(const uint16_t& roomId = 0, const uint16_t& channelId = 0, const std::string& title = "", const std::string& password = "",
             const NetEngine::Room::Map::Index& mapIndex = NetEngine::Room::Map::Index::Chess, const NetEngine::Room::Mode::Index& modeIndex = NetEngine::Room::Mode::Index::TeamDeathMatch,
             const NetEngine::Room::Restriction::Type& restriction = NetEngine::Room::Restriction::AllWeapons, const NetEngine::Room::Balance::State& teamBalance = NetEngine::Room::Balance::State::Disabled,
@@ -366,6 +391,8 @@ namespace Game
             kicked.clear();
             voters.clear();
 			voteKickers.clear();
+            match_combat_stats.clear();
+            match_instance_id = 0;
         }
         Room(const Room& other)
         {
@@ -387,6 +414,7 @@ namespace Game
             is_playing = other.is_playing;
             has_password = other.has_password;
 			start_time = other.start_time;
+            match_instance_id = other.match_instance_id;
             host_session_id = other.host_session_id;
             neutralteam_session_ids = other.neutralteam_session_ids;
             blueteam_session_ids = other.blueteam_session_ids;
@@ -400,6 +428,8 @@ namespace Game
             is_clan_room = other.is_clan_room;
             clan_id_1 = other.clan_id_1;
             clan_id_2 = other.clan_id_2;
+            team_rounds_started = other.team_rounds_started;
+            match_combat_stats = other.match_combat_stats;
         }
         Room& operator=(const Room& other)
         {
@@ -423,6 +453,7 @@ namespace Game
             has_password = other.has_password;
             host_session_id = other.host_session_id;
 			start_time = other.start_time;
+            match_instance_id = other.match_instance_id;
             neutralteam_session_ids = other.neutralteam_session_ids;
             blueteam_session_ids = other.blueteam_session_ids;
             redteam_session_ids = other.redteam_session_ids;
@@ -435,6 +466,8 @@ namespace Game
             is_clan_room = other.is_clan_room;
             clan_id_1 = other.clan_id_1;
             clan_id_2 = other.clan_id_2;
+            team_rounds_started = other.team_rounds_started;
+            match_combat_stats = other.match_combat_stats;
             return *this;
         }
     };
@@ -635,6 +668,7 @@ namespace Game
 	extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::ItemInfo>> CItemsInfo;
     extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::SetItemInfo>> CSetItemsInfo;
     extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::EffectInfo>> CEffectInfo;
+    extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::BaseUnitInfo>> CBaseUnitInfo;
     extern CCache<boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<Items::Upgrade::Type, std::vector<BaseLib::UpgradeInfo>>>> CUpgradesInfo;
 
     extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::CollectionInfo>> CCollectionInfo;
@@ -645,6 +679,7 @@ namespace Game
     extern CCache<boost::unordered_flat_set<uint32_t>> CVendorItems;
 
     extern CCache<std::vector<uint32_t>> CDailyMissions;
+    extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::MapInfo>> CMapsInfo;
     extern CCache<boost::unordered_flat_map<uint32_t, boost::unordered_flat_map<uint32_t, std::vector<BaseLib::RoomOptionInfo>>>> CRoomOptionsInfo;
     extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::GradeInfo>> CGradesInfo;
     extern CCache<boost::unordered_flat_map<uint32_t, BaseLib::RewardInfo>> CRewardsInfo;
@@ -692,6 +727,16 @@ namespace Game
     public:
         CMainServer();
         ~CMainServer();
+
+        template <auto HandlerFn, typename T>
+            requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
+        void BindMainHandler(T order)
+        {
+            this->BindPacketHandler<HandlerFn>(this, order);
+        }
+
+        NetEngine::RateLimit::IdentitySnapshot BuildPacketRateLimitIdentitySnapshot(const SCallbackData& callback);
+        void SendSessionAnnouncement(CSession* session, std::string_view message);
 
         
         MainAccountInfoAck CraftAccInfoAck(AccCacheResource& acc_cache, uint32_t server_id, std::string clan_name = "", uint32_t logo_front = 0,  uint32_t logo_back = 0)
@@ -844,9 +889,9 @@ namespace Game
             return mode == TeamDeathMatch || mode == ItemMatch
                 || mode == CaptureTheBattery || mode == CloseCombat
                 || mode == Elimination || mode == SuperItemMatch
-                || mode == Scrimmage || mode == BombBattle
+                || mode == Scrimmage || mode == BombBattle 
                 || mode == CLAN_CaptureTheBattery || mode == CLAN_Elimination
-                || mode == CLAN_TeamDeathMatch;
+                || mode == CLAN_TeamDeathMatch || mode == CLAN_BombBattle;
         }
         auto GetRoomSortedPlayerSessionIds(RoomCacheSharedResource& room_cache)
         {
@@ -1278,7 +1323,7 @@ namespace Game
                     slot_to_erase = last_slot_id;
 
                 auto& team_list = GetTeamList(room, removed_teamid);
-                team_list.erase(std::remove(team_list.begin(), team_list.end(), sid), team_list.end());
+                std::erase(team_list, sid);
             }
 
             auto all_ids = this->GetRoomSortedPlayerSessionIds(room);
@@ -1302,6 +1347,8 @@ namespace Game
             acc_final->state = PlayerInfo::State::Waiting;
             const auto target_aid = acc_final->acc_info.Index;
             acc_final.unlock();
+
+            SendCastRoomLeaveSync(room_id, sid, room->host_session_id, room->is_playing);
 
             using enum NetEngine::Room::Leave::Ack::Result;
             switch (leave_type)
@@ -1331,6 +1378,7 @@ namespace Game
 
             if (CRoom.contains(room_id))
             {
+                SendCastRoomRemoveSync(room_id);
                 CRoom.erase(room_id);
                 CRoomId.erase_value(room_id);
                 DEBUGLOG(dark_cyan, "room ({}) deleted from CRoom map", room_id);
@@ -1374,6 +1422,24 @@ namespace Game
                         return (item_info->Type == item_type);
                     }
                     else return false;
+                });
+
+            if (it != acc_cache->inventory_items.end())
+                return *it;
+            else
+                return {};
+        }
+        std::optional<Item> GetPlayerEquippedItem(AccCacheResource& acc_cache, const uint32_t& item_type, const uint8_t& char_id)
+        {
+            auto it = std::ranges::find_if(acc_cache->inventory_items,
+                [&item_type, char_id, this](const Item& item)
+                {
+                    if (item.character_id == char_id && item.is_equipped)
+                    {
+                        auto item_info = CItemsInfo.get<shared_t>(item.item_info.item_number.item_id);
+                        return item_info->Type == item_type;
+                    }
+                    return false;
                 });
 
             if (it != acc_cache->inventory_items.end())
@@ -1427,6 +1493,70 @@ namespace Game
             std::sample(pool.begin(), pool.end(), std::back_inserter(result), count, gen);
             return result;
         } 
+
+        [[nodiscard]] static bool IsMapAvailableForMode(const BaseLib::MapInfo& map_info,
+                                                        const NetEngine::Room::Mode::Index mode)
+        {
+            using enum NetEngine::Room::Mode::Index;
+
+            switch (mode)
+            {
+            case TeamDeathMatch:        return map_info.tdm;
+            case FreeForAll:            return map_info.ffa;
+            case ItemMatch:             return map_info.itm;
+            case CaptureTheBattery:     return map_info.ctm;
+            case CloseCombat:           return map_info.cim;
+            case Elimination:           return map_info.sab;
+            case SuperItemMatch:        return map_info.itm || map_info.mock;
+            case ZombieMode:            return map_info.zsm;
+            case ArmsRace:              return map_info.grm;
+            case Scrimmage:             return map_info.mock;
+            case BombBattle:            return map_info.bmb;
+            case BossBattle:            return map_info.pve;
+            case CLAN_CaptureTheBattery:return map_info.clan_ctf;
+            case CLAN_Elimination:      return map_info.clan_sab;
+            case CLAN_TeamDeathMatch:   return map_info.clan_tdm;
+            case CLAN_BombBattle:       return map_info.clan_bmb;
+#if defined(RELEASE_1_0_3)
+            case CLAN_Random:
+                return map_info.clan_ctf || map_info.clan_sab || map_info.clan_tdm || map_info.clan_bmb;
+#endif
+            default:
+                return false;
+            }
+        }
+
+        [[nodiscard]] std::optional<NetEngine::Room::Map::Index>
+            GetRandomMapIndexForMode(const NetEngine::Room::Mode::Index mode, const uint32_t max_players)
+        {
+            auto maps = CMapsInfo.get_all(shared);
+            std::vector<NetEngine::Room::Map::Index> pool;
+            pool.reserve(maps->size());
+
+            for (const auto& [map_id, map_info] : *maps)
+            {
+                if (map_id == static_cast<uint32_t>(NetEngine::Room::Map::Index::Random))
+                    continue;
+
+                if (!IsMapAvailableForMode(map_info, mode))
+                    continue;
+
+                if (max_players != 0 && map_info.MaxUsers != 0 && map_info.MaxUsers < max_players)
+                    continue;
+
+                pool.push_back(static_cast<NetEngine::Room::Map::Index>(map_id));
+            }
+
+            maps.unlock();
+
+            if (pool.empty())
+                return std::nullopt;
+
+            static thread_local std::mt19937 gen{ std::random_device{}() };
+            std::uniform_int_distribution<std::size_t> dist(0, pool.size() - 1);
+            return pool[dist(gen)];
+        }
+
         BaseLib::RoomOptionInfo GetRoomOptionInfoByTypeCache(RoomOptionsCacheResource& infos, const uint32_t& type, const uint32_t& data)
         {
 
@@ -1665,6 +1795,179 @@ namespace Game
             else
                 return BaseLib::Item();
         }
+        std::vector<BaseLib::Item> GetEquippedInventoryItems(const std::vector<BaseLib::Item>& inventory_items, const uint8_t& selected_character)
+        {
+            std::vector<BaseLib::Item> equipped;
+            equipped.reserve(18);
+            std::copy_if(inventory_items.begin(), inventory_items.end(), std::back_inserter(equipped), [&](const BaseLib::Item& it)
+                {
+                    return it.is_equipped == 1 && it.character_id == selected_character;
+                });
+            return equipped;
+        }
+        uint32_t GetCharacterBaseHealth(const uint8_t& character_type)
+        {
+            auto base_info = CBaseUnitInfo.get<shared_t>(character_type);
+            if (base_info->Type == character_type && base_info->Life)
+                return base_info->Life;
+            return 1000;
+        }
+        uint32_t GetEffectHealthBonus(const uint32_t& effect_id)
+        {
+            if (!effect_id || effect_id == UINT32_MAX)
+                return 0;
+
+            auto effect_info = CEffectInfo.get<shared_t>(effect_id);
+            if (!effect_info->id || effect_info->key != 3)
+                return 0;
+
+            return effect_info->valueA;
+        }
+        uint32_t GetItemHealthBonus(const uint32_t& item_id)
+        {
+            if (!item_id)
+                return 0;
+
+            auto item_info = CItemsInfo.get<shared_t>(item_id);
+            if (!item_info->Id)
+                return 0;
+
+            return GetEffectHealthBonus(item_info->EffectId1) +
+                GetEffectHealthBonus(item_info->EffectId2) +
+                GetEffectHealthBonus(item_info->EffectId3);
+        }
+        uint32_t GetSetSlotEffectId(const BaseLib::SetItemInfo& set_info, const uint8_t& item_type)
+        {
+            switch (item_type)
+            {
+            case 0: return set_info.Hair;
+            case 1: return set_info.Face;
+            case 2: return set_info.Upper;
+            case 3: return set_info.Under;
+            case 4: return set_info.Pants;
+            case 5: return set_info.Arms;
+            case 6: return set_info.Boots;
+            case 7: return set_info.AccessoryA;
+            case 8: return set_info.AccessoryB;
+            case 9: return set_info.AccessoryC;
+            default: return 0;
+            }
+        }
+        bool DoesSetOccupySlot(const uint32_t& set_field_value)
+        {
+            return set_field_value != UINT32_MAX;
+        }
+        bool DoesSetOccupySlot(const BaseLib::SetItemInfo& set_info, const uint8_t& item_type)
+        {
+            return DoesSetOccupySlot(GetSetSlotEffectId(set_info, item_type));
+        }
+        uint32_t ResolveEquippedCostumeItemId(const uint32_t& direct_item_id, const uint32_t& set_field_value, const uint32_t& set_item_id)
+        {
+            if (direct_item_id)
+                return direct_item_id;
+            return (set_item_id && DoesSetOccupySlot(set_field_value)) ? set_item_id : 0;
+        }
+        uint32_t GetEquippedHealthBonus(const std::vector<BaseLib::Item>& inventory_items, const uint8_t& selected_character)
+        {
+            const auto equipped = GetEquippedInventoryItems(inventory_items, selected_character);
+            const auto set_item_id = GetItemByType(equipped, 25).item_info.item_number.item_id;
+            auto set_info = CSetItemsInfo.get<shared_t>(set_item_id);
+
+            uint32_t bonus = 0;
+            for (uint8_t item_type = 0; item_type <= 9; ++item_type)
+            {
+                const auto item_id = GetItemByType(equipped, item_type).item_info.item_number.item_id;
+                if (item_id)
+                    bonus += GetItemHealthBonus(item_id);
+                else if (set_info->Id && DoesSetOccupySlot(*set_info, item_type))
+                    bonus += GetEffectHealthBonus(GetSetSlotEffectId(*set_info, item_type));
+            }
+
+            return bonus;
+        }
+        uint32_t GetPlayerMaxHealth(const std::vector<BaseLib::Item>& inventory_items, const uint8_t& selected_character)
+        {
+            return std::max<uint32_t>(1u, GetCharacterBaseHealth(selected_character) + GetEquippedHealthBonus(inventory_items, selected_character));
+        }
+        uint32_t GetPlayerMaxHealth(const BaseLib::FrontAccount& acc_info, const std::vector<BaseLib::Item>& inventory_items)
+        {
+            return GetPlayerMaxHealth(inventory_items, static_cast<uint8_t>(acc_info.SelectedCharacter));
+        }
+        void RefreshPlayerHealthCache(Player& player, const bool reset_current = false)
+        {
+            player.max_health = GetPlayerMaxHealth(player.acc_info, player.inventory_items);
+            if (reset_current || !player.current_health || player.current_health > player.max_health)
+                player.current_health = player.max_health;
+        }
+        void RefreshPlayerHealthCache(AccCacheResource& acc, const bool reset_current = false)
+        {
+            RefreshPlayerHealthCache(*acc, reset_current);
+        }
+        void SendCastPlayerHealthSync(const uint16_t& session_id, const uint32_t& max_health, const uint32_t& current_health)
+        {
+            NetEngine::Packets::Ipc::MainToCastPlayerHealthSync sync{ session_id, max_health, current_health };
+            SendCastIpc(PacketIds::Ipc::MainToCastPlayerHealthSync, Utility::ToVector(sync));
+        }
+        void SendCastPlayerHealthSync(AccCacheResource& acc)
+        {
+            SendCastPlayerHealthSync(acc->session_id, acc->max_health, acc->current_health);
+        }
+        void SendCastRoomLifecycleSync(const NetEngine::Packets::Ipc::MainToCastRoomLifecycleAction action,
+            const uint16_t room_id,
+            const uint16_t sid = 0,
+            const uint16_t host_session_id = 0,
+            const bool is_playing = false)
+        {
+            NetEngine::Packets::Ipc::MainToCastRoomLifecycleSync sync
+            {
+                action,
+                room_id,
+                sid,
+                host_session_id,
+                static_cast<uint8_t>(is_playing ? 1 : 0)
+            };
+            SendCastIpc(PacketIds::Ipc::MainToCastRoomLifecycleSync, Utility::ToVector(sync));
+        }
+        void SendCastRoomCreateSync(const uint16_t room_id, const uint16_t host_session_id)
+        {
+            SendCastRoomLifecycleSync(NetEngine::Packets::Ipc::MainToCastRoomLifecycleAction::Create,
+                room_id,
+                host_session_id,
+                host_session_id,
+                false);
+        }
+        void SendCastRoomJoinSync(const uint16_t room_id, const uint16_t sid, const uint16_t host_session_id, const bool is_playing)
+        {
+            SendCastRoomLifecycleSync(NetEngine::Packets::Ipc::MainToCastRoomLifecycleAction::Join,
+                room_id,
+                sid,
+                host_session_id,
+                is_playing);
+        }
+        void SendCastRoomLeaveSync(const uint16_t room_id, const uint16_t sid, const uint16_t host_session_id, const bool is_playing)
+        {
+            SendCastRoomLifecycleSync(NetEngine::Packets::Ipc::MainToCastRoomLifecycleAction::Leave,
+                room_id,
+                sid,
+                host_session_id,
+                is_playing);
+        }
+        void SendCastRoomRemoveSync(const uint16_t room_id)
+        {
+            SendCastRoomLifecycleSync(NetEngine::Packets::Ipc::MainToCastRoomLifecycleAction::Remove,
+                room_id,
+                0,
+                0,
+                false);
+        }
+        void SendCastRoomMatchStateSync(const uint16_t room_id, const uint16_t host_session_id, const bool is_playing)
+        {
+            SendCastRoomLifecycleSync(NetEngine::Packets::Ipc::MainToCastRoomLifecycleAction::MatchState,
+                room_id,
+                0,
+                host_session_id,
+                is_playing);
+        }
         auto IsItemWeapon(const uint32_t& item_id)
         {
             auto item_info = CItemsInfo.get<shared_t>(item_id);
@@ -1729,16 +2032,16 @@ namespace Game
             std::vector<uint32_t> types;
             if (setitem_info->Id)
             {
-                if (setitem_info->Hair) types.push_back(0);
-                if (setitem_info->Face) types.push_back(1);
-                if (setitem_info->Upper) types.push_back(2);
-                if (setitem_info->Under) types.push_back(3);
-                if (setitem_info->Pants) types.push_back(4);
-                if (setitem_info->Arms) types.push_back(5);
-                if (setitem_info->Boots) types.push_back(6);
-                if (setitem_info->AccessoryA) types.push_back(7);
-                if (setitem_info->AccessoryB) types.push_back(8);
-                if (setitem_info->AccessoryC) types.push_back(9);
+                if (DoesSetOccupySlot(setitem_info->Hair)) types.push_back(0);
+                if (DoesSetOccupySlot(setitem_info->Face)) types.push_back(1);
+                if (DoesSetOccupySlot(setitem_info->Upper)) types.push_back(2);
+                if (DoesSetOccupySlot(setitem_info->Under)) types.push_back(3);
+                if (DoesSetOccupySlot(setitem_info->Pants)) types.push_back(4);
+                if (DoesSetOccupySlot(setitem_info->Arms)) types.push_back(5);
+                if (DoesSetOccupySlot(setitem_info->Boots)) types.push_back(6);
+                if (DoesSetOccupySlot(setitem_info->AccessoryA)) types.push_back(7);
+                if (DoesSetOccupySlot(setitem_info->AccessoryB)) types.push_back(8);
+                if (DoesSetOccupySlot(setitem_info->AccessoryC)) types.push_back(9);
             }
             return types;
         }
@@ -1825,7 +2128,7 @@ namespace Game
             auto setinfo = CSetItemsInfo.get<shared_t>(set_item_id);//GetSetItemInfoCache(set_item_id);
             auto fallback = [&](uint32_t direct, uint32_t set_field_value)
                 {
-                    return direct ? direct : setinfo->Id;
+                    return ResolveEquippedCostumeItemId(direct, set_field_value, setinfo->Id);
                 };
 
             const auto hair = item_id_of(0);
@@ -1878,7 +2181,7 @@ namespace Game
             auto setinfo = CSetItemsInfo.get<shared_t>(set_item_id);//GetSetItemInfoCache(set_item_id);
             auto fallback = [&](uint32_t direct, uint32_t set_field_value)
                 {
-                    return direct ? direct : setinfo->Id;
+                    return ResolveEquippedCostumeItemId(direct, set_field_value, setinfo->Id);
                 };
 
             const auto hair = item_id_of(0);
@@ -1997,16 +2300,29 @@ namespace Game
                         serial = p->sel.serial->data;
                     else if (p->sel.item_type.has_value() && p->sel.character_id.has_value())
                     {
-
-                        for (const auto& it : inv) 
+                        for (const auto& it : inv)
                         {
                             auto info = CItemsInfo.get<shared_t>(it.item_info.item_number.item_id);
-                            if (info->Id && info->Type == p->sel.item_type.value() && it.character_id == p->sel.character_id.value())
+                            if (!info->Id || info->Type != p->sel.item_type.value() || it.character_id != p->sel.character_id.value())
+                                continue;
+
+                            if (p->is_equipped.has_value() && it.is_equipped != *p->is_equipped)
                             {
                                 serial = it.item_info.serial_info.data;
                                 break;
                             }
                         }
+
+                        if (!serial.has_value())
+                            for (const auto& it : inv) 
+                            {
+                                auto info = CItemsInfo.get<shared_t>(it.item_info.item_number.item_id);
+                                if (info->Id && info->Type == p->sel.item_type.value() && it.character_id == p->sel.character_id.value())
+                                {
+                                    serial = it.item_info.serial_info.data;
+                                    break;
+                                }
+                            }
                     }
                     if (!serial.has_value()) return std::unexpected(DbUpdateError::ItemNotFound);
                     out.items_patches.push_back(ResolvedItemPatch{serial.value(), *p});
@@ -2246,9 +2562,7 @@ namespace Game
 
             for (const auto& ser : v.items_deleted)  //delete items from inv cache
             {
-                auto it = std::remove_if(inv.begin(), inv.end(), [&](const auto& item){ return item.item_info.serial_info.data == ser.data; });
-                if (it != inv.end()) 
-                    inv.erase(it, inv.end());
+                std::erase_if(inv, [&](const auto& item){ return item.item_info.serial_info.data == ser.data; });
                 r.deleted_serials.push_back(ser.data);
             }
 
@@ -2384,13 +2698,13 @@ namespace Game
                         };
                         if (in.gift_item_id)
                         {
-							CGiftSent.insert(mailbox_info.sender_account_id, mailbox_info.mail_id);
-							CGiftRecv.insert(mailbox_info.receiver_account_id, mailbox_info.mail_id);
+							CGiftSent.emplace_back(mailbox_info.sender_account_id, mailbox_info.mail_id);
+							CGiftRecv.emplace_back(mailbox_info.receiver_account_id, mailbox_info.mail_id);
 						}
 						else
 						{
-							CMailSent.insert(mailbox_info.sender_account_id, mailbox_info.mail_id);
-							CMailRecv.insert(mailbox_info.receiver_account_id, mailbox_info.mail_id);
+							CMailSent.emplace_back(mailbox_info.sender_account_id, mailbox_info.mail_id);
+							CMailRecv.emplace_back(mailbox_info.receiver_account_id, mailbox_info.mail_id);
 						}
 						CMailboxData.insert(mailbox_info.mail_id, MailboxData(mailbox_info));
                         break;
