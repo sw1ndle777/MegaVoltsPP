@@ -22,25 +22,25 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            name: linux-clang19
+            name: linux-clang
             build_type: Release
-            c_compiler: clang-19
-            cpp_compiler: clang++-19
+            c_compiler: clang-20
+            cpp_compiler: clang++-20
             generator: Ninja
             output_tag: linux-clang
             toolchain: clang
 
           - os: ubuntu-latest
-            name: linux-gcc13
+            name: linux-gcc
             build_type: Release
-            c_compiler: gcc-13
-            cpp_compiler: g++-13
+            c_compiler: gcc-15
+            cpp_compiler: g++-15
             generator: Ninja
             output_tag: linux-gcc
             toolchain: gcc
 
           - os: windows-latest
-            name: windows-msvc-vs2026
+            name: windows-msvc
             build_type: Release
             c_compiler: cl
             cpp_compiler: cl
@@ -48,12 +48,30 @@ jobs:
             output_tag: windows-msvc
             toolchain: msvc
 
+          - os: windows-latest
+            name: windows-clangcl
+            build_type: Release
+            c_compiler: clang-cl
+            cpp_compiler: clang-cl
+            generator: Ninja
+            output_tag: windows-clangcl
+            toolchain: clang-cl
+
+          - os: windows-latest
+            name: windows-clang
+            build_type: Release
+            c_compiler: clang
+            cpp_compiler: clang++
+            generator: Ninja
+            output_tag: windows-clang
+            toolchain: clang-win
+
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
 
-    - name: Install Clang 19 toolchain (Ubuntu)
+    - name: Install Clang 20 toolchain (Ubuntu)
       if: runner.os == 'Linux' && matrix.toolchain == 'clang'
       shell: bash
       run: |
@@ -61,19 +79,20 @@ jobs:
         sudo apt-get install -y wget gnupg lsb-release software-properties-common ninja-build ccache
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 19
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
-        clang-19 --version
+        sudo ./llvm.sh 20
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
+        clang-20 --version
         ccache --version
 
-    - name: Install GCC 13 toolchain (Ubuntu)
+    - name: Install GCC 15 toolchain (Ubuntu)
       if: runner.os == 'Linux' && matrix.toolchain == 'gcc'
       shell: bash
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y gcc-13 g++-13 ninja-build ccache clang
-        gcc-13 --version
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        sudo apt-get install -y gcc-15 g++-15 ninja-build ccache clang
+        gcc-15 --version
         ccache --version
 
     - name: Setup MSVC build environment (Windows)
@@ -81,6 +100,20 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
+
+    - name: Install LLVM/Clang 20 (Windows)
+      if: runner.os == 'Windows' && (matrix.toolchain == 'clang-cl' || matrix.toolchain == 'clang-win')
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        choco install llvm --version=20.1.0 -y --no-progress --allow-downgrade --force
+        $clang = Join-Path $env:ProgramFiles 'LLVM\bin\clang-cl.exe'
+        if (-not (Test-Path $clang)) {
+          throw "clang-cl not found at expected path: $clang"
+        }
+        (Split-Path $clang -Parent) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        "WIN_CLANG_CL=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        & $clang --version
 
     - name: Set reusable strings
       id: strings
@@ -125,8 +158,31 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DMVPP_MARCH_NATIVE=OFF
 
-    - name: Configure (Windows)
-      if: runner.os == 'Windows'
+    - name: Configure (Windows - clang-cl)
+      if: runner.os == 'Windows' && matrix.toolchain == 'clang-cl'
+      shell: pwsh
+      run: |
+        cmake -G "${{ matrix.generator }}" `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ steps.strings.outputs.build-output-dir }}" `
+          -DCMAKE_C_COMPILER="$env:WIN_CLANG_CL" `
+          -DCMAKE_CXX_COMPILER="$env:WIN_CLANG_CL" `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Configure (Windows - clang)
+      if: runner.os == 'Windows' && matrix.toolchain == 'clang-win'
+      shell: pwsh
+      run: |
+        $llvmBin = Join-Path $env:ProgramFiles 'LLVM\bin'
+        cmake -G "${{ matrix.generator }}" `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ steps.strings.outputs.build-output-dir }}" `
+          -DCMAKE_C_COMPILER="$llvmBin\clang.exe" `
+          -DCMAKE_CXX_COMPILER="$llvmBin\clang++.exe" `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Configure (Windows - MSVC)
+      if: runner.os == 'Windows' && matrix.toolchain == 'msvc'
       shell: pwsh
       run: |
         cmake -G "${{ matrix.generator }}" `
@@ -171,16 +227,16 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install Clang 19 + clang-tidy
+    - name: Install Clang 20 + clang-tidy
       shell: bash
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y wget gnupg lsb-release software-properties-common ninja-build ccache
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 19
-        sudo apt-get install -y clang-tidy-19
-        sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-19 100
+        sudo ./llvm.sh 20
+        sudo apt-get install -y clang-tidy-20
+        sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-20 100
 
     - name: Ensure vcpkg binary cache directory exists
       shell: bash
@@ -203,8 +259,8 @@ jobs:
       run: >
         cmake -G Ninja -S ${{ github.workspace }}
         -B ${{ github.workspace }}/build
-        -DCMAKE_C_COMPILER=clang-19
-        -DCMAKE_CXX_COMPILER=clang++-19
+        -DCMAKE_C_COMPILER=clang-20
+        -DCMAKE_CXX_COMPILER=clang++-20
         -DCMAKE_BUILD_TYPE=Debug
         -DMVPP_MARCH_NATIVE=OFF
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -214,7 +270,7 @@ jobs:
       run: |
         cd ${{ github.workspace }}
         find src common -name '*.cpp' | head -50 | \
-          xargs -P$(nproc) -I{} clang-tidy-19 -p build {} 2>&1 | tee clang-tidy-output.txt
+          xargs -P$(nproc) -I{} clang-tidy-20 -p build {} 2>&1 | tee clang-tidy-output.txt
         if grep -q 'error:' clang-tidy-output.txt; then
           echo "::warning::clang-tidy found issues"
         fi
@@ -239,4 +295,3 @@ jobs:
         generate_release_notes: true
         files: |
           release-assets/**/*
-
