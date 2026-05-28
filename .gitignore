@@ -42,7 +42,6 @@ CMakeFiles/
 /vcpkg_installed/
 
 # Docker data (volumes, certs, logs)
-/docker-data/crash_dumps
 /docker-data/certs/
 /docker-data/logs/
 
