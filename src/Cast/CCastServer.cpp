@@ -1,6 +1,7 @@
 #include "CCastServer.h"
 #include "BaseLib/Utility.h"
 #include "BaseLib/CDatabase.h"
+#include "NetEngine/CMessage.h"
 
 #include "handlers/Gameplay/Core/Ping.h"
 #include "handlers/Gameplay/Core/Node/Authorize.h"
@@ -87,6 +88,7 @@ namespace Game
     CCache<boost::unordered_flat_set<uint16_t>> g_tp_to_proj_sids;
     CCache<boost::unordered_flat_map<uint16_t, Player>> CAccount;
     CCache<boost::unordered_flat_map<uint16_t, Room>> CRoom;
+    CCache<boost::unordered_flat_map<uint16_t, RoomProjectiles>> CRoomProjectiles;
     CCache<boost::unordered_flat_map<uint16_t, Plaza>> CPlaza;
     CCache<boost::unordered_flat_map<uint64_t, uint16_t>> CAuthKey;
 
@@ -185,79 +187,59 @@ namespace Game
         this->BindPacketHandler<&HostTickUpdate>(this, HOST_SERVER_TICK);
 
     }
-    CCastServer::~CCastServer()
+    CCastServer::~CCastServer() {}
+
+    void CCastServer::StartMovementBatcher(uint32_t hz)
     {
-        if (m_positionFlushTimer)
-            m_positionFlushTimer->cancel();
-    }
-
-    void CCastServer::StartPositionFlushTimer()
-    {
-        if (!IsBatchPositionsEnabled()) return;
-        m_positionFlushTimer = std::make_shared<asio::steady_timer>(GetIoContext());
-        auto tick = [this]() {
-            auto self = m_positionFlushTimer;
-            auto loop = [this, self](auto& loop_ref) -> void {
-                FlushPendingPositions();
-                self->expires_after(std::chrono::milliseconds(100));
-                self->async_wait([this, &loop_ref](const asio::error_code& ec) {
-                    if (!ec) loop_ref(loop_ref);
-                });
-            };
-            loop(loop);
-        };
-        tick();
-    }
-
-    void CCastServer::FlushPendingPositions()
-    {
-        static constexpr size_t header_size = 8;
-        static constexpr size_t max_data = 2047 - header_size - sizeof(uint32_t);
-
-        auto all_rooms = CRoom.get_all(shared_t{});
-        std::vector<uint16_t> ids_with_pending;
-        for (auto& [id, room] : *all_rooms)
-        {
-            if (!room.pending_positions.empty())
-                ids_with_pending.push_back(id);
-        }
-        all_rooms.unlock();
-
-        for (auto room_id : ids_with_pending)
-        {
-            auto room = CRoom.get<unique_t>(room_id);
-            if (!room || room->pending_positions.empty()) continue;
-
-            auto pending = std::move(room->pending_positions);
-            room->pending_positions.clear();
-            auto players = room->players_session_id;
-            auto tick = room->room_tick++;
-            room.unlock();
-
-            size_t index = 0;
-            while (index < pending.size())
+        if (hz == 0) hz = 128;
+        const auto interval = std::chrono::microseconds(1'000'000ull / hz);
+        m_moveBatcher.Start(GetIoContext(), interval,
+            [this](uint16_t room_id, uint32_t tick, const uint8_t* entries, uint16_t len, uint8_t count)
             {
-                std::vector<uint8_t> batch_buf;
-                batch_buf.reserve(max_data);
-                batch_buf.resize(sizeof(uint32_t));
-                std::memcpy(batch_buf.data(), &tick, sizeof(tick));
-
-                uint8_t count = 0;
-                while (index < pending.size())
+                std::vector<uint16_t> ids;
+                if (auto room = CRoom.get<shared_t>(room_id))
                 {
-                    auto& entry = pending[index];
-                    if (batch_buf.size() + entry.size() > max_data) break;
-                    batch_buf.insert(batch_buf.end(), entry.begin(), entry.end());
-                    ++count;
-                    ++index;
+                    ids = room->players_session_id;
+                    room.unlock();
                 }
+                if (ids.empty()) return;
+
+                // payload = [front tick (4)] [concatenated entries], <= 2039B (enforced
+                // by the batcher's split). One shared tick drives all entries' interp.
+                uint8_t payload[MovementBatcher::kMaxPayload];
+                std::memcpy(payload, &tick, sizeof(tick));
+                std::memcpy(payload + sizeof(tick), entries, len);
 
                 CMessage msg;
-                msg.SetCommand(322, 0, 0, count);
-                msg.SetData(batch_buf.data(), static_cast<uint16_t>(batch_buf.size()));
-                Broadcast(players, msg);
-            }
-        }
+                msg.SetCommand(322, 0, 0, count); // order=322, mission=0, extra=0, option=count
+                msg.SetData(payload, static_cast<uint16_t>(sizeof(tick) + len));
+                Broadcast(ids, msg);
+
+                // --- DIAGNOSTIC: flush throughput (remove after verifying). ---
+                // packets/sec  = cmd-322 actually sent per recipient-set
+                // entries/sec  = total movement entries carried (should ~= [MoveRate])
+                // maxEntries   = biggest single batch (== concurrent movers in a room)
+                // A healthy populated room: entries >> packets, [SendQ] stays ~0.
+                {
+                    static std::atomic<uint32_t> s_pkts{ 0 }, s_entries{ 0 }, s_maxCount{ 0 };
+                    static std::atomic<int64_t>  s_lastLogMs{ 0 };
+                    s_pkts.fetch_add(1, std::memory_order_relaxed);
+                    s_entries.fetch_add(count, std::memory_order_relaxed);
+                    for (auto cur = s_maxCount.load(std::memory_order_relaxed);
+                         count > cur && !s_maxCount.compare_exchange_weak(cur, count, std::memory_order_relaxed); ) {}
+                    const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+                    auto last = s_lastLogMs.load(std::memory_order_relaxed);
+                    if (nowMs - last >= 1000 && s_lastLogMs.compare_exchange_strong(last, nowMs))
+                    {
+                        const auto p = s_pkts.exchange(0, std::memory_order_relaxed);
+                        const auto e = s_entries.exchange(0, std::memory_order_relaxed);
+                        const auto m = s_maxCount.exchange(0, std::memory_order_relaxed);
+                        (void)p; (void)e; (void)m;
+                        // TEMP: silenced to isolate combat logs (restore by uncommenting).
+                        //DEBUGLOG(dark_green, "[FlushRate] cmd-322 packets/sec=({}) entries/sec=({}) maxEntries/pkt=({})", p, e, m);
+                    }
+                }
+            });
     }
-   
 }

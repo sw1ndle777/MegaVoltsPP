@@ -296,6 +296,7 @@
     <ClInclude Include="handlers\Core\Ipc.h" />
     <ClInclude Include="handlers\Core\Ipc\CastAuthorize.h" />
     <ClInclude Include="handlers\Core\Ipc\CastCombatStats.h" />
+    <ClInclude Include="handlers\Core\Ipc\CastMatchEvent.h" />
     <ClInclude Include="handlers\Core\Ipc\CastMetrics.h" />
     <ClInclude Include="handlers\Core\Ipc\CastSid.h" />
     <ClInclude Include="handlers\Core\Ipc\FrontDisconnect.h" />
@@ -367,6 +368,7 @@
     <ClInclude Include="handlers\Room\Moderation\HostChange.h" />
     <ClInclude Include="handlers\Room\Moderation\MapRule.h" />
     <ClInclude Include="handlers\Room\Moderation\Modinfo.h" />
+    <ClInclude Include="handlers\Room\Moderation\RoomSettingLog.h" />
     <ClInclude Include="handlers\Room\Moderation\ModinfoFull.h" />
     <ClInclude Include="handlers\Room\Moderation\ModinfoPassword.h" />
     <ClInclude Include="handlers\Room\Moderation\ModinfoTitle.h" />

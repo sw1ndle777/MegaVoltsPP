@@ -96,12 +96,7 @@ namespace Game::Handlers
 
     [[nodiscard]] inline bool IsRoundBasedAdrMode(const NetEngine::Room::Mode::Index mode)
     {
-        using enum NetEngine::Room::Mode::Index;
-        return mode == Elimination ||
-            mode == BombBattle ||
-            mode == ZombieMode ||
-			mode == CLAN_BombBattle ||
-            mode == CLAN_Elimination;
+        return CMainServer::IsRoundBasedMode(mode);
     }
 
     [[nodiscard]] inline uint32_t ComputeAdrFromRawDamage(const uint64_t damage_raw, const uint32_t divisor)
@@ -713,7 +708,13 @@ namespace Game::Handlers
             {ctx.best_zombie.sid, 25},
             {ctx.best_arms.sid, 25},
         };
-        
+
+        // Per-match session spans, flushed at the end (completers below + leavers stashed on the room).
+        std::vector<PlayerMatchSessionAdd> match_session_adds;
+        const std::string match_uid_for_sessions = BuildMatchUniqueId(
+            room->room_id, room->host_session_id, room->start_time, match_end_time_ms,
+            room->ModeIndex, room->MapIndex, req->red_score, req->blue_score);
+
         // calculate rewards and queue db updates
         for (const auto& id : playing_players)
         {
@@ -721,9 +722,10 @@ namespace Game::Handlers
             if (ctx.cli.find(id) == ctx.cli.end()) continue;
             auto acc = CAccount.get<unique_t>(id);
             if (!acc->acc_info.Index) { acc.unlock(); continue; }
-            DEBUGLOG(dark_cyan, "found acc cache for player sid=({})", id);
+            const auto nick = acc->acc_info.Nickname; // local copy for logging
+            DEBUGLOG(dark_cyan, "found acc cache for player user=({}) sid=({})", nick.c_str(), id);
             if (!ctx.same_room(acc)) { acc.unlock(); continue; }
-            DEBUGLOG(dark_cyan, "player sid=({}) is in same room", id);
+            DEBUGLOG(dark_cyan, "player user=({}) sid=({}) is in same room", nick.c_str(), id);
             auto my_uid = NetEngine::Packets::Core::UniqueId(id, 1).data;
             auto& info = ctx.cli[id];
             auto play_time = end_time - acc->match_loaded_time;
@@ -752,6 +754,8 @@ namespace Game::Handlers
                 req->blue_score);
             track.match_start_time = room->start_time;
             track.match_end_time = match_end_time_ms;
+            // Session span for a player who finished the match.
+            match_session_adds.push_back({ match_uid_for_sessions, track.aid, static_cast<uint8_t>(acc->team_id), static_cast<uint64_t>(acc->match_loaded_time) * 1000ull, match_end_time_ms, std::string("Finished") });
             track.match_start_utc = FormatUnixMillisUtc(track.match_start_time);
             track.match_end_utc = FormatUnixMillisUtc(track.match_end_time);
             track.win_rule = room->score_rule;
@@ -821,6 +825,14 @@ namespace Game::Handlers
 
                 auto equipped_item_info = CItemsInfo.get<shared_t>(equipped_item.item_info.item_number.item_id);
                 if (!equipped_item_info->Id)
+                    continue;
+
+                // Items whose CDB base Durability is 0 have no durability mechanic (costumes /
+                // permanent items). They naturally sit at repair 0, so the current_repair==0 branch
+                // below would unequip them on every match end (and persist it) — making them show up
+                // unequipped on next login. Skip them entirely; only items configured WITH a base
+                // durability are subject to the match-end repair penalty.
+                if (!equipped_item_info->Durability)
                     continue;
 
                 const auto equipped_item_type = static_cast<uint32_t>(equipped_item_info->Type);
@@ -923,7 +935,12 @@ namespace Game::Handlers
                         .deaths = acc->acc_info.Deaths + pvp->deaths,
                         .assists = acc->acc_info.Assists + pvp->assists,
                         .headshots = acc->acc_info.Headshots + pvp->headshots,
-                        .highest_kill_streak = std::max<uint32_t>(acc->acc_info.HighestKillStreak, static_cast<uint32_t>(pvp->killstreak)),
+                        // Prefer the server-authoritative streak (tracked from combat hits)
+                        // over the client-reported pvp->killstreak, which can be tampered/stale.
+                        .highest_kill_streak = std::max<uint32_t>(acc->acc_info.HighestKillStreak,
+                            packet_stats_it != room->match_combat_stats.end()
+                                ? packet_stats_it->second.highest_kill_streak
+                                : static_cast<uint32_t>(pvp->killstreak)),
                         .melee_kills = acc->acc_info.MeleeKills + pvp->melee_kills,
                         .rifle_kills = acc->acc_info.RifleKills + pvp->rifle_kills,
                         .shotgun_kills = acc->acc_info.ShotgunKills + pvp->shotgun_kills,
@@ -964,6 +981,123 @@ namespace Game::Handlers
                         dctx.ops.emplace_back(AccountInfoPatch{ .clan_loses = acc->acc_info.ClanLoses + 1 });
                 }
                 dctx.ops.emplace_back(AccountInfoPatch{ .play_time = acc->acc_info.PlayTime + play_time });
+
+#if 0 // TEMP DISABLED (playtime + battlepass match-end processing) — re-enable later
+                // Daily play-time reward: accumulate this match's seconds into the
+                // player's daily total (reset at 00:00 UTC), and grant the 30/60/90-min
+                // threshold rewards (system_playtime_rewards Min30/Min60/Min90, keyed by
+                // current Year+Month; 0 / no row = no reward). Survives restarts (DB-backed).
+                {
+                    const auto now_ts = Utility::GetUtcTimeNow64();
+                    BaseLib::PlayerPlaytime pt{};
+                    bool have = BaseLib::Database->GetPlayerPlaytime(acc->acc_info.Index, &pt);
+                    bool same_day = false;
+                    if (have)
+                    {
+                        auto prev = Utility::ConvertUtcTimestampToDate(pt.last_time_update);
+                        auto cur = Utility::ConvertUtcTimestampToDate(now_ts);
+                        same_day = prev.tm_year == cur.tm_year && prev.tm_mon == cur.tm_mon && prev.tm_mday == cur.tm_mday;
+                    }
+                    const uint32_t prev_seconds = same_day ? pt.daily_seconds : 0u;
+                    const uint8_t  prev_stage   = same_day ? pt.claimed_stage : uint8_t{ 0 };
+                    const uint32_t daily_seconds = prev_seconds + static_cast<uint32_t>(play_time);
+                    const uint8_t reached_stage = daily_seconds >= 5400u ? 3 : daily_seconds >= 3600u ? 2 : daily_seconds >= 1800u ? 1 : 0;
+                    // Grant items (via the same dctx pipeline as monthly/weekly: craft -> dctx ->
+                    // ValidateDatabaseUpdates -> UpdateAccounts -> ApplyDatabaseUpdates, which adds
+                    // to inventory AND writes the item log). Only advance claimed_stage for stages
+                    // actually delivered (or with no reward configured) so a full inventory retries.
+                    uint8_t claimed = prev_stage;
+                    BaseLib::SystemPlaytimeRewards sysrw{};
+                    const bool have_cfg = BaseLib::Database->GetSystemPlaytimeRewards(Utility::GetCurrentYear(), Utility::GetCurrentMonth(), &sysrw);
+                    if (reached_stage > prev_stage)
+                    {
+                        for (uint8_t s = prev_stage; s < reached_stage; ++s)
+                        {
+                            const uint32_t item = have_cfg ? sysrw.rewards[s] : 0u;
+                            if (item == 0u) { claimed = s + 1; continue; } // no reward configured -> stage passes, nothing granted
+                            if (auto crafted = ctx.main->CraftInventoryItems(acc, { item }, Items::Origin::From_Event); crafted.has_value())
+                            {
+                                dctx.ops.push_back(crafted.value());
+                                claimed = s + 1;
+                            }
+                            else
+                            {
+                                break; // inventory full / craft failed -> retry this stage at next match end
+                            }
+                        }
+                    }
+                    dctx.ops.emplace_back(PlayerPlaytimePatch{ .daily_seconds = daily_seconds, .claimed_stage = claimed, .last_time_update = now_ts });
+
+                    // Push the updated play-time state to the client so the dialog
+                    // reflects the new stage after the match (no relogin needed).
+                    auto playtime_ack = MainPlaytimeAck(claimed, daily_seconds, sysrw.rewards).Serialize();
+                    ctx.packets.enqueue(id, NetEngine::Protocols::SCommandHeader(181, 0, 0, 0),
+                        playtime_ack.data(), static_cast<uint32_t>(playtime_ack.size()), PriorityLevel::High);
+                }
+
+                // Battle Pass (MICROPASS): advance the active mission from this match's
+                // stats (criteria 0=kills,1=exp,2=wins,3=matches). On completion award the
+                // mission XP, roll level-ups against the per-level XP curve, and assign a
+                // new mission. DB-backed; the client refreshes via order 182 next open/login.
+                {
+                    BaseLib::SystemBattlePassSeason bp_season{};
+                    if (BaseLib::Database->GetActiveBattlePassSeason(&bp_season))
+                    {
+                        BaseLib::PlayerBattlePass bp{};
+                        if (BaseLib::Database->GetPlayerBattlePass(acc->acc_info.Index, &bp)
+                            && bp.season == bp_season.season && bp.current_mission_id != 0)
+                        {
+                            std::vector<BaseLib::SystemBattlePassMission> bp_missions;
+                            BaseLib::Database->GetSystemBattlePassMissions(&bp_missions);
+                            const BaseLib::SystemBattlePassMission* cur = nullptr;
+                            for (const auto& m : bp_missions) if (m.mission_id == bp.current_mission_id) { cur = &m; break; }
+                            if (cur)
+                            {
+                                const uint32_t kills = pvp ? pvp->total_kills : 0u;
+                                uint32_t add = 0u;
+                                switch (cur->criteria_type)
+                                {
+                                    case 0: add = kills; break;
+                                    case 1: add = static_cast<uint32_t>(exp_reward); break;
+                                    case 2: add = won ? 1u : 0u; break;
+                                    case 3: add = 1u; break;
+                                    default: break;
+                                }
+                                uint32_t progress = bp.mission_progress + add;
+                                uint32_t level = bp.level, xp = bp.xp, mission_id = bp.current_mission_id;
+                                if (cur->criteria_target != 0 && progress >= cur->criteria_target)
+                                {
+                                    xp += cur->xp_reward;
+                                    std::vector<BaseLib::SystemBattlePassLevel> bp_levels;
+                                    BaseLib::Database->GetSystemBattlePassLevels(bp_season.season, &bp_levels);
+                                    auto xpReqFor = [&](uint32_t lv) -> uint32_t {
+                                        for (const auto& l : bp_levels) if (l.level == lv) return l.xp_required;
+                                        return 0u;
+                                    };
+                                    while (level < 100)
+                                    {
+                                        uint32_t req = xpReqFor(level);
+                                        if (req == 0u || xp < req) break;
+                                        xp -= req; ++level;
+                                    }
+                                    if (level >= 100) { level = 100; xp = 0u; }
+                                    // roll a different mission
+                                    std::vector<uint32_t> cand;
+                                    for (const auto& m : bp_missions) if (m.mission_id != bp.current_mission_id) cand.push_back(m.mission_id);
+                                    mission_id = cand.empty() ? bp.current_mission_id : cand[static_cast<size_t>(std::rand()) % cand.size()];
+                                    progress = 0u;
+                                }
+                                BaseLib::PlayerBattlePassPatch bp_patch{};
+                                bp_patch.level = level;
+                                bp_patch.xp = xp;
+                                bp_patch.mission_progress = progress;
+                                bp_patch.current_mission_id = mission_id;
+                                dctx.ops.push_back(bp_patch);
+                            }
+                        }
+                    }
+                }
+#endif // TEMP DISABLED (playtime + battlepass match-end processing)
             }
 
             std::visit([&](const auto& msg)
@@ -1149,6 +1283,9 @@ namespace Game::Handlers
                 .ArmsRaceScore = static_cast<uint32_t>(std::max(0, player_derived.arms_pts)),
                 .ZombieScore = static_cast<uint32_t>(std::max(0, player_derived.zombie)),
                 .ADR = track.adr,
+                .IsParty = acc->in_party,
+                .Restriction = static_cast<uint32_t>(room->Restriction),
+                .MaxPlayers = room->max_players,
             });
 
             ctx.dctxs.push_back(std::move(dctx));
@@ -1165,6 +1302,67 @@ namespace Game::Handlers
         room->team_rounds_started = 0;
         ctx.main->SendCastRoomMatchStateSync(room->room_id, room->host_session_id, false);
         room->match_combat_stats.clear();
+
+        // Flush per-match session spans: completers (gathered in the loop) + mid-match
+        // leavers (stashed on the room during Match/Leave). One async batch insert.
+        for (const auto& ls : room->left_sessions)
+            match_session_adds.push_back({ match_uid_for_sessions, ls.aid, ls.team_id, ls.joined_ms, ls.left_ms,
+                std::string(ls.reason == 2 ? "Kicked" : ls.reason == 3 ? "Disconnect" : "Leave") });
+        room->left_sessions.clear();
+        if (!match_session_adds.empty())
+        {
+            [[maybe_unused]] auto ig_sessions = BaseLib::DbPool->submit_task(
+                [adds = std::move(match_session_adds)]() mutable { BaseLib::Database->PersistPlayerMatchSessionsAdds(adds); });
+        }
+
+        // Flush the per-hit combat log buffered during the match: stamp the match
+        // unique id and async batch-insert (accuracy + kill/death timeline source).
+        std::vector<PlayerMatchCombatAdd> match_combat_adds;
+        match_combat_adds.reserve(room->combat_events.size());
+        for (const auto& ce : room->combat_events)
+            match_combat_adds.push_back(PlayerMatchCombatAdd{ match_uid_for_sessions, ce.attacker_aid, ce.victim_aid,
+                ce.weapon, ce.bodypart, ce.hit_variant, ce.damage, ce.victim_hp_after, ce.is_kill, ce.event_ms });
+        room->combat_events.clear();
+        if (!match_combat_adds.empty())
+        {
+            [[maybe_unused]] auto ig_combat = BaseLib::DbPool->submit_task(
+                [adds = std::move(match_combat_adds)]() mutable { BaseLib::Database->PersistPlayerMatchCombatAdds(adds); });
+        }
+
+        // Flush the non-combat timeline events (respawn / bomb / pickup) buffered
+        // during the match: stamp the match unique id and async batch-insert.
+        std::vector<PlayerMatchEventAdd> match_event_adds;
+        match_event_adds.reserve(room->match_events.size());
+        for (const auto& me : room->match_events)
+            match_event_adds.push_back(PlayerMatchEventAdd{ match_uid_for_sessions, me.aid, me.event_type,
+                me.sub_a, me.sub_b, me.value, me.event_ms });
+        room->match_events.clear();
+        if (!match_event_adds.empty())
+        {
+            [[maybe_unused]] auto ig_events = BaseLib::DbPool->submit_task(
+                [adds = std::move(match_event_adds)]() mutable { BaseLib::Database->PersistPlayerMatchEventAdds(adds); });
+        }
+
+        // Observers aren't in the host's scoreboard (ctx.cli is built from the end-match client
+        // infos), so the raw end-match packet broadcast in the parse loop above never reaches
+        // them and they stay stuck in the spectator scene. Resend that raw packet to every
+        // observer and reset their match state, mirroring the reference handleMatchEnding which
+        // does broadcastToRoomExceptSelf(response) over the whole room (observers included) plus
+        // Room::endMatch. (The 256,0,33,0 sent to all_players below is not enough on its own to
+        // pull an observer out of the match scene.)
+        for (const auto& obs_id : ctx.main->GetRoomSortedObserversSessionIds(room))
+        {
+            auto obs_acc = CAccount.get<unique_t>(obs_id);
+            if (!obs_acc || !obs_acc->acc_info.Index || !obs_acc->in_room || obs_acc->room_id != room->room_id)
+            {
+                if (obs_acc) obs_acc.unlock();
+                continue;
+            }
+            obs_acc->playing = false;
+            obs_acc->state = PlayerInfo::State::Waiting;
+            obs_acc.unlock();
+            ctx.packets.enqueue(obs_id, NetEngine::Protocols::SCommandHeader(ctx.order, 0, 0, ctx.option), ctx.data, ctx.dataSize, PriorityLevel::High);
+        }
 
         if (is_bossbattle)
         {

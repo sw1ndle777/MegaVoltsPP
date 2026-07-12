@@ -17,19 +17,29 @@ namespace Game::Handlers
 		auto serverTick = message->GetData<uint64_t>();
         if (sid == hostSid) return;
 
-        auto user = CAccount.get<shared_t>(sid);
         auto host = CAccount.get<shared_t>(hostSid);
-        auto room = CRoom.get<shared_t>(host->room_id);
+        if (!host) return;
+        auto room_id = host->room_id;
+        auto host_name = host->nickname;
+        auto host_sid_cached = host->session_id;
+        host.unlock();
 
-        if (!host || !user || !room) return;
-        if (host->session_id != room->host_session_id)
+        auto user = CAccount.get<shared_t>(sid);
+        if (!user) return;
+        auto user_name = user->nickname;
+        user.unlock();
+
+        auto room = CRoom.get<shared_t>(room_id);
+        if (!room) return;
+        if (host_sid_cached != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
-            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host->nickname, hostSid, room->room_id);
+            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host_name, hostSid, room_id);
             return;
         }
+        room.unlock();
 
-        PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) serverTick=({})", host->room_id, user->nickname, sid, host->nickname, hostSid, serverTick);
+        PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) serverTick=({})", room_id, user_name, sid, host_name, hostSid, serverTick);
         server->Forward(sid, hostSid, *message);
     }
 }

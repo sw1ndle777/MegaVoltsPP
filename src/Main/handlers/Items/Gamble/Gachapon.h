@@ -81,7 +81,7 @@ namespace Game::Handlers
         if (g_gacha_pity_enabled)
         {
             auto pit = std::find_if(acc_cache->gacha_pity.begin(), acc_cache->gacha_pity.end(),
-                [&](const GachaPityEntry& e) { return e.gacha_id == gacha_id; });
+                [&](const GachaPityEntry& e) { return e.gacha_type == gacha_type; });
             fake_lucky_points = (pit != acc_cache->gacha_pity.end()) ? pit->lucky_points : 0;
         }
         else
@@ -221,7 +221,7 @@ namespace Game::Handlers
 
         const bool any_lucky = std::any_of(rolls.begin(), rolls.end(), [](const auto& r) { return !r.empty() && r[0].LuckyType > Items::Gachapon::LuckyType::NoLucky; });
         if (g_gacha_pity_enabled)
-            dctx.ops.emplace_back(GachaPityPatch{ .gacha_id = gacha_id, .lucky_points = fake_lucky_points });
+            dctx.ops.emplace_back(GachaPityPatch{ .gacha_type = gacha_type, .lucky_points = fake_lucky_points });
         else
             dctx.ops.emplace_back(AccountInfoPatch{ .lucky_points = fake_lucky_points });
         
@@ -356,7 +356,7 @@ namespace Game::Handlers
             {
                 uint32_t pity_points = 0;
                 auto pit = std::find_if(new_acc_cache->gacha_pity.begin(), new_acc_cache->gacha_pity.end(),
-                    [&](const GachaPityEntry& e) { return e.gacha_id == gacha_id; });
+                    [&](const GachaPityEntry& e) { return e.gacha_type == gacha_type; });
                 if (pit != new_acc_cache->gacha_pity.end())
                     pity_points = pit->lucky_points;
                 session->SendMsg(ITEM_GACHA_PITY, 0, 0, 0, reinterpret_cast<uint8_t*>(&pity_points), sizeof(pity_points));

@@ -13,6 +13,9 @@ namespace Game::Handlers
         uint32_t current_health;
         char nickname[16];
         char hwid[65];
+        uint16_t room_id;
+        uint8_t is_playing;
+        uint8_t _pad{};
     };
     inline void IpcMainAuthorize(const std::vector<uint8_t>& payload, CCastServer* server, int retries = 0)
     {
@@ -32,18 +35,12 @@ namespace Game::Handlers
         new_player.current_kill_streak = 0;
         new_player.highest_kill_streak = 0;
 
-        auto rooms = CRoom.get_all(shared);
-        for (const auto& [room_id, room] : *rooms)
+        if (auth_data.room_id && CRoom.contains(auth_data.room_id))
         {
-            if (!std::ranges::contains(room.players_session_id, new_player.session_id))
-                continue;
-
-            new_player.room_id = room.room_id;
+            new_player.room_id = auth_data.room_id;
             new_player.in_room = true;
-            new_player.state_id = room.is_playing ? PlayerInfo::State::Normal : PlayerInfo::State::WaitingRoom;
-            break;
+            new_player.state_id = auth_data.is_playing ? PlayerInfo::State::Normal : PlayerInfo::State::WaitingRoom;
         }
-        rooms.unlock();
 
         if (server->AdoptSid(auth_data.old_uid.session, auth_data.uid.session))
         {

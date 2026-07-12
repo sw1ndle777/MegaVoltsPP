@@ -121,6 +121,7 @@ namespace Game::Handlers
                     room_players = room->players_session_id;
                 room.unlock();
                 CRoom.erase(sync.room_id);
+                CRoomProjectiles.erase(sync.room_id);
                 CRoomId.erase_value(sync.room_id);
             }
 
@@ -141,6 +142,10 @@ namespace Game::Handlers
 
             room->host_session_id = sync.host_sid;
             room->is_playing = is_playing;
+            // Fresh match: drop the kit map. The host's dropId counter restarts each match
+            // (e.g. 0x10000 again), so stale entries would mis-resolve a new match's pickups.
+            if (is_playing)
+                room->kit_item_by_drop.clear();
             const auto room_players = room->players_session_id;
             room.unlock();
 

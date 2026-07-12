@@ -16,6 +16,13 @@ namespace BaseLib
     {
     public:
 
+        struct HeartbeatSettings
+        {
+            // BetterStack heartbeat URL (HTTPS). Empty = feature disabled.
+            std::string url;
+            // How often (seconds) to ping the URL while the server is alive.
+            uint32_t interval_sec = 30;
+        };
         struct HostSettings
         {
             std::string host;
@@ -28,7 +35,10 @@ namespace BaseLib
             bool debug;
             bool watchguard;
             bool gacha_pity_enabled;
-            bool batch_positions;
+            bool move_batch;
+            uint32_t move_batch_hz;
+            // Per-server heartbeat; empty url falls back to the global one below.
+            HeartbeatSettings heartbeat;
         };
         struct DatabaseSettings
         {
@@ -52,6 +62,7 @@ namespace BaseLib
             HostSettings cast;
             DatabaseSettings database;
             WebsiteSettings website;
+            HeartbeatSettings heartbeat;
         };
 
 

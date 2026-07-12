@@ -147,8 +147,10 @@ namespace Game::Handlers
 				std::vector<GachaPityEntry> gacha_pity;
 				BaseLib::SystemMonthlyRewards systemMonthlyRewards;
 				BaseLib::PlayerMonthlyReward playerMonthlyReward{};
+				BaseLib::SystemWeeklyRewards systemWeeklyRewards;
+				BaseLib::PlayerWeeklyReward playerWeeklyReward{};
 				auto daily_mission_ids_random = main_server->GetRandomDailyMissionIds(3, 0, 0, 0);
-				if (!BaseLib::Database->GetMainFrontAccount(auth_key, server_id, &accInfo, &clanInfo, &playerDailyMissionData, acc_items, acc_socials, acc_blockeds, acc_friends, mailbox_list, daily_mission_ids_random, gacha_pity, &systemMonthlyRewards, &playerMonthlyReward))
+				if (!BaseLib::Database->GetMainFrontAccount(auth_key, server_id, &accInfo, &clanInfo, &playerDailyMissionData, acc_items, acc_socials, acc_blockeds, acc_friends, mailbox_list, daily_mission_ids_random, gacha_pity, &systemMonthlyRewards, &playerMonthlyReward, &systemWeeklyRewards, &playerWeeklyReward))
                 {
                     DEBUGLOG(dark_cyan,
                         "sid=({}) with auth key: ({}) doesn't exist in database",
@@ -166,6 +168,8 @@ namespace Game::Handlers
 				newPlayer.gacha_pity = std::move(gacha_pity);
 				newPlayer.uid = NetEngine::Packets::Core::UniqueId(sid, server_id);
 				newPlayer.hwid = hwid_hex;
+				if (accInfo.Grade >= Userlist::User::Grade::Tester)
+					newPlayer.is_invisible = BaseLib::Database->GetPlayerMiscInvisible(accInfo.Index);
 				main_server->RefreshPlayerHealthCache(newPlayer, true);
 				main_server->TransformItems(acc_items, player_inventory_items);//check here
 				main_server->TransformEquippedItems(acc_items, player_equipped_items);
@@ -301,6 +305,7 @@ namespace Game::Handlers
                         friends_pending.push_back({ target_uid.data , socials.targetAid, socials.TargetNickname.c_str() });
                     }
                     if (socials.State != Accepted) continue;
+                    if (newPlayer.is_invisible) continue;
                     if (auto pss = main_server->GetSessionById(target_sid))
                     {
                         DEBUGLOG(dark_cyan, "for session id {} ({}) should notify friend ({})", session->GetSessionId(), accInfoMsg.Nickname, socials.TargetNickname);
@@ -353,7 +358,8 @@ namespace Game::Handlers
                 dailyMissions.push_back(guide_daily_mission(playerDailyMissionData.mission2, playerDailyMissionData.goal_mission2, 4));
                 dailyMissions.push_back(guide_daily_mission(playerDailyMissionData.mission3, playerDailyMissionData.goal_mission3, 4));
 
-                session->SendMsg(167, 0, 1, dailyMissions.size(), reinterpret_cast<uint8_t*>(dailyMissions.data()), sizeof(guide_daily_mission) * dailyMissions.size());
+                // TEMP DISABLED (daily missions, order 167): session->SendMsg(167, 0, 1, dailyMissions.size(), reinterpret_cast<uint8_t*>(dailyMissions.data()), sizeof(guide_daily_mission) * dailyMissions.size());
+                (void)dailyMissions;
                 session->SendMsg(413, 0, 59, 0, reinterpret_cast<uint8_t*>(&accInfo.VoiceType), sizeof(accInfo.VoiceType)); // final account info
                 DEBUGLOG(dark_cyan, "server_time ({})", server_time);
 
@@ -416,12 +422,106 @@ namespace Game::Handlers
                     }
                     else
                     {
+                        // Already received today: still send the data (flag=2, non-zero) so the
+                        // native monthly handler populates the calendar — it ignores flag=0.
                         auto monthly_reward_ack = MainMonthlyRewardAck(current_month, playerMonthlyReward.day_count, systemMonthlyRewards.rewards).Serialize();
-                        session->SendMsg(172, 0, 28, 0, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
+                        session->SendMsg(172, 0, 28, 2, reinterpret_cast<uint8_t*>(monthly_reward_ack.data()), monthly_reward_ack.size());
                     }
                 }
                 else
                     DEBUGLOG(dark_cyan, "sid=({}) no monthly rewards info for month ({})", session->GetSessionId(), current_month);
+
+#if 0 // TEMP DISABLED (weekly + playtime login data) — re-enable later
+                // Weekly rewards (mirrors monthly: ISO week keyed, day_count caps at 7)
+                auto current_week = Utility::GetCurrentWeek();
+                if (systemWeeklyRewards.week == current_week)
+                {
+                    auto is_inventory_full = player_inventory_items.size() >= accInfo.MaximumItems;
+                    auto is_gift_box_full = unopened_gifts >= 100;
+                    auto last_sign_in = playerWeeklyReward.last_time_update;
+                    auto last_sign_in_date = Utility::ConvertUtcTimestampToDate(last_sign_in);
+                    auto current_date = Utility::ConvertUtcTimestampToDate(Utility::GetUtcTimeNow64());
+                    bool already_signed_in = (last_sign_in_date.tm_year == current_date.tm_year &&
+                        last_sign_in_date.tm_mon == current_date.tm_mon &&
+                        last_sign_in_date.tm_mday == current_date.tm_mday);
+
+                    if (!already_signed_in && playerWeeklyReward.day_count < 7 && (!is_gift_box_full || !is_inventory_full))
+                    {
+                        playerWeeklyReward.day_count++;
+                        auto current_signin = static_cast<uint32_t>(playerWeeklyReward.day_count - 1);
+                        auto current_day_reward = systemWeeklyRewards.rewards[current_signin];
+
+                        auto reward_acc_cache = CAccount.get<unique_t>(sid);
+                        if (reward_acc_cache->acc_info.Index)
+                        {
+                            DatabaseUpdateCtx dctx{ .sid = sid, .aid = reward_acc_cache->acc_info.Index };
+                            auto crafted_item = main_server->CraftInventoryItems(reward_acc_cache, { current_day_reward }, NetEngine::Items::Origin::From_Event);
+                            if (crafted_item.has_value())
+                            {
+                                dctx.ops.push_back(crafted_item.value());
+                            }
+                            dctx.ops.emplace_back(PlayerWeeklyRewardPatch{ .day_count = playerWeeklyReward.day_count, .last_time_update = Utility::GetUtcTimeNow64() });
+
+                            auto validated = main_server->ValidateDatabaseUpdates(reward_acc_cache, dctx, true);
+                            if (validated.has_value())
+                            {
+                                reward_acc_cache.unlock();
+                                ResultDbUpdateInfo dbres;
+                                if (BaseLib::Database->UpdateAccount(validated.value(), dbres).has_value())
+                                {
+                                    auto new_acc_cache = CAccount.get<unique_t>(sid);
+                                    auto applied = main_server->ApplyDatabaseUpdates(new_acc_cache, validated.value());
+                                    if (!applied.has_value())
+                                    {
+                                        DEBUGLOG(red, "ApplyDatabaseUpdates failed for weekly reward [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                DEBUGLOG(red, "ValidateDatabaseUpdates failed for weekly reward [{}]: {}", reward_acc_cache->acc_info.Index, static_cast<int>(validated.error()));
+                                reward_acc_cache.unlock();
+                            }
+                        }
+                        else
+                            reward_acc_cache.unlock();
+
+                        auto weekly_reward_ack = MainWeeklyRewardAck(current_week, playerWeeklyReward.day_count, systemWeeklyRewards.rewards).Serialize();
+                        session->SendMsg(179, 0, 28, 1, reinterpret_cast<uint8_t*>(weekly_reward_ack.data()), weekly_reward_ack.size());
+                    }
+                    else
+                    {
+                        auto weekly_reward_ack = MainWeeklyRewardAck(current_week, playerWeeklyReward.day_count, systemWeeklyRewards.rewards).Serialize();
+                        session->SendMsg(179, 0, 28, 0, reinterpret_cast<uint8_t*>(weekly_reward_ack.data()), weekly_reward_ack.size());
+                    }
+                }
+                else
+                    DEBUGLOG(dark_cyan, "sid=({}) no weekly rewards info for week ({})", session->GetSessionId(), current_week);
+
+                // Play time reward state on login: current daily stage (reset at 00:00 UTC).
+                {
+                    BaseLib::PlayerPlaytime ppt{};
+                    uint32_t daily_seconds = 0;
+                    uint8_t stage = 0;
+                    if (BaseLib::Database->GetPlayerPlaytime(accInfo.Index, &ppt))
+                    {
+                        auto prev = Utility::ConvertUtcTimestampToDate(ppt.last_time_update);
+                        auto cur = Utility::ConvertUtcTimestampToDate(Utility::GetUtcTimeNow64());
+                        if (prev.tm_year == cur.tm_year && prev.tm_mon == cur.tm_mon && prev.tm_mday == cur.tm_mday)
+                        {
+                            daily_seconds = ppt.daily_seconds;
+                            stage = ppt.claimed_stage;
+                        }
+                    }
+                    BaseLib::SystemPlaytimeRewards psr{};
+                    BaseLib::Database->GetSystemPlaytimeRewards(Utility::GetCurrentYear(), Utility::GetCurrentMonth(), &psr);
+                    auto playtime_ack = MainPlaytimeAck(stage, daily_seconds, psr.rewards).Serialize();
+                    session->SendMsg(181, 0, 0, 0, reinterpret_cast<uint8_t*>(playtime_ack.data()), playtime_ack.size());
+                }
+#endif // TEMP DISABLED (weekly + playtime login data)
+
+                // Battle Pass (MICROPASS) snapshot on login (order 182). No-op if no active season.
+                // TEMP DISABLED (battlepass, order 182): SendBattlePassOnLogin(session, static_cast<uint32_t>(accInfo.Index));
 
                 // Start heartbeat challenge/response cycle
                 Game::Anticheat::g_heartbeatManager.startSession(

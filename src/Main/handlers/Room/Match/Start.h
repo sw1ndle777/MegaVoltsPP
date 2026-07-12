@@ -15,6 +15,8 @@ namespace Game::Handlers
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
         auto acc_index = acc_cache->acc_info.Index;
+        auto acc_server_id = acc_cache->server_id;
+        auto acc_team_id = acc_cache->team_id;
         auto match_result = static_cast<NetEngine::Room::Match::Result>(message->GetExtra());
         auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
 
@@ -73,9 +75,23 @@ namespace Game::Handlers
             {
                 thread_local Utility::SecureRandomBlake2b::Generator rng;
                 room_cache->match_instance_id = rng.GenerateAuthKey();
+
+                // Room log: match started (one event per match, by the host).
+                RoomLogEntry mlog;
+                mlog.aid = acc_index;
+                mlog.event_type = RoomLog::EventType::MatchStarted;
+                mlog.server_id = acc_server_id;
+                mlog.room_id = room_cache->room_id;
+                mlog.host_aid = acc_index;
+                [[maybe_unused]] auto ig = BaseLib::DbPool->submit_task([mlog]() mutable { BaseLib::Database->PersistRoomLogs({ mlog }); });
             }
             room_cache->team_rounds_started = 0;
             room_cache->match_combat_stats.clear();
+            room_cache->left_sessions.clear(); // fresh match: drop any stale leaver stash
+            room_cache->combat_events.clear(); // fresh match: drop any stale combat-hit stash
+            room_cache->match_events.clear();  // fresh match: drop any stale timeline-event stash
+            room_cache->combat_open = true;    // fresh match: combat is live
+            room_cache->round_seq = 0;         // fresh match: round numbering restarts at 1
             //acc_cache->playing = true;
             DEBUGLOG(dark_cyan, "player normal started match and will broadcast to: ({}) players", players_ids.size());
             for (const auto& room_player_session_id : players_ids)
@@ -86,6 +102,16 @@ namespace Game::Handlers
         case NetEngine::Room::Match::Result::Loaded:
         {
             //acc_cache.unlock();
+            // Room log: this player loaded/entered the match (one per loaded packet).
+            {
+                RoomLogEntry mlog;
+                mlog.aid = acc_index;
+                mlog.event_type = RoomLog::EventType::MatchEntered;
+                mlog.server_id = acc_server_id;
+                mlog.room_id = room_cache->room_id;
+                mlog.team_id = static_cast<uint8_t>(acc_team_id);
+                [[maybe_unused]] auto ig = BaseLib::DbPool->submit_task([mlog]() mutable { BaseLib::Database->PersistRoomLogs({ mlog }); });
+            }
             if (is_host)
             {
 
@@ -105,6 +131,9 @@ namespace Game::Handlers
                         player_acc_cache->state = PlayerInfo::State::Normal;
                         player_acc_cache->playing = true;
                         player_acc_cache->match_loaded_time = Utility::GetUtcTimeNowInSeconds();
+                        // Match (round 1) start: everyone begins alive at full health on both servers.
+                        main_server->RefreshPlayerHealthCache(player_acc_cache, true);
+                        main_server->SendCastPlayerHealthSync(player_acc_cache);
                         player_acc_cache.unlock();
                     }
                 }

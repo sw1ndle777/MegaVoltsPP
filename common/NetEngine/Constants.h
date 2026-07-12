@@ -42,7 +42,10 @@ namespace NetEngine
 
     struct SCallbackData
     {
-        CSession* session;
+        // Owning shared_ptr (not raw): handlers may move this into async DB-pool
+        // tasks, and the client can disconnect — dropping the server's owning
+        // shared_ptr — before the task runs. A raw pointer would dangle there.
+        std::shared_ptr<CSession> session;
         CMessage* message;
         CServer* server;
     };
@@ -122,7 +125,8 @@ namespace NetEngine
                 CastToMainMatchCombatHit = 15,
                 MainToCastPlayerHealthSync = 16,
                 MainToCastTpToProjToggle = 17,
-                MainToCastRoomLifecycleSync = 18
+                MainToCastRoomLifecycleSync = 18,
+                CastToMainMatchEvent = 19
             };
         }
 
@@ -470,6 +474,7 @@ namespace NetEngine
             {
                 WIN_LOSE_RESET        = 4302000,
 				KILL_DEATH_RESET      = 4303000,
+				NICKNAME_CHANGE       = 4303001,
 				INV_EXPAND_10         = 4305000,
                 INV_EXPAND_20         = 4305001,
                 INV_EXPAND_40         = 4305002,

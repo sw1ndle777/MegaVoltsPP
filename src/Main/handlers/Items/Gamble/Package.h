@@ -240,6 +240,17 @@ namespace Game::Handlers
         out = item_id == to_u(BATTERY_EXPAND);
         return out;
     }
+    // Name-change cards. Add any further variant item-ids here (or switch to an
+    // item Type check) if more than one name-change card exists.
+    inline const boost::unordered_flat_set<NetEngine::Items::Package::ItemIds> NicknameChangeItems
+    {
+        NICKNAME_CHANGE,
+    };
+    inline bool IsNicknameItem(uint32_t item_id, bool& out)
+    {
+        out = NicknameChangeItems.contains(static_cast<NetEngine::Items::Package::ItemIds>(item_id));
+        return out;
+    }
     inline void ProcessItemsWon(CMainServer* main_server,
         const std::vector<BaseLib::PackageInfo>& items_won,
         const std::vector<uint32_t>& serials,
@@ -419,6 +430,18 @@ namespace Game::Handlers
         }
         else if (is_nickname_change)
         {
+            // is_nickname_change is derived purely from the client's mission/extra, so verify the
+            // consumed item is actually a name-change card (the package/hammer paths self-validate
+            // via CPackagesInfo; name-change cards aren't packages, so check the id explicitly).
+            // Without this, a crafted packet could rename using the serial of any owned item.
+            bool is_nick_item = false;
+            if (!IsNicknameItem(item_id, is_nick_item))
+            {
+                DEBUGLOG(red, "player ({}) attempted name change with non-namechange item id ({}) serial ({})",
+                    acc_cache->acc_info.Nickname.c_str(), item_id, item.data);
+                session->SendMsg(102, 1, Items::Package::Result::MSG_NICKNAME_CHANGE_FAIL, 0);
+                return;
+            }
             const auto& req = reinterpret_cast<MainUsePackageItemNicknameReq*>(message->GetData());
             dctx.ops.emplace_back(AccountInfoPatch{ .nickname = req->nickname });
         }
@@ -623,19 +646,12 @@ namespace Game::Handlers
             {
                 auto itemPackageOpenData = MainUsePackageItemAck(serial_info, new_acc_cache->acc_info.Nickname.c_str()).Serialize(Items::Package::Result::MSG_NICKNAME_CHANGE_SUCCESS);
                 session->SendMsg(102, 1, Items::Package::Result::MSG_NICKNAME_CHANGE_SUCCESS, 0, reinterpret_cast<uint8_t*>(itemPackageOpenData.data()), itemPackageOpenData.size());
-                auto clan_id = new_acc_cache->acc_info.ClanId;
-                auto has_clan = CClan.contains(clan_id);
-                std::string clan_name = "";
-                uint32_t logo_front = 0, logo_back = 0;
-                if (has_clan)
-                {
-                    auto clan_info = CClan.get<shared_t>(clan_id);
-                    logo_front = clan_info->logo_front;
-                    logo_back = clan_info->logo_back;
-                    clan_name = clan_info->clan_name;
-                }
-                auto accInfoMsg = main_server->CraftAccInfoAck(new_acc_cache, 1, clan_name.c_str(), logo_front, logo_back);
-                session->SendMsg(413, 0, 1, 1, reinterpret_cast<uint8_t*>(&accInfoMsg), sizeof(MainAccountInfoAck));
+                // The client's name-change handler (verified in IDA: sub_ACD0C0 case 0x35) writes the
+                // new nickname straight into the live local-player struct AND removes the used card by
+                // serial itself. So the full account-info resend (413) and the ITEM_DELETE ack (89)
+                // below are redundant for a name change and are skipped. The card is still deleted
+                // server-side via the ItemDeleteCtx pushed into the dctx pipeline above.
+                return;
             }
 
             if (serials_to_delete.empty()) return;

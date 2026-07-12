@@ -136,6 +136,7 @@ using namespace BaseLib;
 int main()
 {
     init_crash_handler();
+    Utility::InstallTerminateHandler();
 
 #ifdef _WIN32
     HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
@@ -240,7 +241,7 @@ int main()
         BaseLib::ItemInfo new_item_info;
         auto& data_fields = itemweaponsinfo_data[i];
         new_item_info.Id = data_fields.at("ii_id").GetInt();
-        //new_item_info.Name = data_fields.at("ii_name").GetString();
+        new_item_info.Name = data_fields.at("ii_name").GetString();
         //new_item_info.NameTime = data_fields.at("ii_name_time").GetString();
         //new_item_info.NameOption = data_fields.at("ii_name_option").GetString();
         new_item_info.IsNaomiUsable = data_fields.at("ii_class_a").GetBool();
@@ -450,7 +451,7 @@ int main()
         BaseLib::BaseUnitInfo new_baseunit_info;
         auto& data_fields = baseunitinfo_data[i];
         new_baseunit_info.Type = data_fields.at("bi_type").GetInt();
-        new_baseunit_info.CashPrice = data_fields.at("bi_cash_price").GetInt();
+        //new_baseunit_info.CashPrice = data_fields.at("bi_cash_price").GetInt();
         new_baseunit_info.Price = data_fields.at("bi_price").GetInt();
         new_baseunit_info.Life = data_fields.at("bi_life").GetInt();
         new_baseunit_info.RunSpeed = data_fields.at("bi_run_speed").GetInt();

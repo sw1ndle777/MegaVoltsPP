@@ -38,7 +38,12 @@ namespace BaseLib
                 obj.AddMember("debug", debug, allocator);
                 obj.AddMember("watchguard", false, allocator);
                 obj.AddMember("gacha_pity_enabled", false, allocator);
-                obj.AddMember("batch_positions", false, allocator);
+                obj.AddMember("move_batch", false, allocator);
+                obj.AddMember("move_batch_hz", 128, allocator);
+                rapidjson::Value hb(rapidjson::kObjectType);
+                hb.AddMember("url", "", allocator); // empty = use global heartbeat (or disabled)
+                hb.AddMember("interval_sec", 30, allocator);
+                obj.AddMember("heartbeat", hb, allocator);
                 servers.AddMember(rapidjson::Value(name, allocator), obj, allocator);
             };
 
@@ -60,6 +65,11 @@ namespace BaseLib
             website.AddMember("port", 80, allocator);
             website.AddMember("timeout", 2000, allocator);
             servers.AddMember("website", website, allocator);
+
+            rapidjson::Value heartbeat(rapidjson::kObjectType);
+            heartbeat.AddMember("url", "", allocator); // empty = disabled
+            heartbeat.AddMember("interval_sec", 30, allocator);
+            servers.AddMember("heartbeat", heartbeat, allocator);
 
             doc.AddMember("servers", servers, allocator);
 
@@ -116,8 +126,25 @@ namespace BaseLib
             settings.watchguard = obj["watchguard"].GetBool();
             try { settings.gacha_pity_enabled = obj["gacha_pity_enabled"].GetBool(); }
             catch (...) { settings.gacha_pity_enabled = false; }
-            try { settings.batch_positions = obj["batch_positions"].GetBool(); }
-            catch (...) { settings.batch_positions = false; }
+            try { settings.move_batch = obj["move_batch"].GetBool(); }
+            catch (...) { settings.move_batch = false; }
+            try { settings.move_batch_hz = obj["move_batch_hz"].GetUint(); }
+            catch (...) { settings.move_batch_hz = 128; }
+
+            // Optional per-server heartbeat. Empty url here falls back to the
+            // global "heartbeat" block (resolved later by the server).
+            settings.heartbeat.url = "";
+            settings.heartbeat.interval_sec = 30;
+            if (obj.HasMember("heartbeat") && obj["heartbeat"].IsObject())
+            {
+                const auto& hb = obj["heartbeat"];
+                if (hb.HasMember("url") && hb["url"].IsString())
+                    settings.heartbeat.url = hb["url"].GetString();
+                if (hb.HasMember("interval_sec") && hb["interval_sec"].IsUint())
+                    settings.heartbeat.interval_sec = hb["interval_sec"].GetUint();
+            }
+            if (settings.heartbeat.interval_sec == 0)
+                settings.heartbeat.interval_sec = 30;
         };
 
         getHostSettings("front", serverSettings.front);
@@ -136,6 +163,20 @@ namespace BaseLib
         serverSettings.website.host = web["host"].GetString();
         serverSettings.website.port = web["port"].GetUint();
         serverSettings.website.timeout = web["timeout"].GetUint();
+
+        // Optional heartbeat section. Absent/empty url leaves the feature disabled.
+        serverSettings.heartbeat.url = "";
+        serverSettings.heartbeat.interval_sec = 30;
+        if (servers.HasMember("heartbeat") && servers["heartbeat"].IsObject())
+        {
+            const auto& hb = servers["heartbeat"];
+            if (hb.HasMember("url") && hb["url"].IsString())
+                serverSettings.heartbeat.url = hb["url"].GetString();
+            if (hb.HasMember("interval_sec") && hb["interval_sec"].IsUint())
+                serverSettings.heartbeat.interval_sec = hb["interval_sec"].GetUint();
+        }
+        if (serverSettings.heartbeat.interval_sec == 0)
+            serverSettings.heartbeat.interval_sec = 30;
 
         return serverSettings;
     }

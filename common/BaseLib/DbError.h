@@ -315,6 +315,114 @@ namespace BaseLib
             : year(0), month(0), rewards{} {
         }
     };
+    struct PlayerWeeklyReward
+    {
+        uint32_t player_account_id;
+        uint8_t day_count;
+        uint64_t last_time_update;
+    };
+    struct SystemWeeklyRewards
+    {
+        uint32_t year{};
+        uint32_t week{};
+        std::array<uint32_t, 7> rewards{};
+        SystemWeeklyRewards(uint32_t y, uint32_t w, std::array<uint32_t, 7> r)
+            : year(y), week(w), rewards(r) {
+        }
+
+        SystemWeeklyRewards()
+            : year(0), week(0), rewards{} {
+        }
+    };
+    // Daily play-time reward: accumulated match seconds for the current UTC day,
+    // resets at 00:00 UTC. claimed_stage = how many of the 30/60/90-min thresholds
+    // have already been granted (0..3). last_time_update used to detect day rollover.
+    struct PlayerPlaytime
+    {
+        uint32_t player_account_id;
+        uint32_t daily_seconds;
+        uint8_t  claimed_stage;
+        uint64_t last_time_update;
+    };
+    // Keyed by Year+Month like SystemMonthlyRewards; the 3 threshold rewards apply
+    // every day of that month (daily reset). 0 = no reward; no row = no rewards.
+    struct SystemPlaytimeRewards
+    {
+        uint32_t year{};
+        uint32_t month{};
+        std::array<uint32_t, 3> rewards{}; // item IDs for 30 / 60 / 90 minute thresholds (0 = none)
+        SystemPlaytimeRewards(uint32_t y, uint32_t m, std::array<uint32_t, 3> r) : year(y), month(m), rewards(r) {}
+        SystemPlaytimeRewards() : year(0), month(0), rewards{} {}
+    };
+
+    // ── Battle Pass (MICROPASS) ──────────────────────────────────────────────
+    // Season config: drives "SEASON ENDS IN N days" + the mission reroll cost. The
+    // per-level XP curve and item rewards live in SystemBattlePassLevel rows.
+    struct SystemBattlePassSeason
+    {
+        uint32_t season{};
+        uint64_t start_date{};
+        uint64_t end_date{};
+        uint32_t reset_base_cost{};   // MP to reroll a mission = reset_base_cost * (reset_count + 1)
+    };
+    // One row per (season, level 1..100): XP needed to clear that level plus the free
+    // and premium item granted at it (0 = empty slot).
+    struct SystemBattlePassLevel
+    {
+        uint32_t season{};
+        uint32_t level{};
+        uint32_t xp_required{};
+        uint32_t free_item{};
+        uint32_t premium_item{};
+    };
+    // Mission pool. Auto-tracked at end-match: when the active mission's progress
+    // reaches criteria_target, xp_reward is granted and a new mission is rolled.
+    // criteria_type: 0=kills, 1=exp, 2=wins, 3=matches.
+    struct SystemBattlePassMission
+    {
+        uint32_t mission_id{};
+        std::string description;
+        uint32_t criteria_type{};
+        uint32_t criteria_target{};
+        uint32_t xp_reward{};
+    };
+    // Per-player progress. claimed_free / claimed_premium are 100-bit masks (one bit
+    // per level, LSB-first) of which rewards have already been collected. xp is the
+    // amount accumulated toward the current level (per-level curve in level rows).
+    struct PlayerBattlePass
+    {
+        uint32_t player_account_id{};
+        uint32_t season{};
+        uint32_t level{};
+        uint32_t xp{};
+        uint8_t  has_premium{};
+        std::array<uint8_t, 16> claimed_free{};
+        std::array<uint8_t, 16> claimed_premium{};
+        uint32_t current_mission_id{};
+        uint32_t mission_progress{};
+        uint32_t reset_count{};
+    };
+    // The 100-bit claim masks are stored as 32-char hex (VARCHAR) so they bind
+    // portably across the MariaDB and pqxx connectors (no raw-binary params).
+    inline std::string BattlePassMaskToHex(const std::array<uint8_t, 16>& m)
+    {
+        static const char* h = "0123456789abcdef";
+        std::string s(32, '0');
+        for (int i = 0; i < 16; ++i) { s[i * 2] = h[m[i] >> 4]; s[i * 2 + 1] = h[m[i] & 0xF]; }
+        return s;
+    }
+    inline void BattlePassHexToMask(const std::string& s, std::array<uint8_t, 16>& m)
+    {
+        m.fill(0);
+        auto v = [](char c) -> int {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            return 0;
+        };
+        for (size_t i = 0; i + 1 < s.size() && i / 2 < 16; i += 2)
+            m[i / 2] = static_cast<uint8_t>((v(s[i]) << 4) | v(s[i + 1]));
+    }
     struct PlayerDailyMission {
         int32_t player_account_id;
         uint64_t update_time;
@@ -427,12 +535,12 @@ namespace BaseLib
     };
     struct GachaPityEntry
     {
-        uint32_t gacha_id{ 0 };
+        uint32_t gacha_type{ 0 };
         uint32_t lucky_points{ 0 };
     };
     struct GachaPityPatch
     {
-        uint32_t gacha_id{ 0 };
+        uint32_t gacha_type{ 0 };
         uint32_t lucky_points{ 0 };
     };
     struct GachaponSaleInfo
@@ -542,6 +650,9 @@ namespace BaseLib
         uint32_t ArmsRaceScore;
         uint32_t ZombieScore;
         uint32_t ADR;
+        bool IsParty{ false };          // player was in a party for this match
+        uint32_t Restriction{ 0 };      // room weapon restriction (e.g. melee-only)
+        uint32_t MaxPlayers{ 0 };       // room max players (for 1v1/2v2 filtering)
     };
 
     enum class ItemUpdateCtxType
@@ -696,6 +807,30 @@ namespace BaseLib
         std::optional<uint32_t> day_count;
         std::optional<uint64_t> last_time_update;
     };
+    struct PlayerWeeklyRewardPatch
+    {
+        std::optional<uint32_t> day_count;
+        std::optional<uint64_t> last_time_update;
+    };
+    struct PlayerPlaytimePatch
+    {
+        std::optional<uint32_t> daily_seconds;
+        std::optional<uint32_t> claimed_stage;
+        std::optional<uint64_t> last_time_update;
+    };
+
+    struct PlayerBattlePassPatch
+    {
+        std::optional<uint32_t> season;
+        std::optional<uint32_t> level;
+        std::optional<uint32_t> xp;
+        std::optional<uint8_t>  has_premium;
+        std::optional<std::array<uint8_t, 16>> claimed_free;
+        std::optional<std::array<uint8_t, 16>> claimed_premium;
+        std::optional<uint32_t> current_mission_id;
+        std::optional<uint32_t> mission_progress;
+        std::optional<uint32_t> reset_count;
+    };
 
     enum class MailSide : uint8_t { Sender, Receiver };
     struct MailInsert
@@ -740,6 +875,9 @@ namespace BaseLib
         AccountInfoPatch,
         PlayerMissionsPatch,
         PlayerMonthlyRewardPatch,
+        PlayerWeeklyRewardPatch,
+        PlayerPlaytimePatch,
+        PlayerBattlePassPatch,
         MailboxPatch,
         MatchInfoHistoryAdd,
 		PlayerSessionsPatch,
@@ -771,6 +909,9 @@ namespace BaseLib
 		std::vector<AccountInfoPatch> acc_info_patches;
 		std::vector<PlayerMissionsPatch> player_missions_patches;
 		std::vector<PlayerMonthlyRewardPatch> player_monthly_reward_patches;
+		std::vector<PlayerWeeklyRewardPatch> player_weekly_reward_patches;
+		std::vector<PlayerPlaytimePatch> player_playtime_patches;
+		std::vector<PlayerBattlePassPatch> player_battlepass_patches;
 		std::vector<MailboxPatch> mailbox_patches;
 		std::vector<MatchInfoHistoryAdd> match_history_adds;
 		std::vector<PlayerSessionsPatch> player_sessions_patches;

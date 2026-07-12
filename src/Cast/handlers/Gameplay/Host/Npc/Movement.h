@@ -29,16 +29,19 @@ namespace Game::Handlers
 
         auto hostSid = session->GetSessionId();
         auto host = CAccount.get<shared_t>(hostSid);
-        auto room = CRoom.get<shared_t>(host->room_id);
+        if (!host) return;
+        auto room_id = host->room_id;
+        host.unlock();
 
-        if (!host || !room)
+        auto room = CRoom.get<shared_t>(room_id);
+        if (!room)
         {
-            DEBUGLOG(red, "NpcProjectile: invalid host or room for hostSid=({})", hostSid);
+            DEBUGLOG(red, "NpcMovement: invalid room for hostSid=({})", hostSid);
             return;
         }
 
-        //PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}))", host->room_id, host->nickname, hostSid);
-        host.unlock();
-        server->Broadcast(room->players_session_id, *message, hostSid);
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, *message, hostSid);
     }
 }

@@ -114,6 +114,7 @@ void init_crash_handler()
 int main()
 {
     init_crash_handler();
+    Utility::InstallTerminateHandler();
 
 
     //CrashHandler::Init("../crash_dumps/MegaVoltsPP_front.dmp");

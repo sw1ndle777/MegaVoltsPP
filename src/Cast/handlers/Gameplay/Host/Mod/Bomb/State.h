@@ -1,4 +1,5 @@
 #pragma once
+#include "../../MatchEventIpc.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -69,6 +70,21 @@ namespace Game::Handlers
             Utility::XMConvertHalfToFloat(req->pos.x), Utility::XMConvertHalfToFloat(req->pos.y), Utility::XMConvertHalfToFloat(req->pos.z),
 			Utility::XMConvertHalfToFloat(req->dir.x), Utility::XMConvertHalfToFloat(req->dir.y), Utility::XMConvertHalfToFloat(req->dir.z));
         */
-        server->Broadcast(room->players_session_id, *message);
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, *message);
+
+        // Defuse progress is host-broadcast (it doesn't arrive as a USER_MOD_BOMB_STATE
+        // like the plant does), so the match-timeline defuse event is emitted here. Plant
+        // stays in the user handler so it isn't double-counted.
+        const auto defuserSid = static_cast<uint16_t>(req->uid.session);
+        // Diagnostic: confirm whether defuse reaches the host and with which codes.
+        DEBUGLOG(cyan, "BombState host: state=({}) mission_raw=({}) extra_raw=({}) userSid=({}) roomId=({})",
+            state, message->GetMission(), message->GetExtra(), defuserSid, roomId);
+        if (mission && extra && *mission == EMission::DEFUSER)
+        {
+            const uint8_t phase = (*extra == EExtra::START) ? 0 : (*extra == EExtra::STOP) ? 1 : 2;
+            SendMatchTimelineEventIpc(server, static_cast<uint16_t>(roomId), defuserSid, MatchEventType::Bomb, 0 /*defuser*/, phase);
+        }
     }
 }

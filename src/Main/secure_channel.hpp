@@ -2,6 +2,7 @@
 #include <monocypher.h>
 #include <shared_mutex>
 #include <array>
+#include <deque>
 #include <fstream>
 #include <utility>
 #include <boost_unordered.hpp>
@@ -320,13 +321,18 @@ public:
                     std::vector<DetectionEvent>* outEvents = nullptr);
 
 private:
+    struct PendingChallenge {
+        uint64_t challenge_id;
+        uint8_t  challenge_data[32];
+    };
+
+    static constexpr uint32_t kMaxPendingChallenges = 4;
+
     struct SessionState {
         uint8_t  sessionKey[kKeySize]{};
-        uint64_t currentChallengeId{0};
-        uint8_t  currentChallengeData[32]{};
+        std::deque<PendingChallenge> pendingChallenges;
         uint32_t retryCount{0};
         bool     awaitingResponse{false};
-        bool     allowQueuedResponses{false};
         std::shared_ptr<asio::steady_timer> timer;
     };
 

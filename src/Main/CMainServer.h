@@ -216,6 +216,7 @@ namespace Game
 		uint32_t front_sid{ 0 };
 		std::vector<GachaPityEntry> gacha_pity;
 		std::string hwid;
+		bool is_invisible{false};
         Player(const uint16_t& sessionId, const uint64_t& serverTime, const BaseLib::FrontAccount& accountInfo, const std::vector<Item>& inventoryItems)
             : session_id(sessionId), server_time(serverTime), acc_info(accountInfo), inventory_items(inventoryItems)
         {
@@ -349,6 +350,44 @@ namespace Game
 			hwid.clear();
 		}
 	};
+    // A mid-match leaver's session span, stashed on the room until match end (when
+    // the MatchUniqueId is computed) so it can be written to player_match_sessions.
+    struct PendingLeftSession
+    {
+        int32_t aid{ 0 };
+        uint8_t team_id{ 0 };
+        uint64_t joined_ms{ 0 };
+        uint64_t left_ms{ 0 };
+        uint8_t reason{ 1 }; // 1=Leave, 2=Kicked, 3=Disconnect
+    };
+
+    // One damaging hit buffered during the match; the match unique id is stamped
+    // (and the batch persisted) at match end, same as left_sessions.
+    struct PendingCombatEvent
+    {
+        int32_t attacker_aid{ 0 };
+        int32_t victim_aid{ 0 };
+        uint8_t weapon{ 0 };
+        uint8_t bodypart{ 0 };
+        uint8_t hit_variant{ 0xFF };
+        uint32_t damage{ 0 };
+        uint32_t victim_hp_after{ 0 };
+        uint8_t is_kill{ 0 };
+        uint64_t event_ms{ 0 };
+    };
+
+    // One non-combat match-timeline event (respawn, bomb plant/defuse, item pickup),
+    // buffered during the match and flushed (with the match unique id) at match end.
+    struct PendingMatchEvent
+    {
+        int32_t aid{ 0 };
+        uint8_t event_type{ 0 }; // CastMatchEventType: 1 Respawn, 2 Bomb, 3 ItemPickup
+        uint8_t sub_a{ 0 };      // Bomb: role (0 defuser, 1 planter)
+        uint8_t sub_b{ 0 };      // Bomb: phase (0 start, 1 stop, 2 finish)
+        uint32_t value{ 0 };     // ItemPickup: item id
+        uint64_t event_ms{ 0 };
+    };
+
     struct Room
     {
         std::shared_mutex mutex;
@@ -374,6 +413,20 @@ namespace Game
         uint32_t clan_id_2;
         uint32_t team_rounds_started{ 0 };
         boost::unordered_flat_map<uint16_t, MatchCombatPlayerStats> match_combat_stats;
+        std::vector<PendingLeftSession> left_sessions; // mid-match leavers, flushed at match end
+        std::vector<PendingCombatEvent> combat_events; // per-hit combat log, flushed at match end
+        std::vector<PendingMatchEvent> match_events;   // respawn/bomb/pickup timeline, flushed at match end
+        // Round-based modes only: false during the dead window between a round ending and the
+        // next round's revival, so combat hosts can't keep crediting damage/kills then. Always
+        // true for non-round modes (no MatchRoundsEnd ever closes it).
+        bool combat_open{ true };
+        // UTC ms when combat last closed (round end). Used for a short post-close grace so the
+        // deciding kill — whose combat IPC can arrive just after the round-end packet — still counts.
+        uint64_t combat_closed_at{ 0 };
+        // 1-based count of rounds ended this match. team_rounds_started is unreliable (0-based,
+        // and never increments for non-team modes like Zombie), so RoundEnd events number rounds
+        // from this instead. Reset at match start.
+        uint32_t round_seq{ 0 };
         Room(const uint16_t& roomId = 0, const uint16_t& channelId = 0, const std::string& title = "", const std::string& password = "",
             const NetEngine::Room::Map::Index& mapIndex = NetEngine::Room::Map::Index::Chess, const NetEngine::Room::Mode::Index& modeIndex = NetEngine::Room::Mode::Index::TeamDeathMatch,
             const NetEngine::Room::Restriction::Type& restriction = NetEngine::Room::Restriction::AllWeapons, const NetEngine::Room::Balance::State& teamBalance = NetEngine::Room::Balance::State::Disabled,
@@ -892,6 +945,17 @@ namespace Game
                 || mode == Scrimmage || mode == BombBattle 
                 || mode == CLAN_CaptureTheBattery || mode == CLAN_Elimination
                 || mode == CLAN_TeamDeathMatch || mode == CLAN_BombBattle;
+        }
+        // Round-based modes: a mid-match joiner spawns as a dead spectator until the next
+        // round revives everyone (see Room/Match/Rounds/Start.h). Static so non-member
+        // helpers (e.g. End.h's IsRoundBasedAdrMode) can share the single definition.
+        static bool IsRoundBasedMode(const NetEngine::Room::Mode::Index& mode)
+        {
+            using namespace NetEngine::Room::Mode;
+
+            return mode == Elimination || mode == ZombieMode
+                || mode == BombBattle
+                || mode == CLAN_Elimination || mode == CLAN_BombBattle;
         }
         auto GetRoomSortedPlayerSessionIds(RoomCacheSharedResource& room_cache)
         {
@@ -2216,10 +2280,63 @@ namespace Game
             return equipped_items;
         }
 
+        // Convenience overload: SCallbackData::session is now an owning shared_ptr,
+        // so handlers pass it directly. Forwards to the raw-pointer implementation.
+        void SendServerMessage(const std::shared_ptr<CSession>& session, const std::string& message)
+        {
+            if (session) SendServerMessage(session.get(), message);
+        }
         void SendServerMessage(CSession* session, const std::string& message)
         {
             auto msgData = MainChatAck("", message.data(), static_cast<uint32_t>(message.size())).Serialize(Chat::Type::Server, message.size());
 			session->SendMsg(316, 0, Chat::Type::Server, static_cast<uint8_t>(message.size()), reinterpret_cast<uint8_t*>(msgData.data()), static_cast<uint16_t>(msgData.size()));
+        }
+
+        // Lock-free identity/state snapshot of an online player resolved by nickname.
+        // Reads only under the map-level shared lock (NEVER a per-entry lock), so it is
+        // safe to call while already holding ANOTHER account's lock. This avoids the
+        // ABBA deadlock that CAccount.get_by_filter<>(nickname) causes: a handler holds
+        // the caller's account lock and then locks the matched target's entry, so two
+        // players acting on each other by name lock A->B and B->A simultaneously and hang.
+        // `aid == -1` means not-found/offline (matches the cache's null-entry Index), so
+        // every "!= -1" / truthiness check downstream behaves exactly as the old code did.
+        struct OnlineNickIdentity
+        {
+            uint16_t                            sid{};
+            int32_t                             aid{ -1 };
+            NetEngine::Packets::Core::UniqueId  uid{};
+            std::string                         nickname;
+            uint32_t                            room_id{};
+            uint32_t                            party_id{};
+            bool                                in_room{};
+            bool                                in_party{};
+            bool                                playing{};
+            explicit operator bool() const { return aid > 0; }
+        };
+
+        static OnlineNickIdentity ResolveOnlineByNickname(std::string_view nickname)
+        {
+            OnlineNickIdentity out{};
+            const auto wanted = Utility::ToLowercase(nickname);
+            auto accounts = CAccount.get_all(BaseLib::shared);
+            for (const auto& entry : *accounts)
+            {
+                const auto& acc = entry.second;
+                if (acc.acc_info.Index > 0 && Utility::ToLowercase(acc.acc_info.Nickname) == wanted)
+                {
+                    out.sid      = acc.session_id;
+                    out.aid      = acc.acc_info.Index;
+                    out.uid      = acc.uid;
+                    out.nickname = acc.acc_info.Nickname;
+                    out.room_id  = acc.room_id;
+                    out.party_id = acc.party_id;
+                    out.in_room  = acc.in_room;
+                    out.in_party = acc.in_party;
+                    out.playing  = acc.playing;
+                    break;
+                }
+            }
+            return out;
         }
 
         std::expected<ItemAddCtx, DbUpdateError> CraftInventoryItems(AccCacheResource& acc_cache, std::vector<uint32_t> item_ids, Items::Origin origin = Items::Origin::From_GM_Spawn)
@@ -2284,7 +2401,7 @@ namespace Game
             return result_info;
         }
 
-        std::expected<ValidatedDbUpdates, DbUpdateError> ValidateDatabaseUpdates(AccCacheResource& acc_cache, const DatabaseUpdateCtx& ctx, bool bypass_inv_limit = false)
+        std::expected<ValidatedDbUpdates, DbUpdateError> ValidateDatabaseUpdates(AccCacheResource& acc_cache, const DatabaseUpdateCtx& ctx, bool bypass_inv_limit = false, bool bypass_currency_limits = false)
         {
             ValidatedDbUpdates out{ .sid = ctx.sid, .aid = ctx.aid };
             auto& inv = acc_cache->inventory_items;
@@ -2365,6 +2482,12 @@ namespace Game
                     out.player_missions_patches.push_back(*pmp);
                 else if (auto pmrp = std::get_if<PlayerMonthlyRewardPatch>(&op))
                     out.player_monthly_reward_patches.push_back(*pmrp);
+                else if (auto pwrp = std::get_if<PlayerWeeklyRewardPatch>(&op))
+                    out.player_weekly_reward_patches.push_back(*pwrp);
+                else if (auto pptp = std::get_if<PlayerPlaytimePatch>(&op))
+                    out.player_playtime_patches.push_back(*pptp);
+                else if (auto pbpp = std::get_if<PlayerBattlePassPatch>(&op))
+                    out.player_battlepass_patches.push_back(*pbpp);
 				else if (auto mbp = std::get_if<MailboxPatch>(&op))
 					out.mailbox_patches.push_back(*mbp);     
 				else if (auto mha = std::get_if<MatchInfoHistoryAdd>(&op))
@@ -2399,6 +2522,7 @@ namespace Game
             constexpr uint32_t MAX_COUPONS = 250;
             constexpr uint32_t MAX_UINT32 = std::numeric_limits<uint32_t>::max();
             using enum DbUpdateError;
+            if (!bypass_currency_limits)
             for (const auto& cu : out.currency_updates)
             {
                 switch (cu.type)
@@ -2487,26 +2611,25 @@ namespace Game
                         if (mbp.insert->receiver_nickname == acc_cache->acc_info.Nickname)
                             return std::unexpected(MEMO_MAIL_SEND_MYSELF);
 
-                        auto receiver_acc = CAccount.get_by_filter<shared_t>([&](const auto& /*id*/, auto& player) {
-                            return Utility::ToLowercase(player.acc_info.Nickname) == Utility::ToLowercase(mbp.insert->receiver_nickname.value());
-                            });
+                        // lock-free resolve (we already hold acc_cache's lock) — see ResolveOnlineByNickname
+                        const auto receiver = ResolveOnlineByNickname(mbp.insert->receiver_nickname.value());
 
-                        if (!receiver_acc->acc_info.Index) continue; //user offline
+                        if (!receiver.aid) continue; //user offline
 
 
                         auto my_socials = CSocial.get<shared_t>(acc_cache->session_id);
-                        if (IsBlockedAlready(my_socials, receiver_acc->acc_info.Index))
+                        if (IsBlockedAlready(my_socials, receiver.aid))
                             return std::unexpected(MEMO_MAIL_BLOCKEDBY_SENDER);
-                        auto target_socials = CSocial.get<shared_t>(receiver_acc->session_id);
+                        auto target_socials = CSocial.get<shared_t>(receiver.sid);
                         if (IsBlockedAlready(target_socials, acc_cache->acc_info.Index))
                             return std::unexpected(MEMO_MAIL_BLOCKEDBY_RECEIVER);
-                        auto received = CMailRecv.get<shared_t>(receiver_acc->acc_info.Index)->size();
+                        auto received = CMailRecv.get<shared_t>(receiver.aid)->size();
                         if (received >= 100)
                             return std::unexpected(MEMO_MAIL_FULL_RECEIVER);
 
                         if (mbp.insert->gift_item_id)
                         {
-							auto received_gifts = CGiftRecv.get<shared_t>(receiver_acc->acc_info.Index)->size();
+							auto received_gifts = CGiftRecv.get<shared_t>(receiver.aid)->size();
 							if (received_gifts >= 100)
 								return std::unexpected(MEMO_GIFT_FULL_RECEIVER);
                         }
@@ -2745,11 +2868,11 @@ namespace Game
             for (const auto& gpp : v.gacha_pity_patches)
             {
                 auto it = std::find_if(acc_cache->gacha_pity.begin(), acc_cache->gacha_pity.end(),
-                    [&](const GachaPityEntry& e) { return e.gacha_id == gpp.gacha_id; });
+                    [&](const GachaPityEntry& e) { return e.gacha_type == gpp.gacha_type; });
                 if (it != acc_cache->gacha_pity.end())
                     it->lucky_points = gpp.lucky_points;
                 else
-                    acc_cache->gacha_pity.push_back({ gpp.gacha_id, gpp.lucky_points });
+                    acc_cache->gacha_pity.push_back({ gpp.gacha_type, gpp.lucky_points });
             }
             return r;
         }

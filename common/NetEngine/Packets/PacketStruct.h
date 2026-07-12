@@ -272,6 +272,54 @@ namespace NetEngine
             {
                 char msg[256];
             };
+            // ── Player<->player Trade ─────────────────────────────────────────
+            // Requests (client -> server); body offsets mirror the MegaGuard client
+            // trade_handler structs (item serial sits at body+8).
+            struct MainTradeInviteReq          // TRADE_REQUEST(191): invite a player by name
+            {
+                char target_name[16];
+            };
+            struct MainTradeAcceptReq          // TRADE_ACCEPT(192): accept a pending inviter
+            {
+                uint32_t unused0;              // body+0 (client writes its own id; ignored)
+                int32_t  inviter_id;           // body+4 = the account id we are accepting
+            };
+            struct MainTradeItemReq            // TRADE_ITEM_ADD/REMOVE(194/195)
+            {
+                uint32_t       unused0;        // body+0
+                uint32_t       unused1;        // body+4
+                ItemSerialInfo serial;         // body+8
+            };
+            // Acks (server -> client): the 36-byte player record and 32-byte item
+            // record parsed by onTradeOpen/onTradeRequest/onTradeAck/onTradeItemChange.
+            struct MainTradePlayerInfo
+            {
+                uint32_t unused;
+                uint32_t account_id;           // body+4 (client reads this as the partner id)
+                uint32_t character_id;
+                uint32_t equipped_hair;
+                uint32_t equipped_eyes;
+                char     nickname[16];         // body+20 (client -> STC_NAME_YOU, both sides)
+                MainTradePlayerInfo(uint32_t accountId = 0, uint32_t characterId = 0, const char* nick = "")
+                    : unused(0), account_id(accountId), character_id(characterId),
+                      equipped_hair(0), equipped_eyes(0), nickname{}
+                {
+                    for (int i = 0; i < 15 && nick && nick[i]; ++i) nickname[i] = nick[i];
+                }
+            };
+            struct MainTradeItemInfo
+            {
+                uint32_t       unused;
+                uint32_t       owner_account_id; // whose side -> client ME vs YOU slot
+                ItemSerialInfo serial;
+                uint32_t       item_id;
+                uint32_t       unused2;
+                uint32_t       unknown1;
+                uint32_t       unknown2;
+                MainTradeItemInfo(uint32_t ownerAccountId = 0, ItemSerialInfo s = 0, uint32_t itemId = 0)
+                    : unused(0), owner_account_id(ownerAccountId), serial(s), item_id(itemId),
+                      unused2(0), unknown1(0), unknown2(0) {}
+            };
             struct MainCreateRoomReq
             {
                 uint32_t settings_data;
@@ -1612,6 +1660,102 @@ namespace NetEngine
                 }
             };
 
+            // Mirrors MainMonthlyRewardAck but the client (WeeklyLoginRewardEventDialog)
+            // copies only 0x24 (36) bytes into the dialog and reads the item ids at +8,
+            // so the middle field is a uint32_t (NOT a uint64_t like the monthly variant).
+            // Layout: week(+0) received(+2) unknown(+4) weekly_items(+8..+36).
+            class MainWeeklyRewardAck
+            {
+            public:
+                uint16_t week;
+                uint16_t received;
+                uint32_t unknown;
+                std::array<uint32_t, 7> weekly_items;
+
+                MainWeeklyRewardAck(const uint16_t& week, const uint16_t& received, const std::array<uint32_t, 7>& weekly_items) : week(week), received(received), unknown(0), weekly_items(weekly_items) {}
+
+                std::vector<uint8_t> Serialize() const
+                {
+                    std::vector<uint8_t> data;
+                    auto week_bytes = reinterpret_cast<const uint8_t*>(&week);
+                    data.insert(data.end(), week_bytes, week_bytes + sizeof(week));
+
+                    auto received_bytes = reinterpret_cast<const uint8_t*>(&received);
+                    data.insert(data.end(), received_bytes, received_bytes + sizeof(received));
+
+                    auto unknown_bytes = reinterpret_cast<const uint8_t*>(&unknown);
+                    data.insert(data.end(), unknown_bytes, unknown_bytes + sizeof(unknown));
+
+                    for (const auto& item : weekly_items)
+                    {
+                        const auto* item_bytes = reinterpret_cast<const uint8_t*>(&item);
+                        data.insert(data.end(), item_bytes, item_bytes + sizeof(uint32_t));
+                    }
+
+                    return data;
+                }
+            };
+
+            // Play-time reward state pushed to the client. The dialog copies these
+            // dwords to dialog+2080: [0]=stage drives the boxes 128010-128012,
+            // [1]=daily_seconds for the time label, [2..4]=the 3 threshold item ids
+            // (30/60/90 min) so the client can populate the reward slots.
+            class MainPlaytimeAck
+            {
+            public:
+                uint32_t stage;          // count of 30/60/90-min thresholds reached (0-3)
+                uint32_t daily_seconds;  // accumulated playtime today
+                std::array<uint32_t, 3> items; // reward item ids for 30/60/90 min
+
+                MainPlaytimeAck(uint32_t stage, uint32_t daily_seconds, const std::array<uint32_t, 3>& items)
+                    : stage(stage), daily_seconds(daily_seconds), items(items) {}
+
+                std::vector<uint8_t> Serialize() const
+                {
+                    std::vector<uint8_t> data;
+                    auto put = [&](const auto& v) { auto p = reinterpret_cast<const uint8_t*>(&v); data.insert(data.end(), p, p + sizeof(v)); };
+                    put(stage); put(daily_seconds);
+                    for (const auto& it : items) put(it);
+                    return data;
+                }
+            };
+
+            // Battle Pass (MICROPASS) snapshot — order 182. Fixed header + the full
+            // 100-level item tables (client paginates 10/page) + trailing mission text.
+            class MainBattlePassAck
+            {
+            public:
+                uint32_t season{};
+                uint32_t days_left{};
+                uint32_t level{};
+                uint32_t xp{};            // xp accumulated toward current level
+                uint32_t xp_required{};   // xp needed to clear current level
+                uint32_t has_premium{};
+                uint32_t reset_cost{};    // MP to reroll the active mission
+                uint32_t reset_count{};
+                std::array<uint8_t, 16> claimed_free{};      // 100-bit mask, LSB-first
+                std::array<uint8_t, 16> claimed_premium{};
+                std::array<uint32_t, 100> free_items{};      // item id per level (0 = empty)
+                std::array<uint32_t, 100> premium_items{};
+                std::string mission_text;
+
+                std::vector<uint8_t> Serialize() const
+                {
+                    std::vector<uint8_t> data;
+                    auto put = [&](const auto& v) { auto p = reinterpret_cast<const uint8_t*>(&v); data.insert(data.end(), p, p + sizeof(v)); };
+                    put(season); put(days_left); put(level); put(xp); put(xp_required);
+                    put(has_premium); put(reset_cost); put(reset_count);
+                    data.insert(data.end(), claimed_free.begin(), claimed_free.end());
+                    data.insert(data.end(), claimed_premium.begin(), claimed_premium.end());
+                    for (auto it : free_items) put(it);
+                    for (auto it : premium_items) put(it);
+                    uint16_t len = static_cast<uint16_t>(mission_text.size());
+                    put(len);
+                    data.insert(data.end(), mission_text.begin(), mission_text.end());
+                    return data;
+                }
+            };
+
             class MainUserJoinConfirmAck
             {
             public:
@@ -1773,10 +1917,10 @@ namespace NetEngine
                 uint16_t dir_x;//0xA
                 uint16_t dir_y;//0xC
                 uint16_t dir_z;//0xE
-                Core::UniqueId attacker_unique_id;
-                Core::UniqueId victim_unique_id;
-                PlayerInfoCastActionReq player_info;
-                uint32_t idk2;
+                Core::UniqueId attacker_unique_id;//0x10
+                Core::UniqueId victim_unique_id;//0x14
+                PlayerInfoCastActionReq player_info;//0x18
+                uint32_t idk2;//0x1c
             };
             struct AddProjectileReq
             {
@@ -1894,6 +2038,31 @@ namespace NetEngine
                 CastCombatWeaponKind weapon_kind;
                 uint16_t attacker_current_kill_streak;
                 uint16_t attacker_highest_kill_streak;
+                // 0 directshot, 1 camera-shake, 2 head, 3 body, 4 arms, 5 legs (BodyPart / mode_index).
+                uint8_t bodypart{ 0 };
+                // Weapon-specific hit variant. Melee: 0 slap, 1 heavy. Sniper: noscope flag
+                // (once identified). 0xFF = not applicable / unknown.
+                uint8_t hit_variant{ 0xFF };
+            };
+
+            enum class CastMatchEventType : uint8_t
+            {
+                Respawn = 1,
+                Bomb = 2,
+                ItemPickup = 3,
+                RoundEnd = 4, // recorded on Main (round-based modes); SubA/SubB = raw extra/option, Value = round number
+            };
+
+            // A non-combat match-timeline event (respawn, bomb plant/defuse, item pickup),
+            // relayed Cast -> Main for per-match persistence.
+            struct CastMatchTimelineEvent
+            {
+                uint32_t room_id;
+                uint16_t actor_sid;
+                uint8_t event_type;   // CastMatchEventType
+                uint8_t sub_a;        // Bomb: role  (0 defuser, 1 planter); else 0
+                uint8_t sub_b;        // Bomb: phase (0 start, 1 stop, 2 finish); else 0
+                uint32_t value;       // ItemPickup: item id; else 0
             };
 
             struct MainToCastPlayerHealthSync

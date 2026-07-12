@@ -13,6 +13,7 @@
 #include <boost_unordered.hpp>
 
 #include "BaseLib/CCache.h"
+#include "MovementBatcher.h"
 
 namespace Game
 {
@@ -54,6 +55,11 @@ namespace Game
         bool in_room;
         bool in_plaza;
         bool is_dead;
+        // Cast-side kill attribution (anti-cheat). Death STATE stays host-authoritative
+        // (Status.h m_bIsDead); these only attribute a kill to the last damager + dedupe.
+        uint16_t last_attacker_sid{};        // sid of whoever last damaged this player
+        uint64_t last_damage_time{};         // unix seconds of that last damage (attribution window)
+        bool kill_credited_this_death{};     // ensures exactly one kill is credited per death
         uint64_t auth_key;
 		std::string nickname;
 		std::string hwid;
@@ -184,27 +190,23 @@ namespace Game
         uint16_t host_session_id;
         bool is_playing;
         std::vector<uint16_t> players_session_id;
-        boost::unordered_flat_map<uint32_t, uint16_t> projectile_owner_by_id;
-        boost::unordered_flat_map<uint32_t, uint8_t> projectile_type_by_id;
-        std::vector<std::vector<uint8_t>> pending_positions;
-        uint32_t room_tick{};
+        // Maps a kit dropId (KitDropInfo.id, the instance the host assigns at spawn) to the
+        // packed item word (itemId:23 | itemType:5 | flag:1). Lets the pickup handler resolve
+        // what was actually grabbed (ammo / health / bomb / radar), since the pickup packet
+        // only carries the dropId, not the catalog item.
+        boost::unordered_flat_map<uint32_t, uint32_t> kit_item_by_drop;
         Room(const uint16_t& roomId = 0,
             const uint16_t& hostSessionId = 0)
             : room_id(roomId), host_session_id(hostSessionId), is_playing(false)
         {
-            players_session_id.clear();
-            projectile_owner_by_id.clear();
-            projectile_type_by_id.clear();
         }
         Room(const Room& other)
+            : room_id(other.room_id),
+              host_session_id(other.host_session_id),
+              is_playing(other.is_playing),
+              players_session_id(other.players_session_id),
+              kit_item_by_drop(other.kit_item_by_drop)
         {
-            room_id = other.room_id;
-            host_session_id = other.host_session_id;
-            is_playing = other.is_playing;
-            players_session_id = other.players_session_id;
-            projectile_owner_by_id = other.projectile_owner_by_id;
-            projectile_type_by_id = other.projectile_type_by_id;
-            room_tick = other.room_tick;
         }
         Room& operator=(const Room& other)
         {
@@ -213,9 +215,26 @@ namespace Game
             host_session_id = other.host_session_id;
             is_playing = other.is_playing;
             players_session_id = other.players_session_id;
-            projectile_owner_by_id = other.projectile_owner_by_id;
-            projectile_type_by_id = other.projectile_type_by_id;
-            room_tick = other.room_tick;
+            kit_item_by_drop = other.kit_item_by_drop;
+            return *this;
+        }
+    };
+
+    struct RoomProjectiles
+    {
+        std::shared_mutex mutex;
+        boost::unordered_flat_map<uint32_t, uint16_t> owner_by_id;
+        boost::unordered_flat_map<uint32_t, uint8_t> type_by_id;
+        RoomProjectiles() = default;
+        RoomProjectiles(const RoomProjectiles& other)
+            : owner_by_id(other.owner_by_id), type_by_id(other.type_by_id)
+        {
+        }
+        RoomProjectiles& operator=(const RoomProjectiles& other)
+        {
+            if (this == &other) return *this;
+            owner_by_id = other.owner_by_id;
+            type_by_id = other.type_by_id;
             return *this;
         }
     };
@@ -245,6 +264,7 @@ namespace Game
 
     extern CCache<boost::unordered_flat_map<uint16_t, Player>> CAccount;
     extern CCache<boost::unordered_flat_map<uint16_t, Room>> CRoom;
+    extern CCache<boost::unordered_flat_map<uint16_t, RoomProjectiles>> CRoomProjectiles;
     extern CCache<boost::unordered_flat_map<uint16_t, Plaza>> CPlaza;
     extern CCache<boost::unordered_flat_map<uint64_t, uint16_t>> CAuthKey;
 
@@ -260,15 +280,15 @@ namespace Game
         ~CCastServer();
         NetEngine::RateLimit::IdentitySnapshot BuildPacketRateLimitIdentitySnapshot(const SCallbackData& callback);
         using enum fmt::color;
-        auto Broadcast(const std::vector<uint16_t>& ids, 
-            CMessage& msg, 
+        auto Broadcast(const std::vector<uint16_t>& ids,
+            CMessage& msg,
             std::optional<uint16_t> exclude_sid = std::nullopt,
             SendOption::EncryptionMethod enc = SendOption::EncryptionMethod::None,
             std::source_location loc = std::source_location::current())
         {
+            msg.SetEncryptMethod(enc);
             auto filtered = ids | std::views::filter([&](uint16_t id) { return !exclude_sid || id != *exclude_sid; });
             std::ranges::for_each(filtered, [&](uint16_t id) {
-                msg.SetEncryptMethod(enc);
                 msg.SetSession(id);
                 if (auto pss = this->GetSessionById(id))
                     pss->Send(msg);
@@ -301,14 +321,29 @@ namespace Game
             return false;
         }
 
-        bool IsBatchPositionsEnabled() const { return m_batchPositions; }
-        void SetBatchPositions(bool enabled) { m_batchPositions = enabled; }
-
-        void FlushPendingPositions();
-        void StartPositionFlushTimer();
+        // --- 128-tick movement batching (per-room fixed-rate flush). ---
+        // See MovementBatcher.h for the client constraints this satisfies.
+        bool IsMoveBatchEnabled() const { return m_moveBatch; }
+        void SetMoveBatch(bool enabled, uint32_t hz = 128)
+        {
+            m_moveBatch = enabled;
+            m_moveBatchHz = hz ? hz : 128;
+            if (enabled) StartMovementBatcher(m_moveBatchHz);
+            else         StopMovementBatcher();
+        }
+        // Forwarded from the USER_MOVE handler: queue this player's latest entry
+        // (cmd-322 response body without its leading 4-byte tick) for the next flush.
+        void SubmitMovement(uint16_t room_id, uint16_t sid, const uint8_t* entry, uint8_t len, uint32_t matchTick)
+        {
+            m_moveBatcher.Submit(room_id, sid, entry, len, matchTick);
+        }
 
     private:
-        bool m_batchPositions = false;
-        std::shared_ptr<asio::steady_timer> m_positionFlushTimer;
+        void StartMovementBatcher(uint32_t hz);
+        void StopMovementBatcher() { m_moveBatcher.Stop(); }
+
+        bool m_moveBatch = false;
+        uint32_t m_moveBatchHz = 128;
+        MovementBatcher m_moveBatcher;
     };
 }

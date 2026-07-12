@@ -24,6 +24,7 @@
 #include "handlers/Core/Cmds/Items/ExaItems.h"
 #include "handlers/Core/Cmds/Items/GodItems.h"
 #include "handlers/Core/Cmds/Items/Item.h"
+#include "handlers/Core/Cmds/Items/Items.h"
 #include "handlers/Core/Cmds/Items/ItemsByType.h"
 
 
@@ -38,6 +39,13 @@
 
 #include "handlers/Core/Cmds/Player/Level.h"
 
+#include "handlers/Core/Cmds/Economy/Cash.h"
+#include "handlers/Core/Cmds/Economy/Point.h"
+#include "handlers/Core/Cmds/Economy/Energy.h"
+#include "handlers/Core/Cmds/Economy/Coupon.h"
+
+#include "handlers/Core/Cmds/Staff/Invis.h"
+
 
 #include "handlers/Socials/Blockeds/Add.h"
 #include "handlers/Socials/Blockeds/Remove.h"
@@ -47,9 +55,12 @@
 #include "handlers/Socials/Friends/Remove.h"
 #include "handlers/Socials/Friends/View.h"
 
+#include "handlers/Socials/Trade/Trade.h"
+
 #include "handlers/Socials/Clan/View.h"
 #include "handlers/Socials/Party/View.h"
 
+#include "handlers/Player/Core/BattlePass.h"
 #include "handlers/Player/Core/Authorize.h"
 #include "handlers/Player/Core/NameChange.h"
 #include "handlers/Player/Core/Ping.h"
@@ -151,6 +162,7 @@
 #include "handlers/Core/Disconnect.h"
 #include "handlers/Core/Ipc/CastAuthorize.h"
 #include "handlers/Core/Ipc/CastCombatStats.h"
+#include "handlers/Core/Ipc/CastMatchEvent.h"
 #include "handlers/Core/Ipc/CastMetrics.h"
 #include "handlers/Core/Ipc/CastSid.h"
 #include "handlers/Core/Ipc/FrontDisconnect.h"
@@ -1212,6 +1224,17 @@ namespace Game
         this->BindMainHandler<&FriendsRemove>(FRIENDS_DELETE);//friend remove
         this->BindMainHandler<&FriendsView>(FRIENDS_LIST);//friend list
 
+        // TRADE DISABLED (matches client) — to be fixed later. Unregistered so no trade
+        // order (190-199) is handled and the irreversible item-swap can't be triggered.
+        // Re-enable together with the client trade handler.
+        // this->BindMainHandler<&TradeRequest>(TRADE_REQUEST);//trade invite by name
+        // this->BindMainHandler<&TradeAccept>(TRADE_ACCEPT);//trade accept invite
+        // this->BindMainHandler<&TradeItemChange>(TRADE_ITEM_ADD);//trade offer item
+        // this->BindMainHandler<&TradeItemChange>(TRADE_ITEM_REMOVE);//trade withdraw item
+        // this->BindMainHandler<&TradeLock>(TRADE_LOCK);//trade lock offer
+        // this->BindMainHandler<&TradeConfirm>(TRADE_CONFIRM);//trade confirm
+        // this->BindMainHandler<&TradeCancel>(TRADE_CANCEL);//trade cancel/close
+
         this->BindMainHandler<&GiftSend>(GIFT_SEND);//PlayerSendGiftbox
         this->BindMainHandler<&GiftDelete>(GIFT_DELETE);//PlayerDeleteGiftbox
         this->BindMainHandler<&GiftReceive>(GIFT_RECEIVE);//PlayerReceiveGiftbox
@@ -1219,6 +1242,8 @@ namespace Game
 
         this->BindMainHandler<&AcHeartbeat>(INFO_SECURITY_TOOLS);
         this->BindMainHandler<&Authorize>(ID_AUTHORIZE);//version check
+        this->BindMainHandler<&BattlePassClaim>(BATTLEPASS_CLAIM);//battle pass claim
+        this->BindMainHandler<&BattlePassReset>(BATTLEPASS_RESET);//battle pass mission reroll
         this->BindMainHandler<&NameChange>(ID_CREATE);//nickname creation
         // ID_CHARACTER_BUY 70
         this->BindMainHandler<&Ping>(ID_PING);//player ping

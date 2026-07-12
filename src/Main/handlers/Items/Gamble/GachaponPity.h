@@ -29,8 +29,9 @@ namespace Game::Handlers
         }
 
         
+        auto gacha_type = gachapon_info->Type;
         auto pit = std::find_if(acc_cache->gacha_pity.begin(), acc_cache->gacha_pity.end(),
-            [&](const GachaPityEntry& e) { return e.gacha_id == gachapon_info->Id; });
+            [&](const GachaPityEntry& e) { return e.gacha_type == gacha_type; });
         if (pit != acc_cache->gacha_pity.end())
             pity_points = pit->lucky_points;
 

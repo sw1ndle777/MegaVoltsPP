@@ -1,5 +1,6 @@
 #pragma once
 #include "../Weapon/CombatIpc.h"
+#include "../MatchEventIpc.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -40,12 +41,23 @@ namespace Game::Handlers
         user->combat_health = full_health;
         user->combat_health_known = true;
         user->is_dead = false;
+        user->last_attacker_sid = 0;
+        user->kill_credited_this_death = false;
+        // A respawn starts a fresh life, so the live kill streak resets here. This also
+        // covers round-based modes (Elimination/Zombie/Bomb) since each round respawns
+        // players. The match-peak (highest_kill_streak) is preserved for the best-streak stat.
+        user->current_kill_streak = 0;
 
         PACKETLOG(ACK, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) pos=({} {} {}) rot=({})",
             roomId, user->nickname, userSid, hostName, hostSid,
             Utility::XMConvertHalfToFloat(req->x), Utility::XMConvertHalfToFloat(req->y), Utility::XMConvertHalfToFloat(req->z), Utility::XMConvertHalfToFloat(req->rotation));
 
         user.unlock();
-        server->Broadcast(room->players_session_id, *message);
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, *message);
+
+        // Match-timeline: record this respawn (Main resolves the aid and buffers it).
+        SendMatchTimelineEventIpc(server, static_cast<uint16_t>(roomId), userSid, MatchEventType::Respawn);
     }
 }

@@ -15,6 +15,7 @@ namespace Game::Handlers
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
         if (acc_cache->acc_info.Index == -1) return;
+        const auto nick = acc_cache->acc_info.Nickname; // local copy: safe to log after acc_cache.unlock()
         auto plaza_id = acc_cache->plaza_id;
         DatabaseUpdateCtx dctx{ .sid = session_id,.aid = acc_cache->acc_info.Index };
         if (main_server->IsPlazaAlready(plaza_id))
@@ -30,7 +31,7 @@ namespace Game::Handlers
                     if (auto player_session = server->GetSessionById(plaza_player_session_id))
                         player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                 }
-                DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", session_id, plaza_id);
+                DEBUGLOG(dark_cyan, "user=({}) sid=({}) left plaza id: ({})", nick.c_str(), session_id, plaza_id);
                 std::erase(current_plaza->session_ids, session_id);
                 acc_cache->plaza_id = 0;
                 acc_cache->in_plaza = false;

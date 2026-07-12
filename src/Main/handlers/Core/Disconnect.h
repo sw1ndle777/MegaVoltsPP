@@ -21,6 +21,17 @@ namespace Game::Handlers
         Game::Anticheat::g_secureChannels.remove(sid);
         Game::Anticheat::g_heartbeatManager.stopSession(sid);
         auto acc = CAccount.get<unique_t>(sid);
+        // Unauthenticated sessions (probes, port scans, pre-auth drops) have no account entry.
+        // get<>() then returns a null locker holding an *unowned* deferred lock, so every
+        // acc.unlock() below would throw std::system_error("operation not permitted") straight
+        // out of the strand handler into io_context::run(). Tear down the bare session only.
+        if (!acc)
+        {
+            CSid.erase_value(sid);
+            main_server->RemoveSession(sid);
+            DEBUGLOG(dark_cyan, "disconnected unauthenticated sid=({})", sid);
+            return;
+        }
         auto aid = acc->acc_info.Index;
         if (aid == -1)
         {

@@ -1,5 +1,15 @@
 #include "Utility.h"
+#include "CSettings.h"
 #include <charconv>
+#include <exception>
+#include <future>
+#include <version>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <openssl/ssl.h>
+#if defined(__cpp_lib_stacktrace)
+#include <stacktrace>
+#endif
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -101,6 +111,116 @@ namespace Utility
         {
             return CustomGen64(0, UINT64_MAX);
         }
+    }
+
+    void InstallTerminateHandler()
+    {
+        std::set_terminate([]
+        {
+            std::string trace;
+#if defined(__cpp_lib_stacktrace)
+            try { trace = std::to_string(std::stacktrace::current()); }
+            catch (...) { trace = "(failed to capture stacktrace)"; }
+#else
+            trace = "(stacktrace unavailable on this toolchain)";
+#endif
+
+            std::string reason = "terminate() called without an active exception";
+            if (auto eptr = std::current_exception())
+            {
+                try { std::rethrow_exception(eptr); }
+                catch (const std::exception& e) { reason = fmt::format("uncaught exception: {}", e.what()); }
+                catch (...) { reason = "uncaught non-standard exception"; }
+            }
+
+            // Async log pools may be gone here - write synchronously to stderr,
+            // and best-effort to the log file.
+            fmt::print(stderr, "FATAL: {}\n{}\n", reason, trace);
+            try
+            {
+                if (BaseLib::EventLog)
+                    BaseLib::EventLog->Write(fmt::format("FATAL: {}\n{}", reason, trace));
+            }
+            catch (...) {}
+
+            // Best-effort: flip the BetterStack monitor down immediately. Bounded so a
+            // dead network can't stall the crash path (we abort right after regardless).
+            try { HeartbeatReportFailure(2000); } catch (...) {}
+
+            std::abort();
+        });
+    }
+
+    bool HttpsGetSync(const std::string& host, const std::string& port, const std::string& target, int timeout_ms)
+    {
+        // NOTE: verify_none. This is an outbound liveness beacon to a fixed host; the
+        // only secret is the token already in the URL. We deliberately skip certificate
+        // verification so a missing/stale CA bundle on the host can never turn a healthy
+        // server into a false "down" — beat reliability wins over MITM hardening here.
+        try
+        {
+            asio::io_context io;
+            asio::ssl::context ctx(asio::ssl::context::tls_client);
+            ctx.set_verify_mode(asio::ssl::verify_none);
+
+            asio::ssl::stream<asio::ip::tcp::socket> stream(io, ctx);
+            // SNI — many vhosts (incl. BetterStack) require it for the handshake.
+            if (!SSL_set_tlsext_host_name(stream.native_handle(), host.c_str()))
+                return false;
+
+            asio::ip::tcp::resolver resolver(io);
+            auto endpoints = resolver.resolve(host, port);
+            asio::connect(stream.lowest_layer(), endpoints);
+            stream.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+            stream.handshake(asio::ssl::stream_base::client);
+
+            const std::string request =
+                "GET " + target + " HTTP/1.1\r\n"
+                "Host: " + host + "\r\n"
+                "User-Agent: MegaVoltsPP-heartbeat\r\n"
+                "Connection: close\r\n\r\n";
+            asio::write(stream, asio::buffer(request));
+
+            asio::error_code ec;
+            stream.shutdown(ec); // ignore truncated-close from a "Connection: close" peer
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+        (void)timeout_ms; // bounding is handled by the caller (see HeartbeatReportFailure)
+    }
+
+    void HeartbeatReportFailure(int timeout_ms)
+    {
+        std::string url;
+        try
+        {
+            if (BaseLib::DefaultSettings)
+                url = BaseLib::DefaultSettings->GetServerSettings().heartbeat.url;
+        }
+        catch (...) { return; }
+
+        if (url.empty())
+            return;
+
+        const auto parts = ParseUrl(url + "/fail");
+        if (!parts || !parts->https)
+            return;
+
+        // Run the blocking GET on a detached worker and wait at most timeout_ms. The
+        // synchronous asio calls have no built-in deadline, so a hung connect must not
+        // hold up the crash handler — we move on (and abort) once the budget elapses.
+        try
+        {
+            auto fut = std::async(std::launch::async, [parts, timeout_ms]
+            {
+                return HttpsGetSync(parts->host, parts->port, parts->target, timeout_ms);
+            });
+            fut.wait_for(std::chrono::milliseconds(timeout_ms));
+        }
+        catch (...) {}
     }
     namespace SecureRandomBlake2b
     {
@@ -300,6 +420,27 @@ namespace Utility
         localtime_r(&now_c, &now_tm);
     #endif
         return static_cast<uint32_t>(now_tm.tm_year + 1900);
+    }
+    // ISO 8601 week of the year (01-53), mirrors GetCurrentMonth's pattern.
+    uint32_t GetCurrentWeek()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm now_tm;
+    #ifdef _WIN64
+        localtime_s(&now_tm, &now_c);
+    #else
+        localtime_r(&now_c, &now_tm);
+    #endif
+        char buf[8]{};
+        std::strftime(buf, sizeof(buf), "%V", &now_tm);
+        uint32_t week = 0;
+        for (char c : buf)
+        {
+            if (c < '0' || c > '9') break;
+            week = week * 10 + static_cast<uint32_t>(c - '0');
+        }
+        return week;
     }
     uint32_t GetCurrentDay()
     {

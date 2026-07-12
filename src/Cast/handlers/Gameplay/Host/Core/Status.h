@@ -45,6 +45,21 @@ namespace Game::Handlers
         NetEngine::Packets::Core::UniqueId uid;
         uint32_t m_uiSpawnTick{};
     };
+
+    // HOST_OTHER_STATUS (order 306) is the JOIN SNAPSHOT the host sends to a player who is
+    // loading into an in-progress match (it fires only on join, never on combat deaths — those
+    // flow through the attack handlers / CombatIpc). The host's per-player m_bIsDead in this
+    // snapshot is momentary and unreliable (it has reported already-respawned players as dead),
+    // which made late joiners render live players as corpses ("everyone invisible until I die").
+    //
+    // So, like ToyBattles' roomInfoJoinHandler (which fills playerState from the server's own
+    // targetSession->isDead, NOT the packet), we answer the joiner from the SERVER's spawn flag:
+    // is_dead is a spawn-state flag here — set true when a player syncs in with 0 health
+    // (a mid-match joiner awaiting their first respawn) and false on respawn; the combat path
+    // (CombatIpc) deliberately does NOT touch it. So a player who has spawned reads
+    // STATE_NORMAL=11 (even if momentarily combat-dead, which self-corrects on their next
+    // respawn) and only a player still awaiting (re)spawn reads STATE_DYING=12. We do NOT mutate
+    // is_dead/health or credit kills here — that is owned by the combat path; we report + forward.
     inline void HostStatus(SCallbackData& callback, CCastServer* server)
     {
         auto session = callback.session;
@@ -63,7 +78,7 @@ namespace Game::Handlers
         hostName = host->nickname;
         auto roomId = host->room_id;
         host.unlock();
-        
+
         if (userSid != hostSid)
         {
             auto user = CAccount.get<shared_t>(userSid);
@@ -71,11 +86,10 @@ namespace Game::Handlers
             userName = user->nickname;
             user.unlock();
         }
-		else
-			userName = hostName;
-		
+        else
+            userName = hostName;
 
-		auto room = CRoom.get<shared_t>(roomId);
+        auto room = CRoom.get<shared_t>(roomId);
         if (!room) return;
         if (hostSid != room->host_session_id)
         {
@@ -83,42 +97,33 @@ namespace Game::Handlers
             DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, hostName, hostSid, roomId);
             return;
         }
+        room.unlock();
 
         std::vector<ExPlayerUpdateInfoAck> update;
         update.resize(cnt);
-        std::string playerName{};
         for (uint8_t i = 0; i < cnt; i++)
         {
             auto data = reinterpret_cast<ExPlayerUpdateInfoReq*>(message->GetData() + sizeof(ExPlayerUpdateInfoReq) * i);
-			PACKETLOG(REQ, order, "roomId=({}) user=({}) sid=({}) from host=({}) hostSid=({}) m_uiSpawnTick=({}) uid=({}) m_bIdk1=({}) m_bIdk2=({}) m_bIdk3=({}) m_bIdk4=({}) m_bIdk5=({}) m_bIdk6=({}) m_bIdk7=({}) m_bIdk8=({}) m_bIdk9=({}) m_bIsDead=({}) m_bIdk11=({}) m_bIdk12=({}) m_bIdk13=({}) m_bIdk14=({}) m_bIdk15=({}) m_bIdk16=({})",
-                roomId, userName, userSid, hostName, hostSid, data->m_uiSpawnTick, data->uid.data, data->m_bIdk1, data->m_bIdk2, data->m_bIdk3, data->m_bIdk4, data->m_bIdk5, data->m_bIdk6, data->m_bIdk7, data->m_bIdk8, data->m_bIdk9, data->m_bIsDead, data->m_bIdk11, data->m_bIdk12, data->m_bIdk13, data->m_bIdk14, data->m_bIdk15, data->m_bIdk16);
 
             update[i].uid = data->uid;
-            update[i].info.player_status = data->m_bIsDead ? 12 : 11;
-			auto updateSid = static_cast<uint16_t>(data->uid.session);
-            auto player = CAccount.get<unique_t>(updateSid);
-            if (!player) continue;
-            const bool was_dead = player->is_dead;
-            player->is_dead = data->m_bIsDead != 0;
-            if (player->is_dead)
+            const auto updateSid = static_cast<uint16_t>(data->uid.session);
+
+            // Authoritative alive/dead from the server's spawn flag (is_dead), NOT the host
+            // packet's momentary m_bIsDead. Spawned players read alive so the joiner instantiates
+            // them; only players still awaiting their (re)spawn read dying.
+            uint32_t health = 0;
+            bool dead = false;
+            if (auto player = CAccount.get<shared_t>(updateSid))
             {
-                player->current_kill_streak = 0;
-                player->current_health = 0;
-                player->health = 0;
-                player->combat_health = 0;
-                player->combat_health_known = true;
+                health = player->current_health;
+                dead = player->is_dead;
+                player.unlock();
             }
-            else if (was_dead || player->health == 0)
-            {
-                const auto full_health = player->max_health ? player->max_health : kCastDefaultHealthRaw;
-                player->current_health = full_health;
-                player->health = full_health;
-                player->combat_health = full_health;
-                player->combat_health_known = true;
-            }
-            update[i].info.health = player->current_health;
-            PACKETLOG(ACK, order, "roomId=({}) player=({}) playerSid=({}) from host=({}) hostSid=({}) health=({}) m_bIsDead=({})",
-				roomId, player->nickname, updateSid, hostName, hostSid, player->current_health, data->m_bIsDead ? "true" : "false");
+            update[i].info.player_status = dead ? 12 : 11;
+            update[i].info.health = health;
+
+            PACKETLOG(ACK, order, "join-snapshot roomId=({}) recipient=({}) recipientSid=({}) from host=({}) hostSid=({}) playerSid=({}) health=({}) status=({}) hostReportedDead=({})",
+                roomId, userName, userSid, hostName, hostSid, updateSid, health, dead ? "dead" : "alive", data->m_bIsDead ? "true" : "false");
         }
         server->Forward(userSid, hostSid, *message);
         CMessage statusMsg;

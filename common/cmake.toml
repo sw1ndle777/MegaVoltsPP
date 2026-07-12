@@ -12,6 +12,8 @@ compile-features = ["cxx_std_23"]
 
 type    = "interface"
 include-directories = [".", "BaseLib/otp", "BaseLib", "NetEngine", "NetEngine/Protocols"]
+# std::stacktrace lives in libstdc++exp on GCC 14+ (and clang using libstdc++)
+link-libraries = ["$<$<PLATFORM_ID:Linux>:stdc++exp>"]
 sources = [
     "BaseLib/otp/**.cpp", 
 	"BaseLib/otp/**.h",

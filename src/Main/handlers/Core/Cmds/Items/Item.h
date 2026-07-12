@@ -34,14 +34,22 @@ namespace Game::Commands
                     ctx.server->SendServerMessage(ctx.callback.session, fmt::format("[MegaVolts Online] invalid item id, error: ({})", id.error()));
                     return;
                 }
+                if (!CItemsInfo.contains(item_id))
+                {
+                    ctx.server->SendServerMessage(ctx.callback.session, fmt::format("[MegaVolts Online] item id {} does not exist", item_id));
+                    return;
+                }
                 spawn_ids.push_back(item_id);
 
             }
             auto crafted_item = ctx.server->CraftInventoryItems(ctx.acc_cache, std::move(spawn_ids), NetEngine::Items::Origin::From_GM_Spawn);
             if (!crafted_item.has_value())
+            {
                 DEBUGLOG(red, "CraftInventoryItems failed for player [{}] [{}]: {}", ctx.acc_cache->acc_info.Index, ctx.acc_cache->acc_info.Nickname.c_str(), static_cast<int>(crafted_item.error()));
-            else
-                dctx.ops.push_back(crafted_item.value());
+                ctx.server->SendServerMessage(ctx.callback.session, "[MegaVolts Online] failed to spawn item(s) (inventory full or invalid item)");
+                return;
+            }
+            dctx.ops.push_back(crafted_item.value());
 
             auto validated = ctx.server->ValidateDatabaseUpdates(ctx.acc_cache, dctx);
             if (!validated.has_value())
@@ -50,53 +58,63 @@ namespace Game::Commands
                 return;
             }
 
+            // Apply to the cache while we still hold the caller's account lock.
+            //
+            // The old flow unlocked here and re-acquired the account lock on a DbPool
+            // thread (CAccount.get<unique_t>) to apply afterwards. That was the only
+            // place a packet-strand thread and a DbPool thread touched the same account
+            // lock across threads, and it left a window between unlock and apply where a
+            // second rapid /item read stale inventory and re-used the same serial ids
+            // (duplicate-key INSERT -> silent spawn failure). Applying under the lock we
+            // already hold removes both: no cross-thread re-lock, no serial race.
+            auto applied = ctx.server->ApplyDatabaseUpdates(ctx.acc_cache, validated.value());
+            if (!applied.has_value())
+            {
+                DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", ctx.acc_cache->acc_info.Index, ctx.acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
+                return;
+            }
+
+            auto v = std::move(validated.value());
+            auto session = ctx.callback.session;
+            const auto aid = ctx.acc_cache->acc_info.Index;
+
+            // Build the client inventory-update payload before unlocking (item stock comes
+            // from CItemsInfo, a separate read-only cache).
+            std::vector<ShopItem> shop_items;
+            shop_items.reserve(v.items_added.size());
+            for (const auto& item : v.items_added)
+            {
+                auto item_info = CItemsInfo.get<shared_t>(item.item_info.item_number.item_id);
+                shop_items.push_back(ShopItem{ {item.item_info.item_number.item_id, item_info->Stock}, ItemExpire::Type::Unused, item.item_info.serial_info });
+            }
+
             ctx.acc_cache.unlock();
 
-            [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([ctx, session = std::move(ctx.callback.session),
-                v = std::move(validated.value())
-            ]() mutable
+            // Notify the client (async, strand-queued send) so the items appear without a relog.
+            if (session && !shop_items.empty())
+            {
+                constexpr std::uint32_t max_packet_size = 1440;
+                constexpr std::uint32_t full_header_size = 8;
+                constexpr std::uint32_t split_size = (max_packet_size - full_header_size) / sizeof(ShopItem);
+                const uint32_t total_fragments = (shop_items.size() + 1) <= split_size ? 1 : ((shop_items.size() + 1) / split_size) + 1;
+                for (uint32_t f = 0; f < total_fragments; f++)
                 {
-                    if (!session) return;
+                    const uint32_t start_index = f * split_size;
+                    const uint32_t end_index = std::min(start_index + split_size, static_cast<uint32_t>(shop_items.size()));
+                    if (start_index >= end_index) continue;
+                    std::vector<ShopItem> items_batch(shop_items.begin() + start_index, shop_items.begin() + end_index);
+                    session->SendMsg(99, 0, 37, static_cast<uint8_t>(items_batch.size()), reinterpret_cast<uint8_t*>(items_batch.data()), items_batch.size() * sizeof(ShopItem));
+                }
+                ctx.server->SendServerMessage(session, fmt::format("[MegaVolts Online] spawned {} item(s)", shop_items.size()).c_str());
+            }
+
+            // Persist to the DB off-thread. The cache is already authoritative; the task
+            // takes no account lock, so it can't contend with the packet handlers.
+            [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([v = std::move(v), aid]() mutable
+                {
                     ResultDbUpdateInfo dbres;
-                    if (!BaseLib::Database->UpdateAccount(v, dbres).has_value()) return;
-                    auto new_acc_cache = CAccount.get<unique_t>(session->GetSessionId());
-                    auto applied = ctx.server->ApplyDatabaseUpdates(new_acc_cache, v);
-                    if (!applied.has_value())
-                    {
-                        DEBUGLOG(red, "ApplyDatabaseUpdates failed for [{}] [{}]: {}", new_acc_cache->acc_info.Index, new_acc_cache->acc_info.Nickname.c_str(), static_cast<int>(applied.error()));
-                        return;
-                    }
-
-                    if (!v.items_added.empty())
-                    {
-                        std::vector<ShopItem> shop_items;
-                        for (const auto& item : v.items_added)
-                        {
-                            auto item_info = CItemsInfo.get<shared_t>(item.item_info.item_number.item_id);
-                            ShopItem new_item = { {item.item_info.item_number.item_id , item_info->Stock} , ItemExpire::Type::Unused,  item.item_info.serial_info };
-                            ctx.server->SendServerMessage(session, fmt::format("[MegaVolts Online] spawned ({}) item", item.item_info.item_number.item_id).c_str());
-                            shop_items.push_back(new_item);
-                        }
-
-                        constexpr std::uint32_t max_packet_size = 1440;
-                        constexpr std::uint32_t full_header_size = 8;
-                        constexpr std::uint32_t split_size = (max_packet_size - full_header_size) / sizeof(ShopItem);
-                        uint32_t total_fragments = (shop_items.size() + 1) <= split_size ? 1 : ((shop_items.size() + 1) / split_size) + 1;
-                        if (!shop_items.empty())
-                        {
-                            for (auto i = 0; i < total_fragments; i++)
-                            {
-                                std::vector<ShopItem> items_batch;
-                                const uint32_t start_index = i * split_size;
-                                const uint32_t end_index = std::min(start_index + split_size, static_cast<uint32_t>(shop_items.size()));
-                                for (auto i = start_index; i < end_index; i++)
-                                    items_batch.push_back(shop_items[i]);
-
-                                if (!items_batch.empty())
-                                    session->SendMsg(99, 0, 37, static_cast<uint8_t>(items_batch.size()), reinterpret_cast<uint8_t*>(items_batch.data()), items_batch.size() * sizeof(ShopItem));
-                            }
-                        }
-                    }
+                    if (!BaseLib::Database->UpdateAccount(v, dbres).has_value())
+                        DEBUGLOG(red, "item persist failed for aid [{}]", aid);
                 });
         };
 

@@ -77,6 +77,12 @@ TABLE_MAPPINGS = [
         ("LastUpdate", "LastClaimDate", False),
     ], ["ID"], False),
     ("system_monthly_rewards", "system_monthly_rewards", [], [], False),
+    ("player_weekly_rewards", "player_weekly_rewards", [
+        ("PlayerId", "AccountId", False),
+        ("RewardCount", "DayCount", False),
+        ("LastUpdate", "LastClaimDate", False),
+    ], ["ID"], False),
+    ("system_weekly_rewards", "system_weekly_rewards", [], [], False),
     ("system_gachapon_machine", "gachapon_sales", [
         ("GachaponMachineId", "GachaponId", False),
     ], [], False),

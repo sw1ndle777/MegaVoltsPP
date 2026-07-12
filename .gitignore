@@ -41,12 +41,14 @@ CMakeFiles/
 # vcpkg installed artifacts
 /vcpkg_installed/
 
-# Docker data (volumes, certs, logs)
-/docker-data/certs/
-/docker-data/logs/
+# Docker data (volumes, certs, logs, crash dumps)
+/docker-data/
 
 # Crash dumps
 /crash_dumps/
+
+# Local build helpers
+_buildtmp*
 
 # vcpkg installed artifacts
 /vcpkg_installed/

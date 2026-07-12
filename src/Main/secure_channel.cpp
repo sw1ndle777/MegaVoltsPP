@@ -3,6 +3,7 @@
 #include "CMainServer.h"
 #include "BaseLib/Utility.h"
 #include "BaseLib/CLog.h"
+#include <algorithm>
 #include <fstream>
 #include <filesystem>
 #include <vector>
@@ -272,8 +273,7 @@ void HeartbeatManager::startSession(uint16_t sid, const uint8_t sessionKey[kKeyS
         memcpy(state.sessionKey, sessionKey, kKeySize);
         state.retryCount = 0;
         state.awaitingResponse = false;
-        state.allowQueuedResponses = false;
-        state.currentChallengeId = 0;
+        state.pendingChallenges.clear();
     }
     DEBUGLOG(dark_cyan, "sid=({}) heartbeat session started", sid);
     scheduleNextChallenge(sid, io, server, kInitialDelayMs);
@@ -305,12 +305,10 @@ bool HeartbeatManager::onResponse(uint16_t sid, const uint8_t* data, uint32_t da
     if (it == sessions_.end()) return false;
     auto& state = it->second;
 
-    if (!state.awaitingResponse && !state.allowQueuedResponses) {
+    if (!state.awaitingResponse && state.pendingChallenges.empty()) {
         DEBUGLOG(dark_cyan, "sid=({}) heartbeat response received but not awaiting one", sid);
         return false;
     }
-
-    const bool isPrimaryResponse = state.awaitingResponse;
 
     // Decrypt the response
     auto wire = reinterpret_cast<const HeartbeatWireData<HeartbeatResponse>*>(data);
@@ -326,37 +324,41 @@ bool HeartbeatManager::onResponse(uint16_t sid, const uint8_t* data, uint32_t da
         return false;
     }
 
-    // Verify challenge ID matches
-    if (response.challenge_id != state.currentChallengeId) {
-        DEBUGLOG(dark_cyan, "sid=({}) heartbeat challenge ID mismatch: expected=0x{:016X} got=0x{:016X}",
-                 sid, state.currentChallengeId, response.challenge_id);
+    // Find matching challenge in the pending set
+    auto matchIt = std::find_if(state.pendingChallenges.begin(), state.pendingChallenges.end(),
+        [&](const PendingChallenge& pc) { return pc.challenge_id == response.challenge_id; });
+
+    if (matchIt == state.pendingChallenges.end()) {
+        DEBUGLOG(dark_cyan, "sid=({}) heartbeat challenge ID 0x{:016X} not in pending set ({}  pending)",
+                 sid, response.challenge_id, state.pendingChallenges.size());
         return false;
     }
 
-    // Verify challenge answer
-    if (!verifyChallengeAnswer(state.sessionKey, state.currentChallengeData, response.challenge_answer)) {
+    // Verify challenge answer against the matched challenge data
+    if (!verifyChallengeAnswer(state.sessionKey, matchIt->challenge_data, response.challenge_answer)) {
         DEBUGLOG(dark_cyan, "sid=({}) heartbeat challenge answer verification failed", sid);
         return false;
     }
 
-    if (isPrimaryResponse)
-    {
-        // Cancel timeout timer for the first valid packet of this challenge.
-        if (state.timer) state.timer->cancel();
+    // Remove the matched challenge (and any older ones before it to prevent replay)
+    state.pendingChallenges.erase(state.pendingChallenges.begin(), matchIt + 1);
 
+    // Any valid response resets retry state and cancels timeout
+    if (state.awaitingResponse) {
+        if (state.timer) state.timer->cancel();
         state.awaitingResponse = false;
-        state.allowQueuedResponses = true;
         state.retryCount = 0;
     }
 
     const std::size_t eventCount =
         (response.event_count < kMaxQueuedEvents) ? response.event_count : kMaxQueuedEvents;
 
-    DEBUGLOG(dark_cyan, "sid=({}) heartbeat {} accepted, challenge=0x{:016X} events={}",
-             sid,
-             isPrimaryResponse ? "response" : "queued batch",
-             response.challenge_id,
-             static_cast<uint32_t>(eventCount));
+    // Schedule next challenge if no more pending challenges remain
+    const bool shouldScheduleNext = state.pendingChallenges.empty();
+
+    DEBUGLOG(dark_cyan, "sid=({}) heartbeat response accepted, challenge=0x{:016X} events={} pending={}",
+             sid, response.challenge_id, static_cast<uint32_t>(eventCount),
+             state.pendingChallenges.size());
 
     // Log detection events
     for (std::size_t i = 0; i < eventCount; ++i) {
@@ -382,9 +384,7 @@ bool HeartbeatManager::onResponse(uint16_t sid, const uint8_t* data, uint32_t da
 
     lock.unlock();
 
-    // Schedule next challenge only once; extra packets with the same challenge
-    // are accepted as queued follow-up batches until the next challenge is sent.
-    if (isPrimaryResponse)
+    if (shouldScheduleNext)
         scheduleNextChallenge(sid, io, server, kChallengeIntervalMs);
 
     return true;
@@ -397,17 +397,23 @@ void HeartbeatManager::sendChallenge(uint16_t sid, asio::io_context& io, Game::C
     if (it == sessions_.end()) return;
     auto& state = it->second;
 
-    // Generate random challenge
+    // Generate random challenge and add to pending set
     Utility::SecureRandomBlake2b::Generator rng;
-    rng.NextBytes(reinterpret_cast<uint8_t*>(&state.currentChallengeId), sizeof(uint64_t));
-    rng.NextBytes(state.currentChallengeData, 32);
+    PendingChallenge pending{};
+    rng.NextBytes(reinterpret_cast<uint8_t*>(&pending.challenge_id), sizeof(uint64_t));
+    rng.NextBytes(pending.challenge_data, 32);
+
+    // Evict oldest if at capacity
+    while (state.pendingChallenges.size() >= kMaxPendingChallenges)
+        state.pendingChallenges.pop_front();
+
+    state.pendingChallenges.push_back(pending);
     state.awaitingResponse = true;
-    state.allowQueuedResponses = false;
 
     // Build plaintext challenge
     HeartbeatChallenge challenge{};
-    challenge.challenge_id = state.currentChallengeId;
-    memcpy(challenge.challenge_data, state.currentChallengeData, 32);
+    challenge.challenge_id = pending.challenge_id;
+    memcpy(challenge.challenge_data, pending.challenge_data, 32);
 
     // Encrypt into wire format
     HeartbeatWireData<HeartbeatChallenge> wire{};
@@ -416,7 +422,7 @@ void HeartbeatManager::sendChallenge(uint16_t sid, asio::io_context& io, Game::C
                      nullptr, 0,
                      reinterpret_cast<const uint8_t*>(&challenge), sizeof(HeartbeatChallenge));
 
-    auto challengeId = state.currentChallengeId;
+    auto challengeId = pending.challenge_id;
     lock.unlock();
 
     // Send on packet 81 (INFO_SECURITY_TOOLS) with extra=1
@@ -451,7 +457,8 @@ void HeartbeatManager::scheduleTimeout(uint16_t sid, asio::io_context& io, Game:
         if (!state.awaitingResponse) return;
 
         state.retryCount++;
-        DEBUGLOG(dark_cyan, "sid=({}) heartbeat timeout, retry {}/{}", sid, state.retryCount, kMaxRetries);
+        DEBUGLOG(dark_cyan, "sid=({}) heartbeat timeout, retry {}/{} pending={}",
+                 sid, state.retryCount, kMaxRetries, state.pendingChallenges.size());
 
         if (state.retryCount >= kMaxRetries) {
             lock.unlock();
@@ -461,7 +468,7 @@ void HeartbeatManager::scheduleTimeout(uint16_t sid, asio::io_context& io, Game:
             return;
         }
 
-        // Resend the same challenge
+        // Send a new challenge; old ones remain in pendingChallenges
         state.awaitingResponse = false;
         lock.unlock();
         sendChallenge(sid, io, server);

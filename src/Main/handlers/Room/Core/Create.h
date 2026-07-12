@@ -20,6 +20,7 @@ namespace Game::Handlers
     inline void TryLeavePlaza(CreateRoomCtx& ctx)
     {
         auto sid = ctx.session->GetSessionId();
+        const auto nick = ctx.acc->acc_info.Nickname; // local copy for logging
         if (!ctx.acc->in_plaza) return;
         auto plaza_id = ctx.acc->plaza_id;
         if (!ctx.main->IsPlazaAlready(plaza_id)) return;
@@ -28,7 +29,7 @@ namespace Game::Handlers
         auto& ids = current_plaza->session_ids;
 		if (!std::ranges::contains(ids, sid)) return;
 
-        DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", sid, plaza_id);
+        DEBUGLOG(dark_cyan, "user=({}) sid=({}) left plaza id: ({})", nick.c_str(), sid, plaza_id);
         std::erase_if(ids, [&](const uint16_t& id) { return id == sid; });
         ctx.acc->plaza_id = 0;
         ctx.acc->in_plaza = false;
@@ -165,7 +166,7 @@ namespace Game::Handlers
         CreateRoomCtx ctx
         {
             .main = main_server,
-            .session = session,
+            .session = session.get(),
             .acc = acc_cache
         };
 

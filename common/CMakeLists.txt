@@ -77,3 +77,7 @@ target_include_directories(common INTERFACE
 	NetEngine
 	"NetEngine/Protocols"
 )
+
+target_link_libraries(common INTERFACE
+	"$<$<PLATFORM_ID:Linux>:stdc++exp>"
+)

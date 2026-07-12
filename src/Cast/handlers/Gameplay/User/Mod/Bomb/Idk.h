@@ -18,10 +18,17 @@ namespace Game::Handlers
 
         auto sid = session->GetSessionId();
         auto acc = CAccount.get<shared_t>(sid);
-        auto room = CRoom.get<shared_t>(acc->room_id);
+        if (!acc) return;
+        auto room_id = acc->room_id;
         acc.unlock();
+
 		auto req = message->GetData<unknown4Req*>();
 		PACKETLOG(REQ, USER_MOD_BOMB_IDK, "sid=({}) idk1=({}) idk2=({}) idk3=({})", sid, (uint32_t)req->idk1, (uint32_t)req->idk2, req->idk3);
-        server->Broadcast(room->players_session_id, *message);
+
+        auto room = CRoom.get<shared_t>(room_id);
+        if (!room) return;
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, *message);
     }
 }

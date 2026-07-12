@@ -90,6 +90,7 @@ namespace Game::Handlers
         auto sid = session->GetSessionId();
         auto acc = CAccount.get<unique_t>(sid);
         auto aid = acc->acc_info.Index;
+        const auto nick = acc->acc_info.Nickname; // local copy for logging
         auto my_uid = NetEngine::Packets::Core::UniqueId(sid, 1).data;
         if (aid == -1) return;
 
@@ -232,7 +233,7 @@ namespace Game::Handlers
                         if (auto pss = server->GetSessionById(id))
                             pss->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_uid), sizeof(my_uid));
                     }
-                    DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", sid, plaza_id);
+                    DEBUGLOG(dark_cyan, "user=({}) sid=({}) left plaza id: ({})", nick.c_str(), sid, plaza_id);
                     std::erase(plaza->session_ids, sid);
                     acc->plaza_id = 0;
                     acc->in_plaza = false;

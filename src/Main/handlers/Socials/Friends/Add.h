@@ -55,16 +55,19 @@ namespace Game::Handlers
             session->SendMsg(61, 0, AddResult::PlayerNotFound, 0);
             return;
         }
-        if (type == RequestResult::RequestSend)
+        // Resolve the target's CURRENT uid/aid server-side for BOTH send and accept.
+        // On accept (RequestRecv) the client-supplied unique_id is stale whenever the
+        // accepter loaded the pending request from the DB (e.g. after a relog), since
+        // the DB doesn't store the requester's live session id. That left the
+        // requester un-notified live — the new friend only appeared after a relog.
+        // Resolving by nickname here yields the requester's current online session.
         {
-            
-            auto target_acc = CAccount.get_by_filter<shared_t>([&](const auto& /*id*/, auto& player) {
-                return Utility::ToLowercase(player.acc_info.Nickname) == Utility::ToLowercase(target_nickname);
-                });
-            if (target_acc->acc_info.Index)
+            // lock-free resolve (we hold `acc` unique) — avoids ABBA, see ResolveOnlineByNickname
+            const auto target = CMainServer::ResolveOnlineByNickname(target_nickname);
+            if (target.aid != -1)
             {
-                target_uid.data = target_acc->uid.data;
-                target_aid = target_acc->acc_info.Index;
+                target_uid.data = target.uid.data;
+                target_aid = target.aid;
             }
         }
         DEBUGLOG(green, "player ({}) add friend req target: {} [{}]", acc->acc_info.Nickname.c_str(), target_nickname.c_str(), target_aid);

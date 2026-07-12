@@ -330,6 +330,9 @@ namespace BaseLib
                     ArmsRaceScore int unsigned NOT NULL DEFAULT 0,
                     ZombieScore int unsigned NOT NULL DEFAULT 0,
                     ADR int unsigned NOT NULL DEFAULT 0,
+                    IsParty bool NOT NULL DEFAULT 0,
+                    Restriction int unsigned NOT NULL DEFAULT 0,
+                    MaxPlayers int unsigned NOT NULL DEFAULT 0,
                     PRIMARY KEY(Id),
                     KEY IX_player_matchhistory_MatchUniqueId (MatchUniqueId),
                     KEY IX_player_matchhistory_AccountId (AccountId),
@@ -342,6 +345,10 @@ namespace BaseLib
                     match_history_migration_stmt->execute("ALTER TABLE `player_matchhistory` ADD COLUMN IF NOT EXISTS `WinRuleType` varchar(32) NOT NULL DEFAULT 'Unknown' AFTER `TimeRule`");
                     match_history_migration_stmt->execute("ALTER TABLE `player_matchhistory` ADD COLUMN IF NOT EXISTS `MatchStartUtc` varchar(32) NOT NULL DEFAULT '' AFTER `MatchStartTime`");
                     match_history_migration_stmt->execute("ALTER TABLE `player_matchhistory` ADD COLUMN IF NOT EXISTS `MatchEndUtc` varchar(32) NOT NULL DEFAULT '' AFTER `MatchEndTime`");
+                    // Match-type metadata for website filtering (party / weapon restriction / room size).
+                    match_history_migration_stmt->execute("ALTER TABLE `player_matchhistory` ADD COLUMN IF NOT EXISTS `IsParty` bool NOT NULL DEFAULT 0 AFTER `ADR`");
+                    match_history_migration_stmt->execute("ALTER TABLE `player_matchhistory` ADD COLUMN IF NOT EXISTS `Restriction` int unsigned NOT NULL DEFAULT 0 AFTER `IsParty`");
+                    match_history_migration_stmt->execute("ALTER TABLE `player_matchhistory` ADD COLUMN IF NOT EXISTS `MaxPlayers` int unsigned NOT NULL DEFAULT 0 AFTER `Restriction`");
                 }
                 catch (const sql::SQLException& e)
                 {
@@ -523,6 +530,46 @@ namespace BaseLib
                     DEBUGLOG(red, "player_monthly_rewards migration failed: {}", e.what());
                 }
 
+                CreateTable("player_weekly_rewards", R"(
+                    ID int unsigned NOT NULL AUTO_INCREMENT,
+                    PlayerId int unsigned NOT NULL,
+                    RewardCount tinyint unsigned NOT NULL,
+                    LastUpdate datetime(6) NOT NULL,
+                    PRIMARY KEY (ID),
+                    UNIQUE KEY UX_player_weekly_rewards_PlayerId (PlayerId),
+                    CONSTRAINT FK_player_weekly_rewards_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                try
+                {
+                    std::unique_ptr<sql::Statement> dedupe_weekly_rewards_stmt(conn->createStatement());
+                    dedupe_weekly_rewards_stmt->execute(R"(
+                        DELETE pwr1
+                        FROM player_weekly_rewards pwr1
+                        JOIN player_weekly_rewards pwr2
+                          ON pwr1.PlayerId = pwr2.PlayerId
+                         AND (pwr1.LastUpdate < pwr2.LastUpdate
+                              OR (pwr1.LastUpdate = pwr2.LastUpdate AND pwr1.ID < pwr2.ID))
+                    )");
+
+                    std::unique_ptr<sql::PreparedStatement> weekly_rewards_idx_stmt(conn->prepareStatement(
+                        "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.STATISTICS "
+                        "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'player_weekly_rewards' "
+                        "AND INDEX_NAME = 'UX_player_weekly_rewards_PlayerId'"
+                    ));
+                    weekly_rewards_idx_stmt->setString(1, database_name);
+                    std::unique_ptr<sql::ResultSet> weekly_rewards_idx_res(weekly_rewards_idx_stmt->executeQuery());
+                    bool has_unique_weekly_reward_playerid = weekly_rewards_idx_res->next() && weekly_rewards_idx_res->getUInt("cnt") > 0;
+                    if (!has_unique_weekly_reward_playerid)
+                    {
+                        std::unique_ptr<sql::Statement> add_weekly_rewards_idx_stmt(conn->createStatement());
+                        add_weekly_rewards_idx_stmt->execute("ALTER TABLE `player_weekly_rewards` ADD UNIQUE KEY `UX_player_weekly_rewards_PlayerId` (`PlayerId`)");
+                    }
+                }
+                catch (const sql::SQLException& e)
+                {
+                    DEBUGLOG(red, "player_weekly_rewards migration failed: {}", e.what());
+                }
+
                 CreateTable("player_profiles", R"(
                     AccountId int unsigned NOT NULL,
                     Description varchar(140) NOT NULL DEFAULT '',
@@ -576,38 +623,127 @@ namespace BaseLib
                 CreateTable("system_monthly_rewards", R"(
                     Year smallint unsigned NOT NULL,
                     Month tinyint unsigned NOT NULL,
-                    Day1 int unsigned NOT NULL,
-                    Day2 int unsigned NOT NULL,
-                    Day3 int unsigned NOT NULL,
-                    Day4 int unsigned NOT NULL,
-                    Day5 int unsigned NOT NULL,
-                    Day6 int unsigned NOT NULL,
-                    Day7 int unsigned NOT NULL,
-                    Day8 int unsigned NOT NULL,
-                    Day9 int unsigned NOT NULL,
-                    Day10 int unsigned NOT NULL,
-                    Day11 int unsigned NOT NULL,
-                    Day12 int unsigned NOT NULL,
-                    Day13 int unsigned NOT NULL,
-                    Day14 int unsigned NOT NULL,
-                    Day15 int unsigned NOT NULL,
-                    Day16 int unsigned NOT NULL,
-                    Day17 int unsigned NOT NULL,
-                    Day18 int unsigned NOT NULL,
-                    Day19 int unsigned NOT NULL,
-                    Day20 int unsigned NOT NULL,
-                    Day21 int unsigned NOT NULL,
-                    Day22 int unsigned NOT NULL,
-                    Day23 int unsigned NOT NULL,
-                    Day24 int unsigned NOT NULL,
-                    Day25 int unsigned NOT NULL,
-                    Day26 int unsigned NOT NULL,
-                    Day27 int unsigned NOT NULL,
-                    Day28 int unsigned NOT NULL,
-                    Day29 int unsigned NOT NULL,
-                    Day30 int unsigned NOT NULL,
-                    Day31 int unsigned NOT NULL,
+                    Day1 int unsigned NOT NULL DEFAULT 0,
+                    Day2 int unsigned NOT NULL DEFAULT 0,
+                    Day3 int unsigned NOT NULL DEFAULT 0,
+                    Day4 int unsigned NOT NULL DEFAULT 0,
+                    Day5 int unsigned NOT NULL DEFAULT 0,
+                    Day6 int unsigned NOT NULL DEFAULT 0,
+                    Day7 int unsigned NOT NULL DEFAULT 0,
+                    Day8 int unsigned NOT NULL DEFAULT 0,
+                    Day9 int unsigned NOT NULL DEFAULT 0,
+                    Day10 int unsigned NOT NULL DEFAULT 0,
+                    Day11 int unsigned NOT NULL DEFAULT 0,
+                    Day12 int unsigned NOT NULL DEFAULT 0,
+                    Day13 int unsigned NOT NULL DEFAULT 0,
+                    Day14 int unsigned NOT NULL DEFAULT 0,
+                    Day15 int unsigned NOT NULL DEFAULT 0,
+                    Day16 int unsigned NOT NULL DEFAULT 0,
+                    Day17 int unsigned NOT NULL DEFAULT 0,
+                    Day18 int unsigned NOT NULL DEFAULT 0,
+                    Day19 int unsigned NOT NULL DEFAULT 0,
+                    Day20 int unsigned NOT NULL DEFAULT 0,
+                    Day21 int unsigned NOT NULL DEFAULT 0,
+                    Day22 int unsigned NOT NULL DEFAULT 0,
+                    Day23 int unsigned NOT NULL DEFAULT 0,
+                    Day24 int unsigned NOT NULL DEFAULT 0,
+                    Day25 int unsigned NOT NULL DEFAULT 0,
+                    Day26 int unsigned NOT NULL DEFAULT 0,
+                    Day27 int unsigned NOT NULL DEFAULT 0,
+                    Day28 int unsigned NOT NULL DEFAULT 0,
+                    Day29 int unsigned NOT NULL DEFAULT 0,
+                    Day30 int unsigned NOT NULL DEFAULT 0,
+                    Day31 int unsigned NOT NULL DEFAULT 0,
                     PRIMARY KEY (Year, Month))");
+
+                CreateTable("system_weekly_rewards", R"(
+                    Year smallint unsigned NOT NULL,
+                    Week tinyint unsigned NOT NULL,
+                    Day1 int unsigned NOT NULL DEFAULT 0,
+                    Day2 int unsigned NOT NULL DEFAULT 0,
+                    Day3 int unsigned NOT NULL DEFAULT 0,
+                    Day4 int unsigned NOT NULL DEFAULT 0,
+                    Day5 int unsigned NOT NULL DEFAULT 0,
+                    Day6 int unsigned NOT NULL DEFAULT 0,
+                    Day7 int unsigned NOT NULL DEFAULT 0,
+                    PRIMARY KEY (Year, Week))");
+
+                CreateTable("system_playtime_rewards", R"(
+                    Year smallint unsigned NOT NULL,
+                    Month tinyint unsigned NOT NULL,
+                    Reward1 int unsigned NOT NULL DEFAULT 0,
+                    Reward2 int unsigned NOT NULL DEFAULT 0,
+                    Reward3 int unsigned NOT NULL DEFAULT 0,
+                    PRIMARY KEY (Year, Month))");
+
+                CreateTable("player_playtime", R"(
+                    ID int unsigned NOT NULL AUTO_INCREMENT,
+                    PlayerId int unsigned NOT NULL,
+                    DailySeconds int unsigned NOT NULL DEFAULT 0,
+                    ClaimedStage tinyint unsigned NOT NULL DEFAULT 0,
+                    LastUpdate datetime(6) NOT NULL,
+                    PRIMARY KEY (ID),
+                    UNIQUE KEY UX_player_playtime_PlayerId (PlayerId),
+                    CONSTRAINT FK_player_playtime_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                // ── Battle Pass (MICROPASS) ──────────────────────────────────
+                CreateTable("system_battlepass_season", R"(
+                    Season int unsigned NOT NULL,
+                    StartDate datetime(6) NOT NULL,
+                    EndDate datetime(6) NOT NULL,
+                    ResetBaseCost int unsigned NOT NULL DEFAULT 0,
+                    PRIMARY KEY (Season))");
+
+                CreateTable("system_battlepass_rewards", R"(
+                    Season int unsigned NOT NULL,
+                    Level int unsigned NOT NULL,
+                    XpRequired int unsigned NOT NULL DEFAULT 0,
+                    FreeItem int unsigned NOT NULL DEFAULT 0,
+                    PremiumItem int unsigned NOT NULL DEFAULT 0,
+                    PRIMARY KEY (Season, Level))");
+
+                CreateTable("system_battlepass_missions", R"(
+                    MissionId int unsigned NOT NULL,
+                    Description varchar(255) NOT NULL DEFAULT '',
+                    CriteriaType int unsigned NOT NULL DEFAULT 0,
+                    CriteriaTarget int unsigned NOT NULL DEFAULT 0,
+                    XpReward int unsigned NOT NULL DEFAULT 0,
+                    PRIMARY KEY (MissionId))");
+
+                CreateTable("player_battlepass", R"(
+                    PlayerId int unsigned NOT NULL,
+                    Season int unsigned NOT NULL DEFAULT 0,
+                    Level int unsigned NOT NULL DEFAULT 1,
+                    Xp int unsigned NOT NULL DEFAULT 0,
+                    HasPremium tinyint unsigned NOT NULL DEFAULT 0,
+                    ClaimedFree varchar(32) NOT NULL DEFAULT '00000000000000000000000000000000',
+                    ClaimedPremium varchar(32) NOT NULL DEFAULT '00000000000000000000000000000000',
+                    CurrentMissionId int unsigned NOT NULL DEFAULT 0,
+                    MissionProgress int unsigned NOT NULL DEFAULT 0,
+                    ResetCount int unsigned NOT NULL DEFAULT 0,
+                    UNIQUE KEY UX_player_battlepass_PlayerId (PlayerId),
+                    CONSTRAINT FK_player_battlepass_accounts_PlayerId FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                // Default seed (idempotent): season 1 + 100 levels with every item slot
+                // = 3010050, and a few starter missions. INSERT IGNORE = only fills when
+                // rows are missing (effectively "only if table was just created").
+                {
+                    std::unique_ptr<sql::Statement> st(GetConnection()->createStatement());
+                    st->execute("INSERT IGNORE INTO system_battlepass_season (Season, StartDate, EndDate, ResetBaseCost) "
+                                "VALUES (1, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL 30 DAY), 100)");
+                    std::string rows;
+                    for (int lv = 1; lv <= 100; ++lv)
+                    {
+                        if (!rows.empty()) rows += ",";
+                        rows += "(1," + std::to_string(lv) + ",5000,3010050,3010050)";
+                    }
+                    st->execute("INSERT IGNORE INTO system_battlepass_rewards (Season, Level, XpRequired, FreeItem, PremiumItem) VALUES " + rows);
+                    st->execute("INSERT IGNORE INTO system_battlepass_missions (MissionId, Description, CriteriaType, CriteriaTarget, XpReward) VALUES "
+                                "(1,'Get 30 Kills in FFA',0,30,2500),"
+                                "(2,'Collect 5000 EXP',1,5000,2500),"
+                                "(3,'Win 3 Matches',2,3,2500),"
+                                "(4,'Play 5 Matches',3,5,1500)");
+                }
 
                 CreateTable("player_daily_mission", R"(
                     PlayerId int unsigned NOT NULL,
@@ -752,13 +888,15 @@ namespace BaseLib
                     Id bigint unsigned NOT NULL AUTO_INCREMENT,
                     Aid int unsigned NOT NULL,
                     TargetAid int unsigned DEFAULT NULL,
-                    EventType enum('RoomCreated','RoomJoined','RoomLeft','RoomKicked','TeamChanged','VoteKickStarted','VoteKickAgreed','VoteKickSucceeded','VoteKickFailed') NOT NULL,
+                    EventType enum('RoomCreated','RoomJoined','RoomLeft','RoomKicked','TeamChanged','VoteKickStarted','VoteKickAgreed','VoteKickSucceeded','VoteKickFailed','MatchStarted','MatchEntered','MatchLeft','MapChanged','ModeChanged','ScoreRuleChanged','TimeRuleChanged','MaxPlayersChanged') NOT NULL,
                     ServerId int unsigned NOT NULL DEFAULT 0,
                     RoomId int unsigned NOT NULL,
                     HostAid int unsigned DEFAULT NULL,
                     TeamId tinyint unsigned DEFAULT NULL,
                     NewTeamId tinyint unsigned DEFAULT NULL,
                     VoteKickReason tinyint unsigned DEFAULT NULL,
+                    OldValue int DEFAULT NULL,
+                    NewValue int DEFAULT NULL,
                     CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
                     PRIMARY KEY (Id),
                     KEY IX_roomlogs_Aid (Aid),
@@ -770,11 +908,104 @@ namespace BaseLib
                     CONSTRAINT FK_roomlogs_TargetAid FOREIGN KEY (TargetAid) REFERENCES accounts (Id) ON DELETE SET NULL,
                     CONSTRAINT FK_roomlogs_HostAid FOREIGN KEY (HostAid) REFERENCES accounts (Id) ON DELETE SET NULL)");
 
+                // Existing DBs: extend the EventType enum with the match-lifecycle + setting-change values.
+                try
+                {
+                    std::unique_ptr<sql::Statement> alter_roomlogs_stmt(conn->createStatement());
+                    alter_roomlogs_stmt->execute(
+                        "ALTER TABLE `player_roomlogs` MODIFY COLUMN `EventType` "
+                        "enum('RoomCreated','RoomJoined','RoomLeft','RoomKicked','TeamChanged','VoteKickStarted','VoteKickAgreed','VoteKickSucceeded','VoteKickFailed','MatchStarted','MatchEntered','MatchLeft','MapChanged','ModeChanged','ScoreRuleChanged','TimeRuleChanged','MaxPlayersChanged') NOT NULL"
+                    );
+                }
+                catch (const sql::SQLException& e)
+                {
+                    DEBUGLOG(yellow, "player_roomlogs EventType migration failed: {}", e.what());
+                }
+
+                // Existing DBs: add the generic old/new value columns for setting-change rows.
+                for (const char* col : { "OldValue", "NewValue" })
+                {
+                    try
+                    {
+                        std::unique_ptr<sql::Statement> add_col_stmt(conn->createStatement());
+                        add_col_stmt->execute(std::string("ALTER TABLE `player_roomlogs` ADD COLUMN `") + col + "` int DEFAULT NULL");
+                    }
+                    catch (const sql::SQLException&) { /* column already exists */ }
+                }
+
+                // Per-match session spans (join/leave) keyed by the match unique id.
+                CreateTable("player_match_sessions", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    MatchUniqueId varchar(128) NOT NULL,
+                    Aid int unsigned NOT NULL,
+                    TeamId tinyint unsigned NOT NULL DEFAULT 0,
+                    JoinedMs bigint unsigned NOT NULL,
+                    LeftMs bigint unsigned NOT NULL,
+                    Reason enum('Finished','Leave','Kicked','Disconnect') NOT NULL,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_match_sessions_MatchUniqueId (MatchUniqueId),
+                    KEY IX_match_sessions_Aid (Aid),
+                    CONSTRAINT FK_match_sessions_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                // Per-hit combat log keyed by the match unique id: powers the website's
+                // accuracy breakdown (head/body/arms/legs) and the kill/death timeline.
+                CreateTable("player_match_combat", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    MatchUniqueId varchar(128) NOT NULL,
+                    AttackerAid int unsigned NOT NULL,
+                    VictimAid int unsigned NOT NULL,
+                    Weapon tinyint unsigned NOT NULL DEFAULT 0,
+                    BodyPart tinyint unsigned NOT NULL DEFAULT 0,
+                    HitVariant tinyint unsigned NOT NULL DEFAULT 255,
+                    Damage int unsigned NOT NULL DEFAULT 0,
+                    VictimHpAfter int unsigned NOT NULL DEFAULT 0,
+                    IsKill tinyint unsigned NOT NULL DEFAULT 0,
+                    EventMs bigint unsigned NOT NULL DEFAULT 0,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_match_combat_MatchUniqueId (MatchUniqueId),
+                    KEY IX_match_combat_AttackerAid (AttackerAid),
+                    KEY IX_match_combat_VictimAid (VictimAid),
+                    CONSTRAINT FK_match_combat_Attacker FOREIGN KEY (AttackerAid) REFERENCES accounts (Id) ON DELETE CASCADE,
+                    CONSTRAINT FK_match_combat_Victim FOREIGN KEY (VictimAid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                // Per-match non-combat timeline events: respawns, bomb plant/defuse
+                // progress, and item pickups. EventType: 1 Respawn, 2 Bomb, 3 ItemPickup.
+                // For Bomb: SubA = role (0 defuser, 1 planter), SubB = phase (0 start, 1 stop, 2 finish).
+                // For ItemPickup: Value = item id.
+                CreateTable("player_match_events", R"(
+                    Id bigint unsigned NOT NULL AUTO_INCREMENT,
+                    MatchUniqueId varchar(128) NOT NULL,
+                    Aid int unsigned NOT NULL,
+                    EventType tinyint unsigned NOT NULL DEFAULT 0,
+                    SubA tinyint unsigned NOT NULL DEFAULT 0,
+                    SubB tinyint unsigned NOT NULL DEFAULT 0,
+                    Value int unsigned NOT NULL DEFAULT 0,
+                    EventMs bigint unsigned NOT NULL DEFAULT 0,
+                    CreatedAt datetime NOT NULL DEFAULT current_timestamp(),
+                    PRIMARY KEY (Id),
+                    KEY IX_match_events_MatchUniqueId (MatchUniqueId),
+                    KEY IX_match_events_Aid (Aid),
+                    KEY IX_match_events_EventType (EventType),
+                    CONSTRAINT FK_match_events_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                {
+                    auto checkStmt = conn->prepareStatement(
+                        "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() "
+                        "AND TABLE_NAME = 'player_gacha_pity' AND COLUMN_NAME = 'GachaId' LIMIT 1");
+                    auto checkRes = checkStmt->executeQuery();
+                    if (checkRes->next())
+                    {
+                        conn->createStatement()->executeUpdate("DROP TABLE player_gacha_pity");
+                        DEBUGLOG(dark_cyan, "dropped legacy player_gacha_pity table (per-id -> per-type migration)");
+                    }
+                }
                 CreateTable("player_gacha_pity", R"(
                     PlayerId int unsigned NOT NULL,
-                    GachaId int unsigned NOT NULL,
+                    GachaType int unsigned NOT NULL,
                     LuckyPoints int unsigned NOT NULL DEFAULT 0,
-                    PRIMARY KEY (PlayerId, GachaId),
+                    PRIMARY KEY (PlayerId, GachaType),
                     CONSTRAINT FK_gacha_pity_accounts FOREIGN KEY (PlayerId) REFERENCES accounts (Id) ON DELETE CASCADE
                 )");
 
@@ -818,6 +1049,12 @@ namespace BaseLib
                     KEY IX_ac_auth_history_Aid (Aid),
                     KEY IX_ac_auth_history_CreatedAt (CreatedAt),
                     CONSTRAINT FK_ac_auth_history_Aid FOREIGN KEY (Aid) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+                CreateTable("player_misc", R"(
+                    AccountId int unsigned NOT NULL,
+                    IsInvisible tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (AccountId),
+                    CONSTRAINT FK_player_misc_account FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
                 // Create default admin account if it doesn't exist
                 try
@@ -1055,7 +1292,7 @@ namespace BaseLib
         }
         catch (sql::SQLException& e)
         {
-            if (std::string(e.what()).find("database exists") == std::string::npos)
+            if (!std::string_view(e.what()).contains("database exists"))
                 DEBUGLOG(red, "exception=({})", e.what());
 
             return false;
@@ -1109,6 +1346,32 @@ namespace BaseLib
         return result;
     }
 
+    // Bumped whenever the calling thread's connection is replaced or reconnected,
+    // so Prep() knows its cached server-side statements are no longer valid.
+    static thread_local uint64_t tl_conn_generation = 0;
+
+    // Set while a transaction is open on the calling thread's connection. While set,
+    // GetConnection() must NOT ping/reconnect/replace the connection: swapping it would
+    // orphan the open transaction with its row/metadata locks still held server-side,
+    // freezing every other DB worker and the other servers that share this database
+    // (which presents as "all servers frozen forever" until a manual restart).
+    static thread_local bool tl_in_transaction = false;
+
+    namespace
+    {
+        // RAII: marks the calling thread as inside a transaction for the lifetime of the
+        // object. Place one immediately after "START TRANSACTION" so it stays active across
+        // every statement up to COMMIT/ROLLBACK and is cleared on any exit path (return,
+        // exception unwinding).
+        struct TransactionGuard
+        {
+            TransactionGuard() noexcept { tl_in_transaction = true; }
+            ~TransactionGuard() { tl_in_transaction = false; }
+            TransactionGuard(const TransactionGuard&) = delete;
+            TransactionGuard& operator=(const TransactionGuard&) = delete;
+        };
+    }
+
     sql::Connection* CMariaDatabase::GetConnection()
     {
         thread_local sql::Connection* tl_conn = nullptr;
@@ -1119,6 +1382,7 @@ namespace BaseLib
             delete tl_conn;
             tl_conn = nullptr;
             tl_conn = driver->connect(this->properties);
+            tl_conn_generation++;
             if (tl_conn && tl_conn->isValid())
             {
                 tl_conn->setSchema(database_name);
@@ -1135,6 +1399,14 @@ namespace BaseLib
             return tl_conn;
         }
 
+        // Never revalidate or reconnect while a transaction is open on this connection:
+        // replacing it would abandon the in-flight transaction with its locks held until
+        // the DB's wait_timeout reaps the orphaned connection. A genuinely dead connection
+        // here instead surfaces as a failing statement -> exception -> rollback, which is
+        // the correct outcome (a transaction cannot survive a reconnect anyway).
+        if (tl_in_transaction)
+            return tl_conn;
+
         // isValid(1) sends an actual ping to the server with 1 second timeout,
         // detecting connections killed by server-side wait_timeout.
         if (!tl_conn->isValid(1))
@@ -1145,6 +1417,7 @@ namespace BaseLib
                 if (tl_conn->reconnect())
                 {
                     DEBUGLOG(dark_cyan, "DB reconnect succeeded");
+                    tl_conn_generation++;
                     return tl_conn;
                 }
             }
@@ -1152,6 +1425,34 @@ namespace BaseLib
             create_connection();
         }
         return tl_conn;
+    }
+
+    sql::PreparedStatement* CMariaDatabase::Prep(const std::string& sql_text)
+    {
+        thread_local boost::unordered_flat_map<std::string, std::unique_ptr<sql::PreparedStatement>> tl_stmt_cache;
+        thread_local uint64_t tl_cache_generation = ~0ull;
+
+        auto* connection = GetConnection();
+        if (!connection)
+            throw sql::SQLException("No database connection");
+
+        if (tl_cache_generation != tl_conn_generation)
+        {
+            tl_stmt_cache.clear();
+            tl_cache_generation = tl_conn_generation;
+        }
+
+        if (auto it = tl_stmt_cache.find(sql_text); it != tl_stmt_cache.end())
+            return it->second.get();
+
+        // Bound growth from dynamically generated SQL (multi-row inserts etc.).
+        if (tl_stmt_cache.size() >= 512)
+            tl_stmt_cache.clear();
+
+        auto stmt = std::unique_ptr<sql::PreparedStatement>(connection->prepareStatement(sql_text));
+        auto* raw = stmt.get();
+        tl_stmt_cache.emplace(sql_text, std::move(stmt));
+        return raw;
     }
 
     std::expected<void, DbError> CMariaDatabase::EnsureConnected()
@@ -1217,7 +1518,7 @@ namespace BaseLib
                 if (!n.is_reward) guards.push_back(std::string(col) + " >= ?");
             }
             std::string sql = "UPDATE accounts SET " + GenerateJoinedString(set_parts, ", ") + " WHERE Id = ?" + (guards.empty() ? "" : " AND " + GenerateJoinedString(guards, " AND "));
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             unsigned idx = 1;
             for (const auto& n : nets) ps->setUInt(idx++, n.value);
             ps->setUInt(idx++, v.aid);
@@ -1423,7 +1724,7 @@ namespace BaseLib
             if (nickname.has_value()) add_set("Nickname");
 
             sql += " WHERE Id = ?";
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             unsigned idx = 1;
             if (server_id.has_value())  ps->setUInt(idx++, server_id.value());
 			if (sw_daily_attempts.has_value()) ps->setUInt(idx++, sw_daily_attempts.value());
@@ -1486,7 +1787,7 @@ namespace BaseLib
         {
             if (v.items_deleted.empty()) return {};
             std::string dsql = "DELETE FROM player_items WHERE PlayerId = ? AND SerialInfo IN (" + GenerateQuestionMarks(v.items_deleted.size()) + ")";
-            auto dps = GetConnection()->prepareStatement(dsql);
+            auto* dps = Prep(dsql);
             dps->setUInt(1, v.aid);
             for (size_t i = 0; i < v.items_deleted.size(); ++i) dps->setUInt64(2 + i, v.items_deleted[i].data);
             auto deleted = dps->executeUpdate();
@@ -1529,7 +1830,7 @@ namespace BaseLib
 
             {
                 std::string checkSql = "SELECT SerialInfo FROM player_items WHERE PlayerId = ? AND SerialInfo IN (" + GenerateQuestionMarks(merged.size()) + ")";
-                auto checkPs = GetConnection()->prepareStatement(checkSql);
+                auto* checkPs = Prep(checkSql);
                 checkPs->setUInt(1, v.aid);
                 size_t idx = 2;
                 for (const auto& [serial, _] : merged)
@@ -1579,7 +1880,7 @@ namespace BaseLib
             }
 
             std::string psql = "UPDATE player_items SET " + GenerateJoinedString(sets, ", ") + " WHERE PlayerId = ? AND SerialInfo IN (" + GenerateQuestionMarks(serials.size()) + ")";
-            auto pps = GetConnection()->prepareStatement(psql);
+            auto* pps = Prep(psql);
             pps->setUInt(1, v.aid);
             for (size_t i = 0; i < serials.size(); ++i) pps->setUInt64(2 + i, serials[i]);
             auto patched = pps->executeUpdate();
@@ -1610,7 +1911,7 @@ namespace BaseLib
                 "INSERT INTO player_items (PlayerId, SerialInfo, ItemId, ItemType, ExpirationDate, Repair, Energy, "
                 "IsSealed, SealLevel, EnhanceExp, EnhanceLevel, Stock, IsEquipped, CharacterId) "
                 "VALUES " + GenerateQuestionMarks(v.items_added.size(), 14);
-            auto aps = GetConnection()->prepareStatement(asql);
+            auto* aps = Prep(asql);
             int idx = 1;
             for (const auto& item : v.items_added) 
             {
@@ -1705,7 +2006,7 @@ namespace BaseLib
             if (m.goal2.has_value()) add_update("GoalMission2");
             if (m.goal3.has_value()) add_update("GoalMission3");
             if (first) sql += "PlayerId = PlayerId";
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             unsigned idx = 1;
             ps->setUInt(idx++, v.aid);
             if (m.update_time.has_value()) ps->setUInt64(idx++, m.update_time.value());
@@ -1757,7 +2058,7 @@ namespace BaseLib
             if (m.day_count.has_value()) add_update("RewardCount");
             if (m.last_time_update.has_value()) add_update("LastUpdate");
             if (first) sql += "PlayerId = PlayerId";
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             unsigned idx = 1;
             ps->setUInt(idx++, v.aid);
             if (m.day_count.has_value()) ps->setUInt (idx++, m.day_count.value());
@@ -1769,9 +2070,180 @@ namespace BaseLib
             }
             DEBUGLOG(green, "PersistMonthlyRewardPatches upserted monthly reward for account {}", v.aid);
             return {};
-        } catch (sql::SQLException& e) 
+        } catch (sql::SQLException& e)
         {
             DEBUGLOG(red, "PersistMonthlyRewardPatches sql exception: {}", e.what());
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
+        }
+    }
+    std::expected<void, DbError> CMariaDatabase::PersistWeeklyRewardsPatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.player_weekly_reward_patches.empty()) return {};
+            PlayerWeeklyRewardPatch m;
+            for (const auto& p : v.player_weekly_reward_patches)
+            {
+                if (p.day_count.has_value()) m.day_count = p.day_count.value();
+                if (p.last_time_update.has_value()) m.last_time_update = p.last_time_update.value();
+            }
+            if (!m.day_count.has_value() && !m.last_time_update.has_value()) return {};
+            std::string sql = "INSERT INTO player_weekly_rewards (PlayerId";
+            if (m.day_count.has_value()) sql += ", RewardCount";
+            if (m.last_time_update.has_value()) sql += ", LastUpdate";
+            sql += ") VALUES (?";
+            if (m.day_count.has_value()) sql += ", ?";
+            if (m.last_time_update.has_value()) sql += ", FROM_UNIXTIME(?)";
+            sql += ") ON DUPLICATE KEY UPDATE ";
+            bool first = true;
+            auto add_update = [&](const char* col)
+            {
+                if (!first) sql += ", ";
+                sql += col; sql += " = VALUES("; sql += col; sql += ")";
+                first = false;
+            };
+            if (m.day_count.has_value()) add_update("RewardCount");
+            if (m.last_time_update.has_value()) add_update("LastUpdate");
+            if (first) sql += "PlayerId = PlayerId";
+            auto* ps = Prep(sql);
+            unsigned idx = 1;
+            ps->setUInt(idx++, v.aid);
+            if (m.day_count.has_value()) ps->setUInt (idx++, m.day_count.value());
+            if (m.last_time_update.has_value()) ps->setUInt64(idx++, m.last_time_update.value());
+            if (!ps->executeUpdate())
+            {
+                DEBUGLOG(red, "PersistWeeklyRewardPatches affected 0 rows for account {}", v.aid);
+                return std::unexpected(DbError{ DbError::Type::NoRowsAffected,0,{},"PersistWeeklyRewardPatches affected 0 rows" });
+            }
+            DEBUGLOG(green, "PersistWeeklyRewardPatches upserted weekly reward for account {}", v.aid);
+            return {};
+        } catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistWeeklyRewardPatches sql exception: {}", e.what());
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
+        }
+    }
+    std::expected<void, DbError> CMariaDatabase::PersistPlaytimePatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.player_playtime_patches.empty()) return {};
+            PlayerPlaytimePatch m;
+            for (const auto& p : v.player_playtime_patches)
+            {
+                if (p.daily_seconds.has_value()) m.daily_seconds = p.daily_seconds.value();
+                if (p.claimed_stage.has_value()) m.claimed_stage = p.claimed_stage.value();
+                if (p.last_time_update.has_value()) m.last_time_update = p.last_time_update.value();
+            }
+            if (!m.daily_seconds.has_value() && !m.claimed_stage.has_value() && !m.last_time_update.has_value()) return {};
+            std::string sql = "INSERT INTO player_playtime (PlayerId";
+            if (m.daily_seconds.has_value()) sql += ", DailySeconds";
+            if (m.claimed_stage.has_value()) sql += ", ClaimedStage";
+            if (m.last_time_update.has_value()) sql += ", LastUpdate";
+            sql += ") VALUES (?";
+            if (m.daily_seconds.has_value()) sql += ", ?";
+            if (m.claimed_stage.has_value()) sql += ", ?";
+            if (m.last_time_update.has_value()) sql += ", FROM_UNIXTIME(?)";
+            sql += ") ON DUPLICATE KEY UPDATE ";
+            bool first = true;
+            auto add_update = [&](const char* col)
+            {
+                if (!first) sql += ", ";
+                sql += col; sql += " = VALUES("; sql += col; sql += ")";
+                first = false;
+            };
+            if (m.daily_seconds.has_value()) add_update("DailySeconds");
+            if (m.claimed_stage.has_value()) add_update("ClaimedStage");
+            if (m.last_time_update.has_value()) add_update("LastUpdate");
+            if (first) sql += "PlayerId = PlayerId";
+            auto* ps = Prep(sql);
+            unsigned idx = 1;
+            ps->setUInt(idx++, v.aid);
+            if (m.daily_seconds.has_value()) ps->setUInt(idx++, m.daily_seconds.value());
+            if (m.claimed_stage.has_value()) ps->setUInt(idx++, m.claimed_stage.value());
+            if (m.last_time_update.has_value()) ps->setUInt64(idx++, m.last_time_update.value());
+            if (!ps->executeUpdate())
+            {
+                DEBUGLOG(red, "PersistPlaytimePatches affected 0 rows for account {}", v.aid);
+                return std::unexpected(DbError{ DbError::Type::NoRowsAffected,0,{},"PersistPlaytimePatches affected 0 rows" });
+            }
+            DEBUGLOG(green, "PersistPlaytimePatches upserted playtime for account {}", v.aid);
+            return {};
+        } catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistPlaytimePatches sql exception: {}", e.what());
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
+        }
+    }
+    std::expected<void, DbError> CMariaDatabase::PersistBattlePassPatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.player_battlepass_patches.empty()) return {};
+            PlayerBattlePassPatch m;
+            for (const auto& p : v.player_battlepass_patches)
+            {
+                if (p.season.has_value())             m.season = p.season;
+                if (p.level.has_value())              m.level = p.level;
+                if (p.xp.has_value())                 m.xp = p.xp;
+                if (p.has_premium.has_value())        m.has_premium = p.has_premium;
+                if (p.claimed_free.has_value())       m.claimed_free = p.claimed_free;
+                if (p.claimed_premium.has_value())    m.claimed_premium = p.claimed_premium;
+                if (p.current_mission_id.has_value()) m.current_mission_id = p.current_mission_id;
+                if (p.mission_progress.has_value())   m.mission_progress = p.mission_progress;
+                if (p.reset_count.has_value())        m.reset_count = p.reset_count;
+            }
+            std::string sql = "INSERT INTO player_battlepass (PlayerId";
+            if (m.season.has_value())             sql += ", Season";
+            if (m.level.has_value())              sql += ", Level";
+            if (m.xp.has_value())                 sql += ", Xp";
+            if (m.has_premium.has_value())        sql += ", HasPremium";
+            if (m.claimed_free.has_value())       sql += ", ClaimedFree";
+            if (m.claimed_premium.has_value())    sql += ", ClaimedPremium";
+            if (m.current_mission_id.has_value()) sql += ", CurrentMissionId";
+            if (m.mission_progress.has_value())   sql += ", MissionProgress";
+            if (m.reset_count.has_value())        sql += ", ResetCount";
+            sql += ") VALUES (?";
+            for (int i = 0, n = (int)m.season.has_value() + m.level.has_value() + m.xp.has_value()
+                + m.has_premium.has_value() + m.claimed_free.has_value() + m.claimed_premium.has_value()
+                + m.current_mission_id.has_value() + m.mission_progress.has_value() + m.reset_count.has_value();
+                 i < n; ++i) sql += ", ?";
+            sql += ") ON DUPLICATE KEY UPDATE ";
+            bool first = true;
+            auto add_update = [&](const char* col)
+            {
+                if (!first) sql += ", ";
+                sql += col; sql += " = VALUES("; sql += col; sql += ")";
+                first = false;
+            };
+            if (m.season.has_value())             add_update("Season");
+            if (m.level.has_value())              add_update("Level");
+            if (m.xp.has_value())                 add_update("Xp");
+            if (m.has_premium.has_value())        add_update("HasPremium");
+            if (m.claimed_free.has_value())       add_update("ClaimedFree");
+            if (m.claimed_premium.has_value())    add_update("ClaimedPremium");
+            if (m.current_mission_id.has_value()) add_update("CurrentMissionId");
+            if (m.mission_progress.has_value())   add_update("MissionProgress");
+            if (m.reset_count.has_value())        add_update("ResetCount");
+            if (first) sql += "PlayerId = PlayerId";
+            auto* ps = Prep(sql);
+            unsigned idx = 1;
+            ps->setUInt(idx++, v.aid);
+            if (m.season.has_value())             ps->setUInt(idx++, m.season.value());
+            if (m.level.has_value())              ps->setUInt(idx++, m.level.value());
+            if (m.xp.has_value())                 ps->setUInt(idx++, m.xp.value());
+            if (m.has_premium.has_value())        ps->setUInt(idx++, m.has_premium.value());
+            if (m.claimed_free.has_value())       ps->setString(idx++, BattlePassMaskToHex(*m.claimed_free));
+            if (m.claimed_premium.has_value())    ps->setString(idx++, BattlePassMaskToHex(*m.claimed_premium));
+            if (m.current_mission_id.has_value()) ps->setUInt(idx++, m.current_mission_id.value());
+            if (m.mission_progress.has_value())   ps->setUInt(idx++, m.mission_progress.value());
+            if (m.reset_count.has_value())        ps->setUInt(idx++, m.reset_count.value());
+            ps->executeUpdate();
+            DEBUGLOG(green, "PersistBattlePassPatches upserted battlepass for account {}", v.aid);
+            return {};
+        } catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistBattlePassPatches sql exception: {}", e.what());
             return std::unexpected(CMariaDatabase::FromSQLException(e));
         }
     }
@@ -1812,7 +2284,7 @@ namespace BaseLib
             if (!mark_read_ids.empty())
             {
                 std::string q = "UPDATE player_mailbox SET IsNew = 0 WHERE Id IN (" + GenerateQuestionMarks(mark_read_ids.size()) + ")";
-                std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                auto* ps = Prep(q);
                 for (uint32_t i = 0; i < mark_read_ids.size(); ++i)
                     ps->setUInt(i + 1, mark_read_ids[i]);
               
@@ -1828,7 +2300,7 @@ namespace BaseLib
             {
                 {
                     std::string q = "DELETE FROM player_mailbox WHERE DeletedFromReceiver = 1 AND Id IN (" + GenerateQuestionMarks(del_sender_ids.size()) + ")";
-                    std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                    auto* ps = Prep(q);
                     for (uint32_t i = 0; i < del_sender_ids.size(); ++i)
                         ps->setUInt(i + 1, del_sender_ids[i]);
                     
@@ -1836,7 +2308,7 @@ namespace BaseLib
                 }
                 {
                     std::string q = "UPDATE player_mailbox SET DeletedFromSender = 1 WHERE DeletedFromReceiver = 0 AND Id IN (" + GenerateQuestionMarks(del_sender_ids.size()) + ")";
-                    std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                    auto* ps = Prep(q);
                     for (uint32_t i = 0; i < del_sender_ids.size(); ++i)
                         ps->setUInt(i + 1, del_sender_ids[i]);
                    
@@ -1849,7 +2321,7 @@ namespace BaseLib
             {
                 {
                     std::string q = "DELETE FROM player_mailbox WHERE DeletedFromSender = 1 AND Id IN (" + GenerateQuestionMarks(del_receiver_ids.size()) + ")";
-                    std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                    auto* ps = Prep(q);
                     for (uint32_t i = 0; i < del_receiver_ids.size(); i++)
                         ps->setUInt(i + 1, del_receiver_ids[i]);
                         
@@ -1857,7 +2329,7 @@ namespace BaseLib
                 }
                 {
                     std::string q = "UPDATE player_mailbox SET DeletedFromReceiver = 1 WHERE DeletedFromSender = 0 AND Id IN (" + GenerateQuestionMarks(del_receiver_ids.size()) + ")";
-                    std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                    auto* ps = Prep(q);
                     for (uint32_t i = 0; i < del_receiver_ids.size(); i++)
                         ps->setUInt(i + 1, del_receiver_ids[i]);
 
@@ -1868,25 +2340,23 @@ namespace BaseLib
             if (!insert_idx.empty())
             {
                 static constexpr uint32_t kMailboxLimit = 100;
-                std::unique_ptr<sql::PreparedStatement> nick(GetConnection()->prepareStatement("SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1"));
+                auto* nick = Prep("SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1");
                 
-                std::unique_ptr<sql::PreparedStatement> is_blocked(
-                    GetConnection()->prepareStatement(
+                auto* is_blocked = Prep(
                         "SELECT EXISTS ("
                         "  SELECT 1 FROM player_socials "
                         "  WHERE Aid = ? AND TargetAid = ? AND State = 2"
-                        ") AS IsBlocked"));
+                        ") AS IsBlocked");
 
-                std::unique_ptr<sql::PreparedStatement> count(
-                    GetConnection()->prepareStatement("SELECT COUNT(*) AS MailCount "
+                auto* count = Prep("SELECT COUNT(*) AS MailCount "
                     "FROM player_mailbox "
-                    "WHERE ReceiverId = ? AND DeletedFromReceiver = 0"));
+                    "WHERE ReceiverId = ? AND DeletedFromReceiver = 0");
 
-                std::unique_ptr<sql::PreparedStatement> ins(GetConnection()->prepareStatement(
+                auto* ins = Prep(
                     "INSERT INTO player_mailbox "
                     "(SenderId, SenderNickname, ReceiverId, ReceiverNickname, Date, GiftItemId, Message, IsNew, DeletedFromSender, DeletedFromReceiver) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)"
-                ));
+                );
 				DEBUGLOG(green, "PersistMailboxPatches inserting {} new mails for account {}", insert_idx.size(), v.aid);
 
                 for (const size_t j : insert_idx)
@@ -1962,9 +2432,9 @@ namespace BaseLib
                 "BazookaKills, GrenadeKills, ZombieKills, Infections, MatchStartTime, MatchStartUtc, MatchEndTime, MatchEndUtc, Hair, Face, Upper, Under, Skirt, "
                 "Gloves, Boots, HeadAcc, WaistAcc, BackAcc, Melee, Rifle, Shotgun, Sniper, Gatling, "
                 "Bazooka, Grenade, RewardItem, IsMvp, IsEntryFragger, IsBullseye, IsSupport, IsBomba, "
-                "MvpScore, EntryFraggerScore, BullseyeScore, SupportScore, BombaScore, BestKdScore, CaptureScore, WonRoundScore, ArmsRaceScore, ZombieScore, ADR) "
-                "VALUES " + GenerateQuestionMarks(v.match_history_adds.size(), 74);
-            auto aps = GetConnection()->prepareStatement(asql);
+                "MvpScore, EntryFraggerScore, BullseyeScore, SupportScore, BombaScore, BestKdScore, CaptureScore, WonRoundScore, ArmsRaceScore, ZombieScore, ADR, IsParty, Restriction, MaxPlayers) "
+                "VALUES " + GenerateQuestionMarks(v.match_history_adds.size(), 77);
+            auto* aps = Prep(asql);
             int idx = 1;
             for (const auto& match : v.match_history_adds) 
             {
@@ -2042,6 +2512,9 @@ namespace BaseLib
                 aps->setUInt(idx++, match.ArmsRaceScore);
                 aps->setUInt(idx++, match.ZombieScore);
                 aps->setUInt(idx++, match.ADR);
+                aps->setBoolean(idx++, match.IsParty);
+                aps->setUInt(idx++, match.Restriction);
+                aps->setUInt(idx++, match.MaxPlayers);
             }
             auto inserted = aps->executeUpdate();
             if (!inserted)
@@ -2087,7 +2560,7 @@ namespace BaseLib
             {
                 std::string q = "DELETE FROM player_sessions WHERE (PlayerId, AuthKey) IN " + GenerateInTuples(to_delete.size(), 2);
 
-                std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                auto* ps = Prep(q);
                 std::size_t k = 1;
                 for (const auto& [aid, key] : to_delete) 
                 {
@@ -2102,7 +2575,7 @@ namespace BaseLib
             {
                 std::string q = "INSERT INTO player_sessions (PlayerId, AuthKey) VALUES " + GenerateQuestionMarks(to_insert.size(), 2);
 
-                std::unique_ptr<sql::PreparedStatement> ps(GetConnection()->prepareStatement(q));
+                auto* ps = Prep(q);
                 std::size_t k = 1;
                 for (const auto& [aid, key] : to_insert) 
                 {
@@ -2127,11 +2600,9 @@ namespace BaseLib
         {
             if (v.player_social_patches.empty()) return {};
 
-            std::unique_ptr<sql::PreparedStatement> selAidByNick(
-                GetConnection()->prepareStatement("SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1"));
+            auto* selAidByNick = Prep("SELECT Id FROM accounts WHERE Nickname = ? LIMIT 1");
 
-            std::unique_ptr<sql::PreparedStatement> selSocialState(
-                GetConnection()->prepareStatement("SELECT State FROM player_socials WHERE Aid = ? AND TargetAid = ? LIMIT 1"));
+            auto* selSocialState = Prep("SELECT State FROM player_socials WHERE Aid = ? AND TargetAid = ? LIMIT 1");
 
             std::vector<PlayerSocialPatch> to_upsert;
             std::vector<PlayerSocialPatch> to_delete;
@@ -2202,7 +2673,7 @@ namespace BaseLib
             if (!to_delete.empty())
             {
                 std::string q = "DELETE FROM player_socials WHERE (Aid, TargetAid) IN " + GenerateInTuples(to_delete.size(), 2);
-                auto ps = GetConnection()->prepareStatement(q);
+                auto* ps = Prep(q);
                 size_t k = 1;
                 for (const auto& d : to_delete)
                 {
@@ -2218,7 +2689,7 @@ namespace BaseLib
                     "INSERT INTO player_socials (Aid, TargetAid, State) VALUES "
                     + GenerateQuestionMarks(to_upsert.size(), 3)
                     + " ON DUPLICATE KEY UPDATE State = VALUES(State)";
-                auto ps = GetConnection()->prepareStatement(q);
+                auto* ps = Prep(q);
                 size_t k = 1;
                 for (const auto& u : to_upsert)
                 {
@@ -2244,14 +2715,14 @@ namespace BaseLib
         {
             if (v.gacha_pity_patches.empty()) return {};
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
-                "INSERT INTO player_gacha_pity (PlayerId, GachaId, LuckyPoints) VALUES (?, ?, ?) "
-                "ON DUPLICATE KEY UPDATE LuckyPoints = VALUES(LuckyPoints)"));
+            auto* pstmt = Prep(
+                "INSERT INTO player_gacha_pity (PlayerId, GachaType, LuckyPoints) VALUES (?, ?, ?) "
+                "ON DUPLICATE KEY UPDATE LuckyPoints = VALUES(LuckyPoints)");
 
             for (const auto& patch : v.gacha_pity_patches)
             {
                 pstmt->setUInt(1, v.aid);
-                pstmt->setUInt(2, patch.gacha_id);
+                pstmt->setUInt(2, patch.gacha_type);
                 pstmt->setUInt(3, patch.lucky_points);
                 pstmt->executeUpdate();
             }
@@ -2271,6 +2742,7 @@ namespace BaseLib
             if (!EnsureConnected()) return std::unexpected(DbError{ DbError::Type::ConnectionLost, 0, {}, "Not connected" });;
             std::unique_ptr<sql::Statement> stmt(GetConnection()->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
             auto fail = [&](DbError err, std::string_view reason, std::source_location loc = std::source_location::current()) 
             {
                 try { stmt->execute("ROLLBACK"); } catch(...) {}
@@ -2300,8 +2772,17 @@ namespace BaseLib
 			if (auto r = PersistMailboxPatches(v); !r.has_value())
 				return fail(r.error(), "PersistMailboxPatches aid " + aid_str);
 
-            if (auto r = PersistMonthlyRewardsPatches(v); !r.has_value()) 
+            if (auto r = PersistMonthlyRewardsPatches(v); !r.has_value())
                 return fail(r.error(), "PersistMonthlyRewardsPatches aid " + aid_str);
+
+            if (auto r = PersistWeeklyRewardsPatches(v); !r.has_value())
+                return fail(r.error(), "PersistWeeklyRewardsPatches aid " + aid_str);
+
+            if (auto r = PersistPlaytimePatches(v); !r.has_value())
+                return fail(r.error(), "PersistPlaytimePatches aid " + aid_str);
+
+            if (auto r = PersistBattlePassPatches(v); !r.has_value())
+                return fail(r.error(), "PersistBattlePassPatches aid " + aid_str);
 
 			if (auto r = PersistMatchHistoryAdds(v); !r.has_value())
 				return fail(r.error(), "PersistMatchHistoryAdds aid " + aid_str);
@@ -2334,6 +2815,7 @@ namespace BaseLib
             if (!EnsureConnected()) return std::unexpected(DbError{ DbError::Type::ConnectionLost, 0, {}, "Not connected" });;
             std::unique_ptr<sql::Statement> stmt(GetConnection()->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
             auto fail = [&](DbError err, std::string_view reason, std::source_location loc = std::source_location::current()) 
             {
                 try { stmt->execute("ROLLBACK"); } catch(...) {}
@@ -2368,8 +2850,17 @@ namespace BaseLib
                 if (auto r = PersistMailboxPatches(v); !r.has_value())
                     return fail(r.error(), "PersistMailboxPatches aid " + aid_str);
 
-                if (auto r = PersistMonthlyRewardsPatches(v); !r.has_value()) 
+                if (auto r = PersistMonthlyRewardsPatches(v); !r.has_value())
                     return fail(r.error(), "PersistMonthlyRewardsPatches aid " + aid_str);
+
+                if (auto r = PersistWeeklyRewardsPatches(v); !r.has_value())
+                    return fail(r.error(), "PersistWeeklyRewardsPatches aid " + aid_str);
+
+                if (auto r = PersistPlaytimePatches(v); !r.has_value())
+                    return fail(r.error(), "PersistPlaytimePatches aid " + aid_str);
+
+                if (auto r = PersistBattlePassPatches(v); !r.has_value())
+                    return fail(r.error(), "PersistBattlePassPatches aid " + aid_str);
 
                 if (auto r = PersistMatchHistoryAdds(v); !r.has_value())
                     return fail(r.error(), "PersistMatchHistoryAdds aid " + aid_str);
@@ -2401,10 +2892,10 @@ namespace BaseLib
         {
             if (auto r = EnsureConnected(); !r.has_value()) return r;
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
+            auto* pstmt = Prep(
                 "INSERT INTO accounts (Username, Password, Salt, Nickname, Level, MaximumEnergy) "
                 "VALUES (?, ?, ?, ?, 0, 1000)"
-            ));
+            );
             pstmt->setString(1, username);
             pstmt->setString(2, password_hash);
             pstmt->setString(3, salt);
@@ -2432,7 +2923,7 @@ namespace BaseLib
             if (auto r = EnsureConnected(); !r.has_value())
                 return std::unexpected(r.error());
 
-            auto stmt = GetConnection()->prepareStatement("SELECT Id FROM accounts WHERE LOWER(Nickname) = LOWER(?) LIMIT 1");
+            auto* stmt = Prep("SELECT Id FROM accounts WHERE LOWER(Nickname) = LOWER(?) LIMIT 1");
             stmt->setString(1, std::string(nickname));
             auto result = stmt->executeQuery();
             if (!result->next())
@@ -2453,7 +2944,7 @@ namespace BaseLib
             if (auto r = EnsureConnected(); !r.has_value())
                 return std::unexpected(r.error());
 
-            auto stmt = GetConnection()->prepareStatement("SELECT Id FROM accounts WHERE Id = ? LIMIT 1");
+            auto* stmt = Prep("SELECT Id FROM accounts WHERE Id = ? LIMIT 1");
             stmt->setUInt(1, static_cast<uint32_t>(aid));
             auto result = stmt->executeQuery();
             return result->next();
@@ -2471,7 +2962,7 @@ namespace BaseLib
             if (auto r = EnsureConnected(); !r.has_value())
                 return r;
 
-            auto stmt = GetConnection()->prepareStatement("UPDATE accounts SET MutedUntil = ? WHERE Id = ?");
+            auto* stmt = Prep("UPDATE accounts SET MutedUntil = ? WHERE Id = ?");
             stmt->setUInt64(1, muted_until);
             stmt->setUInt(2, static_cast<uint32_t>(aid));
             if (!stmt->executeUpdate())
@@ -2492,11 +2983,11 @@ namespace BaseLib
             if (auto r = EnsureConnected(); !r.has_value())
                 return r;
 
-            auto delete_stmt = GetConnection()->prepareStatement("DELETE FROM bans WHERE AccountId = ?");
+            auto* delete_stmt = Prep("DELETE FROM bans WHERE AccountId = ?");
             delete_stmt->setUInt(1, static_cast<uint32_t>(aid));
             delete_stmt->executeUpdate();
 
-            auto insert_stmt = GetConnection()->prepareStatement("INSERT INTO bans (AccountId, UnbanDate, Reason) VALUES (?, FROM_UNIXTIME(?), ?)");
+            auto* insert_stmt = Prep("INSERT INTO bans (AccountId, UnbanDate, Reason) VALUES (?, FROM_UNIXTIME(?), ?)");
             insert_stmt->setUInt(1, static_cast<uint32_t>(aid));
             insert_stmt->setUInt64(2, unban_unix);
             insert_stmt->setString(3, std::string(reason.substr(0, 127)));
@@ -2518,7 +3009,7 @@ namespace BaseLib
             if (auto r = EnsureConnected(); !r.has_value())
                 return r;
 
-            auto stmt = GetConnection()->prepareStatement("DELETE FROM bans WHERE AccountId = ?");
+            auto* stmt = Prep("DELETE FROM bans WHERE AccountId = ?");
             stmt->setUInt(1, static_cast<uint32_t>(aid));
             stmt->executeUpdate();
             return {};
@@ -2536,7 +3027,7 @@ namespace BaseLib
             if (auto r = EnsureConnected(); !r.has_value())
                 return std::unexpected(r.error());
 
-            auto stmt = GetConnection()->prepareStatement(
+            auto* stmt = Prep(
                 "SELECT AccountId, UNIX_TIMESTAMP(UnbanDate) AS UnbanUnix, COALESCE(Reason, '') AS Reason "
                 "FROM bans WHERE AccountId = ? AND UnbanDate > UTC_TIMESTAMP(6) "
                 "ORDER BY UnbanDate DESC LIMIT 1");
@@ -2567,7 +3058,7 @@ namespace BaseLib
                 "INSERT INTO player_chatlogs (Aid, TargetAid, ChatType, ChatLocation, ServerId, RoomId, PlazaId, ClanId, Message) VALUES "
                 + GenerateQuestionMarks(logs.size(), 9);
 
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             int idx = 1;
 
             for (const auto& log : logs)
@@ -2604,7 +3095,7 @@ namespace BaseLib
                 "INSERT INTO player_itemlogs (Aid, RelatedAid, ActionType, ItemId, ItemType, SerialInfo, OriginType, MpDelta, RtDelta, CouponDelta, EnergyDelta, NewItemId, NewRepair) VALUES "
                 + GenerateQuestionMarks(logs.size(), 13);
 
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             int idx = 1;
 
             for (const auto& log : logs)
@@ -2645,7 +3136,7 @@ namespace BaseLib
                 "INSERT INTO player_currencylogs (Aid, CurrencyType, Amount, BeforeValue, AfterValue, SourceType, RelatedItemId) VALUES "
                 + GenerateQuestionMarks(logs.size(), 7);
 
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             int idx = 1;
 
             for (const auto& log : logs)
@@ -2677,10 +3168,10 @@ namespace BaseLib
             if (logs.empty()) return {};
 
             std::string sql =
-                "INSERT INTO player_roomlogs (Aid, TargetAid, EventType, ServerId, RoomId, HostAid, TeamId, NewTeamId, VoteKickReason) VALUES "
-                + GenerateQuestionMarks(logs.size(), 9);
+                "INSERT INTO player_roomlogs (Aid, TargetAid, EventType, ServerId, RoomId, HostAid, TeamId, NewTeamId, VoteKickReason, OldValue, NewValue) VALUES "
+                + GenerateQuestionMarks(logs.size(), 11);
 
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             int idx = 1;
 
             for (const auto& log : logs)
@@ -2694,6 +3185,8 @@ namespace BaseLib
                 log.team_id.has_value() ? ps->setUInt(idx++, log.team_id.value()) : ps->setNull(idx++, 0);
                 log.new_team_id.has_value() ? ps->setUInt(idx++, log.new_team_id.value()) : ps->setNull(idx++, 0);
                 log.votekick_reason.has_value() ? ps->setUInt(idx++, log.votekick_reason.value()) : ps->setNull(idx++, 0);
+                log.old_value.has_value() ? ps->setInt(idx++, log.old_value.value()) : ps->setNull(idx++, 0);
+                log.new_value.has_value() ? ps->setInt(idx++, log.new_value.value()) : ps->setNull(idx++, 0);
             }
 
             ps->executeUpdate();
@@ -2703,6 +3196,113 @@ namespace BaseLib
         catch (sql::SQLException& e)
         {
             DEBUGLOG(red, "PersistRoomLogs sql exception: {}", e.what());
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CMariaDatabase::PersistPlayerMatchSessionsAdds(const std::vector<PlayerMatchSessionAdd>& adds)
+    {
+        try
+        {
+            if (adds.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_match_sessions (MatchUniqueId, Aid, TeamId, JoinedMs, LeftMs, Reason) VALUES "
+                + GenerateQuestionMarks(adds.size(), 6);
+
+            auto* ps = Prep(sql);
+            int idx = 1;
+
+            for (const auto& add : adds)
+            {
+                ps->setString(idx++, add.match_unique_id);
+                ps->setInt(idx++, add.aid);
+                ps->setUInt(idx++, add.team_id);
+                ps->setUInt64(idx++, add.joined_ms);
+                ps->setUInt64(idx++, add.left_ms);
+                ps->setString(idx++, add.reason);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} match sessions", adds.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistPlayerMatchSessionsAdds sql exception: {}", e.what());
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CMariaDatabase::PersistPlayerMatchCombatAdds(const std::vector<PlayerMatchCombatAdd>& adds)
+    {
+        try
+        {
+            if (adds.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_match_combat (MatchUniqueId, AttackerAid, VictimAid, Weapon, BodyPart, HitVariant, Damage, VictimHpAfter, IsKill, EventMs) VALUES "
+                + GenerateQuestionMarks(adds.size(), 10);
+
+            auto* ps = Prep(sql);
+            int idx = 1;
+
+            for (const auto& add : adds)
+            {
+                ps->setString(idx++, add.match_unique_id);
+                ps->setInt(idx++, add.attacker_aid);
+                ps->setInt(idx++, add.victim_aid);
+                ps->setUInt(idx++, add.weapon);
+                ps->setUInt(idx++, add.bodypart);
+                ps->setUInt(idx++, add.hit_variant);
+                ps->setUInt(idx++, add.damage);
+                ps->setUInt(idx++, add.victim_hp_after);
+                ps->setUInt(idx++, add.is_kill);
+                ps->setUInt64(idx++, add.event_ms);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} match combat hits", adds.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistPlayerMatchCombatAdds sql exception: {}", e.what());
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
+        }
+    }
+
+    std::expected<void, DbError> CMariaDatabase::PersistPlayerMatchEventAdds(const std::vector<PlayerMatchEventAdd>& adds)
+    {
+        try
+        {
+            if (adds.empty()) return {};
+
+            std::string sql =
+                "INSERT INTO player_match_events (MatchUniqueId, Aid, EventType, SubA, SubB, Value, EventMs) VALUES "
+                + GenerateQuestionMarks(adds.size(), 7);
+
+            auto* ps = Prep(sql);
+            int idx = 1;
+
+            for (const auto& add : adds)
+            {
+                ps->setString(idx++, add.match_unique_id);
+                ps->setInt(idx++, add.aid);
+                ps->setUInt(idx++, add.event_type);
+                ps->setUInt(idx++, add.sub_a);
+                ps->setUInt(idx++, add.sub_b);
+                ps->setUInt(idx++, add.value);
+                ps->setUInt64(idx++, add.event_ms);
+            }
+
+            ps->executeUpdate();
+            DEBUGLOG(green, "Persisted {} match events", adds.size());
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            DEBUGLOG(red, "PersistPlayerMatchEventAdds sql exception: {}", e.what());
             return std::unexpected(CMariaDatabase::FromSQLException(e));
         }
     }
@@ -2792,13 +3392,13 @@ namespace BaseLib
 
             const std::size_t skippedBatchDuplicates = logs.size() - uniqueLogs.size();
 
-            std::unique_ptr<sql::PreparedStatement> existsPs(GetConnection()->prepareStatement(
+            auto* existsPs = Prep(
                 "SELECT 1 FROM ac_detections "
                 "WHERE DetectionFlag = ? AND Extra = ? AND Details = ? "
                 "AND CreatedAt >= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY) "
                 "AND ((? > 0 AND Aid = ?) OR (? <= 0 AND Hwid = ?)) "
                 "LIMIT 1"
-            ));
+            );
 
             std::vector<NormalizedDetectionLog> logsToInsert;
             logsToInsert.reserve(uniqueLogs.size());
@@ -2831,7 +3431,7 @@ namespace BaseLib
                 "INSERT INTO ac_detections (Aid, Ip, Hwid, DetectionFlag, Extra, Details, ServerId) VALUES "
                 + GenerateQuestionMarks(logsToInsert.size(), 7);
 
-            auto ps = GetConnection()->prepareStatement(sql);
+            auto* ps = Prep(sql);
             int idx = 1;
 
             for (const auto& log : logsToInsert)
@@ -2860,7 +3460,7 @@ namespace BaseLib
     {
         try
         {
-            auto ps = GetConnection()->prepareStatement(
+            auto* ps = Prep(
                 "INSERT INTO ac_auth_history (Aid, Ip, Hwid, ServerId) VALUES (?, ?, ?, ?)");
             ps->setInt(1, entry.aid);
             ps->setString(2, entry.ip);
@@ -2885,6 +3485,7 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(GetConnection()->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
             auto fail = [&](DbError err, std::string_view reason)
                 {
@@ -2922,7 +3523,7 @@ namespace BaseLib
     }
 
 
-    bool CMariaDatabase::GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward)
+    bool CMariaDatabase::GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward, SystemWeeklyRewards* outWeeklyRewards, PlayerWeeklyReward* outPlayerWeeklyReward)
     {
         try
         {
@@ -2931,12 +3532,13 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
             try
             {
 
                 // 1. Load account and clan
-                std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(R"(
+                auto* pstmt = Prep(R"(
                 SELECT 
                     a.Id, a.ServerId, a.Username, a.Password, a.Salt, a.Grade, a.PCRoom, a.ClanId,
                     a.ClanKills, a.ClanDeaths, a.ClanAssists, a.ClanContribution, a.ClanWins, a.ClanLoses, a.ClanDraws,
@@ -2953,7 +3555,7 @@ namespace BaseLib
                 LEFT JOIN clans c ON a.ClanId = c.Id
                 LEFT JOIN player_daily_mission d ON a.Id = d.PlayerId
                 WHERE s.AuthKey = ?
-            )"));
+            )");
 
 
 
@@ -3067,12 +3669,12 @@ namespace BaseLib
 
                         if (existed)
                         {
-                            std::unique_ptr<sql::PreparedStatement> updateStmt(GetConnection()->prepareStatement(R"(
+                            auto* updateStmt = Prep(R"(
                             UPDATE player_daily_mission SET
                                 UpdateTime = ?, Mission1 = ?, Mission2 = ?, Mission3 = ?,
                                 GoalMission1 = ?, GoalMission2 = ?, GoalMission3 = ?
                             WHERE PlayerId = ?
-                        )"));
+                        )");
 
                             updateStmt->setUInt64(1, dm.update_time);
                             updateStmt->setUInt(2, dm.mission1);
@@ -3087,11 +3689,11 @@ namespace BaseLib
                         }
                         else
                         {
-                            std::unique_ptr<sql::PreparedStatement> insertStmt(GetConnection()->prepareStatement(R"(
+                            auto* insertStmt = Prep(R"(
                             INSERT INTO player_daily_mission
                                 (PlayerId, UpdateTime, Mission1, Mission2, Mission3, GoalMission1, GoalMission2, GoalMission3)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        )"));
+                        )");
 
                             insertStmt->setUInt(1, accId);
                             insertStmt->setUInt64(2, dm.update_time);
@@ -3110,7 +3712,7 @@ namespace BaseLib
                 }
 
                 // 2. Inventory
-                std::unique_ptr<sql::PreparedStatement> invStmt(GetConnection()->prepareStatement("SELECT * FROM player_items WHERE PlayerId = ?"));
+                auto* invStmt = Prep("SELECT * FROM player_items WHERE PlayerId = ?");
                 invStmt->setUInt(1, accId);
                 std::unique_ptr<sql::ResultSet> invRes(invStmt->executeQuery());
 
@@ -3153,11 +3755,11 @@ namespace BaseLib
                 }
 
 
-                std::unique_ptr<sql::PreparedStatement> socialStmt(GetConnection()->prepareStatement(
+                auto* socialStmt = Prep(
                     "SELECT s.TargetAid, s.State, a.Nickname AS TargetNickname "
                     "FROM player_socials s "
                     "JOIN accounts a ON a.Id = s.TargetAid "
-                    "WHERE s.Aid = ?"));
+                    "WHERE s.Aid = ?");
                 socialStmt->setInt(1, accId);
                 std::unique_ptr<sql::ResultSet> socialRes(socialStmt->executeQuery());
                 while (socialRes->next())
@@ -3165,16 +3767,16 @@ namespace BaseLib
 
                 /*
                 // 3. Blocked players
-                std::unique_ptr<sql::PreparedStatement> blockStmt(GetConnection()->prepareStatement(
-                    "SELECT BlockedPlayerId, BlockedNickname FROM player_ignores WHERE PlayerId = ?"));
+                auto* blockStmt = Prep(
+                    "SELECT BlockedPlayerId, BlockedNickname FROM player_ignores WHERE PlayerId = ?");
                 blockStmt->setInt(1, accId);
                 std::unique_ptr<sql::ResultSet> blockRes(blockStmt->executeQuery());
                 while (blockRes->next())
                     blockeds.push_back({ accId, blockRes->getInt("BlockedPlayerId"), 0, blockRes->getString("BlockedNickname").c_str() });
 
                 // 4. Friends
-                std::unique_ptr<sql::PreparedStatement> friendStmt(GetConnection()->prepareStatement(
-                    "SELECT FriendPlayerId, State, FriendNickname FROM player_friends WHERE PlayerId = ?"));
+                auto* friendStmt = Prep(
+                    "SELECT FriendPlayerId, State, FriendNickname FROM player_friends WHERE PlayerId = ?");
                 friendStmt->setInt(1, accId);
                 std::unique_ptr<sql::ResultSet> friendRes(friendStmt->executeQuery());
                 while (friendRes->next())
@@ -3182,10 +3784,10 @@ namespace BaseLib
                 */
 
                 // 5. Mailbox
-                std::unique_ptr<sql::PreparedStatement> mailStmt(GetConnection()->prepareStatement(R"(
+                auto* mailStmt = Prep(R"(
                 SELECT Id, SenderId, SenderNickname, ReceiverId, ReceiverNickname, Date, GiftItemId, Message, IsNew, DeletedFromSender, DeletedFromReceiver
                 FROM player_mailbox WHERE SenderId = ? OR ReceiverId = ?
-            )"));
+            )");
                 mailStmt->setUInt(1, accId);
                 mailStmt->setUInt(2, accId);
                 std::unique_ptr<sql::ResultSet> mailRes(mailStmt->executeQuery());
@@ -3207,13 +3809,13 @@ namespace BaseLib
                         });
                 }
 
-                std::unique_ptr<sql::PreparedStatement> pityStmt(GetConnection()->prepareStatement("SELECT GachaId, LuckyPoints FROM player_gacha_pity WHERE PlayerId = ?"));
+                auto* pityStmt = Prep("SELECT GachaType, LuckyPoints FROM player_gacha_pity WHERE PlayerId = ?");
                 pityStmt->setUInt(1, accId);
                 std::unique_ptr<sql::ResultSet> pityRes(pityStmt->executeQuery());
                 while (pityRes->next())
                 {
                     GachaPityEntry entry;
-                    entry.gacha_id = pityRes->getUInt("GachaId");
+                    entry.gacha_type = pityRes->getUInt("GachaType");
                     entry.lucky_points = pityRes->getUInt("LuckyPoints");
                     gacha_pity.push_back(entry);
                 }
@@ -3222,8 +3824,8 @@ namespace BaseLib
                 {
                     uint32_t curYear = Utility::GetCurrentYear();
                     uint32_t curMonth = Utility::GetCurrentMonth();
-                    std::unique_ptr<sql::PreparedStatement> monthlyStmt(GetConnection()->prepareStatement(
-                        "SELECT * FROM system_monthly_rewards WHERE Year = ? AND Month = ?"));
+                    auto* monthlyStmt = Prep(
+                        "SELECT * FROM system_monthly_rewards WHERE Year = ? AND Month = ?");
                     monthlyStmt->setUInt(1, curYear);
                     monthlyStmt->setUInt(2, curMonth);
                     std::unique_ptr<sql::ResultSet> monthlyRes(monthlyStmt->executeQuery());
@@ -3248,10 +3850,10 @@ namespace BaseLib
 
                 if (outPlayerMonthlyReward)
                 {
-                    std::unique_ptr<sql::PreparedStatement> playerMonthlyStmt(GetConnection()->prepareStatement(
+                    auto* playerMonthlyStmt = Prep(
                         "SELECT RewardCount, UNIX_TIMESTAMP(LastUpdate) AS LastUpdate "
                         "FROM player_monthly_rewards WHERE PlayerId = ? "
-                        "ORDER BY LastUpdate DESC, ID DESC LIMIT 1"));
+                        "ORDER BY LastUpdate DESC, ID DESC LIMIT 1");
                     playerMonthlyStmt->setUInt(1, accId);
                     std::unique_ptr<sql::ResultSet> playerMonthlyRes(playerMonthlyStmt->executeQuery());
                     if (playerMonthlyRes->next())
@@ -3262,7 +3864,43 @@ namespace BaseLib
                     }
                 }
 
-                std::unique_ptr<sql::PreparedStatement> updateOnlineStmt(GetConnection()->prepareStatement("UPDATE accounts SET ServerId = ? WHERE Id = ?"));
+                if (outWeeklyRewards)
+                {
+                    uint32_t curYear = Utility::GetCurrentYear();
+                    uint32_t curWeek = Utility::GetCurrentWeek();
+                    auto* weeklyStmt = Prep(
+                        "SELECT * FROM system_weekly_rewards WHERE Year = ? AND Week = ?");
+                    weeklyStmt->setUInt(1, curYear);
+                    weeklyStmt->setUInt(2, curWeek);
+                    std::unique_ptr<sql::ResultSet> weeklyRes(weeklyStmt->executeQuery());
+                    if (weeklyRes->next())
+                    {
+                        *outWeeklyRewards = SystemWeeklyRewards(curYear, curWeek,
+                            {
+                                weeklyRes->getUInt("Day1"), weeklyRes->getUInt("Day2"), weeklyRes->getUInt("Day3"),
+                                weeklyRes->getUInt("Day4"), weeklyRes->getUInt("Day5"), weeklyRes->getUInt("Day6"),
+                                weeklyRes->getUInt("Day7")
+                            });
+                    }
+                }
+
+                if (outPlayerWeeklyReward)
+                {
+                    auto* playerWeeklyStmt = Prep(
+                        "SELECT RewardCount, UNIX_TIMESTAMP(LastUpdate) AS LastUpdate "
+                        "FROM player_weekly_rewards WHERE PlayerId = ? "
+                        "ORDER BY LastUpdate DESC, ID DESC LIMIT 1");
+                    playerWeeklyStmt->setUInt(1, accId);
+                    std::unique_ptr<sql::ResultSet> playerWeeklyRes(playerWeeklyStmt->executeQuery());
+                    if (playerWeeklyRes->next())
+                    {
+                        outPlayerWeeklyReward->player_account_id = accId;
+                        outPlayerWeeklyReward->day_count = playerWeeklyRes->getByte("RewardCount");
+                        outPlayerWeeklyReward->last_time_update = playerWeeklyRes->getUInt64("LastUpdate");
+                    }
+                }
+
+                auto* updateOnlineStmt = Prep("UPDATE accounts SET ServerId = ? WHERE Id = ?");
                 updateOnlineStmt->setUInt(1, server_id);
                 updateOnlineStmt->setUInt(2, accId);
                 updateOnlineStmt->executeUpdate();
@@ -3297,15 +3935,16 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
-			std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
+			auto* pstmt = Prep(
 				"SELECT a.Id, a.ServerId, a.Username, a.Password, a.Salt, a.Grade, a.ClanId, a.Level, a.Experience, "
 				"a.Kills, a.Deaths, a.Assists, a.Wins, a.Loses, a.Draws, a.Nickname, "
 				"c.Id as ClanId, c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack "
 				"FROM accounts a "
 				"LEFT JOIN clans c ON a.ClanId = c.Id "
 				"WHERE a.Username = ?"
-			));
+			);
 
             pstmt->setString(1, username.c_str());
 
@@ -3424,16 +4063,16 @@ namespace BaseLib
            
 
 
-            std::unique_ptr<sql::PreparedStatement> purge(GetConnection()->prepareStatement("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)"));
+            auto* purge = Prep("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)");
             purge->setUInt64(1, nowUnix);
             purge->execute();
 
 
 
-            std::unique_ptr<sql::PreparedStatement> selSess(GetConnection()->prepareStatement(
+            auto* selSess = Prep(
                 "SELECT AuthKey, UNIX_TIMESTAMP(ExpiresAt) "
                 "FROM player_sessions WHERE PlayerId = ?"
-            ));
+            );
             selSess->setUInt(1, outFrontAccount->Index);
             std::unique_ptr<sql::ResultSet> rsSel(selSess->executeQuery());
 
@@ -3444,19 +4083,19 @@ namespace BaseLib
 
                 if (curExpiry > nowUnix)
                 {
-                    std::unique_ptr<sql::PreparedStatement> bump(GetConnection()->prepareStatement(
+                    auto* bump = Prep(
                         "UPDATE player_sessions "
                         "SET LastSeenAt = FROM_UNIXTIME(?) "
                         "WHERE PlayerId = ?"
-                    ));
+                    );
                     bump->setUInt64(1, nowUnix);
                     bump->setUInt(2, outFrontAccount->Index);
                     bump->executeUpdate();
 
                     outFrontAccount->AuthKey = curKey;
-                    std::unique_ptr<sql::PreparedStatement> loginHistoryStmt(GetConnection()->prepareStatement(
+                    auto* loginHistoryStmt = Prep(
                         "INSERT INTO login_history (AccountId, LoginDate, IP) VALUES (?, FROM_UNIXTIME(?), ?)"
-                    ));
+                    );
                     loginHistoryStmt->setUInt(1, outFrontAccount->Index);
                     loginHistoryStmt->setUInt64(2, nowUnix);
                     loginHistoryStmt->setString(3, ip.c_str());
@@ -3481,7 +4120,7 @@ namespace BaseLib
                 newAuthKey = rng.GenerateAuthKey();
                 try
                 {
-                    std::unique_ptr<sql::PreparedStatement> upsert(GetConnection()->prepareStatement(
+                    auto* upsert = Prep(
                         "INSERT INTO player_sessions (PlayerId, AuthKey, IssuedAt, ExpiresAt, LastSeenAt) "
                         "VALUES (?, ?, FROM_UNIXTIME(?), FROM_UNIXTIME(?), FROM_UNIXTIME(?)) "
                         "ON DUPLICATE KEY UPDATE "
@@ -3489,7 +4128,7 @@ namespace BaseLib
                         "  IssuedAt = VALUES(IssuedAt), "
                         "  ExpiresAt = VALUES(ExpiresAt), "
                         "  LastSeenAt = VALUES(LastSeenAt)"
-                    ));
+                    );
                     upsert->setUInt(1, outFrontAccount->Index);
                     upsert->setUInt64(2, newAuthKey);
                     upsert->setUInt64(3, nowUnix);
@@ -3513,9 +4152,9 @@ namespace BaseLib
             }
             outFrontAccount->AuthKey = newAuthKey;
 
-            std::unique_ptr<sql::PreparedStatement> loginHistoryStmt(GetConnection()->prepareStatement(
+            auto* loginHistoryStmt = Prep(
                 "INSERT INTO login_history (AccountId, LoginDate, IP) VALUES (?, FROM_UNIXTIME(?), ?)"
-            ));
+            );
             loginHistoryStmt->setUInt(1, outFrontAccount->Index);
             loginHistoryStmt->setUInt64(2, nowUnix);
             loginHistoryStmt->setString(3, ip.c_str());
@@ -3547,13 +4186,14 @@ namespace BaseLib
 
 			std::unique_ptr<sql::Statement> stmt(conn->createStatement());
 			stmt->execute("START TRANSACTION");
+			TransactionGuard tx_guard;
 
-            std::unique_ptr<sql::PreparedStatement> purge(GetConnection()->prepareStatement("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)"));
+            auto* purge = Prep("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)");
             purge->setUInt64(1, nowUnix);
             purge->execute();
 
 
-			std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
+			auto* pstmt = Prep(
 				"SELECT a.Id, a.ServerId, a.Username, a.Password, a.Salt, a.Grade, a.ClanId, a.Level, a.Experience, "
 				"a.Kills, a.Deaths, a.Assists, a.Wins, a.Loses, a.Draws, a.Nickname, "
 				"c.Id as ClanId, c.OwnerId, c.ClanName, c.ClanLogoFront, c.ClanLogoBack "
@@ -3561,7 +4201,7 @@ namespace BaseLib
 				"JOIN accounts a ON s.PlayerId = a.Id "
 				"LEFT JOIN clans c ON a.ClanId = c.Id "
 				"WHERE s.AuthKey = ?"
-			));
+			);
 
 			pstmt->setUInt64(1, authKey);
 
@@ -3643,8 +4283,7 @@ namespace BaseLib
             }
 
 
-            std::unique_ptr<sql::PreparedStatement> bump(
-                GetConnection()->prepareStatement("UPDATE player_sessions SET LastSeenAt = FROM_UNIXTIME(?) WHERE AuthKey = ?"));
+            auto* bump = Prep("UPDATE player_sessions SET LastSeenAt = FROM_UNIXTIME(?) WHERE AuthKey = ?");
             bump->setUInt64(1, nowUnix);
             bump->setUInt64(2, authKey);
             bump->executeUpdate();
@@ -3672,12 +4311,13 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
+            auto* pstmt = Prep(
                 "SELECT Id, ServerId, Password, Salt, Grade, IsEmailVerified, TwoFactorSecret, TwoFactorEnabled "
                 "FROM accounts "
                 "WHERE Username = ?"
-            ));
+            );
 
             pstmt->setString(1, username.c_str());
 
@@ -3730,16 +4370,16 @@ namespace BaseLib
                 result->getString("TwoFactorSecret").c_str()
             );
 
-            std::unique_ptr<sql::PreparedStatement> purge(GetConnection()->prepareStatement("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)"));
+            auto* purge = Prep("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)");
             purge->setUInt64(1, nowUnix);
             purge->execute();
 
 
 
-            std::unique_ptr<sql::PreparedStatement> selSess(GetConnection()->prepareStatement(
+            auto* selSess = Prep(
                 "SELECT AuthKey, UNIX_TIMESTAMP(ExpiresAt) "
                 "FROM player_sessions WHERE PlayerId = ?"
-            ));
+            );
             selSess->setUInt(1, outPlazaAuth->Index);
             std::unique_ptr<sql::ResultSet> rsSel(selSess->executeQuery());
 
@@ -3750,19 +4390,19 @@ namespace BaseLib
 
                 if (curExpiry > nowUnix)
                 {
-                    std::unique_ptr<sql::PreparedStatement> bump(GetConnection()->prepareStatement(
+                    auto* bump = Prep(
                         "UPDATE player_sessions "
                         "SET LastSeenAt = FROM_UNIXTIME(?) "
                         "WHERE PlayerId = ?"
-                    ));
+                    );
                     bump->setUInt64(1, nowUnix);
                     bump->setUInt(2, outPlazaAuth->Index);
                     bump->executeUpdate();
 
                     outPlazaAuth->AuthKey = curKey;
-                    std::unique_ptr<sql::PreparedStatement> loginHistoryStmt(GetConnection()->prepareStatement(
+                    auto* loginHistoryStmt = Prep(
                         "INSERT INTO login_history (AccountId, LoginDate, IP) VALUES (?, FROM_UNIXTIME(?), ?)"
-                    ));
+                    );
                     loginHistoryStmt->setUInt(1, outPlazaAuth->Index);
                     loginHistoryStmt->setUInt64(2, nowUnix);
                     loginHistoryStmt->setString(3, ip.c_str());
@@ -3787,7 +4427,7 @@ namespace BaseLib
                 newAuthKey = rng.GenerateAuthKey();
                 try
                 {
-                    std::unique_ptr<sql::PreparedStatement> upsert(GetConnection()->prepareStatement(
+                    auto* upsert = Prep(
                         "INSERT INTO player_sessions (PlayerId, AuthKey, IssuedAt, ExpiresAt, LastSeenAt) "
                         "VALUES (?, ?, FROM_UNIXTIME(?), FROM_UNIXTIME(?), FROM_UNIXTIME(?)) "
                         "ON DUPLICATE KEY UPDATE "
@@ -3795,7 +4435,7 @@ namespace BaseLib
                         "  IssuedAt = VALUES(IssuedAt), "
                         "  ExpiresAt = VALUES(ExpiresAt), "
                         "  LastSeenAt = VALUES(LastSeenAt)"
-                    ));
+                    );
                     upsert->setUInt(1, outPlazaAuth->Index);
                     upsert->setUInt64(2, newAuthKey);
                     upsert->setUInt64(3, nowUnix);
@@ -3819,9 +4459,9 @@ namespace BaseLib
             }
             outPlazaAuth->AuthKey = newAuthKey;
 
-            std::unique_ptr<sql::PreparedStatement> loginHistoryStmt(GetConnection()->prepareStatement(
+            auto* loginHistoryStmt = Prep(
                 "INSERT INTO login_history (AccountId, LoginDate, IP) VALUES (?, FROM_UNIXTIME(?), ?)"
-            ));
+            );
             loginHistoryStmt->setUInt(1, outPlazaAuth->Index);
             loginHistoryStmt->setUInt64(2, nowUnix);
             loginHistoryStmt->setString(3, ip.c_str());
@@ -3856,18 +4496,19 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
-            std::unique_ptr<sql::PreparedStatement> purge(GetConnection()->prepareStatement("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)"));
+            auto* purge = Prep("DELETE FROM player_sessions WHERE ExpiresAt <= FROM_UNIXTIME(?)");
             purge->setUInt64(1, nowUnix);
             purge->execute();
 
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
+            auto* pstmt = Prep(
                 "SELECT a.Id, a.ServerId, a.Grade, a.IsEmailVerified, a.TwoFactorEnabled, a.TwoFactorSecret "
                 "FROM player_sessions s "
                 "JOIN accounts a ON s.PlayerId = a.Id "
                 "WHERE s.AuthKey = ?"
-            ));
+            );
 
             pstmt->setUInt64(1, authKey);
 
@@ -3887,15 +4528,15 @@ namespace BaseLib
             );
 
 
-            std::unique_ptr<sql::PreparedStatement> bump(GetConnection()->prepareStatement("UPDATE player_sessions SET LastSeenAt = FROM_UNIXTIME(?) WHERE AuthKey = ?"));
+            auto* bump = Prep("UPDATE player_sessions SET LastSeenAt = FROM_UNIXTIME(?) WHERE AuthKey = ?");
             bump->setUInt64(1, nowUnix);
             bump->setUInt64(2, authKey);
             bump->executeUpdate();
 
 
-            std::unique_ptr<sql::PreparedStatement> loginHistoryStmt(GetConnection()->prepareStatement(
+            auto* loginHistoryStmt = Prep(
                 "INSERT INTO login_history (AccountId, LoginDate, IP) VALUES (?, FROM_UNIXTIME(?), ?)"
-            ));
+            );
             loginHistoryStmt->setUInt(1, outPlazaAuth->Index);
             loginHistoryStmt->setUInt64(2, nowUnix);
             loginHistoryStmt->setString(3, ip.c_str());
@@ -3929,13 +4570,14 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(GetConnection()->prepareStatement(
+            auto* pstmt = Prep(
                 "SELECT GachaponId, SalePrice, "
                 "UNIX_TIMESTAMP(EventStartDate) AS EventStartTimestamp, "
                 "UNIX_TIMESTAMP(EventEndDate) AS EventEndTimestamp "
                 "FROM system_gachapon_machine"
-            ));
+            );
 
             std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
@@ -3986,10 +4628,11 @@ namespace BaseLib
 
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(
+            auto* pstmt = Prep(
                 "DELETE FROM system_gachapon_machine WHERE GachaponId = ?"
-            ));
+            );
             pstmt->setUInt(1, gachapon_id);
 
             int affected_rows = pstmt->executeUpdate();
@@ -4033,8 +4676,8 @@ namespace BaseLib
     {
         try
         {
-            std::unique_ptr<sql::PreparedStatement> stmt(GetConnection()->prepareStatement(
-                "SELECT * FROM system_monthly_rewards WHERE Year = ? AND Month = ?"));
+            auto* stmt = Prep(
+                "SELECT * FROM system_monthly_rewards WHERE Year = ? AND Month = ?");
             stmt->setUInt(1, year);
             stmt->setUInt(2, month);
             std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
@@ -4057,10 +4700,10 @@ namespace BaseLib
     {
         try
         {
-            std::unique_ptr<sql::PreparedStatement> stmt(GetConnection()->prepareStatement(
+            auto* stmt = Prep(
                 "SELECT RewardCount, UNIX_TIMESTAMP(LastUpdate) AS LastUpdate "
                 "FROM player_monthly_rewards WHERE PlayerId = ? "
-                "ORDER BY LastUpdate DESC, ID DESC LIMIT 1"));
+                "ORDER BY LastUpdate DESC, ID DESC LIMIT 1");
             stmt->setUInt(1, player_id);
             std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
             if (!res->next()) return false;
@@ -4077,6 +4720,158 @@ namespace BaseLib
         }
     }
 
+    bool CMariaDatabase::GetSystemPlaytimeRewards(uint32_t year, uint32_t month, SystemPlaytimeRewards* out)
+    {
+        try
+        {
+            auto* stmt = Prep("SELECT Reward1, Reward2, Reward3 FROM system_playtime_rewards WHERE Year = ? AND Month = ?");
+            stmt->setUInt(1, year);
+            stmt->setUInt(2, month);
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+            if (!res->next()) return false;
+            *out = SystemPlaytimeRewards(year, month,
+                { res->getUInt("Reward1"), res->getUInt("Reward2"), res->getUInt("Reward3") });
+            return true;
+        }
+        catch (const sql::SQLException& e)
+        {
+            DEBUGLOG(red, "GetSystemPlaytimeRewards failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CMariaDatabase::GetPlayerPlaytime(uint32_t player_id, PlayerPlaytime* out)
+    {
+        try
+        {
+            auto* stmt = Prep(
+                "SELECT DailySeconds, ClaimedStage, UNIX_TIMESTAMP(LastUpdate) AS LastUpdate "
+                "FROM player_playtime WHERE PlayerId = ? ORDER BY LastUpdate DESC, ID DESC LIMIT 1");
+            stmt->setUInt(1, player_id);
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+            if (!res->next()) return false;
+            out->player_account_id = player_id;
+            out->daily_seconds = res->getUInt("DailySeconds");
+            out->claimed_stage = res->getByte("ClaimedStage");
+            out->last_time_update = res->getUInt64("LastUpdate");
+            return true;
+        }
+        catch (const sql::SQLException& e)
+        {
+            DEBUGLOG(red, "GetPlayerPlaytime failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CMariaDatabase::GetActiveBattlePassSeason(SystemBattlePassSeason* out)
+    {
+        try
+        {
+            auto* stmt = Prep(
+                "SELECT Season, UNIX_TIMESTAMP(StartDate) AS S, UNIX_TIMESTAMP(EndDate) AS E, ResetBaseCost "
+                "FROM system_battlepass_season WHERE NOW() BETWEEN StartDate AND EndDate "
+                "ORDER BY Season DESC LIMIT 1");
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+            if (!res->next()) return false;
+            out->season = res->getUInt("Season");
+            out->start_date = res->getUInt64("S");
+            out->end_date = res->getUInt64("E");
+            out->reset_base_cost = res->getUInt("ResetBaseCost");
+            return true;
+        }
+        catch (const sql::SQLException& e)
+        {
+            DEBUGLOG(red, "GetActiveBattlePassSeason failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CMariaDatabase::GetSystemBattlePassLevels(uint32_t season, std::vector<SystemBattlePassLevel>* out)
+    {
+        try
+        {
+            auto* stmt = Prep(
+                "SELECT Level, XpRequired, FreeItem, PremiumItem FROM system_battlepass_rewards "
+                "WHERE Season = ? ORDER BY Level ASC");
+            stmt->setUInt(1, season);
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+            out->clear();
+            while (res->next())
+            {
+                SystemBattlePassLevel lv{};
+                lv.season = season;
+                lv.level = res->getUInt("Level");
+                lv.xp_required = res->getUInt("XpRequired");
+                lv.free_item = res->getUInt("FreeItem");
+                lv.premium_item = res->getUInt("PremiumItem");
+                out->push_back(lv);
+            }
+            return true;
+        }
+        catch (const sql::SQLException& e)
+        {
+            DEBUGLOG(red, "GetSystemBattlePassLevels failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CMariaDatabase::GetSystemBattlePassMissions(std::vector<SystemBattlePassMission>* out)
+    {
+        try
+        {
+            auto* stmt = Prep(
+                "SELECT MissionId, Description, CriteriaType, CriteriaTarget, XpReward "
+                "FROM system_battlepass_missions ORDER BY MissionId ASC");
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+            out->clear();
+            while (res->next())
+            {
+                SystemBattlePassMission m{};
+                m.mission_id = res->getUInt("MissionId");
+                m.description = res->getString("Description").c_str();
+                m.criteria_type = res->getUInt("CriteriaType");
+                m.criteria_target = res->getUInt("CriteriaTarget");
+                m.xp_reward = res->getUInt("XpReward");
+                out->push_back(m);
+            }
+            return true;
+        }
+        catch (const sql::SQLException& e)
+        {
+            DEBUGLOG(red, "GetSystemBattlePassMissions failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CMariaDatabase::GetPlayerBattlePass(uint32_t player_id, PlayerBattlePass* out)
+    {
+        try
+        {
+            auto* stmt = Prep(
+                "SELECT Season, Level, Xp, HasPremium, ClaimedFree, ClaimedPremium, "
+                "CurrentMissionId, MissionProgress, ResetCount FROM player_battlepass WHERE PlayerId = ?");
+            stmt->setUInt(1, player_id);
+            std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+            if (!res->next()) return false;
+            out->player_account_id = player_id;
+            out->season = res->getUInt("Season");
+            out->level = res->getUInt("Level");
+            out->xp = res->getUInt("Xp");
+            out->has_premium = static_cast<uint8_t>(res->getUInt("HasPremium"));
+            out->current_mission_id = res->getUInt("CurrentMissionId");
+            out->mission_progress = res->getUInt("MissionProgress");
+            out->reset_count = res->getUInt("ResetCount");
+            BattlePassHexToMask(res->getString("ClaimedFree").c_str(), out->claimed_free);
+            BattlePassHexToMask(res->getString("ClaimedPremium").c_str(), out->claimed_premium);
+            return true;
+        }
+        catch (const sql::SQLException& e)
+        {
+            DEBUGLOG(red, "GetPlayerBattlePass failed: {}", e.what());
+            return false;
+        }
+    }
+
     bool CMariaDatabase::ClaimMonthlyReward(uint32_t player_id, uint8_t new_day_count, uint64_t now, const Item& reward_item)
     {
         try
@@ -4085,10 +4880,11 @@ namespace BaseLib
             if (!conn || !conn->isValid()) return false;
             std::unique_ptr<sql::Statement> stmt(conn->createStatement());
             stmt->execute("START TRANSACTION");
+            TransactionGuard tx_guard;
 
-            std::unique_ptr<sql::PreparedStatement> upsert(conn->prepareStatement(
+            auto* upsert = Prep(
                 "INSERT INTO player_monthly_rewards (PlayerId, RewardCount, LastUpdate) VALUES (?, ?, FROM_UNIXTIME(?)) "
-                "ON DUPLICATE KEY UPDATE RewardCount = VALUES(RewardCount), LastUpdate = VALUES(LastUpdate)"));
+                "ON DUPLICATE KEY UPDATE RewardCount = VALUES(RewardCount), LastUpdate = VALUES(LastUpdate)");
             upsert->setUInt(1, player_id);
             upsert->setUInt(2, new_day_count);
             upsert->setUInt64(3, now);
@@ -4096,9 +4892,9 @@ namespace BaseLib
 
             if (reward_item.item_info.item_number.item_id > 0)
             {
-                std::unique_ptr<sql::PreparedStatement> itemStmt(conn->prepareStatement(
+                auto* itemStmt = Prep(
                     "INSERT INTO player_items (PlayerId, SerialInfo, ItemId, ItemType, IsSealed, IsEquipped, Stock, ExpirationDate, Repair, Energy, CharacterId, SealLevel, EnhanceExp, EnhanceLevel) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)"));
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)");
                 itemStmt->setUInt(1, player_id);
                 itemStmt->setUInt64(2, reward_item.item_info.serial_info.data);
                 itemStmt->setUInt(3, reward_item.item_info.item_number.item_id);
@@ -4129,6 +4925,47 @@ namespace BaseLib
             }
             catch (...) {}
             return false;
+        }
+    }
+
+    bool CMariaDatabase::GetPlayerMiscInvisible(int32_t aid)
+    {
+        try
+        {
+            if (auto r = EnsureConnected(); !r.has_value())
+                return false;
+
+            auto* stmt = Prep("SELECT IsInvisible FROM player_misc WHERE AccountId = ?");
+            stmt->setUInt(1, static_cast<uint32_t>(aid));
+            auto result = stmt->executeQuery();
+            if (!result->next())
+                return false;
+            return result->getInt("IsInvisible") != 0;
+        }
+        catch (sql::SQLException&)
+        {
+            return false;
+        }
+    }
+
+    std::expected<void, DbError> CMariaDatabase::SetPlayerMiscInvisible(int32_t aid, bool val)
+    {
+        try
+        {
+            if (auto r = EnsureConnected(); !r.has_value())
+                return r;
+
+            auto* stmt = Prep(
+                "INSERT INTO player_misc (AccountId, IsInvisible) VALUES (?, ?) "
+                "ON DUPLICATE KEY UPDATE IsInvisible = VALUES(IsInvisible)");
+            stmt->setUInt(1, static_cast<uint32_t>(aid));
+            stmt->setInt(2, val ? 1 : 0);
+            stmt->executeUpdate();
+            return {};
+        }
+        catch (sql::SQLException& e)
+        {
+            return std::unexpected(CMariaDatabase::FromSQLException(e));
         }
     }
 

@@ -15,13 +15,18 @@ namespace Game::Handlers
         auto hostSid = session->GetSessionId();
         auto attackerSid = message->GetSession();
         auto host = CAccount.get<shared_t>(hostSid);
-        auto room = CRoom.get<unique_t>(host->room_id);
+        if (!host) return;
+        auto room_id = host->room_id;
+        auto host_name = host->nickname;
+        auto host_sid_cached = host->session_id;
+        host.unlock();
 
-        if (!host || !room) return;
-        if (host->session_id != room->host_session_id)
+        auto room = CRoom.get<shared_t>(room_id);
+        if (!room) return;
+        if (host_sid_cached != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
-            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host->nickname, hostSid, room->room_id);
+            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host_name, hostSid, room_id);
             return;
         }
 
@@ -29,23 +34,27 @@ namespace Game::Handlers
 
         if (projectileType != 1 && projectileType != 2)
         {
-            auto order = magic_enum::enum_cast<EOrder>(u16_cast(message->GetOrder())).value_or(EOrder::NONE);
             auto orderName = magic_enum::enum_name(order);
             DEBUGLOG(yellow, "({}): invalid projectileType=({}) from sid=({})", orderName, projectileType, hostSid);
             return;
         }
 
         auto req = message->GetData<AddProjectileReq*>();
-        room->projectile_owner_by_id[req->projectile_id] = req->attacker_unique_id.session;
-        room->projectile_type_by_id[req->projectile_id] = projectileType;
+        auto proj = CRoomProjectiles.get_or_emplace(room_id);
+        proj->owner_by_id[req->projectile_id] = req->attacker_unique_id.session;
+        proj->type_by_id[req->projectile_id] = projectileType;
+        proj.unlock();
+
         PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}) attackerSid=({}) projectileId=({}) projectileType=({})",
-            host->room_id,
-            host->nickname,
+            room_id,
+            host_name,
             hostSid,
             static_cast<uint32_t>(req->attacker_unique_id.session),
             req->projectile_id,
             static_cast<uint32_t>(projectileType));
 
-        server->Broadcast(room->players_session_id, *message);
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, *message);
     }
 }

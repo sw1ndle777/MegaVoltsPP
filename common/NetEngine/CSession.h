@@ -6,6 +6,8 @@
 #include <atomic>
 #include <queue>
 #include <format>
+#include <functional>
+#include <span>
 #include <asio.hpp>
 
 #include "CMessage.h"
@@ -23,6 +25,9 @@ namespace NetEngine
     class CServer;
     class CMessage;
     struct SCallbackData;
+
+    using CallbackMap = boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>>;
+
     class CSession : public std::enable_shared_from_this<CSession>
     {
     public:
@@ -30,7 +35,7 @@ namespace NetEngine
         {
             bool verbose;
             bool useEncryption;
-            boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> callbacks;
+            std::shared_ptr<const CallbackMap> callbacks;
         };
 
     public:
@@ -86,7 +91,7 @@ namespace NetEngine
         void SetOnDisconnectCallback(std::function<void(std::shared_ptr<CSession>)> callback);
         void SetOnIpcMessageCallback(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> callback);
         int32_t GetEncryptionKey();
-        uint16_t GetSessionId();
+        uint16_t GetSessionId() const;
         CServer* GetServer();
         bool IsOpen() const;
         void DoRead();
@@ -116,16 +121,15 @@ namespace NetEngine
         }
     private:
         
-        void onPacket(Protocols::STcpPacketHeader& header, std::vector<uint8_t>& data);
+        void onPacket(Protocols::STcpPacketHeader& header, std::span<uint8_t> data);
 
     private:
-        boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
+        std::shared_ptr<const CallbackMap> m_callbacks;
         std::deque<std::shared_ptr<std::vector<uint8_t>>> m_SendQueue;
         std::shared_mutex mutex;
         std::shared_mutex SendMtx;
-        
-        std::atomic_bool m_InSend;
-        std::array<uint8_t, 1024> m_buffer{};
+
+        std::array<uint8_t, 16384> m_buffer{};
         std::vector<uint8_t> m_reader{};
         asio::ip::tcp::socket m_socket;
         asio::strand<asio::io_context::executor_type> m_strand;
@@ -133,7 +137,7 @@ namespace NetEngine
         bool m_verbose = false;
         bool m_useEncryption = false;
         int32_t m_encryptionKey = -1;
-        uint16_t m_sessionId = 1;
+        std::atomic<uint16_t> m_sessionId{1};
         std::function<void(std::shared_ptr<CSession>)> m_on_disconnect_callback;
         std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> m_on_ipc_callback;
         bool m_ipc_identifier_skipped;

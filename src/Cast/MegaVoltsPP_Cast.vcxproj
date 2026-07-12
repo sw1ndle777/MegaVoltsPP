@@ -296,6 +296,7 @@
     <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackRifle.h" />
     <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackShotgun.h" />
     <ClInclude Include="handlers\Gameplay\Host\Weapon\AttackSniper.h" />
+    <ClInclude Include="handlers\Gameplay\Host\MatchEventIpc.h" />
     <ClInclude Include="handlers\Gameplay\Host\Weapon\CombatIpc.h" />
     <ClInclude Include="handlers\Gameplay\Host\Weapon\ImpactProjectile.h" />
     <ClInclude Include="handlers\Gameplay\Host\Weapon\WarmupGatling.h" />

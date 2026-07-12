@@ -1,4 +1,5 @@
 #pragma once
+#include "RoomSettingLog.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -126,6 +127,12 @@ namespace Game::Handlers
         auto room_cache = CRoom.get<unique_t>(acc_cache->room_id);
         auto previous_mode = room_cache->ModeIndex;
         if (room_cache->is_playing || room_cache->host_session_id != session_id) return;
+        // Snapshot pre-change settings so we can log exactly which ones the host changed.
+        const auto previous_map = static_cast<int32_t>(room_cache->MapIndex);
+        const auto previous_score = static_cast<int32_t>(room_cache->score_rule);
+        const auto previous_time = static_cast<int32_t>(room_cache->time_rule);
+        const auto previous_maxplayers = static_cast<int32_t>(room_cache->max_players);
+        const auto setting_server_id = acc_cache->server_id;
         acc_cache.unlock();
         auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
 
@@ -140,6 +147,15 @@ namespace Game::Handlers
         room_cache->TeamBalance = NetEngine::Room::Balance::State::Disabled;//static_cast<NetEngine::Room::Balance::State>(settings_info->team_balance);
         settings_info->team_balance = NetEngine::Room::Balance::State::Disabled;
         room_cache->ModeIndex = mode_id;
+
+        // Room log: one entry per setting the host actually changed (no-op when unchanged).
+        const auto rid = room_cache->room_id;
+        LogRoomSettingChange(acc_index, acc_index, setting_server_id, rid, RoomLog::EventType::MapChanged, previous_map, static_cast<int32_t>(room_cache->MapIndex));
+        LogRoomSettingChange(acc_index, acc_index, setting_server_id, rid, RoomLog::EventType::ModeChanged, static_cast<int32_t>(previous_mode), static_cast<int32_t>(room_cache->ModeIndex));
+        LogRoomSettingChange(acc_index, acc_index, setting_server_id, rid, RoomLog::EventType::ScoreRuleChanged, previous_score, static_cast<int32_t>(room_cache->score_rule));
+        LogRoomSettingChange(acc_index, acc_index, setting_server_id, rid, RoomLog::EventType::TimeRuleChanged, previous_time, static_cast<int32_t>(room_cache->time_rule));
+        LogRoomSettingChange(acc_index, acc_index, setting_server_id, rid, RoomLog::EventType::MaxPlayersChanged, previous_maxplayers, static_cast<int32_t>(room_cache->max_players));
+
         message->SetData(reinterpret_cast<uint8_t*>(settings_info), data_size);
         broadcast(players_ids, order, mission, extra, option);
 		BalanceTeams(main_server, previous_mode, room_cache, players_ids);

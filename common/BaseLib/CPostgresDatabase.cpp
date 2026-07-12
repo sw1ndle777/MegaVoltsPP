@@ -408,11 +408,23 @@ namespace BaseLib
                 PRIMARY KEY (AccountId, MissionId),
                 CONSTRAINT FK_dmri_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
+            {
+                pqxx::work migration_txn(GetConnection());
+                auto r = migration_txn.exec("SELECT column_name FROM information_schema.columns WHERE table_name = 'gacha_pity' AND column_name = 'gachaid'");
+                if (!r.empty())
+                {
+                    migration_txn.exec("DROP TABLE gacha_pity");
+                    migration_txn.commit();
+                    DEBUGLOG(dark_cyan, "dropped legacy gacha_pity table (per-id -> per-type migration)");
+                }
+                else
+                    migration_txn.abort();
+            }
             CreateTable("gacha_pity", R"(
                 AccountId INTEGER NOT NULL,
-                GachaId INTEGER NOT NULL,
+                GachaType INTEGER NOT NULL,
                 LuckyPoints INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (AccountId, GachaId),
+                PRIMARY KEY (AccountId, GachaType),
                 CONSTRAINT FK_gacha_pity_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
             CreateTable("system_monthly_rewards", R"(
@@ -442,11 +454,104 @@ namespace BaseLib
                 LastClaimDate BIGINT NOT NULL DEFAULT 0,
                 CONSTRAINT FK_pmr_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
+            CreateTable("system_weekly_rewards", R"(
+                Year INTEGER NOT NULL,
+                Week INTEGER NOT NULL,
+                Day1 INTEGER NOT NULL DEFAULT 0, Day2 INTEGER NOT NULL DEFAULT 0,
+                Day3 INTEGER NOT NULL DEFAULT 0, Day4 INTEGER NOT NULL DEFAULT 0,
+                Day5 INTEGER NOT NULL DEFAULT 0, Day6 INTEGER NOT NULL DEFAULT 0,
+                Day7 INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (Year, Week))");
+
+            CreateTable("player_weekly_rewards", R"(
+                AccountId INTEGER NOT NULL PRIMARY KEY,
+                DayCount SMALLINT NOT NULL DEFAULT 0,
+                LastClaimDate BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT FK_pwr_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+            CreateTable("system_playtime_rewards", R"(
+                Year INTEGER NOT NULL,
+                Month INTEGER NOT NULL,
+                Reward1 INTEGER NOT NULL DEFAULT 0,
+                Reward2 INTEGER NOT NULL DEFAULT 0,
+                Reward3 INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (Year, Month))");
+
+            CreateTable("player_playtime", R"(
+                AccountId INTEGER NOT NULL PRIMARY KEY,
+                DailySeconds INTEGER NOT NULL DEFAULT 0,
+                ClaimedStage SMALLINT NOT NULL DEFAULT 0,
+                LastClaimDate BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT FK_ppt_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+            // ── Battle Pass (MICROPASS) ──────────────────────────────────────
+            CreateTable("system_battlepass_season", R"(
+                Season INTEGER NOT NULL PRIMARY KEY,
+                StartDate BIGINT NOT NULL DEFAULT 0,
+                EndDate BIGINT NOT NULL DEFAULT 0,
+                ResetBaseCost INTEGER NOT NULL DEFAULT 0)");
+
+            CreateTable("system_battlepass_rewards", R"(
+                Season INTEGER NOT NULL,
+                Level INTEGER NOT NULL,
+                XpRequired INTEGER NOT NULL DEFAULT 0,
+                FreeItem INTEGER NOT NULL DEFAULT 0,
+                PremiumItem INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (Season, Level))");
+
+            CreateTable("system_battlepass_missions", R"(
+                MissionId INTEGER NOT NULL PRIMARY KEY,
+                Description VARCHAR(255) NOT NULL DEFAULT '',
+                CriteriaType INTEGER NOT NULL DEFAULT 0,
+                CriteriaTarget INTEGER NOT NULL DEFAULT 0,
+                XpReward INTEGER NOT NULL DEFAULT 0)");
+
+            CreateTable("player_battlepass", R"(
+                AccountId INTEGER NOT NULL PRIMARY KEY,
+                Season INTEGER NOT NULL DEFAULT 0,
+                Level INTEGER NOT NULL DEFAULT 1,
+                Xp INTEGER NOT NULL DEFAULT 0,
+                HasPremium SMALLINT NOT NULL DEFAULT 0,
+                ClaimedFree VARCHAR(32) NOT NULL DEFAULT '00000000000000000000000000000000',
+                ClaimedPremium VARCHAR(32) NOT NULL DEFAULT '00000000000000000000000000000000',
+                CurrentMissionId INTEGER NOT NULL DEFAULT 0,
+                MissionProgress INTEGER NOT NULL DEFAULT 0,
+                ResetCount INTEGER NOT NULL DEFAULT 0,
+                CONSTRAINT FK_pbp_accounts FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
+
+            // Default seed (idempotent): season 1 + 100 levels with every item slot
+            // = 3010050, and starter missions. ON CONFLICT DO NOTHING.
+            {
+                auto [txn, owned] = AcquireTxn();
+                txn->exec("INSERT INTO system_battlepass_season (Season, StartDate, EndDate, ResetBaseCost) "
+                          "VALUES (1, EXTRACT(EPOCH FROM NOW())::bigint, EXTRACT(EPOCH FROM NOW())::bigint + 2592000, 100) "
+                          "ON CONFLICT (Season) DO NOTHING");
+                std::string rows;
+                for (int lv = 1; lv <= 100; ++lv)
+                {
+                    if (!rows.empty()) rows += ",";
+                    rows += "(1," + std::to_string(lv) + ",5000,3010050,3010050)";
+                }
+                txn->exec("INSERT INTO system_battlepass_rewards (Season, Level, XpRequired, FreeItem, PremiumItem) VALUES "
+                          + rows + " ON CONFLICT (Season, Level) DO NOTHING");
+                txn->exec("INSERT INTO system_battlepass_missions (MissionId, Description, CriteriaType, CriteriaTarget, XpReward) VALUES "
+                          "(1,'Get 30 Kills in FFA',0,30,2500),"
+                          "(2,'Collect 5000 EXP',1,5000,2500),"
+                          "(3,'Win 3 Matches',2,3,2500),"
+                          "(4,'Play 5 Matches',3,5,1500) ON CONFLICT (MissionId) DO NOTHING");
+                CommitIfOwned(owned);
+            }
+
             CreateTable("gachapon_sales", R"(
                 GachaponId INTEGER NOT NULL PRIMARY KEY,
                 SalePrice INTEGER NOT NULL DEFAULT 0,
                 StartDate BIGINT NOT NULL DEFAULT 0,
                 EndDate BIGINT NOT NULL DEFAULT 0)");
+
+            CreateTable("player_misc", R"(
+                AccountId INTEGER NOT NULL PRIMARY KEY,
+                IsInvisible BOOLEAN NOT NULL DEFAULT FALSE,
+                CONSTRAINT FK_player_misc_account FOREIGN KEY (AccountId) REFERENCES accounts (Id) ON DELETE CASCADE)");
 
             CreateTable("log_chat", R"(
                 Id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -923,7 +1028,7 @@ namespace BaseLib
         }
     }
 
-    bool CPostgresDatabase::GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward)
+    bool CPostgresDatabase::GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward, SystemWeeklyRewards* outWeeklyRewards, PlayerWeeklyReward* outPlayerWeeklyReward)
     {
         try
         {
@@ -1123,11 +1228,11 @@ namespace BaseLib
                 });
             }
 
-            auto pityRes = txn.exec("SELECT GachaId, LuckyPoints FROM gacha_pity WHERE AccountId = $1", pqxx::params{accId});
+            auto pityRes = txn.exec("SELECT GachaType, LuckyPoints FROM gacha_pity WHERE AccountId = $1", pqxx::params{accId});
             for (const auto& pr : pityRes)
             {
                 GachaPityEntry entry;
-                entry.gacha_id = pr["GachaId"].as<uint32_t>();
+                entry.gacha_type = pr["GachaType"].as<uint32_t>();
                 entry.lucky_points = pr["LuckyPoints"].as<uint32_t>();
                 gacha_pity.push_back(entry);
             }
@@ -1156,6 +1261,33 @@ namespace BaseLib
                     outPlayerMonthlyReward->player_account_id = accId;
                     outPlayerMonthlyReward->day_count = static_cast<uint8_t>(pmRes[0]["DayCount"].as<int>());
                     outPlayerMonthlyReward->last_time_update = pmRes[0]["LastClaimDate"].as<uint64_t>();
+                }
+            }
+
+            if (outWeeklyRewards)
+            {
+                uint32_t curYear = Utility::GetCurrentYear();
+                uint32_t curWeek = Utility::GetCurrentWeek();
+                auto wRes = txn.exec("SELECT * FROM system_weekly_rewards WHERE Year = $1 AND Week = $2", pqxx::params{curYear, curWeek});
+                if (!wRes.empty())
+                {
+                    auto wr = wRes[0];
+                    std::array<uint32_t, 7> rewards{};
+                    for (int i = 0; i < 7; ++i)
+                        rewards[i] = wr["Day" + std::to_string(i + 1)].as<uint32_t>();
+                    *outWeeklyRewards = SystemWeeklyRewards(curYear, curWeek, rewards);
+                }
+            }
+
+            if (outPlayerWeeklyReward)
+            {
+                auto pwRes = txn.exec(
+                    "SELECT DayCount, LastClaimDate FROM player_weekly_rewards WHERE AccountId = $1", pqxx::params{accId});
+                if (!pwRes.empty())
+                {
+                    outPlayerWeeklyReward->player_account_id = accId;
+                    outPlayerWeeklyReward->day_count = static_cast<uint8_t>(pwRes[0]["DayCount"].as<int>());
+                    outPlayerWeeklyReward->last_time_update = pwRes[0]["LastClaimDate"].as<uint64_t>();
                 }
             }
 
@@ -1216,6 +1348,165 @@ namespace BaseLib
         catch (const std::exception& e)
         {
             DEBUGLOG(red, "GetPlayerMonthlyReward failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetSystemPlaytimeRewards(uint32_t year, uint32_t month, SystemPlaytimeRewards* out)
+    {
+        try
+        {
+            if (!EnsureConnected()) return false;
+            pqxx::work txn(GetConnection());
+            auto r = txn.exec("SELECT Reward1, Reward2, Reward3 FROM system_playtime_rewards WHERE Year = $1 AND Month = $2", pqxx::params{year, month});
+            txn.commit();
+            if (r.empty()) return false;
+            *out = SystemPlaytimeRewards(year, month,
+                { r[0]["Reward1"].as<uint32_t>(), r[0]["Reward2"].as<uint32_t>(), r[0]["Reward3"].as<uint32_t>() });
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "GetSystemPlaytimeRewards failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetPlayerPlaytime(uint32_t player_id, PlayerPlaytime* out)
+    {
+        try
+        {
+            if (!EnsureConnected()) return false;
+            pqxx::work txn(GetConnection());
+            auto r = txn.exec(
+                "SELECT DailySeconds, ClaimedStage, LastClaimDate FROM player_playtime WHERE AccountId = $1", pqxx::params{player_id});
+            txn.commit();
+            if (r.empty()) return false;
+            out->player_account_id = player_id;
+            out->daily_seconds = r[0]["DailySeconds"].as<uint32_t>();
+            out->claimed_stage = static_cast<uint8_t>(r[0]["ClaimedStage"].as<int>());
+            out->last_time_update = r[0]["LastClaimDate"].as<uint64_t>();
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "GetPlayerPlaytime failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetActiveBattlePassSeason(SystemBattlePassSeason* out)
+    {
+        try
+        {
+            if (!EnsureConnected()) return false;
+            pqxx::work txn(GetConnection());
+            auto r = txn.exec(
+                "SELECT Season, StartDate, EndDate, ResetBaseCost FROM system_battlepass_season "
+                "WHERE EXTRACT(EPOCH FROM NOW())::bigint BETWEEN StartDate AND EndDate "
+                "ORDER BY Season DESC LIMIT 1");
+            txn.commit();
+            if (r.empty()) return false;
+            out->season = r[0]["Season"].as<uint32_t>();
+            out->start_date = r[0]["StartDate"].as<uint64_t>();
+            out->end_date = r[0]["EndDate"].as<uint64_t>();
+            out->reset_base_cost = r[0]["ResetBaseCost"].as<uint32_t>();
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "GetActiveBattlePassSeason failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetSystemBattlePassLevels(uint32_t season, std::vector<SystemBattlePassLevel>* out)
+    {
+        try
+        {
+            if (!EnsureConnected()) return false;
+            pqxx::work txn(GetConnection());
+            auto r = txn.exec(
+                "SELECT Level, XpRequired, FreeItem, PremiumItem FROM system_battlepass_rewards "
+                "WHERE Season = $1 ORDER BY Level ASC", pqxx::params{season});
+            txn.commit();
+            out->clear();
+            for (const auto& row : r)
+            {
+                SystemBattlePassLevel lv{};
+                lv.season = season;
+                lv.level = row["Level"].as<uint32_t>();
+                lv.xp_required = row["XpRequired"].as<uint32_t>();
+                lv.free_item = row["FreeItem"].as<uint32_t>();
+                lv.premium_item = row["PremiumItem"].as<uint32_t>();
+                out->push_back(lv);
+            }
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "GetSystemBattlePassLevels failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetSystemBattlePassMissions(std::vector<SystemBattlePassMission>* out)
+    {
+        try
+        {
+            if (!EnsureConnected()) return false;
+            pqxx::work txn(GetConnection());
+            auto r = txn.exec(
+                "SELECT MissionId, Description, CriteriaType, CriteriaTarget, XpReward "
+                "FROM system_battlepass_missions ORDER BY MissionId ASC");
+            txn.commit();
+            out->clear();
+            for (const auto& row : r)
+            {
+                SystemBattlePassMission m{};
+                m.mission_id = row["MissionId"].as<uint32_t>();
+                m.description = row["Description"].as<std::string>();
+                m.criteria_type = row["CriteriaType"].as<uint32_t>();
+                m.criteria_target = row["CriteriaTarget"].as<uint32_t>();
+                m.xp_reward = row["XpReward"].as<uint32_t>();
+                out->push_back(m);
+            }
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "GetSystemBattlePassMissions failed: {}", e.what());
+            return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetPlayerBattlePass(uint32_t player_id, PlayerBattlePass* out)
+    {
+        try
+        {
+            if (!EnsureConnected()) return false;
+            pqxx::work txn(GetConnection());
+            auto r = txn.exec(
+                "SELECT Season, Level, Xp, HasPremium, ClaimedFree, ClaimedPremium, "
+                "CurrentMissionId, MissionProgress, ResetCount FROM player_battlepass WHERE AccountId = $1",
+                pqxx::params{player_id});
+            txn.commit();
+            if (r.empty()) return false;
+            out->player_account_id = player_id;
+            out->season = r[0]["Season"].as<uint32_t>();
+            out->level = r[0]["Level"].as<uint32_t>();
+            out->xp = r[0]["Xp"].as<uint32_t>();
+            out->has_premium = static_cast<uint8_t>(r[0]["HasPremium"].as<int>());
+            out->current_mission_id = r[0]["CurrentMissionId"].as<uint32_t>();
+            out->mission_progress = r[0]["MissionProgress"].as<uint32_t>();
+            out->reset_count = r[0]["ResetCount"].as<uint32_t>();
+            BattlePassHexToMask(r[0]["ClaimedFree"].as<std::string>(), out->claimed_free);
+            BattlePassHexToMask(r[0]["ClaimedPremium"].as<std::string>(), out->claimed_premium);
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "GetPlayerBattlePass failed: {}", e.what());
             return false;
         }
     }
@@ -1821,6 +2112,170 @@ namespace BaseLib
         }
     }
 
+    std::expected<void, DbError> CPostgresDatabase::PersistWeeklyRewardsPatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.player_weekly_reward_patches.empty()) return {};
+
+            PlayerWeeklyRewardPatch m;
+            for (const auto& p : v.player_weekly_reward_patches)
+            {
+                if (p.day_count) m.day_count = *p.day_count;
+                if (p.last_time_update) m.last_time_update = *p.last_time_update;
+            }
+            if (!m.day_count && !m.last_time_update) return {};
+
+            std::string cols = "AccountId";
+            std::string vals = "$1";
+            std::string updates;
+            pqxx::params params;
+            params.append(v.aid);
+            size_t idx = 2;
+            bool first_update = true;
+
+            auto add_col = [&](const char* col, auto val) {
+                cols += std::string(", ") + col;
+                vals += ", $" + std::to_string(idx++);
+                if (!first_update) updates += ", ";
+                updates += std::string(col) + " = EXCLUDED." + col;
+                first_update = false;
+                params.append(val);
+            };
+
+            if (m.day_count)         add_col("DayCount", static_cast<int>(*m.day_count));
+            if (m.last_time_update)  add_col("LastClaimDate", static_cast<int64_t>(*m.last_time_update));
+
+            std::string sql = "INSERT INTO player_weekly_rewards (" + cols + ") VALUES (" + vals + ") "
+                "ON CONFLICT (AccountId) DO UPDATE SET " + (updates.empty() ? "AccountId = EXCLUDED.AccountId" : updates);
+
+            auto [txn, owned] = AcquireTxn();
+            txn->exec(sql, params);
+            CommitIfOwned(owned);
+            DEBUGLOG(green, "PersistWeeklyRewardPatches upserted weekly reward for account {}", v.aid);
+            return {};
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "PersistWeeklyRewardPatches failed: {}", e.what());
+            return std::unexpected(FromPqxxException(e));
+        }
+    }
+
+    std::expected<void, DbError> CPostgresDatabase::PersistPlaytimePatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.player_playtime_patches.empty()) return {};
+
+            PlayerPlaytimePatch m;
+            for (const auto& p : v.player_playtime_patches)
+            {
+                if (p.daily_seconds) m.daily_seconds = *p.daily_seconds;
+                if (p.claimed_stage) m.claimed_stage = *p.claimed_stage;
+                if (p.last_time_update) m.last_time_update = *p.last_time_update;
+            }
+            if (!m.daily_seconds && !m.claimed_stage && !m.last_time_update) return {};
+
+            std::string cols = "AccountId";
+            std::string vals = "$1";
+            std::string updates;
+            pqxx::params params;
+            params.append(v.aid);
+            size_t idx = 2;
+            bool first_update = true;
+
+            auto add_col = [&](const char* col, auto val) {
+                cols += std::string(", ") + col;
+                vals += ", $" + std::to_string(idx++);
+                if (!first_update) updates += ", ";
+                updates += std::string(col) + " = EXCLUDED." + col;
+                first_update = false;
+                params.append(val);
+            };
+
+            if (m.daily_seconds)     add_col("DailySeconds", static_cast<int>(*m.daily_seconds));
+            if (m.claimed_stage)     add_col("ClaimedStage", static_cast<int>(*m.claimed_stage));
+            if (m.last_time_update)  add_col("LastClaimDate", static_cast<int64_t>(*m.last_time_update));
+
+            std::string sql = "INSERT INTO player_playtime (" + cols + ") VALUES (" + vals + ") "
+                "ON CONFLICT (AccountId) DO UPDATE SET " + (updates.empty() ? "AccountId = EXCLUDED.AccountId" : updates);
+
+            auto [txn, owned] = AcquireTxn();
+            txn->exec(sql, params);
+            CommitIfOwned(owned);
+            DEBUGLOG(green, "PersistPlaytimePatches upserted playtime for account {}", v.aid);
+            return {};
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "PersistPlaytimePatches failed: {}", e.what());
+            return std::unexpected(FromPqxxException(e));
+        }
+    }
+
+    std::expected<void, DbError> CPostgresDatabase::PersistBattlePassPatches(ValidatedDbUpdates& v)
+    {
+        try
+        {
+            if (v.player_battlepass_patches.empty()) return {};
+
+            PlayerBattlePassPatch m;
+            for (const auto& p : v.player_battlepass_patches)
+            {
+                if (p.season)             m.season = p.season;
+                if (p.level)              m.level = p.level;
+                if (p.xp)                 m.xp = p.xp;
+                if (p.has_premium)        m.has_premium = p.has_premium;
+                if (p.claimed_free)       m.claimed_free = p.claimed_free;
+                if (p.claimed_premium)    m.claimed_premium = p.claimed_premium;
+                if (p.current_mission_id) m.current_mission_id = p.current_mission_id;
+                if (p.mission_progress)   m.mission_progress = p.mission_progress;
+                if (p.reset_count)        m.reset_count = p.reset_count;
+            }
+
+            std::string cols = "AccountId";
+            std::string vals = "$1";
+            std::string updates;
+            pqxx::params params;
+            params.append(v.aid);
+            size_t idx = 2;
+            bool first_update = true;
+
+            auto add_col = [&](const char* col, auto val) {
+                cols += std::string(", ") + col;
+                vals += ", $" + std::to_string(idx++);
+                if (!first_update) updates += ", ";
+                updates += std::string(col) + " = EXCLUDED." + col;
+                first_update = false;
+                params.append(val);
+            };
+            if (m.season)             add_col("Season", static_cast<int>(*m.season));
+            if (m.level)              add_col("Level", static_cast<int>(*m.level));
+            if (m.xp)                 add_col("Xp", static_cast<int>(*m.xp));
+            if (m.has_premium)        add_col("HasPremium", static_cast<int>(*m.has_premium));
+            if (m.claimed_free)       add_col("ClaimedFree", BattlePassMaskToHex(*m.claimed_free));
+            if (m.claimed_premium)    add_col("ClaimedPremium", BattlePassMaskToHex(*m.claimed_premium));
+            if (m.current_mission_id) add_col("CurrentMissionId", static_cast<int>(*m.current_mission_id));
+            if (m.mission_progress)   add_col("MissionProgress", static_cast<int>(*m.mission_progress));
+            if (m.reset_count)        add_col("ResetCount", static_cast<int>(*m.reset_count));
+
+            std::string sql = "INSERT INTO player_battlepass (" + cols + ") VALUES (" + vals + ") "
+                "ON CONFLICT (AccountId) DO UPDATE SET " + (updates.empty() ? "AccountId = EXCLUDED.AccountId" : updates);
+
+            auto [txn, owned] = AcquireTxn();
+            txn->exec(sql, params);
+            CommitIfOwned(owned);
+            DEBUGLOG(green, "PersistBattlePassPatches upserted battlepass for account {}", v.aid);
+            return {};
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "PersistBattlePassPatches failed: {}", e.what());
+            return std::unexpected(FromPqxxException(e));
+        }
+    }
+
     std::expected<void, DbError> CPostgresDatabase::PersistMailboxPatches(ValidatedDbUpdates& v)
     {
         try
@@ -2099,9 +2554,9 @@ namespace BaseLib
             for (const auto& patch : v.gacha_pity_patches)
             {
                 txn->exec(
-                    "INSERT INTO gacha_pity (AccountId, GachaId, LuckyPoints) VALUES ($1, $2, $3) "
-                    "ON CONFLICT (AccountId, GachaId) DO UPDATE SET LuckyPoints = EXCLUDED.LuckyPoints",
-                    pqxx::params{v.aid, patch.gacha_id, patch.lucky_points});
+                    "INSERT INTO gacha_pity (AccountId, GachaType, LuckyPoints) VALUES ($1, $2, $3) "
+                    "ON CONFLICT (AccountId, GachaType) DO UPDATE SET LuckyPoints = EXCLUDED.LuckyPoints",
+                    pqxx::params{v.aid, patch.gacha_type, patch.lucky_points});
             }
             CommitIfOwned(owned);
             return {};
@@ -2138,6 +2593,9 @@ namespace BaseLib
             if (auto r = PersistMissionsPatches(v); !r) return fail(r.error(), "PersistMissionsPatches aid " + aid_str);
             if (auto r = PersistMailboxPatches(v); !r) return fail(r.error(), "PersistMailboxPatches aid " + aid_str);
             if (auto r = PersistMonthlyRewardsPatches(v); !r) return fail(r.error(), "PersistMonthlyRewardsPatches aid " + aid_str);
+            if (auto r = PersistWeeklyRewardsPatches(v); !r) return fail(r.error(), "PersistWeeklyRewardsPatches aid " + aid_str);
+            if (auto r = PersistPlaytimePatches(v); !r) return fail(r.error(), "PersistPlaytimePatches aid " + aid_str);
+            if (auto r = PersistBattlePassPatches(v); !r) return fail(r.error(), "PersistBattlePassPatches aid " + aid_str);
             if (auto r = PersistMatchHistoryAdds(v); !r) return fail(r.error(), "PersistMatchHistoryAdds aid " + aid_str);
             if (auto r = PersistPlayerSessionsPatches(v); !r) return fail(r.error(), "PersistPlayerSessionsPatches aid " + aid_str);
             if (auto r = PersistPlayerSocialsPatches(v, out); !r) return fail(r.error(), "PersistPlayerSocialsPatches aid " + aid_str);
@@ -2405,6 +2863,46 @@ namespace BaseLib
         {
             DEBUGLOG(red, "DeleteGachaponSaleInfo failed: {}", e.what());
             return false;
+        }
+    }
+
+    bool CPostgresDatabase::GetPlayerMiscInvisible(int32_t aid)
+    {
+        try
+        {
+            auto connected = EnsureConnected();
+            if (!connected) return false;
+
+            auto [txn, owned] = AcquireTxn();
+            auto r = txn->exec("SELECT IsInvisible FROM player_misc WHERE AccountId = $1", pqxx::params{aid});
+            CommitIfOwned(owned);
+            if (r.empty()) return false;
+            return r[0][0].as<bool>();
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
+    }
+
+    std::expected<void, DbError> CPostgresDatabase::SetPlayerMiscInvisible(int32_t aid, bool val)
+    {
+        try
+        {
+            auto connected = EnsureConnected();
+            if (!connected) return std::unexpected(connected.error());
+
+            auto [txn, owned] = AcquireTxn();
+            txn->exec(
+                "INSERT INTO player_misc (AccountId, IsInvisible) VALUES ($1, $2) "
+                "ON CONFLICT (AccountId) DO UPDATE SET IsInvisible = EXCLUDED.IsInvisible",
+                pqxx::params{aid, val});
+            CommitIfOwned(owned);
+            return {};
+        }
+        catch (const std::exception& e)
+        {
+            return std::unexpected(FromPqxxException(e));
         }
     }
 }

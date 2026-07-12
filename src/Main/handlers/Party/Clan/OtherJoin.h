@@ -124,7 +124,7 @@ namespace Game::Handlers
 
             SCallbackData callback;
             callback.server = main_server;
-            callback.session = main_server->GetSessionById(target_host_id).get();
+            callback.session = main_server->GetSessionById(target_host_id);
             auto msg = CMessage();
             msg.SetSession(callback.session->GetSessionId());
             msg.SetData(reinterpret_cast<uint8_t*>(&clan_room_req), sizeof(clan_room_req));
@@ -161,7 +161,7 @@ namespace Game::Handlers
                         {
                             SCallbackData callback;
                             callback.server = main_server;
-                            callback.session = player_session.get();
+                            callback.session = player_session;
                             auto msg = CMessage();
                             msg.SetSession(callback.session->GetSessionId());
                             //msg.SetCommand(callback.message->GetOrder(), callback.message->GetMission(), callback.message->GetExtra(), callback.message->GetOption());

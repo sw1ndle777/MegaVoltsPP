@@ -1,0 +1,48 @@
+-- Apply DEFAULT 0 to existing system reward tables (MariaDB), and place Year before Month/Week.
+-- Column reorder is cosmetic (queries use names); included because it was requested.
+
+ALTER TABLE system_monthly_rewards
+  MODIFY Year smallint unsigned NOT NULL FIRST,
+  MODIFY Month tinyint unsigned NOT NULL AFTER Year,
+  MODIFY Day1 int unsigned NOT NULL DEFAULT 0 AFTER Month,
+  MODIFY Day2 int unsigned NOT NULL DEFAULT 0 AFTER Day1,
+  MODIFY Day3 int unsigned NOT NULL DEFAULT 0 AFTER Day2,
+  MODIFY Day4 int unsigned NOT NULL DEFAULT 0 AFTER Day3,
+  MODIFY Day5 int unsigned NOT NULL DEFAULT 0 AFTER Day4,
+  MODIFY Day6 int unsigned NOT NULL DEFAULT 0 AFTER Day5,
+  MODIFY Day7 int unsigned NOT NULL DEFAULT 0 AFTER Day6,
+  MODIFY Day8 int unsigned NOT NULL DEFAULT 0 AFTER Day7,
+  MODIFY Day9 int unsigned NOT NULL DEFAULT 0 AFTER Day8,
+  MODIFY Day10 int unsigned NOT NULL DEFAULT 0 AFTER Day9,
+  MODIFY Day11 int unsigned NOT NULL DEFAULT 0 AFTER Day10,
+  MODIFY Day12 int unsigned NOT NULL DEFAULT 0 AFTER Day11,
+  MODIFY Day13 int unsigned NOT NULL DEFAULT 0 AFTER Day12,
+  MODIFY Day14 int unsigned NOT NULL DEFAULT 0 AFTER Day13,
+  MODIFY Day15 int unsigned NOT NULL DEFAULT 0 AFTER Day14,
+  MODIFY Day16 int unsigned NOT NULL DEFAULT 0 AFTER Day15,
+  MODIFY Day17 int unsigned NOT NULL DEFAULT 0 AFTER Day16,
+  MODIFY Day18 int unsigned NOT NULL DEFAULT 0 AFTER Day17,
+  MODIFY Day19 int unsigned NOT NULL DEFAULT 0 AFTER Day18,
+  MODIFY Day20 int unsigned NOT NULL DEFAULT 0 AFTER Day19,
+  MODIFY Day21 int unsigned NOT NULL DEFAULT 0 AFTER Day20,
+  MODIFY Day22 int unsigned NOT NULL DEFAULT 0 AFTER Day21,
+  MODIFY Day23 int unsigned NOT NULL DEFAULT 0 AFTER Day22,
+  MODIFY Day24 int unsigned NOT NULL DEFAULT 0 AFTER Day23,
+  MODIFY Day25 int unsigned NOT NULL DEFAULT 0 AFTER Day24,
+  MODIFY Day26 int unsigned NOT NULL DEFAULT 0 AFTER Day25,
+  MODIFY Day27 int unsigned NOT NULL DEFAULT 0 AFTER Day26,
+  MODIFY Day28 int unsigned NOT NULL DEFAULT 0 AFTER Day27,
+  MODIFY Day29 int unsigned NOT NULL DEFAULT 0 AFTER Day28,
+  MODIFY Day30 int unsigned NOT NULL DEFAULT 0 AFTER Day29,
+  MODIFY Day31 int unsigned NOT NULL DEFAULT 0 AFTER Day30;
+
+ALTER TABLE system_weekly_rewards
+  MODIFY Year smallint unsigned NOT NULL FIRST,
+  MODIFY Week tinyint unsigned NOT NULL AFTER Year,
+  MODIFY Day1 int unsigned NOT NULL DEFAULT 0 AFTER Week,
+  MODIFY Day2 int unsigned NOT NULL DEFAULT 0 AFTER Day1,
+  MODIFY Day3 int unsigned NOT NULL DEFAULT 0 AFTER Day2,
+  MODIFY Day4 int unsigned NOT NULL DEFAULT 0 AFTER Day3,
+  MODIFY Day5 int unsigned NOT NULL DEFAULT 0 AFTER Day4,
+  MODIFY Day6 int unsigned NOT NULL DEFAULT 0 AFTER Day5,
+  MODIFY Day7 int unsigned NOT NULL DEFAULT 0 AFTER Day6;

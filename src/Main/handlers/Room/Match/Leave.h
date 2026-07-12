@@ -20,6 +20,10 @@ namespace Game::Handlers
         auto room_cache = CRoom.get<unique_t>(acc_cache->room_id);
         auto my_slot_id = acc_cache->slot_id;
         auto nick_copy = acc_cache->acc_info.Nickname.c_str();
+        auto acc_loaded_sec = acc_cache->match_loaded_time;
+        auto acc_server_id = acc_cache->server_id;
+        auto acc_team_id = acc_cache->team_id;
+        bool was_in_match = room_cache->is_playing && acc_cache->match_loaded_time > 0;
         acc_cache->playing = false;
 #if defined(RELEASE_1_0_3)
         acc_cache->state = (room_cache->host_session_id == session_id) ? PlayerInfo::State::HostReady : PlayerInfo::State::Waiting;
@@ -32,6 +36,24 @@ namespace Game::Handlers
         auto players = main_server->GetRoomSortedPlayerSessionIds(room_cache);
 
         auto left_while_vote_kicked = room_cache->vote_kick_target_session_id == session_id;
+
+        // Room log + session stash for a mid-match leave. The session row is written
+        // at match end (Match/End.h) once the MatchUniqueId exists.
+        if (was_in_match)
+        {
+            const uint64_t now_ms = Utility::GetUtcTimeNowInMilliseconds();
+            const uint64_t joined_ms = static_cast<uint64_t>(acc_loaded_sec) * 1000ull;
+
+            RoomLogEntry mlog;
+            mlog.aid = acc_index;
+            mlog.event_type = RoomLog::EventType::MatchLeft;
+            mlog.server_id = acc_server_id;
+            mlog.room_id = room_cache->room_id;
+            mlog.team_id = static_cast<uint8_t>(acc_team_id);
+            [[maybe_unused]] auto ig = BaseLib::DbPool->submit_task([mlog]() mutable { BaseLib::Database->PersistRoomLogs({ mlog }); });
+
+            room_cache->left_sessions.push_back({ acc_index, static_cast<uint8_t>(acc_team_id), joined_ms, now_ms, static_cast<uint8_t>(left_while_vote_kicked ? 2 : 1) });
+        }
 
         DEBUGLOG(dark_cyan, "player leave match so will apply penality of 1 lose and 1 clan lose if clan room");
         acc_cache.lock();
@@ -170,6 +192,38 @@ namespace Game::Handlers
                 acc_cache.unlock();
             }
         }
+
+        // If no player is actively in the match anymore, the match is effectively over.
+        // Observers never count towards total_players_playing (only real team members get
+        // ->playing set in Room/Match/Start.h), so the branches above never return them to
+        // the room and they get stuck on the in-game screen. Mirror the normal match-end
+        // flow (Room/Match/End.h) and the reference (Room::endMatch / removeHostFromMatch,
+        // which broadcast the return to observers too): reset the room match state and pull
+        // any remaining observers back to the room lobby.
+        if (total_players_playing == 0)
+        {
+            if (room_cache->is_playing)
+            {
+                room_cache->is_playing = false;
+                main_server->SendCastRoomMatchStateSync(room_cache->room_id, room_cache->host_session_id, false);
+            }
+
+            for (const auto& obs_id : main_server->GetRoomSortedObserversSessionIds(room_cache))
+            {
+                auto obs_acc = CAccount.get<unique_t>(obs_id);
+                if (!obs_acc || !obs_acc->acc_info.Index || !obs_acc->in_room || obs_acc->room_id != room_cache->room_id)
+                {
+                    if (obs_acc) obs_acc.unlock();
+                    continue;
+                }
+                obs_acc->playing = false;
+                obs_acc->state = PlayerInfo::State::Waiting;
+                obs_acc.unlock();
+                if (auto obs_session = server->GetSessionById(obs_id))
+                    obs_session->SendMsg(256, 0, 33, 0); // return-to-room from match
+            }
+        }
+
         DEBUGLOG(dark_cyan, "player ({}) left room match -> id: ({})", nick_copy, room_cache->room_id);
     }
 }

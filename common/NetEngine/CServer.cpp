@@ -1,7 +1,10 @@
 #include "CServer.h"
+#include "BaseLib/Utility.h"
 #include <fmt/color.h>
 #include <numeric>
 #include <utility>
+#include <asio/ssl.hpp>
+#include <openssl/ssl.h>
 
 namespace NetEngine
 {
@@ -180,14 +183,12 @@ namespace NetEngine
                 m_acceptor = std::make_shared<asio::ip::tcp::acceptor>(m_ioContext);
                 m_acceptor->open(endpoint.protocol());
                 m_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
-                m_acceptor->set_option(asio::ip::tcp::no_delay(true));
                 m_acceptor->bind(endpoint);
                 m_acceptor->listen();
 
                 m_ipc_acceptor = std::make_shared<asio::ip::tcp::acceptor>(m_ioContext);
                 m_ipc_acceptor->open(ipc_endpoint.protocol());
                 m_ipc_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
-                m_ipc_acceptor->set_option(asio::ip::tcp::no_delay(true));
                 m_ipc_acceptor->bind(ipc_endpoint);
                 m_ipc_acceptor->listen();
             }
@@ -237,8 +238,12 @@ namespace NetEngine
         this->start_time = Utility::GetUtcTimeNowInMilliseconds();
         static const std::set<std::string> ipc_addresses = { "127.0.0.1", this->server_settings.front.host, this->server_settings.main.host, this->server_settings.cast.host};
 
-        if (m_watchguard)
-            startWatchdog(std::chrono::seconds(1), std::chrono::seconds(5));
+        // Started unconditionally: the io_context-stall detector inside must run even when
+        // watchguard (the per-handler deadlock scan) is disabled. StartHeartbeat() below
+        // arms the liveness stamp the stall detector reads.
+        startWatchdog(std::chrono::seconds(1), std::chrono::seconds(5));
+
+        StartHeartbeat();
 
 
         if (m_useMultithreaded)
@@ -278,15 +283,18 @@ namespace NetEngine
     }
     void CServer::AcceptSessions()
     {
-        m_acceptor->async_accept(m_socket, [this](std::error_code ec) 
+        m_acceptor->async_accept(m_socket, [this](std::error_code ec)
         {
             if (!ec)
             {
+                asio::error_code opt_ec;
+                m_socket.set_option(asio::ip::tcp::no_delay(true), opt_ec);
+
                 CSession::SSessionSettings settings;
 
                 settings.verbose = m_verbose;
                 settings.useEncryption = m_useEncryption;
-                settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
+                settings.callbacks = GetSharedCallbacks();
                 uint16_t session_id = 0;
 
                 if (GetNextAvailableSessionId(session_id))
@@ -328,15 +336,18 @@ namespace NetEngine
                 }
 
                 auto remote_ip = remote_endpoint.address().to_string();
-                bool is_ipc = ipc_addresses.find(remote_ip) != ipc_addresses.end();
+                bool is_ipc = ipc_addresses.contains(remote_ip);
                 
                 if (is_ipc)
                 {
+                    asio::error_code opt_ec;
+                    m_ipcSocket.set_option(asio::ip::tcp::no_delay(true), opt_ec);
+
                     CSession::SSessionSettings settings;
 
                     settings.verbose = m_verbose;
                     settings.useEncryption = m_useEncryption;
-                    settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
+                    settings.callbacks = GetSharedCallbacks();
 
                     uint16_t session_id = 0;
                     auto session = CSession::Create(std::move(m_ipcSocket), m_ioContext, this, settings, session_id);
@@ -488,7 +499,7 @@ namespace NetEngine
                         CSession::SSessionSettings settings{};
                         settings.verbose = m_verbose;
                         settings.useEncryption = false;
-                        settings.callbacks.insert(m_callbacks.begin(), m_callbacks.end());
+                        settings.callbacks = GetSharedCallbacks();
 
                         auto session = CSession::Create(std::move(*socket), m_ioContext, this, settings, 0);
                         if (m_OnIpcMessage)
@@ -546,7 +557,7 @@ namespace NetEngine
         std::unique_lock lock(m_sessions_mutex);
         const auto& id = session->GetSessionId();
         DEBUGLOG(dark_cyan, "added sid=({})", id);
-        if (id == 0 || m_sessions.count(id))
+        if (id == 0 || m_sessions.contains(id))
         {
             DEBUGLOG(red, "can't add sid=({})", id);
             return false;
@@ -560,7 +571,7 @@ namespace NetEngine
         std::unique_lock lock(m_sessions_mutex);
 
         auto it = m_sessions.find(id);
-        if (id == 0 || !m_sessions.count(id))
+        if (id == 0 || it == m_sessions.end())
         {
             DEBUGLOG(red, "could not find sid=({})", id);
             return;
@@ -627,6 +638,16 @@ namespace NetEngine
     void CServer::OnIpcMessage(std::function<void(std::shared_ptr<CSession>, const uint32_t& msg_id, const uint32_t& msg_size, const std::vector<uint8_t>&)> callback)
     {
         this->m_OnIpcMessage = callback;
+    }
+    std::shared_ptr<const CallbackMap> CServer::GetSharedCallbacks()
+    {
+        auto snap = m_shared_callbacks.load(std::memory_order_acquire);
+        if (!snap)
+        {
+            snap = std::make_shared<const CallbackMap>(m_callbacks);
+            m_shared_callbacks.store(snap, std::memory_order_release);
+        }
+        return snap;
     }
     bool CServer::IsMultiThreaded()
     {
@@ -759,6 +780,180 @@ namespace NetEngine
             DEBUGLOG(red, "Exception in WebsitePost: {}", e.what());
         }
     }
+    void CServer::StartHeartbeat()
+    {
+        {
+            std::shared_lock server_settings_lock(m_server_settings_mutex);
+            // Prefer this server's own heartbeat block (front/main/cast); an empty
+            // per-server url falls back to the global "heartbeat" block.
+            const BaseLib::CSettings::HeartbeatSettings* hb = nullptr;
+            switch (m_ipcRole)
+            {
+            case IpcRole::Front: hb = &this->server_settings.front.heartbeat; break;
+            case IpcRole::Main:  hb = &this->server_settings.main.heartbeat;  break;
+            case IpcRole::Cast:  hb = &this->server_settings.cast.heartbeat;  break;
+            default:             break;
+            }
+            const auto& src = (hb && !hb->url.empty()) ? *hb : this->server_settings.heartbeat;
+            m_heartbeatUrl = src.url;
+            m_heartbeatIntervalSec = src.interval_sec ? src.interval_sec : 30;
+        }
+
+        // The liveness probe runs regardless so StampAlive() is meaningful even when the
+        // beacon is disabled, but there is no point spending cycles if nothing reads it.
+        if (m_heartbeatUrl.empty())
+        {
+            DEBUGLOG(dark_cyan, "heartbeat disabled (empty url)");
+            return;
+        }
+
+        const auto parts = Utility::ParseUrl(m_heartbeatUrl);
+        if (!parts || !parts->https)
+        {
+            DEBUGLOG(red, "heartbeat url must be a valid https:// url, got: ({}) - disabling", m_heartbeatUrl.c_str());
+            m_heartbeatUrl.clear();
+            return;
+        }
+
+        m_heartbeatSsl = std::make_shared<asio::ssl::context>(asio::ssl::context::tls_client);
+        m_heartbeatSsl->set_verify_mode(asio::ssl::verify_none); // see HttpsGetSync note
+
+        StampAlive(); // seed so the first beat isn't suppressed as "stale"
+        ArmLivenessProbe();
+        ScheduleHeartbeat();
+        DEBUGLOG(dark_cyan, "heartbeat enabled: every ({}s) to host ({})", m_heartbeatIntervalSec, parts->host.c_str());
+    }
+
+    void CServer::ArmLivenessProbe()
+    {
+        // A self-rearming 1s job ON the io_context. If every worker is wedged (deadlock,
+        // runaway handler, etc.) this callback never runs, the stamp goes stale, and the
+        // heartbeat sender stops beating - which is exactly what we want a hang to do.
+        if (!m_livenessTimer)
+            m_livenessTimer = std::make_shared<asio::steady_timer>(m_ioContext);
+
+        m_livenessTimer->expires_after(std::chrono::seconds(1));
+        m_livenessTimer->async_wait([this](const asio::error_code& ec)
+        {
+            if (ec) return;
+            StampAlive();
+            ArmLivenessProbe();
+        });
+    }
+
+    void CServer::ScheduleHeartbeat()
+    {
+        if (!m_heartbeatTimer)
+            m_heartbeatTimer = std::make_shared<asio::steady_timer>(m_ioContext);
+
+        m_heartbeatTimer->expires_after(std::chrono::seconds(m_heartbeatIntervalSec));
+        m_heartbeatTimer->async_wait([this](const asio::error_code& ec)
+        {
+            if (ec) return;
+
+            const uint64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            const uint64_t last = m_lastAliveMs.load(std::memory_order_acquire);
+
+            // Only beat if the loop ticked recently. If it's stale we stay silent and let
+            // BetterStack's grace period flip us down - a blind timer would lie "alive".
+            if (last != 0 && now_ms - last <= kHeartbeatStaleMs)
+                SendHeartbeatBeat();
+            else
+                DEBUGLOG(red, "heartbeat suppressed: loop stale ({}ms since last tick)", last ? (now_ms - last) : 0);
+
+            ScheduleHeartbeat();
+        });
+    }
+
+    void CServer::SendHeartbeatBeat()
+    {
+        // Async HTTPS GET, same fire-and-forget shape as WebsitePost (response ignored).
+        try
+        {
+            const auto parts = Utility::ParseUrl(m_heartbeatUrl);
+            if (!parts || !m_heartbeatSsl) return;
+
+            const std::string host = parts->host;
+            const std::string port = parts->port;
+            const std::string target = parts->target;
+
+            auto stream = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(m_ioContext, *m_heartbeatSsl);
+            if (!SSL_set_tlsext_host_name(stream->native_handle(), host.c_str())) // SNI
+            {
+                DEBUGLOG(red, "heartbeat: failed to set SNI host");
+                return;
+            }
+
+            auto request = std::make_shared<std::string>(
+                "GET " + target + " HTTP/1.1\r\n"
+                "Host: " + host + "\r\n"
+                "User-Agent: MegaVoltsPP-heartbeat\r\n"
+                "Connection: close\r\n\r\n");
+
+            // Every step of the beat is fire-and-forget ON the io_context, so every step must
+            // be asynchronous. A synchronous resolver.resolve() here would block a worker
+            // thread on DNS; and because ScheduleHeartbeat() only re-arms AFTER this function
+            // returns, a hung resolve would silently kill the heartbeat chain (no further
+            // beats, BetterStack flips down) without crashing. async_resolve avoids that.
+            auto resolver = std::make_shared<asio::ip::tcp::resolver>(m_ioContext);
+            auto timer = std::make_shared<asio::steady_timer>(m_ioContext, std::chrono::seconds(5));
+            timer->async_wait([stream, timer, resolver](const asio::error_code& ec)
+            {
+                if (!ec)
+                {
+                    DEBUGLOG(red, "heartbeat request timed out");
+                    asio::error_code ig;
+                    stream->lowest_layer().close(ig);
+                    resolver->cancel();
+                }
+            });
+
+            resolver->async_resolve(host, port,
+                [stream, request, timer, resolver, host](const asio::error_code& ec, asio::ip::tcp::resolver::results_type endpoints)
+            {
+                if (ec)
+                {
+                    DEBUGLOG(red, "heartbeat resolve failed: {}", ec.message().c_str());
+                    timer->cancel();
+                    return;
+                }
+                asio::async_connect(stream->lowest_layer(), endpoints,
+                    [stream, request, timer, host](const asio::error_code& ec, const asio::ip::tcp::endpoint&)
+                {
+                if (ec)
+                {
+                    DEBUGLOG(red, "heartbeat connect failed: {}", ec.message().c_str());
+                    timer->cancel();
+                    return;
+                }
+                stream->async_handshake(asio::ssl::stream_base::client,
+                    [stream, request, timer](const asio::error_code& ec)
+                {
+                    if (ec)
+                    {
+                        DEBUGLOG(red, "heartbeat tls handshake failed: {}", ec.message().c_str());
+                        timer->cancel();
+                        return;
+                    }
+                    asio::async_write(*stream, asio::buffer(*request),
+                        [stream, request, timer](const asio::error_code& ec, size_t /*n*/)
+                    {
+                        if (ec)
+                            DEBUGLOG(red, "heartbeat write failed: {}", ec.message().c_str());
+                        timer->cancel();
+                        stream->async_shutdown([stream](const asio::error_code&) {});
+                    });
+                });
+            });
+            });
+        }
+        catch (const std::exception& e)
+        {
+            DEBUGLOG(red, "Exception in SendHeartbeatBeat: {}", e.what());
+        }
+    }
+
     bool CServer::AdoptSid(uint16_t old_sid, uint16_t new_sid, bool evictExisting)
     {
         if (new_sid == 0 || old_sid == 0)
@@ -834,7 +1029,7 @@ namespace NetEngine
         RateLimit::ActionContext ctx{
             .server = this,
             .callback = &callback,
-            .session = callback.session,
+            .session = callback.session.get(),
             .event = RateLimit::Event::LimitExceeded,
             .order = order,
             .identity = identity,
@@ -903,7 +1098,8 @@ namespace NetEngine
                 const auto bucket_value = ctx.IdentityValue(bucket_scope);
                 if (!bucket_value.empty())
                 {
-                    auto& timestamps = m_packet_rate_limit_windows[MakePacketRateLimitOrderKey(order, bucket_scope, bucket_value)];
+                    const auto window_key = MakePacketRateLimitOrderKey(order, bucket_scope, bucket_value);
+                    auto& timestamps = m_packet_rate_limit_windows[window_key];
                     PrunePacketRateLimitWindow(timestamps, now, window);
                     timestamps.push_back(now);
                     packet_count = static_cast<uint32_t>(timestamps.size());
@@ -912,6 +1108,8 @@ namespace NetEngine
                         limit_triggered = true;
                         retry_after = RemainingPacketRateLimitDuration(timestamps.front() + window, now);
                     }
+                    if (timestamps.size() == 1 && bucket_scope == RateLimit::IdentityScope::Session && identity.sid)
+                        m_session_rate_limit_keys[identity.sid].push_back(window_key);
                 }
             }
         }
@@ -947,9 +1145,12 @@ namespace NetEngine
         const auto expires_at = PacketRateLimitClock::now() + duration;
 
         std::scoped_lock lock(m_packet_rate_limit_mutex);
+        const bool is_new = !m_packet_order_cooldowns.contains(key);
         auto& current = m_packet_order_cooldowns[key];
         if (current < expires_at)
             current = expires_at;
+        if (is_new && scope == RateLimit::IdentityScope::Session && !identity.empty())
+            m_session_rate_limit_keys[static_cast<uint16_t>(std::stoul(identity))].push_back(key);
     }
     void CServer::ApplyPacketRateLimitBlacklist(const RateLimit::IdentityScope scope,
         std::string identity,
@@ -962,9 +1163,12 @@ namespace NetEngine
         const auto expires_at = PacketRateLimitClock::now() + duration;
 
         std::scoped_lock lock(m_packet_rate_limit_mutex);
+        const bool is_new = !m_packet_identity_blacklists.contains(key);
         auto& current = m_packet_identity_blacklists[key];
         if (current < expires_at)
             current = expires_at;
+        if (is_new && scope == RateLimit::IdentityScope::Session && !identity.empty())
+            m_session_rate_limit_keys[static_cast<uint16_t>(std::stoul(identity))].push_back(key);
     }
     uint32_t CServer::AddPacketRateLimitStrike(const uint16_t order,
         const RateLimit::IdentityScope scope,
@@ -979,8 +1183,11 @@ namespace NetEngine
 
         std::scoped_lock lock(m_packet_rate_limit_mutex);
         auto& strikes = m_packet_rate_limit_strikes[key];
+        const bool was_empty = strikes.empty();
         PrunePacketRateLimitWindow(strikes, now, window);
         strikes.push_back(now);
+        if (was_empty && scope == RateLimit::IdentityScope::Session && !identity.empty())
+            m_session_rate_limit_keys[static_cast<uint16_t>(std::stoul(identity))].push_back(key);
         return static_cast<uint32_t>(strikes.size());
     }
     void CServer::ClearPacketRateLimitSessionState(const uint16_t sid)
@@ -988,40 +1195,19 @@ namespace NetEngine
         if (!sid)
             return;
 
-        const auto identity = std::to_string(sid);
         std::scoped_lock lock(m_packet_rate_limit_mutex);
+        auto it = m_session_rate_limit_keys.find(sid);
+        if (it == m_session_rate_limit_keys.end())
+            return;
 
-        for (auto it = m_packet_rate_limit_windows.begin(); it != m_packet_rate_limit_windows.end();)
+        for (const auto& key : it->second)
         {
-            if (IsPacketRateLimitSessionOrderKey(it->first, identity))
-                it = m_packet_rate_limit_windows.erase(it);
-            else
-                ++it;
+            m_packet_rate_limit_windows.erase(key);
+            m_packet_rate_limit_strikes.erase(key);
+            m_packet_order_cooldowns.erase(key);
+            m_packet_identity_blacklists.erase(key);
         }
-
-        for (auto it = m_packet_rate_limit_strikes.begin(); it != m_packet_rate_limit_strikes.end();)
-        {
-            if (IsPacketRateLimitSessionOrderKey(it->first, identity))
-                it = m_packet_rate_limit_strikes.erase(it);
-            else
-                ++it;
-        }
-
-        for (auto it = m_packet_order_cooldowns.begin(); it != m_packet_order_cooldowns.end();)
-        {
-            if (IsPacketRateLimitSessionOrderKey(it->first, identity))
-                it = m_packet_order_cooldowns.erase(it);
-            else
-                ++it;
-        }
-
-        for (auto it = m_packet_identity_blacklists.begin(); it != m_packet_identity_blacklists.end();)
-        {
-            if (IsPacketRateLimitSessionIdentityKey(it->first, identity))
-                it = m_packet_identity_blacklists.erase(it);
-            else
-                ++it;
-        }
+        m_session_rate_limit_keys.erase(it);
     }
     void CServer::logExecution(uint16_t session_id, uint16_t order)
     {
@@ -1033,9 +1219,10 @@ namespace NetEngine
 
             auto time_now = std::chrono::steady_clock::now();
             execution_vector.push_back({ session_id, order, time_now });
-            if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) DEBUGLOG(dark_green,
-                "Handler started: Thread ID: {}, sid={}, Order: {}",
-                thread_id, session_id, order);
+            // TEMP: silenced to isolate combat logs (restore by uncommenting).
+            //if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) DEBUGLOG(dark_green,
+            //    "Handler started: Thread ID: {}, sid={}, Order: {}",
+            //    thread_id, session_id, order);
         }
         
     }
@@ -1055,9 +1242,10 @@ namespace NetEngine
                     auto elapsed_time = std::chrono::duration<double, std::milli>(
                         std::chrono::steady_clock::now() - it->start_time);
 
-                    if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) DEBUGLOG(dark_green,
-                        "Handler completed: Thread ID: {}, sid={}, Order: {}, Elapsed Time: {:.3f}ms",
-                        thread_id, session_id, order, elapsed_time.count());
+                    // TEMP: silenced to isolate combat logs (restore by uncommenting).
+                    //if (order != 281 && order != 71 && order != 322 && order != 72 && order != 257 && order != 282 && order != 77) DEBUGLOG(dark_green,
+                    //    "Handler completed: Thread ID: {}, sid={}, Order: {}, Elapsed Time: {:.3f}ms",
+                    //    thread_id, session_id, order, elapsed_time.count());
 
                     execution_vector.erase(it);
                     break;
@@ -1068,58 +1256,90 @@ namespace NetEngine
                 m_execution_info.erase(thread_id);
         }
     }
-    void CServer::watchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout)
+    void CServer::watchdog(std::stop_token stoken, std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout)
     {
-        std::shared_lock lock(m_execution_guard_mutex);
+        // Runs on a dedicated thread, independent of the io_context and the
+        // logger/database pools, so it still fires when every IO/worker thread
+        // is blocked by a deadlock (the case we actually need it for).
+        std::unique_lock cv_lock(m_watchdog_mutex);
 
-        auto now = std::chrono::steady_clock::now();
-        for (const auto& [thread_id, execution_vector] : m_execution_info)
+        // Edge-triggered so a wedge logs once (on entry) and once on recovery,
+        // instead of spamming every interval while the loop stays stuck.
+        bool io_stalled = false;
+        const uint64_t stall_threshold_ms = std::max<uint64_t>(
+            kHeartbeatStaleMs,
+            static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count()));
+
+        while (!stoken.stop_requested())
         {
-            for (const auto& info : execution_vector)
+            // Sleep for `interval`, waking immediately on a stop request.
+            m_watchdog_cv.wait_for(cv_lock, stoken, interval, [] { return false; });
+            if (stoken.stop_requested())
+                break;
+
+            cv_lock.unlock();
+
+            // (1) io_context liveness. The per-second probe (ArmLivenessProbe) stamps
+            // m_lastAliveMs from ON the loop; if every worker is wedged (deadlock, a
+            // blocking handler, etc.) the stamp stops advancing. This is the failure that
+            // silently stops the heartbeat and takes BetterStack down without a crash, so
+            // we surface it loudly here on this independent thread. Skipped while the stamp
+            // is still 0 (heartbeat/liveness disabled -> nothing maintaining it).
             {
-                auto elapsed_time = std::chrono::duration<double, std::milli>(now - info.start_time);
-                if (elapsed_time > timeout)
+                const uint64_t last = m_lastAliveMs.load(std::memory_order_acquire);
+                if (last != 0)
                 {
-                    DEBUGLOG(red,
-                        "[Watchdog] Deadlock detected! Thread ID: {}, sid={}, Order: {}, Elapsed Time: {:.3f}ms",
-                        thread_id, info.session_id, info.order, elapsed_time.count());
+                    const uint64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+                    const uint64_t age = now_ms > last ? now_ms - last : 0;
+                    if (!io_stalled && age > stall_threshold_ms)
+                    {
+                        io_stalled = true;
+                        DEBUGLOG(red,
+                            "[Watchdog] io_context STALLED - no loop tick for ({}ms). Event loop "
+                            "wedged (deadlock or blocking handler); heartbeat will stop beating.", age);
+                    }
+                    else if (io_stalled && age <= stall_threshold_ms)
+                    {
+                        io_stalled = false;
+                        DEBUGLOG(dark_cyan, "[Watchdog] io_context recovered - loop ticking again");
+                    }
                 }
             }
+
+            // (2) per-handler deadlock scan. Only populated/meaningful when watchguard is on
+            // (logExecution/clearExecution are no-ops otherwise), so gate the scan to match.
+            if (m_watchguard)
+            {
+                std::shared_lock lock(m_execution_guard_mutex);
+                auto now = std::chrono::steady_clock::now();
+                for (const auto& [thread_id, execution_vector] : m_execution_info)
+                {
+                    for (const auto& info : execution_vector)
+                    {
+                        auto elapsed_time = std::chrono::duration<double, std::milli>(now - info.start_time);
+                        if (elapsed_time > timeout)
+                        {
+                            DEBUGLOG(red,
+                                "[Watchdog] Deadlock detected! Thread ID: {}, sid={}, Order: {}, Elapsed Time: {:.3f}ms",
+                                thread_id, info.session_id, info.order, elapsed_time.count());
+                        }
+                    }
+                }
+            }
+            cv_lock.lock();
         }
-		if(m_watchdogTimer)
-		{
-			m_watchdogTimer->expires_after(interval);
-			m_watchdogTimer->async_wait([this, interval, timeout](const std::error_code& ec)
-			{
-				if (!ec && !m_watchguard)
-				{
-					[[maybe_unused]] auto ignored_result = BaseLib::LogPool->submit_task([this, interval, timeout]()
-					{
-						this->watchdog(interval, timeout);
-					}, BS::pr::lowest);
-				}
-			});
-		}	
     }
     void CServer::startWatchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout)
     {
-		if (!m_watchguard)
-		{
-			if (!m_watchdogTimer)
-				m_watchdogTimer = std::make_shared<asio::steady_timer>(GetIoContext());
-
-			m_watchdogTimer->expires_after(interval);
-			m_watchdogTimer->async_wait([this, interval, timeout](const std::error_code& ec)
-			{
-				if (!ec && !m_watchguard)
-				{
-                    [[maybe_unused]] auto ignored_result = BaseLib::LogPool->submit_task([this, interval, timeout]()
-					{
-						this->watchdog(interval, timeout);
-					}, BS::pr::lowest);
-				}
-			});
-		}
+        // Always run the watchdog thread: even with watchguard off (so the per-handler
+        // deadlock scan is inert), it still performs the io_context-stall check, which is
+        // the detector for a full event-loop wedge. That check is nearly free (one atomic
+        // load per interval) and is exactly what was missing when the loop hung silently.
+        m_watchdog_thread = std::jthread([this, interval, timeout](std::stop_token stoken)
+        {
+            this->watchdog(stoken, interval, timeout);
+        });
     }
 }
 

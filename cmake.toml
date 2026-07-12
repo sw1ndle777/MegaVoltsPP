@@ -44,7 +44,7 @@ compile-definitions = [
 ]
 compile-features = ["cxx_std_23"]
 properties.MSVC_RUNTIME_LIBRARY = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "magic_enum", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "libpqxx::pqxx", "OpenSSL::Crypto", "common"]
+link-libraries = ["asio", "boost_unordered", "thread-pool", "rapidjson", "monocypher", "magic_enum", "fmt::fmt", "crashpad::crashpad", "unofficial::mariadb-connector-cpp::mariadbcpp", "libpqxx::pqxx", "OpenSSL::SSL", "OpenSSL::Crypto", "common"]
 
 [target.front]
 type                = "server-executable"   # inherits template from root

@@ -17,6 +17,7 @@ namespace Game::Handlers
     }
     inline void TryBroadcastPlazaPlayerDisconnect(JoinPlazaCtx& ctx, PlazaCacheResource& plaza, uint32_t sid)
     {
+        if (ctx.acc->is_invisible) return;
         auto my_uid = NetEngine::Packets::Core::UniqueId(sid, 1).data;
         for (const auto& id : plaza->session_ids)
         {
@@ -44,6 +45,7 @@ namespace Game::Handlers
         auto acc = CAccount.get<shared_t>(sid);
         auto uid = acc->uid;
         auto voice = acc->voice_id;
+        bool invisible = acc->is_invisible;
 		auto info1 = ctx.main->GetRoomUserPlayerInfo1(acc);
 		auto info2 = ctx.main->GetRoomUserPlayerInfo2(acc);
 		auto equiped_items = ctx.main->GetEquippedItems(acc);
@@ -55,22 +57,24 @@ namespace Game::Handlers
             if (id == sid) continue;
             if (auto pss = ctx.main->GetSessionById(id))
             {
-                //send other player my info
-                pss->SendMsg(424, 0, 0, 1, reinterpret_cast<uint8_t*>(&equipack), sizeof(equipack));
-                pss->SendMsg(314, 0, 0, voice, reinterpret_cast<uint8_t*>(&uid), sizeof(uid));
+                if (!invisible)
+                {
+                    pss->SendMsg(424, 0, 0, 1, reinterpret_cast<uint8_t*>(&equipack), sizeof(equipack));
+                    pss->SendMsg(314, 0, 0, voice, reinterpret_cast<uint8_t*>(&uid), sizeof(uid));
+                }
 
 				auto other_acc = CAccount.get<shared_t>(id);
 				auto other_info1 = ctx.main->GetRoomUserPlayerInfo1(other_acc);
 				auto other_info2 = ctx.main->GetRoomUserPlayerInfo2(other_acc);
 				auto other_equiped_items = ctx.main->GetEquippedItems(other_acc);
-				auto other_equipack = PlazaEquipInfoAck(other_acc->acc_info.Nickname, other_acc->uid, other_equiped_items, other_info1, other_info2);   
+				auto other_equipack = PlazaEquipInfoAck(other_acc->acc_info.Nickname, other_acc->uid, other_equiped_items, other_info1, other_info2);
                 auto other_uid = NetEngine::Packets::Core::UniqueId(id, 1).data;
                 auto other_voice = other_acc->voice_id;
                 other_acc.unlock();
 
                 ctx.session->SendMsg(424, 0, 0, 1, reinterpret_cast<uint8_t*>(&other_equipack), sizeof(other_equipack));
                 ctx.session->SendMsg(314, 0, 0, other_voice, reinterpret_cast<uint8_t*>(&other_uid), sizeof(other_uid));
-                
+
             }
         }
     }
@@ -121,7 +125,7 @@ namespace Game::Handlers
         auto channel_id = req->channel_id;
         auto old_plaza_id = acc_cache->plaza_id;
         DEBUGLOG(dark_cyan, "player ({}) join plaza attempt -> plaza id: ({}), plaza server/channel id: ({}), mission: ({}),  extra: ({}), option: ({})", acc_cache->acc_info.Nickname.c_str(), plaza_id, channel_id, message->GetMission(), message->GetExtra(), message->GetOption());
-        JoinPlazaCtx ctx{ main_server, session, acc_cache };
+        JoinPlazaCtx ctx{ main_server, session.get(), acc_cache };
         if (plaza_id == 0)
         {
             if (!main_server->IsPlazaAlready(plaza_id))

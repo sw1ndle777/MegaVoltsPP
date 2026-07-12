@@ -15,6 +15,7 @@ namespace Game::Handlers
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
         auto acc_index = acc_cache->acc_info.Index;
+        const auto old_team_id = static_cast<uint8_t>(acc_cache->team_id); // pre-change team, for the room log
         auto team_option = static_cast<NetEngine::Team::IdType>(callback.message->GetOption());
         bool broadcast = false;
         //DEBUGLOG(dark_cyan, "player ({}) attempt equip but can't find item in item info cache or it has no namme item id: ({})", acc_cache->acc_info.Nickname.c_str(), item.item_info.item_number.item_id);
@@ -187,7 +188,8 @@ namespace Game::Handlers
             room_log.server_id = server_id;
             room_log.room_id = roomId;
             room_log.host_aid = hostAid;
-            room_log.team_id = static_cast<uint8_t>(acc_cache->team_id);
+            room_log.team_id = old_team_id;                                  // from
+            room_log.new_team_id = static_cast<uint8_t>(acc_cache->team_id); // to
 
             acc_cache.unlock();
             const auto& ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
@@ -218,10 +220,15 @@ namespace Game::Handlers
                 }
             } 
 
-            [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([room_log]() mutable
-                {
-                    BaseLib::Database->PersistRoomLogs({ room_log });
-                });
+            // Pre-match team selection only: in-game (zombie) team swaps are skipped here since
+            // who turns zombie is already captured by the combat/give-weapon tracking.
+            if (!isPlaying)
+            {
+                [[maybe_unused]] auto ignored = BaseLib::DbPool->submit_task([room_log]() mutable
+                    {
+                        BaseLib::Database->PersistRoomLogs({ room_log });
+                    });
+            }
 
         }
     }

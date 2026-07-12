@@ -94,6 +94,12 @@ namespace NetEngine
 		decrypted_data.resize(messageSize);
         const auto crypt_type = static_cast<CCrypt::CRYPT_TYPE>(m_header->crypt);
 
+        // The header crypt field is 3 bits (0..7) but only CRYPT_NONE..CRYPT_RC6_SERIAL
+        // are valid ciphers. A malformed, framing-desynced or crafted packet can carry
+        // 5..7; drop it here rather than constructing CCrypt with an out-of-range type.
+        if (to_u(crypt_type) > to_u(CRYPT_RC6_SERIAL))
+            return;
+
         if (crypt_type != CRYPT_NONE)
         {
             const auto key = (crypt_type == CRYPT_RC5_SERIAL || crypt_type == CRYPT_RC6_SERIAL) ? m_crypt : 0;

@@ -15,30 +15,37 @@ namespace Game::Handlers
 
         auto hostSid = session->GetSessionId();
         auto host = CAccount.get<shared_t>(hostSid);
-        auto room = CRoom.get<unique_t>(host->room_id);
+        if (!host) return;
+        auto room_id = host->room_id;
+        auto host_name = host->nickname;
+        auto host_sid_cached = host->session_id;
+        host.unlock();
 
-        if (!host || !room) return;
-        if (host->session_id != room->host_session_id)
+        auto room = CRoom.get<shared_t>(room_id);
+        if (!room) return;
+        if (host_sid_cached != room->host_session_id)
         {
             auto orderName = magic_enum::enum_name(order);
-            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host->nickname, hostSid, room->room_id);
+            DEBUGLOG(yellow, "({}): host=({}) hostSid=({}) is not host of roomId=({})", orderName, host_name, hostSid, room_id);
             return;
         }
 
         auto extra = message->GetExtra();
         auto cnt = message->GetOption();
-		auto req = message->GetData<ImpactProjectileReq*>();
-
-        //auto pos_x = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_x);
-        //auto pos_y = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_y);
-        //auto pos_z = DirectX::PackedVector::XMConvertHalfToFloat(req->coord_z);
+        auto req = message->GetData<ImpactProjectileReq*>();
 
         uint16_t attacker_sid = 0;
         uint8_t projectile_type = 0;
-        if (auto it = room->projectile_owner_by_id.find(req->projectile_id); it != room->projectile_owner_by_id.end())
-            attacker_sid = it->second;
-        if (auto it = room->projectile_type_by_id.find(req->projectile_id); it != room->projectile_type_by_id.end())
-            projectile_type = it->second;
+        {
+            auto proj = CRoomProjectiles.get<shared_t>(room_id);
+            if (proj)
+            {
+                if (auto it = proj->owner_by_id.find(req->projectile_id); it != proj->owner_by_id.end())
+                    attacker_sid = it->second;
+                if (auto it = proj->type_by_id.find(req->projectile_id); it != proj->type_by_id.end())
+                    projectile_type = it->second;
+            }
+        }
 
         const auto weapon_kind = (projectile_type == 1)
             ? CombatWeaponKind::Bazooka
@@ -47,29 +54,36 @@ namespace Game::Handlers
                 : CombatWeaponKind::Unknown;
 
         PACKETLOG(ACK, order, "roomId=({}) from host=({}) hostSid=({}) attackerSid=({}) projectileId=({}) projectileType=({}) victimsCount=({})",
-            host->room_id,
-            host->nickname,
+            room_id,
+            host_name,
             hostSid,
             static_cast<uint32_t>(attacker_sid),
             req->projectile_id,
             static_cast<uint32_t>(projectile_type),
             cnt);
-        host.unlock();
+
+        auto player_ids = room->players_session_id;
+        room.unlock();
+
         for (uint8_t i = 0; i < cnt; i++)
         {
-			auto data = reinterpret_cast<PlayerVictimDataReq*>(message->GetData() + sizeof(ImpactProjectileReq) + i * sizeof(PlayerVictimDataReq));
-            DEBUGLOG(dark_cyan, "ImpactProjectile parsed victim idx=({}) attackerSid=({}) victimSid=({}) hp=({}) payloadSize=({})",
+            auto data = reinterpret_cast<PlayerVictimDataReq*>(message->GetData() + sizeof(ImpactProjectileReq) + i * sizeof(PlayerVictimDataReq));
+            DEBUGLOG(dark_cyan, "ImpactProjectile parsed victim idx=({}) attackerSid=({}) victimSid=({}) hp=({}) bodypart=({}) playerStatus=({}) idk2=({}) payloadSize=({})",
                 static_cast<uint32_t>(i),
                 static_cast<uint32_t>(attacker_sid),
                 static_cast<uint32_t>(data->victim_unique_id.session),
                 static_cast<uint32_t>(data->player_info.health),
+                static_cast<uint32_t>(data->player_info.mode_index),
+                static_cast<uint32_t>(data->player_info.player_status),
+                data->idk2,
                 static_cast<uint32_t>(message->GetDataSize()));
             UpdateVictimHealthAndSendCombatIpc(server,
-                room->room_id,
+                room_id,
                 attacker_sid,
                 static_cast<uint16_t>(data->victim_unique_id.session),
                 data->player_info.health,
-                weapon_kind);
+                weapon_kind,
+                data->player_info.mode_index);
 
             auto enabled_sids = Game::g_tp_to_proj_sids.get_all(shared);
             const bool tp_to_proj_enabled = enabled_sids->find(attacker_sid) != enabled_sids->end();
@@ -77,7 +91,7 @@ namespace Game::Handlers
 
             if (tp_to_proj_enabled)
             {
-				DEBUGLOG(dark_cyan, "tp_to_proj enabled for attackerSid=({}), attempting to respawn victim at projectile impact location", attacker_sid);
+                DEBUGLOG(dark_cyan, "tp_to_proj enabled for attackerSid=({}), attempting to respawn victim at projectile impact location", attacker_sid);
                 auto user = CAccount.get<unique_t>(attacker_sid);
                 if (user)
                 {
@@ -87,6 +101,8 @@ namespace Game::Handlers
                     user->combat_health = full_health;
                     user->combat_health_known = true;
                     user->is_dead = false;
+                    user->last_attacker_sid = 0;
+                    user->kill_credited_this_death = false;
                     user.unlock();
 
                     RespawnRequest respawn_req{};
@@ -99,7 +115,7 @@ namespace Game::Handlers
                     CMessage respawn_msg;
                     respawn_msg.SetCommand(HOST_RESPAWN, 0, 0, 0);
                     respawn_msg.SetData(reinterpret_cast<uint8_t*>(&respawn_req), sizeof(respawn_req));
-                    server->Broadcast(room->players_session_id, respawn_msg);
+                    server->Broadcast(player_ids, respawn_msg);
 
                     DEBUGLOG(dark_cyan,
                         "ImpactProjectile tptoproj attackerSid=({}) projectileId=({}) pos=({},{},{})",
@@ -112,9 +128,15 @@ namespace Game::Handlers
             }
         }
 
-        room->projectile_owner_by_id.erase(req->projectile_id);
-        room->projectile_type_by_id.erase(req->projectile_id);
+        {
+            auto proj = CRoomProjectiles.get<unique_t>(room_id);
+            if (proj)
+            {
+                proj->owner_by_id.erase(req->projectile_id);
+                proj->type_by_id.erase(req->projectile_id);
+            }
+        }
 
-        server->Broadcast(room->players_session_id, *message);
+        server->Broadcast(player_ids, *message);
     }
 }

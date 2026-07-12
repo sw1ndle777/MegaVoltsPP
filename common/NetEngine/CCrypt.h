@@ -78,8 +78,15 @@ namespace NetEngine
         and runs its setup with the provided serial key */
         CCrypt(CRYPT_TYPE eType_, int32_t Key_)
         {
-            auto r = ChangeType(eType_, Key_);
-            if (!r) [[unlikely]] std::unreachable();
+            if (!ChangeType(eType_, Key_)) [[unlikely]]
+            {
+                // An invalid cipher type slipped through (e.g. an out-of-range
+                // crypt id from a malformed packet). Fall back to a known-good
+                // cipher so the object stays in a defined state instead of
+                // invoking UB via std::unreachable(), which let the optimizer
+                // elide the range check and read m_kVtabs out of bounds.
+                (void)ChangeType(CRYPT_TYPE::CRYPT_RC5, Key_);
+            }
         }
         /* Destructor (virtual in case polymorphic use is added later) */
         virtual ~CCrypt() = default;
@@ -97,7 +104,6 @@ namespace NetEngine
         {
             const auto idx = to_u(eType_);
             if (idx >= std::size(m_kVtabs)) return std::unexpected(ERROR_TYPE::UNK_CHANGE_TYPE);
-            [[assume(idx < std::size(m_kVtabs))]];
 
             const auto& vt = m_kVtabs[idx];
             m_pvfSetup = vt.setup;
@@ -256,8 +262,11 @@ namespace NetEngine
                 auto B = *reinterpret_cast<const uint16_t*>(piIn_ + (i + 1) * 2) + m_usKey_RC5[key++];
                 for (auto round = 0; round < _RC5_ROUND; ++round)
                 {
-                    A = rotl<uint16_t>(A ^ B, B & 0x0F) + m_uiKey_RC5[key++];
-                    B = rotl<uint16_t>(B ^ A, A & 0x0F) + m_uiKey_RC5[key++];
+                    // Round keys come from the 16-bit schedule to match the original
+                    // RC5_Encrypt32 exactly. m_usKey_RC5[j] == (uint16_t)m_uiKey_RC5[j],
+                    // so this is output-identical; it just avoids the 32-bit array here.
+                    A = rotl<uint16_t>(A ^ B, B & 0x0F) + m_usKey_RC5[key++];
+                    B = rotl<uint16_t>(B ^ A, A & 0x0F) + m_usKey_RC5[key++];
                 }
                 *reinterpret_cast<uint16_t*>(piOut_ + i * 2) = A ^ static_cast<uint16_t>(m_iSerialKey);
                 *reinterpret_cast<uint16_t*>(piOut_ + (i + 1) * 2) = B ^ static_cast<uint16_t>(m_iSerialKey);

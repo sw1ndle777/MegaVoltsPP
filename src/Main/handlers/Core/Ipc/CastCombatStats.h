@@ -4,6 +4,12 @@ namespace Game::Handlers
     using namespace BaseLib;
     using namespace NetEngine;
 
+    // After a round closes combat, the deciding kill's IPC may still be in flight (it travels
+    // one hop further than the round-end packet). Accept a kill within this window; reject all
+    // non-kill damage immediately. Generous because no *new* legit kill can happen post-decision
+    // (the losing side is already dead), so a kill landing here is the deciding one.
+    inline constexpr uint64_t kCombatCloseGraceMs = 2000;
+
     [[nodiscard]] inline std::string_view ToCombatWeaponLabel(const NetEngine::Packets::Ipc::CastCombatWeaponKind weapon_kind)
     {
         using enum NetEngine::Packets::Ipc::CastCombatWeaponKind;
@@ -65,6 +71,24 @@ namespace Game::Handlers
             return;
         }
 
+        // Round-based dead window: a round ended and the next hasn't revived players yet. Drop
+        // non-kill damage immediately (no stat farming between rounds), but allow the deciding
+        // kill through for a short grace — its combat IPC (client->Cast->Main, two hops) can
+        // arrive just after the round-end packet (client->Main, one hop), which closed the window.
+        if (!room->combat_open)
+        {
+            const uint64_t since_close_ms = Utility::GetUtcTimeNowInMilliseconds() - room->combat_closed_at;
+            const bool deciding_kill = hit.kill_confirmed && since_close_ms <= kCombatCloseGraceMs;
+            if (!deciding_kill)
+            {
+                DEBUGLOG(yellow, "IpcCastCombatStats skip combat closed (between rounds) room=({}) attackerSid=({}) victimSid=({}) kill=({}) sinceCloseMs=({})",
+                    hit.room_id, hit.attacker_sid, hit.victim_sid, static_cast<uint32_t>(hit.kill_confirmed), since_close_ms);
+                return;
+            }
+            DEBUGLOG(green, "IpcCastCombatStats deciding kill accepted in grace room=({}) attackerSid=({}) victimSid=({}) sinceCloseMs=({})",
+                hit.room_id, hit.attacker_sid, hit.victim_sid, since_close_ms);
+        }
+
         auto attacker = CAccount.get<shared_t>(hit.attacker_sid);
         auto victim = CAccount.get<shared_t>(hit.victim_sid);
         if (!attacker || !victim)
@@ -119,10 +143,12 @@ namespace Game::Handlers
 
 		auto attacker_acc = CAccount.get<shared_t>(hit.attacker_sid);
 		auto attacker_nick = attacker_acc ? attacker_acc->acc_info.Nickname : "???";
+		const int32_t attacker_aid = attacker_acc ? attacker_acc->acc_info.Index : 0;
 		attacker_acc.unlock();
 
 		auto victim_acc = CAccount.get<shared_t>(hit.victim_sid);
 		auto victim_nick = victim_acc ? victim_acc->acc_info.Nickname : "???";
+		const int32_t victim_aid = victim_acc ? victim_acc->acc_info.Index : 0;
 		victim_acc.unlock();
 
         auto& stats = room->match_combat_stats[hit.attacker_sid];
@@ -131,6 +157,22 @@ namespace Game::Handlers
         {
             ++stats.packet_kills;
             stats.highest_kill_streak = std::max<uint32_t>(stats.highest_kill_streak, hit.attacker_highest_kill_streak);
+        }
+
+        // Buffer this hit for per-match persistence (accuracy + kill/death timeline).
+        // Flushed with the computed MatchUniqueId at match end, like left_sessions.
+        if (attacker_aid && victim_aid)
+        {
+            room->combat_events.push_back(PendingCombatEvent{
+                .attacker_aid = attacker_aid,
+                .victim_aid = victim_aid,
+                .weapon = static_cast<uint8_t>(hit.weapon_kind),
+                .bodypart = hit.bodypart,
+                .hit_variant = hit.hit_variant,
+                .damage = hit.damage_raw,
+                .victim_hp_after = hit.victim_health_raw,
+                .is_kill = hit.kill_confirmed,
+                .event_ms = Utility::GetUtcTimeNowInMilliseconds() }); // epoch ms (matches sessions/match times)
         }
 
 		DEBUGLOG(green, "[Combat Logs] Room {}, {} (sid {}) [{}] hit {} (sid {}) for {} dmg, ({} hp left) - K: {} - BestStreak: {}",

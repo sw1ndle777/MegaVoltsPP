@@ -119,6 +119,22 @@ enum class EOrder : uint16_t
     USER_PLAZA_LEAVE = 176,
     PARTY_KICK = 177,
     ITEM_DAYSHOP_INFO = 180,
+    // Battle Pass (MICROPASS): 182 = server->client snapshot, 183 = claim, 184 = reset mission
+    BATTLEPASS_DATA = 182,
+    BATTLEPASS_CLAIM = 183,
+    BATTLEPASS_RESET = 184,
+    // Player<->player Trade. Orders are symmetric (same value both directions);
+    // these mirror the client MegaGuard trade_handler opcode table (base 190).
+    TRADE_OPEN = 190,        // S->C: open dialog, carries the partner's TradePlayerInfo
+    TRADE_REQUEST = 191,     // C->S: invite by name ; S->C: invite popup to target
+    TRADE_ACCEPT = 192,      // C->S: accept inviter ; S->C: my invite was answered
+    TRADE_MONEY = 193,       // unused (no-money trade design)
+    TRADE_ITEM_ADD = 194,    // item offered onto the table
+    TRADE_ITEM_REMOVE = 195, // item pulled back off the table
+    TRADE_LOCK = 196,        // a side locked its offer
+    TRADE_CONFIRM = 197,     // a side confirmed the (locked) offer
+    TRADE_CANCEL = 198,      // a side cancelled / closed the window
+    TRADE_COMPLETE = 199,    // S->C: both confirmed, items swapped
     NODE_AUTHORIZE = 252,
     NODE_CAST_QUIT = 253,
     MOD_END = 254,

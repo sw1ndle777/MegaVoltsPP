@@ -6,7 +6,7 @@ x-db-env: &db-env
   DB_PORT: ${MVPP_DB_PORT:-3306}
   DB_NAME: ${MVPP_DB_NAME:-megavoltspp}
   DB_USER: ${MVPP_DB_USER:-root}
-  DB_PASSWORD: ${MVPP_DB_PASSWORD:-god123}
+  DB_PASSWORD: ${MVPP_DB_PASSWORD:-changeme}
   DB_SSL_MODE: ${MVPP_DB_SSL_MODE:-trust}
   DB_USE_TLS: ${MVPP_DB_USE_TLS:-true}
   DB_TLS_CA: ${MVPP_DB_TLS_CA:-}

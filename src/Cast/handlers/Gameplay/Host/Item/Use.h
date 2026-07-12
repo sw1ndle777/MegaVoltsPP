@@ -36,13 +36,15 @@ namespace Game::Handlers
             return;
         }
 
-        server->Broadcast(room->players_session_id, *message);
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, *message);
 
 		auto userSid = static_cast<uint16_t>(req->uid.session);
 		auto user = CAccount.get<shared_t>(userSid);
 		if (!user) return;
 
-        PACKETLOG(ACK, order, "roomId=({}) user=({}) userSid=({}) from host=({}) hostSid=({}) itemId=({}", roomId, user->nickname, userSid, hostName, hostSid, req->itemId);
+        PACKETLOG(ACK, order, "roomId=({}) user=({}) userSid=({}) from host=({}) hostSid=({}) itemId=({})", roomId, user->nickname, userSid, hostName, hostSid, req->itemId);
 
         
     }

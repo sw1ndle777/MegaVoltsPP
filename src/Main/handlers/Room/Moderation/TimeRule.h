@@ -1,4 +1,5 @@
 #pragma once
+#include "RoomSettingLog.h"
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -18,7 +19,11 @@ namespace Game::Handlers
         if (acc_index == -1 || !acc_cache->in_room || !CRoom.contains(acc_cache->room_id)) return;
         auto room_cache = CRoom.get<unique_t>(acc_cache->room_id);
         if (room_cache->is_playing || room_cache->host_session_id != session_id) return;
+        const auto old_time = static_cast<int32_t>(room_cache->time_rule);
+        const auto server_id = acc_cache->server_id;
         room_cache->time_rule = max_time;
+        LogRoomSettingChange(acc_index, acc_index, server_id, room_cache->room_id,
+            RoomLog::EventType::TimeRuleChanged, old_time, static_cast<int32_t>(max_time));
         acc_cache.unlock();
         auto players_ids = main_server->GetRoomSortedPlayerSessionIds(room_cache);
 

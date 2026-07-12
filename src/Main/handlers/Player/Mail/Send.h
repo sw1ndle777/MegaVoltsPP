@@ -22,11 +22,9 @@ namespace Game::Handlers
             DEBUGLOG(red, "player ({}) tried to send mail to themselves", acc_cache->acc_info.Nickname.c_str());
             return;
         }
-        auto target_acc_cache = CAccount.get_by_filter<shared_t>([&](const auto& /*id*/, auto& player) {
-            return Utility::ToLowercase(player.acc_info.Nickname) == Utility::ToLowercase(target_nick);
-            });
-        if (target_acc_cache->acc_info.Index) target_sid = target_acc_cache->session_id;
-        target_acc_cache.unlock();
+        // lock-free resolve (we hold acc_cache unique) — avoids ABBA, see ResolveOnlineByNickname
+        const auto target = CMainServer::ResolveOnlineByNickname(target_nick);
+        if (target.aid != -1) target_sid = target.sid;
         DatabaseUpdateCtx dctx{ .sid = session_id,.aid = acc_index };
         using enum MailboxPatch::Op;
         using enum MailSide;

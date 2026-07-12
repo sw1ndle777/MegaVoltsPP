@@ -321,7 +321,15 @@ namespace BaseLib
             VoteKickStarted = 5,
             VoteKickAgreed = 6,
             VoteKickSucceeded = 7,
-            VoteKickFailed = 8
+            VoteKickFailed = 8,
+            MatchStarted = 9,
+            MatchEntered = 10,
+            MatchLeft = 11,
+            MapChanged = 12,
+            ModeChanged = 13,
+            ScoreRuleChanged = 14,
+            TimeRuleChanged = 15,
+            MaxPlayersChanged = 16
         };
 
         inline const char* EventTypeToString(EventType t)
@@ -337,6 +345,14 @@ namespace BaseLib
                 case EventType::VoteKickAgreed:     return "VoteKickAgreed";
                 case EventType::VoteKickSucceeded:  return "VoteKickSucceeded";
                 case EventType::VoteKickFailed:     return "VoteKickFailed";
+                case EventType::MatchStarted:       return "MatchStarted";
+                case EventType::MatchEntered:       return "MatchEntered";
+                case EventType::MatchLeft:          return "MatchLeft";
+                case EventType::MapChanged:         return "MapChanged";
+                case EventType::ModeChanged:        return "ModeChanged";
+                case EventType::ScoreRuleChanged:   return "ScoreRuleChanged";
+                case EventType::TimeRuleChanged:    return "TimeRuleChanged";
+                case EventType::MaxPlayersChanged:  return "MaxPlayersChanged";
                 default:                            return "RoomJoined";
             }
         }
@@ -353,6 +369,51 @@ namespace BaseLib
         std::optional<uint8_t> team_id;
         std::optional<uint8_t> new_team_id;
         std::optional<uint8_t> votekick_reason;
+        // Generic old->new for room-setting changes (map/mode/score/time/maxplayers); int so
+        // large rule values (kill/point limits, time) aren't truncated like the tinyint TeamId.
+        std::optional<int32_t> old_value;
+        std::optional<int32_t> new_value;
+    };
+
+    // One row in player_match_sessions: a player's presence span in a single match.
+    // Reason: "Finished" (still in at match end), "Leave", "Kicked", "Disconnect".
+    struct PlayerMatchSessionAdd
+    {
+        std::string match_unique_id;
+        int32_t aid{ 0 };
+        uint8_t team_id{ 0 };
+        uint64_t joined_ms{ 0 };
+        uint64_t left_ms{ 0 };
+        std::string reason{ "Finished" };
+    };
+
+    // One damaging combat hit, persisted per match for the website's accuracy
+    // breakdown (head/body/arms/legs) and the kill/death timeline graph.
+    struct PlayerMatchCombatAdd
+    {
+        std::string match_unique_id;
+        int32_t attacker_aid{ 0 };
+        int32_t victim_aid{ 0 };
+        uint8_t weapon{ 0 };          // CastCombatWeaponKind
+        uint8_t bodypart{ 0 };        // 0 directshot,1 camera,2 head,3 body,4 arms,5 legs
+        uint8_t hit_variant{ 0xFF };  // melee: 0 slap,1 heavy; sniper: noscope; else 0xFF
+        uint32_t damage{ 0 };
+        uint32_t victim_hp_after{ 0 };
+        uint8_t is_kill{ 0 };
+        uint64_t event_ms{ 0 };       // UTC ms when the hit landed (match timeline)
+    };
+
+    // One non-combat match-timeline event (respawn, bomb plant/defuse, item pickup),
+    // persisted per match for the website's match timeline.
+    struct PlayerMatchEventAdd
+    {
+        std::string match_unique_id;
+        int32_t aid{ 0 };
+        uint8_t event_type{ 0 }; // 1 Respawn, 2 Bomb, 3 ItemPickup
+        uint8_t sub_a{ 0 };      // Bomb: role (0 defuser, 1 planter)
+        uint8_t sub_b{ 0 };      // Bomb: phase (0 start, 1 stop, 2 finish)
+        uint32_t value{ 0 };     // ItemPickup: item id
+        uint64_t event_ms{ 0 };
     };
 
     // ==================== Anticheat Detection Log ====================

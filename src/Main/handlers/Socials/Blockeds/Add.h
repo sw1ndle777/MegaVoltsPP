@@ -20,10 +20,9 @@ namespace Game::Handlers
         const auto& req = reinterpret_cast<MainPlayerBlockedAddReq*>(message->GetData());
         const auto& target_nickname = Utility::ReadMicrovoltsString(req->nickname, sizeof(req->nickname));
         if (acc->acc_info.Nickname == target_nickname) return;
-        auto target_acc = CAccount.get_by_filter<unique_t>([&](const auto& /*id*/, auto& player) {
-            return Utility::ToLowercase(player.acc_info.Nickname) == Utility::ToLowercase(target_nickname);
-            });
-        auto target_aid = target_acc->acc_info.Index;
+        // lock-free resolve (we hold `acc` unique) — avoids ABBA, see ResolveOnlineByNickname
+        const auto target = CMainServer::ResolveOnlineByNickname(target_nickname);
+        auto target_aid = target.aid;
 
         DatabaseUpdateCtx dctx{ .sid = sid, .aid = aid };
         dctx.ops.emplace_back(PlayerSocialPatch{ .op = PlayerSocialPatch::Op::InsertOrUpdate, .aid = aid, .targetAid = target_aid, .State = NetEngine::Socials::State::Blocked, .TargetNickname = target_nickname });

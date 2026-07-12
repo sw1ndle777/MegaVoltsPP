@@ -13,12 +13,15 @@ namespace Game::Handlers
         if (!session || !message) return;
 
         //auto auth_key = message->GetData<uint64_t>();
-        auto req = reinterpret_cast<FrontLoginReconnectReq*>(message->GetData());
+        // Copy the request struct out by value: GetData() points into the packet's
+        // CMessage buffer, a stack local in onPacket that is freed before the async
+        // DB task runs. Capturing the raw pointer would be a use-after-free.
+        auto req = *reinterpret_cast<FrontLoginReconnectReq*>(message->GetData());
         [[maybe_unused]] auto ignored_result = BaseLib::DbPool->submit_task([front_server, session = std::move(callback.session), req = std::move(req)]() mutable
             {
                 auto sid = session->GetSessionId();
-                auto key = req->authKey;
-                auto code = req->code2fa;
+                auto key = req.authKey;
+                auto code = req.code2fa;
                 DEBUGLOG(blue, "Reconnect attempt with auth key=({}), sid=({})", key, sid);
                 if (CAuthKeys.contains(key))
                 {

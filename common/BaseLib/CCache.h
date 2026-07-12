@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <algorithm>
 #include <shared_mutex>
 #include <optional>
 #include <type_traits>
@@ -39,10 +40,10 @@ namespace BaseLib
         { c.insert(std::move(v)) };
     };
 
-    template<typename T, typename = void>
-    struct has_member_mutex : std::false_type {};
     template<typename T>
-    struct has_member_mutex<T, std::void_t<decltype(std::declval<T&>().mutex)>> : std::true_type {};
+    concept with_member_mutex = requires(T& t) { t.mutex; };
+    template<typename T>
+    struct has_member_mutex : std::bool_constant<with_member_mutex<T>> {};
 
     template<class Container, class Mutex = std::shared_mutex>
     class CCache

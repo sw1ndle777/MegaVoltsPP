@@ -91,7 +91,7 @@ namespace BaseLib
         /// @param outMonthlyRewards receives the system monthly reward schedule.
         /// @param outPlayerMonthlyReward receives the player monthly reward progress.
         /// @return true on success.
-        virtual bool GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward) = 0;
+        virtual bool GetMainFrontAccount(const uint64_t authKey, uint32_t server_id, FrontAccount* outFrontAccount, ClanInfo* outClanInfo, PlayerDailyMission* outDailyMission, std::vector<Item>& inv_items, std::vector<SocialInfo>& socials, std::vector<BlockedInfo>& blockeds, std::vector<FriendInfo>& friends, std::vector<MailboxInfo>& mailbox_list, std::vector<std::uint32_t>& daily_mission_random_ids, std::vector<GachaPityEntry>& gacha_pity, SystemMonthlyRewards* outMonthlyRewards, PlayerMonthlyReward* outPlayerMonthlyReward, SystemWeeklyRewards* outWeeklyRewards, PlayerWeeklyReward* outPlayerWeeklyReward) = 0;
 
         /// @brief load the system monthly reward schedule for a given month.
         /// @param year calendar year.
@@ -105,6 +105,13 @@ namespace BaseLib
         /// @param out receives the reward progress.
         /// @return true if found.
         virtual bool GetPlayerMonthlyReward(uint32_t player_id, PlayerMonthlyReward* out) = 0;
+        virtual bool GetSystemPlaytimeRewards(uint32_t year, uint32_t month, SystemPlaytimeRewards* out) = 0;
+        virtual bool GetPlayerPlaytime(uint32_t player_id, PlayerPlaytime* out) = 0;
+        // Battle Pass (MICROPASS)
+        virtual bool GetActiveBattlePassSeason(SystemBattlePassSeason* out) = 0;
+        virtual bool GetSystemBattlePassLevels(uint32_t season, std::vector<SystemBattlePassLevel>* out) = 0;
+        virtual bool GetSystemBattlePassMissions(std::vector<SystemBattlePassMission>* out) = 0;
+        virtual bool GetPlayerBattlePass(uint32_t player_id, PlayerBattlePass* out) = 0;
 
         /// @brief claim a daily monthly reward and insert the reward item.
         /// @param player_id the account id.
@@ -189,6 +196,9 @@ namespace BaseLib
         /// @brief persist monthly reward progress patches inside a transaction.
         /// @param v the validated updates containing monthly reward patches.
         [[nodiscard]] virtual std::expected<void, DbError> PersistMonthlyRewardsPatches(ValidatedDbUpdates& v) = 0;
+        [[nodiscard]] virtual std::expected<void, DbError> PersistWeeklyRewardsPatches(ValidatedDbUpdates& v) = 0;
+        [[nodiscard]] virtual std::expected<void, DbError> PersistPlaytimePatches(ValidatedDbUpdates& v) = 0;
+        [[nodiscard]] virtual std::expected<void, DbError> PersistBattlePassPatches(ValidatedDbUpdates& v) = 0;
 
         /// @brief persist mailbox operations (read, delete, insert) inside a transaction.
         /// @param v the validated updates containing mailbox patches.
@@ -244,6 +254,12 @@ namespace BaseLib
         /// @param logs the room log entries to insert.
         [[nodiscard]] virtual std::expected<void, DbError> PersistRoomLogs(const std::vector<RoomLogEntry>& logs) = 0;
 
+        /// @brief persist per-match player session spans (join/leave). Default no-op
+        ///        so non-MariaDB backends don't have to implement it.
+        [[nodiscard]] virtual std::expected<void, DbError> PersistPlayerMatchSessionsAdds(const std::vector<PlayerMatchSessionAdd>& adds) { (void)adds; return {}; }
+        [[nodiscard]] virtual std::expected<void, DbError> PersistPlayerMatchCombatAdds(const std::vector<PlayerMatchCombatAdd>& adds) { (void)adds; return {}; }
+        [[nodiscard]] virtual std::expected<void, DbError> PersistPlayerMatchEventAdds(const std::vector<PlayerMatchEventAdd>& adds) { (void)adds; return {}; }
+
         /// @brief persist anticheat detection log entries.
         /// @param logs the detection log entries to insert.
         [[nodiscard]] virtual std::expected<void, DbError> PersistAcDetectionLogs(const std::vector<AcDetectionLogEntry>& logs) = 0;
@@ -264,6 +280,16 @@ namespace BaseLib
         /// @param gachapon_id the gachapon id to remove the sale for.
         /// @return true on success.
         virtual bool DeleteGachaponSaleInfo(const uint32_t& gachapon_id) = 0;
+
+        /// @brief load the invisible flag from the player_misc table.
+        /// @param aid the account id.
+        /// @return true if the player is invisible, false if not or row doesn't exist.
+        virtual bool GetPlayerMiscInvisible(int32_t aid) = 0;
+
+        /// @brief set the invisible flag in the player_misc table (upserts).
+        /// @param aid the account id.
+        /// @param val the invisible state.
+        [[nodiscard]] virtual std::expected<void, DbError> SetPlayerMiscInvisible(int32_t aid, bool val) = 0;
 
         /// @brief get the name of the connected database.
         /// @return the database name string.

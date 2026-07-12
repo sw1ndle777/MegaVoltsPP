@@ -19,6 +19,7 @@
 
 #include <bit>
 #include <utility>
+#include <optional>
 
 #include <monocypher.h>
 #include <fmt/format.h>
@@ -149,6 +150,66 @@ namespace Utility
         [[nodiscard]] std::uint32_t Gen() noexcept;
         [[nodiscard]] std::uint64_t Gen64() noexcept;
     }
+
+    /// @brief install a std::terminate handler that logs the active exception and a stack
+    /// trace before aborting. For uncaught exceptions the trace points at the throw site,
+    /// because terminate runs before the stack is unwound.
+    void InstallTerminateHandler();
+
+    // Parsed pieces of an http(s) URL, ready to hand to an asio resolver.
+    struct UrlParts
+    {
+        std::string host;   // e.g. "uptime.betterstack.com"
+        std::string port;   // "443" / "80" (string form for asio::resolver)
+        std::string target; // path + query, always begins with '/'
+        bool https = false;
+    };
+
+    // Minimal scheme://host[:port]/path parser. Returns nullopt on anything it
+    // can't make sense of. Good enough for monitoring beacon URLs (no userinfo).
+    [[nodiscard]] inline std::optional<UrlParts> ParseUrl(std::string_view url)
+    {
+        UrlParts out;
+        const auto scheme_end = url.find("://");
+        if (scheme_end == std::string_view::npos)
+            return std::nullopt;
+
+        const std::string_view scheme = url.substr(0, scheme_end);
+        if (scheme == "https")      out.https = true;
+        else if (scheme == "http")  out.https = false;
+        else                        return std::nullopt;
+
+        std::string_view rest = url.substr(scheme_end + 3);
+        const auto slash = rest.find('/');
+        std::string_view authority = (slash == std::string_view::npos) ? rest : rest.substr(0, slash);
+        out.target = (slash == std::string_view::npos) ? std::string("/") : std::string(rest.substr(slash));
+        if (out.target.empty()) out.target = "/";
+
+        const auto colon = authority.find(':');
+        if (colon == std::string_view::npos)
+        {
+            out.host = std::string(authority);
+            out.port = out.https ? "443" : "80";
+        }
+        else
+        {
+            out.host = std::string(authority.substr(0, colon));
+            out.port = std::string(authority.substr(colon + 1));
+        }
+
+        if (out.host.empty())
+            return std::nullopt;
+        return out;
+    }
+
+    // Best-effort blocking HTTPS GET (TLS, no cert verification — see Utility.cpp).
+    // Returns true if the request bytes were written. Used by the heartbeat crash path.
+    bool HttpsGetSync(const std::string& host, const std::string& port, const std::string& target, int timeout_ms);
+
+    // Reads the BetterStack heartbeat url from DefaultSettings and fires a blocking
+    // GET to "<url>/fail" (bounded by timeout_ms) so a crash flips the monitor down
+    // immediately instead of waiting out the grace period. No-op if url is empty.
+    void HeartbeatReportFailure(int timeout_ms = 2000);
     namespace SecureRandomBlake2b
     {
         class Generator
@@ -333,6 +394,7 @@ namespace Utility
     uint32_t GetCurrentMonth();
     uint32_t GetCurrentDay();
     uint32_t GetCurrentYear();
+    uint32_t GetCurrentWeek();
     uint32_t GetUtcTimeNowPlusSeconds(const uint32_t& seconds);
     uint64_t GetUtcTimeNow64();
     uint64_t GetLast6AMUtc();

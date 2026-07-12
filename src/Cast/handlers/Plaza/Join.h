@@ -39,6 +39,7 @@ namespace Game::Handlers
             DEBUGLOG(dark_cyan, "plaza id: ({}) doesn't exist, auto create", plazaId);
         }
         auto acc = CAccount.get<unique_t>(sid);
+        if (!acc) return; // pre-auth session: never deref/unlock a null locker (would throw "operation not permitted")
         auto oldPlazaId = acc->plaza_id;
         acc->plaza_id = plazaId;
         acc->in_plaza = true;

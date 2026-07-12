@@ -7,11 +7,18 @@
 #include <map>
 #include <set>
 #include <mutex>
+#include <condition_variable>
+#include <stop_token>
 #include <optional>
 #include <string>
 //#include <unordered_map>
 #include <thread>
+#include <atomic>
 #include <asio.hpp>
+
+// asio::ssl::context is only needed by the heartbeat implementation in CServer.cpp;
+// forward-declare here so we don't pull OpenSSL headers into every handler TU.
+namespace asio { namespace ssl { class context; } }
 
 #include "Constants.h"
 #include "PacketRateLimit.h"
@@ -26,6 +33,8 @@ namespace NetEngine
     using enum fmt::color;
     class CSession;
     struct SCallbackData;
+
+    using CallbackMap = boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>>;
 
     struct ExecutionInfo
     {
@@ -65,7 +74,7 @@ namespace NetEngine
         }
         void free(uint16_t id)
         {
-            if (id >= m_min && id <= m_max && m_freeList.find(id) == m_freeList.end())
+            if (id >= m_min && id <= m_max && !m_freeList.contains(id))
                 m_freeList.insert(id);
         }
     };
@@ -140,6 +149,7 @@ namespace NetEngine
                 throw std::runtime_error("Callback already exists");
             }
             m_callbacks[u16_cast(order)] = callback;
+            m_shared_callbacks.store(nullptr, std::memory_order_release);
         }
         template <auto HandlerFn, typename ServerT, typename T>
             requires (std::integral<std::remove_cvref_t<T>> || std::is_enum_v<std::remove_cvref_t<T>>)
@@ -149,10 +159,12 @@ namespace NetEngine
             const auto policy = PacketRateLimitPolicy<HandlerFn>::value;
             this->On(order, [this, self, order_id, policy](SCallbackData& callback)
                 {
-                    const auto identity = self->BuildPacketRateLimitIdentitySnapshot(callback);
-                    if (!this->ShouldProcessPacket(order_id, callback, identity, policy))
-                        return;
-
+                    if (policy.has_value() && policy->enabled)
+                    {
+                        const auto identity = self->BuildPacketRateLimitIdentitySnapshot(callback);
+                        if (!this->ShouldProcessPacket(order_id, callback, identity, policy))
+                            return;
+                    }
                     HandlerFn(callback, self);
                 });
         }
@@ -168,6 +180,19 @@ namespace NetEngine
         void SendMainIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
         void SendCastIpc(const uint32_t ipc_id, const std::vector<uint8_t>& payload);
         void WebsitePost(const std::string& path, const std::string& data);
+
+        // Liveness stamp for the uptime heartbeat. Records "the io_context is still
+        // processing work" using a steady (monotonic) clock. Called from the per-second
+        // liveness probe that runs on the io_context, so a crash OR a full hang both
+        // stop it advancing -> heartbeats stop -> BetterStack flips down. Cheap enough
+        // to also call from a real game tick (e.g. Cast's MovementBatcher flush).
+        void StampAlive() noexcept
+        {
+            m_lastAliveMs.store(
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count(),
+                std::memory_order_release);
+        }
 		bool AdoptSid(uint16_t old_sid, uint16_t new_sid, bool evictExisting = false);
       
         std::shared_ptr<CSession> GetSessionById(uint16_t id)
@@ -193,6 +218,7 @@ namespace NetEngine
             return m_ioContext;
         }
         auto IsVerbose() const { return m_verbose; }
+        [[nodiscard]] std::shared_ptr<const CallbackMap> GetSharedCallbacks();
         bool ShouldProcessPacket(uint16_t order, SCallbackData& callback, const RateLimit::IdentitySnapshot& identity, const std::optional<RateLimit::Rule>& rule);
         void ApplyPacketRateLimitCooldown(uint16_t order, RateLimit::IdentityScope scope, std::string identity, std::chrono::milliseconds duration);
         void ApplyPacketRateLimitBlacklist(RateLimit::IdentityScope scope, std::string identity, std::chrono::milliseconds duration);
@@ -209,6 +235,7 @@ namespace NetEngine
         std::shared_mutex m_server_settings_mutex;
         BaseLib::CSettings::ServerSettings server_settings;
         boost::unordered_flat_map<uint16_t, std::function<void(SCallbackData&)>> m_callbacks;
+        std::atomic<std::shared_ptr<const CallbackMap>> m_shared_callbacks;
         boost::unordered_flat_map<uint16_t, std::shared_ptr<CSession>> m_sessions;
         IdGenerator m_sessionIdGenerator;
         IdGenerator m_roomIdGenerator;
@@ -228,7 +255,6 @@ namespace NetEngine
         bool m_useEncryption = false;
         bool m_useMultithreaded = false;
         bool m_watchguard = false;
-        std::shared_ptr<asio::steady_timer> m_watchdogTimer;
         uint32_t m_concurrentThreads = 1;
         uint32_t m_playtimeMinSeconds = 90;
         uint32_t m_loggerThreads = 1;
@@ -248,8 +274,14 @@ namespace NetEngine
         boost::unordered_flat_map<std::string, std::deque<PacketRateLimitClock::time_point>> m_packet_rate_limit_strikes;
         boost::unordered_flat_map<std::string, PacketRateLimitClock::time_point> m_packet_order_cooldowns;
         boost::unordered_flat_map<std::string, PacketRateLimitClock::time_point> m_packet_identity_blacklists;
+        boost::unordered_flat_map<uint16_t, std::vector<std::string>> m_session_rate_limit_keys;
         boost::unordered_flat_map<size_t, std::vector<ExecutionInfo>> m_execution_info;
         std::shared_mutex m_execution_guard_mutex;
+        // Declared last so the jthread is destroyed (stop-requested and joined)
+        // before the mutex/cv and the execution table it touches.
+        std::mutex m_watchdog_mutex;
+        std::condition_variable_any m_watchdog_cv;
+        std::jthread m_watchdog_thread;
         [[nodiscard]] IpcRole DetectIpcRole(const SServerSettings& settings, const BaseLib::CSettings::ServerSettings& servers_settings) const;
         [[nodiscard]] PersistentIpcState& GetPersistentIpcState(PersistentIpcTarget target);
         [[nodiscard]] std::pair<std::string, std::string> GetPersistentIpcEndpoint(PersistentIpcTarget target);
@@ -258,8 +290,24 @@ namespace NetEngine
         void StartPersistentIpcClients();
         void EnsurePersistentIpcConnection(PersistentIpcTarget target);
         void SchedulePersistentIpcReconnect(PersistentIpcTarget target, std::chrono::milliseconds delay = std::chrono::milliseconds(1000));
-        void watchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
+        void watchdog(std::stop_token stoken, std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
         void startWatchdog(std::chrono::nanoseconds interval, std::chrono::nanoseconds timeout);
+
+        // ---- uptime heartbeat ----
+        // Monotonic "last alive" stamp in ms (see StampAlive). 0 = never stamped.
+        std::atomic<uint64_t> m_lastAliveMs{ 0 };
+        std::shared_ptr<asio::steady_timer> m_livenessTimer;  // per-second probe on io_context
+        std::shared_ptr<asio::steady_timer> m_heartbeatTimer; // per-interval beat sender
+        std::shared_ptr<asio::ssl::context> m_heartbeatSsl;   // reused TLS client context
+        std::string m_heartbeatUrl;                           // empty = disabled
+        uint32_t m_heartbeatIntervalSec = 30;
+        // Max staleness of the liveness stamp before we suppress a beat (treat as hung).
+        static constexpr uint64_t kHeartbeatStaleMs = 5000;
+
+        void StartHeartbeat();        // wires up both timers (no-op if url empty)
+        void ArmLivenessProbe();      // self-rearming 1s stamp on the io_context
+        void ScheduleHeartbeat();     // arm the per-interval beat timer
+        void SendHeartbeatBeat();     // one async HTTPS GET to the heartbeat url
 
     };
 }

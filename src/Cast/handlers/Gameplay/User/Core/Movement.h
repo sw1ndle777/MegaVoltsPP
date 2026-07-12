@@ -1,4 +1,7 @@
 #pragma once
+#include <atomic>
+#include <chrono>
+#include <cstring>
 namespace Game::Handlers
 {
     using namespace BaseLib;
@@ -9,6 +12,26 @@ namespace Game::Handlers
         auto session = callback.session;
         auto message = callback.message;
         if (!session || !message) return;
+
+        // --- DIAGNOSTIC: USER_MOVE server-receive rate (disabled) ---
+        // Compare against the client's "[CustomTickrate] 128-tick send patches applied: N/21".
+        //   ~128*players/sec here  => client IS sending at 128-tick; look downstream (rebroadcast).
+        //   ~12*players/sec here   => client is sending at VANILLA rate (send patch not live) = the bug.
+#if 0
+        {
+            static std::atomic<uint32_t> s_moveCount{ 0 };
+            static std::atomic<int64_t>  s_lastLogMs{ 0 };
+            s_moveCount.fetch_add(1, std::memory_order_relaxed);
+            const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            auto last = s_lastLogMs.load(std::memory_order_relaxed);
+            if (nowMs - last >= 1000 && s_lastLogMs.compare_exchange_strong(last, nowMs))
+            {
+                const auto cnt = s_moveCount.exchange(0, std::memory_order_relaxed);
+                DEBUGLOG(dark_green, "[MoveRate] USER_MOVE received: ({}) packets/sec across all sessions", cnt);
+            }
+        }
+#endif
 
         auto option = message->GetOption();
         auto extra = message->GetExtra();
@@ -110,24 +133,34 @@ namespace Game::Handlers
 
         if (in_room && !is_dead)
         {
-            if (server->IsBatchPositionsEnabled())
+            // Batched path: queue this player's entry (the response body minus its
+            // leading 4-byte tick) for the next fixed-rate flush, which emits one
+            // multi-entry cmd-322 per room. See MovementBatcher.h.
+            if (server->IsMoveBatchEnabled() && movementMsg.GetDataSize() >= sizeof(uint32_t))
             {
-                auto room = CRoom.get<unique_t>(room_id);
-                if (!room) return;
-                auto* data_ptr = movementMsg.GetData();
-                auto data_len = movementMsg.GetDataSize();
-                room->pending_positions.emplace_back(data_ptr, data_ptr + data_len);
+                auto* d = movementMsg.GetData();
+                const auto dsz = movementMsg.GetDataSize();
+                uint32_t tick = 0;
+                std::memcpy(&tick, d, sizeof(uint32_t));
+                server->SubmitMovement(room_id, sid, d + sizeof(uint32_t),
+                    static_cast<uint8_t>(dsz - sizeof(uint32_t)), tick);
             }
             else
             {
                 auto room = CRoom.get<shared_t>(room_id);
-                server->Broadcast(room->players_session_id, movementMsg);
+                if (!room) return;
+                auto player_ids = room->players_session_id;
+                room.unlock();
+                server->Broadcast(player_ids, movementMsg);
             }
         }
         else if (in_plaza)
         {
             auto plaza = CPlaza.get<shared_t>(plaza_id);
-            server->Broadcast(plaza->players_session_id, movementMsg, sid);
+            if (!plaza) return;
+            auto player_ids = plaza->players_session_id;
+            plaza.unlock();
+            server->Broadcast(player_ids, movementMsg, sid);
         }
 
     }

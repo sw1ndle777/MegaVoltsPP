@@ -14,6 +14,7 @@ namespace Game::Handlers
         case PacketIds::Ipc::FrontToMainDisconnectPlayer: IpcFrontDisconnect(payload, main_server); break;
         case PacketIds::Ipc::CastToMainAcknowledgeAuthPlayer: IpcCastAuthorize(payload, main_server); break;
         case PacketIds::Ipc::CastToMainMatchCombatHit: IpcCastCombatStats(payload, main_server); break;
+        case PacketIds::Ipc::CastToMainMatchEvent: IpcCastMatchEvent(payload, main_server); break;
         default:
         {
             DEBUGLOG(yellow, "unknown ipc=({}) size=({})", msg_id, data_size);

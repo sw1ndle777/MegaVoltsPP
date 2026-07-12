@@ -29,17 +29,14 @@ namespace Game::Handlers
             return;
         }
         
-        auto target_acc_cache = CAccount.get_by_filter<shared_t>([&](const auto&, auto& player) {
-            return Utility::ToLowercase(player.acc_info.Nickname) == Utility::ToLowercase(target_nick);
-        });
-        
+        // lock-free resolve (we hold acc_cache unique) — avoids ABBA, see ResolveOnlineByNickname
+        const auto target = CMainServer::ResolveOnlineByNickname(target_nick);
         int32_t target_aid = -1;
-        if (target_acc_cache->acc_info.Index)
+        if (target.aid != -1)
         {
-            target_sid = target_acc_cache->session_id;
-            target_aid = target_acc_cache->acc_info.Index;
+            target_sid = target.sid;
+            target_aid = target.aid;
         }
-        target_acc_cache.unlock();
         
         if (target_aid == -1)
         {

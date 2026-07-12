@@ -15,6 +15,7 @@ namespace Game::Handlers
         auto session_id = session->GetSessionId();
         auto acc_cache = CAccount.get<unique_t>(session_id);
         auto acc_index = acc_cache->acc_info.Index;
+        const auto nick = acc_cache->acc_info.Nickname; // local copy for logging
         int32_t current_team_id = -1;
         auto join_result = static_cast<NetEngine::Room::Join::ReqResult>(message->GetExtra());
         if (acc_index == -1) return;
@@ -51,6 +52,8 @@ namespace Game::Handlers
         else
             hostAid = acc_index;
 
+        bool is_invis_staff = acc_cache->is_invisible && acc_cache->acc_info.Grade >= Userlist::User::Grade::Tester;
+
         DEBUGLOG(dark_cyan, "player ({}) attempt to join Room No. ({}), channel id: ({})", session->GetSessionId(), joinRoomReq->room_id, joinRoomReq->channel_id);
         if (room_cache->title.empty())
         {
@@ -58,7 +61,7 @@ namespace Game::Handlers
             session->SendMsg(140, 0, NetEngine::Room::Join::Result::RoomDeleted, 0);
             return;
         }
-        if (room_cache->has_password || join_result == NetEngine::Room::Join::ReqResult::Password)
+        if (!is_invis_staff && (room_cache->has_password || join_result == NetEngine::Room::Join::ReqResult::Password))
         {
             auto room_pass_req = std::string(joinRoomReq->password);
             DEBUGLOG(dark_cyan, "player try to join with password: ({})", room_pass_req);
@@ -75,7 +78,14 @@ namespace Game::Handlers
         bool is_clan = false;
         bool is_my_party = false;
         bool is_vs_party = false;
-        if (in_party) {
+
+        if (is_invis_staff)
+        {
+            room_cache->observers_session_ids.push_back(session_id);
+            acc_cache->team_id = Team::IdType::Observer;
+            current_team_id = Team::IdType::Observer;
+        }
+        else if (in_party) {
             DEBUGLOG(dark_cyan, "join in party room");
             if (room_cache->host_session_id == session_id) {
                 DEBUGLOG(dark_cyan, "host try to join room!");
@@ -100,6 +110,9 @@ namespace Game::Handlers
         }
         DEBUGLOG(dark_cyan, "all checks passed");
         auto is_mode_teambased = main_server->IsModeTeamBased(static_cast<NetEngine::Room::Mode::Index>(room_cache->ModeIndex));
+
+        if (!is_invis_staff)
+        {
         auto observers_max_count = room_cache->allow_observers ? 10 : 0;
         auto room_players_max_count = room_cache->max_players;
         uint32_t players_count = is_mode_teambased ? room_cache->redteam_session_ids.size() + room_cache->blueteam_session_ids.size() : room_cache->neutralteam_session_ids.size();
@@ -119,7 +132,7 @@ namespace Game::Handlers
             session->SendMsg(140, 0, NetEngine::Room::Join::Result::GenericError, 0);
             return;
         }
-        
+
         if (room_cache->kicked.contains(acc_index))
         {
             DEBUGLOG(dark_cyan, "player was kicked");
@@ -210,6 +223,7 @@ namespace Game::Handlers
                     session->SendMsg(140, 0, room_cache->allow_observers ? NetEngine::Room::Join::Error::RoomFull : NetEngine::Room::Join::Error::NoIntrusion, 0);
             }
         }
+        } // end if (!is_invis_staff)
         DEBUGLOG(dark_cyan, "now prepare settings");
         auto has_password = static_cast<uint8_t>(!room_cache->password.empty());
         RoomSettingsInfo2 settings_info{};
@@ -259,8 +273,9 @@ namespace Game::Handlers
                 auto player_id = players_ids[i];
                 if (player_id == session_id) continue;
                 auto player_cache = CAccount.get<shared_t>(player_id);
+                if (player_cache->is_invisible) { player_cache.unlock(); continue; }
 				auto info1 = main_server->GetRoomUserPlayerInfo1(player_cache);
-				auto info2 = main_server->GetRoomUserPlayerInfo2(player_cache);    
+				auto info2 = main_server->GetRoomUserPlayerInfo2(player_cache);
                 if (player_cache->zombie_team)
                 {
                     DEBUGLOG(red, "player ({}) ({}) is zombie", player_id, player_cache->acc_info.Nickname.c_str());
@@ -305,6 +320,7 @@ namespace Game::Handlers
                 auto player_id = players_ids[i];
                 if (player_id == session_id) continue;
                 auto player_cache = CAccount.get<shared_t>(player_id);
+                if (player_cache->is_invisible) { player_cache.unlock(); continue; }
                 auto unique_id = NetEngine::Packets::Core::UniqueId(player_id, 1).data;
                 auto voice_id = player_cache->voice_id;
                 auto pcroom_tier = player_cache->acc_info.PCRoom;
@@ -339,6 +355,8 @@ namespace Game::Handlers
                 auto& session_ids = current_plaza->session_ids;
 				if (std::ranges::contains(session_ids, session_id))
                 {
+                    if (!is_invis_staff)
+                    {
                     auto my_unique_id = NetEngine::Packets::Core::UniqueId(session_id, 1).data;
                     for (const auto& plaza_player_session_id : session_ids)
                     {
@@ -346,7 +364,8 @@ namespace Game::Handlers
                         if (auto player_session = server->GetSessionById(plaza_player_session_id))
                             player_session->SendMsg(425, 0, 0, 1, reinterpret_cast<uint8_t*>(&my_unique_id), sizeof(my_unique_id));
                     }
-                    DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", session_id, plaza_id);
+                    }
+                    DEBUGLOG(dark_cyan, "user=({}) sid=({}) left plaza id: ({})", nick.c_str(), session_id, plaza_id);
                     std::erase(current_plaza->session_ids, session_id);
                     acc_cache->plaza_id = 0;
                     acc_cache->in_plaza = false;
@@ -528,6 +547,8 @@ namespace Game::Handlers
         }
         else
             my_clan_info = PlayerRoomClanListInfo(1, "", 0, 0, 0, 0);
+        if (!is_invis_staff)
+        {
         for (const auto& room_player_session_id : players_ids)
         {
             if (room_player_session_id == session_id) continue;
@@ -570,14 +591,31 @@ namespace Game::Handlers
 
             acc_cache.lock();
         }
+        } // end broadcast skip for invis
 
         acc_cache->state = PlayerInfo::State::Waiting;
         main_server->SendCastRoomJoinSync(room_cache->room_id, session_id, room_cache->host_session_id, room_cache->is_playing);
 
+        // Initialize the joiner's combat state on Cast. Any mid-match join spawns the player
+        // DEAD (a spectator awaiting respawn) regardless of mode; their first respawn then
+        // broadcasts their position to the match so everyone else instantiates them. This
+        // mirrors ToyBattles' handleMatchInitialLoading (isDead=true on load for all modes) and,
+        // together with the authoritative join snapshot in Cast Status.h, fixes the join-time
+        // dead-state desync (joiner seeing everyone dead / others not seeing the joiner). Lobby
+        // / not-yet-playing joins still spawn alive.
+        const bool spawn_dead = room_cache->is_playing;
+        main_server->RefreshPlayerHealthCache(acc_cache, !spawn_dead);
+        if (spawn_dead)
+            acc_cache->current_health = 0;
+        main_server->SendCastPlayerHealthSync(acc_cache);
+
+        if (!is_invis_staff)
+        {
         DEBUGLOG(dark_cyan, "will broadcast to all player new state 7 (waiting) to avoid playing bug state");
         for (const auto& room_player_session_id : players_ids)
             if (auto player_session = server->GetSessionById(room_player_session_id))
                 player_session->SendMsg(312, 0, 0, 7, reinterpret_cast<uint8_t*>(&my_auto_unique_id), sizeof(my_auto_unique_id));
+        }
 
         DEBUGLOG(dark_cyan, "player ({}) join room -> id: ({})", acc_cache->acc_info.Nickname.c_str(), room_cache->room_id);
 

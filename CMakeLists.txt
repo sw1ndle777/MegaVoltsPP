@@ -156,6 +156,7 @@ target_link_libraries(front PRIVATE
 	crashpad::crashpad
 	unofficial::mariadb-connector-cpp::mariadbcpp
 	libpqxx::pqxx
+	OpenSSL::SSL
 	OpenSSL::Crypto
 	common
 )
@@ -191,11 +192,17 @@ set(main_SOURCES
 	"src/Main/handlers/Core/Cmds/Core/System/Maintenance.h"
 	"src/Main/handlers/Core/Cmds/Core/System/ReloadGachaSale.h"
 	"src/Main/handlers/Core/Cmds/Core/System/TpToProj.h"
+	"src/Main/handlers/Core/Cmds/Economy/Cash.h"
+	"src/Main/handlers/Core/Cmds/Economy/Coupon.h"
+	"src/Main/handlers/Core/Cmds/Economy/EconomyCommon.h"
+	"src/Main/handlers/Core/Cmds/Economy/Energy.h"
+	"src/Main/handlers/Core/Cmds/Economy/Point.h"
 	"src/Main/handlers/Core/Cmds/Items/ClearInventory.h"
 	"src/Main/handlers/Core/Cmds/Items/EffectCurr.h"
 	"src/Main/handlers/Core/Cmds/Items/ExaItems.h"
 	"src/Main/handlers/Core/Cmds/Items/GodItems.h"
 	"src/Main/handlers/Core/Cmds/Items/Item.h"
+	"src/Main/handlers/Core/Cmds/Items/Items.h"
 	"src/Main/handlers/Core/Cmds/Items/ItemsByType.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Player/Ban.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Player/Mute.h"
@@ -206,6 +213,7 @@ set(main_SOURCES
 	"src/Main/handlers/Core/Cmds/Moderation/Room/BreakAll.h"
 	"src/Main/handlers/Core/Cmds/Moderation/Room/Kick.h"
 	"src/Main/handlers/Core/Cmds/Player/Level.h"
+	"src/Main/handlers/Core/Cmds/Staff/Invis.h"
 	"src/Main/handlers/Core/Connect.h"
 	"src/Main/handlers/Core/Disconnect.h"
 	"src/Main/handlers/Core/Ipc.h"
@@ -246,6 +254,7 @@ set(main_SOURCES
 	"src/Main/handlers/Player/Character/VoiceUpdate.h"
 	"src/Main/handlers/Player/Core/Authorize.h"
 	"src/Main/handlers/Player/Core/Automatch.h"
+	"src/Main/handlers/Player/Core/BattlePass.h"
 	"src/Main/handlers/Player/Core/Channels.h"
 	"src/Main/handlers/Player/Core/Chat.h"
 	"src/Main/handlers/Player/Core/InviteJoin.h"
@@ -299,6 +308,7 @@ set(main_SOURCES
 	"src/Main/handlers/Socials/Friends/Remove.h"
 	"src/Main/handlers/Socials/Friends/View.h"
 	"src/Main/handlers/Socials/Party/View.h"
+	"src/Main/handlers/Socials/Trade/Trade.h"
 	"src/Main/main.cpp"
 	"src/Main/secure_channel.cpp"
 )
@@ -329,6 +339,7 @@ target_link_libraries(main PRIVATE
 	crashpad::crashpad
 	unofficial::mariadb-connector-cpp::mariadbcpp
 	libpqxx::pqxx
+	OpenSSL::SSL
 	OpenSSL::Crypto
 	common
 )
@@ -353,6 +364,7 @@ set(cast_SOURCES
 	cmake.toml
 	"src/Cast/CCastServer.cpp"
 	"src/Cast/CCastServer.h"
+	"src/Cast/MovementBatcher.h"
 	"src/Cast/handlers/Core/Connect.h"
 	"src/Cast/handlers/Core/Disconnect.h"
 	"src/Cast/handlers/Core/Ipc.h"
@@ -449,6 +461,7 @@ target_link_libraries(cast PRIVATE
 	crashpad::crashpad
 	unofficial::mariadb-connector-cpp::mariadbcpp
 	libpqxx::pqxx
+	OpenSSL::SSL
 	OpenSSL::Crypto
 	common
 )

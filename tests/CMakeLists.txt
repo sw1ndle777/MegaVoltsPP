@@ -8,6 +8,7 @@ endif()
 
 # Target: unit_tests
 set(unit_tests_SOURCES
+	"build-ninja-msvc/CMakeFiles/4.2.1/CompilerIdCXX/CMakeCXXCompilerId.cpp"
 	cmake.toml
 	"crypto/test_auth_key.cpp"
 	"crypto/test_blake2b_generator.cpp"
@@ -33,6 +34,7 @@ set(unit_tests_SOURCES
 	"utility/test_read_string_safe.cpp"
 	"utility/test_string_utils.cpp"
 	"utility/test_time_utils.cpp"
+	"utility/test_url_parse.cpp"
 )
 
 add_executable(unit_tests)

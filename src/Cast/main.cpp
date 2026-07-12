@@ -62,6 +62,7 @@ void init_crash_handler()
 int main()
 {
     init_crash_handler();
+    Utility::InstallTerminateHandler();
     //HANDLE m_process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
     //Utility::GetCpuUsage(m_process_handle);
     //CloseHandle(m_process_handle);
@@ -89,8 +90,7 @@ int main()
 
     NetEngine::CServer::SServerSettings settings = NetEngine::CServer::SServerSettings(server_settings.cast.host.c_str(), std::to_string(server_settings.cast.port).c_str(), std::to_string(server_settings.cast.ipc_port).c_str(), server_settings.cast.debug, false, true, server_settings.cast.watchguard, server_settings.cast.asio_threads, 0, server_settings.cast.logger_threads);
     castServer->Setup(settings, server_settings);
-    castServer->SetBatchPositions(server_settings.cast.batch_positions);
-    castServer->StartPositionFlushTimer();
+    castServer->SetMoveBatch(server_settings.cast.move_batch, server_settings.cast.move_batch_hz);
     castServer->Run();
     std::cin.get();
     castServer.reset();

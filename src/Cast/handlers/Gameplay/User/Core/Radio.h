@@ -13,7 +13,8 @@ namespace Game::Handlers
 
         auto sid = session->GetSessionId();
         auto acc = CAccount.get<shared_t>(sid);
-        auto room = CRoom.get<shared_t>(acc->room_id);
+        if (!acc) return;
+        auto room_id = acc->room_id;
         acc.unlock();
 
         PACKETLOG(REQ, USER_RADIO, "sid=({}) voiceId=({})", sid, voiceId);
@@ -22,8 +23,10 @@ namespace Game::Handlers
         radioMsg.SetOrder(OTHER_RADIO);
         radioMsg.SetData(voiceId);
 
-		
-
-        server->Broadcast(room->players_session_id, radioMsg);
+        auto room = CRoom.get<shared_t>(room_id);
+        if (!room) return;
+        auto player_ids = room->players_session_id;
+        room.unlock();
+        server->Broadcast(player_ids, radioMsg);
     }
 }

@@ -14,6 +14,9 @@ namespace Game::Handlers
         uint32_t current_health;
         char nickname[16];
         char hwid[65];
+        uint16_t room_id;
+        uint8_t is_playing;
+        uint8_t _pad{};
     };
     inline void IpcCastAuthorize(const std::vector<uint8_t>& payload, CMainServer* main_server, int retries = 0)
     {
@@ -32,6 +35,14 @@ namespace Game::Handlers
             auth_data.current_health = player->current_health;
             std::strcpy(auth_data.nickname, player->acc_info.Nickname.c_str());
             std::strncpy(auth_data.hwid, player->hwid.c_str(), sizeof(auth_data.hwid) - 1);
+            auth_data.room_id = player->in_room ? player->room_id : 0;
+            auth_data.is_playing = 0;
+            if (player->in_room && CRoom.contains(player->room_id))
+            {
+                auto room = CRoom.get<shared_t>(player->room_id);
+                if (room)
+                    auth_data.is_playing = room->is_playing ? 1 : 0;
+            }
             main_server->SendCastIpc(PacketIds::Ipc::MainToCastAuthorizePlayer, Utility::ToVector(auth_data));
             player.unlock();
             DEBUGLOG(dark_cyan, "ipc acknowledge auth sid=({}) old uid=({}) new uid=({}) key=({}) name=({})", sid, req.UniqueId.data, auth_data.uid.data, auth_data.key, auth_data.nickname);

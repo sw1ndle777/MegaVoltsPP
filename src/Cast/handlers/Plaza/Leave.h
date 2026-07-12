@@ -12,17 +12,18 @@ namespace Game::Handlers
 
         auto sid = session->GetSessionId();
         auto acc = CAccount.get<shared_t>(sid);
+        const auto nick = acc->nickname; // local copy: safe to log after acc.unlock() below
         if (acc->in_plaza && CPlaza.contains(acc->plaza_id))
         {
             auto plaza = CPlaza.get<unique_t>(acc->plaza_id);
             std::erase_if(plaza->players_session_id, [&](const uint16_t& id) { return id == sid; });
-            DEBUGLOG(dark_cyan, "sid=({}) left plaza id: ({})", sid, acc->plaza_id);
+            DEBUGLOG(dark_cyan, "user=({}) sid=({}) left plaza id: ({})", nick, sid, acc->plaza_id);
 
             if (plaza->players_session_id.empty())
             {
                 plaza.unlock();
                 CPlaza.erase(acc->plaza_id);
-                DEBUGLOG(dark_cyan, "sid=({}) removed plaza id: ({})", sid, acc->plaza_id);
+                DEBUGLOG(dark_cyan, "user=({}) sid=({}) removed plaza id: ({})", nick, sid, acc->plaza_id);
             }
 
             acc->state_id = PlayerInfo::State::Lobby;

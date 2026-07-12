@@ -5,6 +5,7 @@
 #include "NetEngine/Protocols/BaseProtocol.h"
 #include "Constants.h"
 #include "CCrypt.h"
+#include <array>
 #include <memory>
 namespace NetEngine
 {

@@ -109,17 +109,16 @@ namespace Game::Handlers
             const auto& inviteReq = reinterpret_cast<MainPlayerBlockedAddReq*>(message->GetData());
             const auto& target_nickname = Utility::ReadMicrovoltsString(inviteReq->nickname, sizeof(inviteReq->nickname));
             DEBUGLOG(dark_cyan, "[InviteJoin] player want to invite player ({})", target_nickname);
-            auto target_acc_cache = CAccount.get_by_filter<unique_t>([&](const auto& /*id*/, auto& player) {
-                return Utility::ToLowercase(player.acc_info.Nickname) == Utility::ToLowercase(target_nickname);
-                });
-            if (target_acc_cache->acc_info.Index != -1)
+            // lock-free resolve (we hold acc_cache) — avoids ABBA, see ResolveOnlineByNickname
+            const auto target = CMainServer::ResolveOnlineByNickname(target_nickname);
+            if (target.aid != -1)
             {
-                DEBUGLOG(dark_cyan, "[InviteJoin] found target invite player acc info nickname: ({})", target_acc_cache->acc_info.Nickname);
-                if (target_acc_cache->in_room)
+                DEBUGLOG(dark_cyan, "[InviteJoin] found target invite player acc info nickname: ({})", target.nickname);
+                if (target.in_room)
                 {
-                    if (target_acc_cache->room_id != acc_cache->room_id)  //invite someone who is in another room
+                    if (target.room_id != acc_cache->room_id)  //invite someone who is in another room
                     {
-                        if (target_acc_cache->playing)
+                        if (target.playing)
                         {
                             session->SendMsg(319, 0, 5, 0);//target is in battle!
                             return;
@@ -134,7 +133,7 @@ namespace Game::Handlers
                 if (acc_cache->in_party)
                 {
                     auto party_cache = CParty.get<unique_t>(acc_cache->party_id);
-                    if (target_acc_cache->in_party && target_acc_cache->party_id == acc_cache->party_id)//in same party already
+                    if (target.in_party && target.party_id == acc_cache->party_id)//in same party already
                     {
                         session->SendMsg(319, 0, 11, 0);
                         return;
@@ -146,7 +145,7 @@ namespace Game::Handlers
                     }
                     DEBUGLOG(dark_cyan, "[InviteJoin] party is okay to propose the player an invite");
                     MainUserInvitePartyAck inviteInfo = { 1, acc_cache->acc_info.Nickname.c_str(), acc_cache->party_id };
-                    auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
+                    auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target.sid, 1);
                     if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                     {
                         target_session->SendMsg(319, 0, 60, 0, reinterpret_cast<uint8_t*>(&inviteInfo), sizeof(inviteInfo));
@@ -167,7 +166,7 @@ namespace Game::Handlers
                 }
                 //all good, now send him an invite
                 DEBUGLOG(dark_cyan, "[InviteJoin] room is okay to propose the player an invite");
-                auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target_acc_cache->session_id, 1);
+                auto sender_uniqueId = NetEngine::Packets::Core::UniqueId(target.sid, 1);
                 if (auto target_session = server->GetSessionById(sender_uniqueId.session))
                 {
                     auto invite_ack_data = MainUserInviteAck(1, room_cache->room_id, room_cache->channel_id, acc_cache->acc_info.Nickname.c_str(), room_cache->title.c_str(), room_cache->password.c_str()).Serialize(room_cache->has_password);
