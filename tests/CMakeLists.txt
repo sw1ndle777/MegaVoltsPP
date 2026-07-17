@@ -8,7 +8,6 @@ endif()
 
 # Target: unit_tests
 set(unit_tests_SOURCES
-	"build-ninja-msvc/CMakeFiles/4.2.1/CompilerIdCXX/CMakeCXXCompilerId.cpp"
 	cmake.toml
 	"crypto/test_auth_key.cpp"
 	"crypto/test_blake2b_generator.cpp"
